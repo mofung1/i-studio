@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+!.env.example
+.DS_Store
+
+# Keep the legacy UI prototype intact while excluding future generated output.
+UI/node_modules/
+UI/dist/
+
