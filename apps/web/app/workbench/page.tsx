@@ -4,7 +4,7 @@ import type { CommerceTaskType } from '@istudio/contracts'
 const commerceTasks: CommerceTaskType[] = ['white-background', 'scene', 'selling-point', 'detail-page']
 
 interface WorkbenchPageProps {
-  searchParams: Promise<{ mode?: string; task?: string; prompt?: string; model?: string; aspectRatio?: string; resolution?: string }>
+  searchParams: Promise<{ mode?: string; task?: string; prompt?: string; model?: string; aspectRatio?: string; resolution?: string; count?: string }>
 }
 
 export default async function WorkbenchPage({ searchParams }: WorkbenchPageProps) {
@@ -22,6 +22,7 @@ export default async function WorkbenchPage({ searchParams }: WorkbenchPageProps
       initialModel={params.model}
       initialAspectRatio={params.aspectRatio}
       initialResolution={params.resolution}
+      initialCount={params.count}
     />
   )
 }

@@ -3,12 +3,16 @@
 import {
   Box,
   Check,
-  ChevronLeft,
-  ImagePlus,
+  ChevronDown,
+  Image as ImageIcon,
   LayoutPanelLeft,
-  LayoutPanelTop,
+  Minus,
   Package,
+  PanelRight,
+  Palette,
+  Plus,
   Sparkles,
+  Upload,
   WandSparkles,
   X,
 } from 'lucide-react'
@@ -34,6 +38,7 @@ interface WorkbenchProps {
   initialModel?: string
   initialAspectRatio?: string
   initialResolution?: string
+  initialCount?: string
 }
 
 const taskMeta: Record<CommerceTaskType, { title: string; description: string; image: string }> = {
@@ -61,22 +66,46 @@ const taskMeta: Record<CommerceTaskType, { title: string; description: string; i
 
 const commerceTasks = Object.entries(taskMeta) as Array<[CommerceTaskType, (typeof taskMeta)[CommerceTaskType]]>
 
-export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution }: WorkbenchProps) {
+const detailModules = [
+  ['hero', '首屏主视觉'],
+  ['core-selling-point', '核心卖点'],
+  ['usage-scene', '使用场景'],
+  ['multi-angle', '多角度'],
+  ['specification', '尺寸 / 参数'],
+  ['material', '材质 / 成分'],
+  ['accessories', '配件清单'],
+] as const
+
+const insightTags = [
+  ['composition', '构图', '中心聚焦'],
+  ['color', '色彩', '暖灰 + 琥珀'],
+  ['material', '材质', '哑光金属'],
+  ['lighting', '光影', '柔和侧光'],
+  ['style', '风格', '现代极简'],
+  ['atmosphere', '氛围', '安静专注'],
+] as const
+
+type VisualDirection = (typeof insightTags)[number][0]
+
+export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount }: WorkbenchProps) {
   const router = useRouter()
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
   const [configSide, setConfigSide] = useState<ConfigSide>('left')
   const [prompt, setPrompt] = useState(initialPrompt ?? '柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
-  const [productName, setProductName] = useState('')
-  const [productCategory, setProductCategory] = useState('')
-  const [requirements, setRequirements] = useState('')
-  const [sellingPoints, setSellingPoints] = useState('')
+  const [requirements, setRequirements] = useState('突出长效续航、舒适佩戴与沉浸降噪。画面干净克制，适合高端数码品牌。')
   const [productFile, setProductFile] = useState<File | null>(null)
   const [referenceFile, setReferenceFile] = useState<File | null>(null)
-  const [count, setCount] = useState(1)
+  const [hasProductImage, setHasProductImage] = useState(true)
+  const [hasReferenceImage, setHasReferenceImage] = useState(true)
+  const [count, setCount] = useState(() => Math.min(4, Math.max(1, Number(initialCount) || 1)))
   const [model, setModel] = useState<GenerationModel>((initialModel as GenerationModel) ?? 'gpt-image-2')
-  const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? (initialTask === 'detail-page' ? '3:4' : '1:1'))
+  const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? '1:1')
   const [resolution, setResolution] = useState(initialResolution ?? '2K')
+  const [platform, setPlatform] = useState('amazon')
+  const [outputLanguage, setOutputLanguage] = useState<'zh-CN' | 'zh-TW' | 'en'>('en')
+  const [detailModule, setDetailModule] = useState<(typeof detailModules)[number][0]>('core-selling-point')
+  const [visualDirections, setVisualDirections] = useState<VisualDirection[]>(insightTags.map(([key]) => key))
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
@@ -97,8 +126,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const description = mode === 'general' ? '用文字描述或参考图片构建画面' : currentTask.description
 
   const parsedSellingPoints = useMemo(
-    () => sellingPoints.split('\n').map((item) => item.trim()).filter(Boolean),
-    [sellingPoints],
+    () => requirements.split(/[\n，。；]/).map((item) => item.trim()).filter(Boolean).slice(0, 8),
+    [requirements],
   )
 
   function changeMode(nextMode: WorkbenchMode) {
@@ -121,7 +150,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       return {
         mode: 'general',
         prompt,
-        referenceAssetIds: referenceFile ? ['local-reference'] : [],
+        referenceAssetIds: hasReferenceImage ? ['local-reference'] : [],
         style: 'unspecified',
         referenceStrength: 'medium',
         ...imageSettings,
@@ -131,18 +160,18 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     const common = {
       mode: 'commerce',
       taskType: task,
-      productAssetIds: productFile ? ['local-product'] : [],
-      productName,
-      productCategory,
-      platform: 'generic',
+      productAssetIds: hasProductImage ? ['local-product'] : [],
+      productName: productFile?.name.replace(/\.[^.]+$/, '') || 'Aero H1',
+      productCategory: '其他',
+      platform,
       consistencyProtection: true,
       ...imageSettings,
     }
 
     if (task === 'white-background') return { ...common, requirements, naturalShadow: true }
-    if (task === 'scene') return { ...common, sceneDescription: requirements, referenceAssetIds: referenceFile ? ['local-reference'] : [], visualDirection: [] }
-    if (task === 'selling-point') return { ...common, sellingPoints: parsedSellingPoints, outputLanguage: 'zh-CN', requirements, reserveCopyArea: true }
-    return { ...common, module: 'core-selling-point', sellingPoints: parsedSellingPoints, outputLanguage: 'zh-CN', requirements }
+    if (task === 'scene') return { ...common, sceneDescription: requirements, referenceAssetIds: hasReferenceImage ? ['local-reference'] : [], visualDirection: visualDirections }
+    if (task === 'selling-point') return { ...common, sellingPoints: parsedSellingPoints, outputLanguage, requirements, reserveCopyArea: true }
+    return { ...common, module: detailModule, sellingPoints: parsedSellingPoints, outputLanguage, requirements }
   }
 
   async function createGenerationTask() {
@@ -169,6 +198,19 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     }
   }
 
+  function improveDescription() {
+    setRequirements(mode === 'commerce'
+      ? '突出商品核心卖点，保持外观和材质准确，使用克制的高端商业摄影风格。'
+      : requirements)
+    setNotice({ kind: 'success', message: '已优化画面描述' })
+  }
+
+  function toggleVisualDirection(direction: VisualDirection) {
+    setVisualDirections((current) => current.includes(direction)
+      ? current.filter((item) => item !== direction)
+      : [...current, direction])
+  }
+
   return (
     <main className="workbench-page">
       <section className={`workbench-shell config-${configSide}`}>
@@ -185,7 +227,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
           </div>
           {mode === 'commerce' ? (
             <nav className="task-tabs" aria-label="商品生图任务">
-              {commerceTasks.map(([taskId, meta]) => <button key={taskId} className={task === taskId ? 'active' : ''} type="button" onClick={() => changeTask(taskId)}>{meta.title}</button>)}
+              {commerceTasks.map(([taskId, meta]) => <button key={taskId} className={task === taskId ? 'active' : ''} type="button" onClick={() => changeTask(taskId)}>{taskId === 'white-background' && <Box size={16} />}{taskId === 'scene' && <ImageIcon size={16} />}{taskId === 'selling-point' && <Sparkles size={16} />}{taskId === 'detail-page' && <Palette size={16} />}{meta.title}</button>)}
             </nav>
           ) : <strong className="workbench-title"><WandSparkles size={17} />通用生图</strong>}
           <Button asChild size="icon" variant="ghost"><Link href="/" aria-label="关闭工作台"><X size={20} /></Link></Button>
@@ -196,24 +238,23 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
             <strong>生成配置</strong>
             <div className="side-toggle" aria-label="生成配置位置">
               <button className={configSide === 'left' ? 'active' : ''} type="button" aria-label="配置显示在左侧" aria-pressed={configSide === 'left'} onClick={() => setConfigSide('left')}><LayoutPanelLeft size={17} /></button>
-              <button className={configSide === 'right' ? 'active' : ''} type="button" aria-label="配置显示在右侧" aria-pressed={configSide === 'right'} onClick={() => setConfigSide('right')}><LayoutPanelTop className="rotate-panel-icon" size={17} /></button>
+              <button className={configSide === 'right' ? 'active' : ''} type="button" aria-label="配置显示在右侧" aria-pressed={configSide === 'right'} onClick={() => setConfigSide('right')}><PanelRight size={17} /></button>
             </div>
           </div>
 
           <div className="configuration-scroll">
             <fieldset className="form-section">
-              <legend>{mode === 'general' ? '参考图片' : '商品原图'}</legend>
-              <label className="file-input">
-                <ImagePlus size={20} />
-                <span>{(mode === 'general' ? referenceFile : productFile)?.name ?? (mode === 'general' ? '选择参考图片' : '选择商品图片')}</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => mode === 'general' ? setReferenceFile(event.target.files?.[0] ?? null) : setProductFile(event.target.files?.[0] ?? null)} />
-              </label>
+              <div className="field-heading"><legend>{mode === 'general' ? '参考图片' : '商品原图'}</legend><span>{mode === 'general' ? '可选，最多 4 张' : '支持 1-3 张，多角度效果更佳'}</span></div>
+              <div className="upload-list">
+                {(mode === 'general' ? hasReferenceImage : hasProductImage) && <div className="uploaded-thumb"><img src={mode === 'general' ? canvasImage : taskMeta.scene.image} alt="已选择图片" /><span>{mode === 'general' ? '参考' : '主图'}</span><button type="button" aria-label="删除图片" onClick={() => { if (mode === 'general') { setReferenceFile(null); setHasReferenceImage(false) } else { setProductFile(null); setHasProductImage(false) } }}><X size={13} /></button></div>}
+                <label className="add-thumb"><Upload size={20} /><span>{(mode === 'general' ? hasReferenceImage : hasProductImage) ? '添加图片' : '选择图片'}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0] ?? null; if (mode === 'general') { setReferenceFile(file); setHasReferenceImage(Boolean(file)) } else { setProductFile(file); setHasProductImage(Boolean(file)) } }} /></label>
+              </div>
             </fieldset>
 
             {mode === 'commerce' && (
-              <fieldset className="form-section two-columns">
-                <label>商品名称<input value={productName} onChange={(event) => setProductName(event.target.value)} placeholder="例如：Aero H1 耳机" /></label>
-                <label>商品类目<input value={productCategory} onChange={(event) => setProductCategory(event.target.value)} placeholder="例如：消费电子" /></label>
+              <fieldset className="form-section two-columns compact-fields">
+                <label>上架平台<span className="select-shell"><select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="taobao-tmall">淘宝 / 天猫</option><option value="jd">京东</option><option value="douyin">抖音</option><option value="amazon">Amazon</option><option value="shopify">Shopify</option></select><ChevronDown size={14} /></span></label>
+                <label>输出语言<span className="select-shell"><select value={outputLanguage} onChange={(event) => setOutputLanguage(event.target.value as typeof outputLanguage)}><option value="zh-CN">简体中文</option><option value="zh-TW">繁体中文</option><option value="en">English</option></select><ChevronDown size={14} /></span></label>
               </fieldset>
             )}
 
@@ -221,29 +262,39 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               <fieldset className="form-section">
                 <label>画面描述<textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} /></label>
                 <div className="two-columns">
-                  <label>创作风格<select defaultValue="unspecified"><option value="unspecified">不指定</option><option value="studio">摄影棚</option><option value="minimal">极简</option><option value="fresh">清新</option></select></label>
-                  <label>参考强度<select defaultValue="medium" disabled={!referenceFile}><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select></label>
+                  <label>创作风格<span className="select-shell"><select defaultValue="unspecified"><option value="unspecified">不指定</option><option value="studio">摄影棚</option><option value="minimal">极简</option><option value="fresh">清新</option></select><ChevronDown size={14} /></span></label>
+                  <label>参考强度<span className="select-shell"><select defaultValue="medium" disabled={!hasReferenceImage}><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select><ChevronDown size={14} /></span></label>
                 </div>
               </fieldset>
             ) : (
-              <CommerceFields task={task} requirements={requirements} sellingPoints={sellingPoints} onRequirementsChange={setRequirements} onSellingPointsChange={setSellingPoints} onReferenceFileChange={setReferenceFile} />
+              <>
+                <fieldset className="form-section">
+                  <div className="field-heading"><legend>商品卖点与要求</legend><button className="ai-write" type="button" onClick={improveDescription}><WandSparkles size={15} />AI 优化</button></div>
+                  <textarea value={requirements} onChange={(event) => setRequirements(event.target.value)} placeholder="描述商品卖点、目标场景和画面要求" />
+                </fieldset>
+                {task === 'detail-page' && <fieldset className="form-section"><div className="field-heading stacked"><legend>详情页内容模块</legend><span>选择本页要表达的一个主题</span></div><div className="module-grid">{detailModules.map(([value, label]) => <button key={value} className={detailModule === value ? 'selected' : ''} type="button" onClick={() => setDetailModule(value)}>{detailModule === value && <Check size={13} />}{label}</button>)}</div></fieldset>}
+                <fieldset className="form-section">
+                  <div className="field-heading"><legend>视觉方向</legend><span>取消不希望参考的维度</span></div>
+                  <div className="reference-insight"><img src={taskMeta.scene.image} alt="视觉参考" /><div><strong>智能匹配</strong><span>基于商品图推荐当前方向</span></div><Sparkles size={17} /></div>
+                  <div className="insight-chips">{insightTags.map(([value, label, detail]) => <button key={value} className={visualDirections.includes(value) ? 'selected' : ''} type="button" onClick={() => toggleVisualDirection(value)}><span>{label}</span>{detail}{visualDirections.includes(value) && <Check size={12} />}</button>)}</div>
+                </fieldset>
+              </>
             )}
 
             <fieldset className="form-section">
-              <legend>画面设置 <small>默认生成 1 张</small></legend>
+              <div className="field-heading"><legend>画面设置</legend><span>默认生成 1 张</span></div>
               <div className="settings-grid">
-                <select aria-label="生图模型" value={model} onChange={(event) => setModel(event.target.value as GenerationModel)}><option value="gpt-image-2">GPT Image 2</option><option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></select>
-                <select aria-label="画面比例" value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)}><option>1:1</option><option>3:4</option><option>4:3</option><option>9:16</option><option>16:9</option></select>
-                <select aria-label="清晰度" value={resolution} onChange={(event) => setResolution(event.target.value)}><option>1K</option><option>2K</option><option>4K</option></select>
-                <div className="stepper"><button type="button" aria-label="减少生成数量" onClick={() => setCount((value) => Math.max(1, value - 1))}>-</button><strong>{count}</strong><button type="button" aria-label="增加生成数量" onClick={() => setCount((value) => Math.min(4, value + 1))}>+</button></div>
+                <span className="select-shell"><select aria-label="画面比例" value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)}><option>1:1</option><option>3:4</option><option>4:3</option><option>9:16</option><option>16:9</option></select><ChevronDown size={14} /></span>
+                <span className="select-shell"><select aria-label="清晰度" value={resolution} onChange={(event) => setResolution(event.target.value)}><option>1K</option><option>2K</option><option>4K</option></select><ChevronDown size={14} /></span>
+                <div className="stepper"><button type="button" aria-label="减少生成数量" disabled={count === 1} onClick={() => setCount((value) => Math.max(1, value - 1))}><Minus size={15} /></button><strong>{count}</strong><button type="button" aria-label="增加生成数量" disabled={count === 4} onClick={() => setCount((value) => Math.min(4, value + 1))}><Plus size={15} /></button></div>
               </div>
             </fieldset>
           </div>
 
           <footer className="configuration-footer">
             {notice && <p className={`form-notice ${notice.kind}`} role="status">{notice.kind === 'success' && <Check size={15} />}{notice.message}</p>}
-            <button className="model-button" type="button"><Sparkles size={16} />Auto · 推荐</button>
-            <Button onClick={createGenerationTask}><Sparkles size={17} />创建生成任务</Button>
+            <label className="model-button"><Sparkles size={16} /><select aria-label="生图模型" value={model} onChange={(event) => setModel(event.target.value as GenerationModel)}><option value="gpt-image-2">Auto · 推荐</option><option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></select><ChevronDown size={14} /></label>
+            <Button onClick={createGenerationTask}><Sparkles size={17} />生成 {title}</Button>
           </footer>
         </aside>
 
@@ -257,30 +308,5 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         </section>
       </section>
     </main>
-  )
-}
-
-interface CommerceFieldsProps {
-  task: CommerceTaskType
-  requirements: string
-  sellingPoints: string
-  onRequirementsChange: (value: string) => void
-  onSellingPointsChange: (value: string) => void
-  onReferenceFileChange: (file: File | null) => void
-}
-
-function CommerceFields({ task, requirements, sellingPoints, onRequirementsChange, onSellingPointsChange, onReferenceFileChange }: CommerceFieldsProps) {
-  return (
-    <>
-      {task === 'scene' && (
-        <fieldset className="form-section">
-          <label>场景描述<textarea value={requirements} onChange={(event) => onRequirementsChange(event.target.value)} placeholder="描述商品所在环境、光线和氛围" /></label>
-          <label className="file-input compact"><ImagePlus size={18} /><span>添加场景参考图</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => onReferenceFileChange(event.target.files?.[0] ?? null)} /></label>
-        </fieldset>
-      )}
-      {task === 'white-background' && <fieldset className="form-section"><label>精修要求<textarea value={requirements} onChange={(event) => onRequirementsChange(event.target.value)} placeholder="可选，例如保留自然阴影、修复边缘" /></label><label className="check-row"><input type="checkbox" defaultChecked />保留自然阴影</label></fieldset>}
-      {task === 'selling-point' && <fieldset className="form-section"><label>商品卖点<textarea value={sellingPoints} onChange={(event) => onSellingPointsChange(event.target.value)} placeholder="每行一个卖点，至少填写一项" /></label><label>补充要求<textarea value={requirements} onChange={(event) => onRequirementsChange(event.target.value)} placeholder="画面风格与信息留白要求" /></label><label className="check-row"><input type="checkbox" defaultChecked />为后续文案排版预留空间</label></fieldset>}
-      {task === 'detail-page' && <fieldset className="form-section"><label>内容模块<select defaultValue="core-selling-point"><option value="hero">首屏主视觉</option><option value="core-selling-point">核心卖点</option><option value="usage-scene">使用场景</option><option value="multi-angle">多角度</option><option value="specification">尺寸 / 参数</option><option value="material">材质 / 成分</option><option value="accessories">配件清单</option></select></label><label>商品卖点<textarea value={sellingPoints} onChange={(event) => onSellingPointsChange(event.target.value)} placeholder="可选，每行一个卖点" /></label><label>补充要求<textarea value={requirements} onChange={(event) => onRequirementsChange(event.target.value)} /></label></fieldset>}
-    </>
   )
 }
