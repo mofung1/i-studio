@@ -4,6 +4,7 @@ import {
   Box,
   Check,
   ChevronDown,
+  Download,
   Image as ImageIcon,
   LayoutPanelLeft,
   Minus,
@@ -11,6 +12,7 @@ import {
   PanelRight,
   Palette,
   Plus,
+  RefreshCw,
   Sparkles,
   Upload,
   WandSparkles,
@@ -28,8 +30,25 @@ import {
 } from '@istudio/contracts'
 import { Button } from '@istudio/ui'
 
+import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
+import { apiBaseUrl, getAccessToken, readApiError, uploadAsset } from '@/lib/api'
+
 type WorkbenchMode = 'general' | 'commerce'
 type ConfigSide = 'left' | 'right'
+
+type InlineGenerationTask = {
+  id: string
+  status: string
+  resultImages?: string[]
+  errorMessage?: string
+}
+
+const terminalStatuses = new Set(['succeeded', 'failed', 'cancelled', 'expired'])
+const generationStatusLabels: Record<string, string> = {
+  queued: '排队中',
+  processing: '正在生成',
+  waiting_provider: '等待 AI 服务',
+}
 
 interface WorkbenchProps {
   initialMode: WorkbenchMode
@@ -39,6 +58,7 @@ interface WorkbenchProps {
   initialAspectRatio?: string
   initialResolution?: string
   initialCount?: string
+  initialProjectId?: string
 }
 
 const taskMeta: Record<CommerceTaskType, { title: string; description: string; image: string }> = {
@@ -87,7 +107,7 @@ const insightTags = [
 
 type VisualDirection = (typeof insightTags)[number][0]
 
-export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount }: WorkbenchProps) {
+export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount, initialProjectId }: WorkbenchProps) {
   const router = useRouter()
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
@@ -96,8 +116,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [requirements, setRequirements] = useState('突出长效续航、舒适佩戴与沉浸降噪。画面干净克制，适合高端数码品牌。')
   const [productFile, setProductFile] = useState<File | null>(null)
   const [referenceFile, setReferenceFile] = useState<File | null>(null)
-  const [hasProductImage, setHasProductImage] = useState(true)
-  const [hasReferenceImage, setHasReferenceImage] = useState(true)
   const [count, setCount] = useState(() => Math.min(4, Math.max(1, Number(initialCount) || 1)))
   const [model, setModel] = useState<GenerationModel>((initialModel as GenerationModel) ?? 'gpt-image-2')
   const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? '1:1')
@@ -107,6 +125,16 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [detailModule, setDetailModule] = useState<(typeof detailModules)[number][0]>('core-selling-point')
   const [visualDirections, setVisualDirections] = useState<VisualDirection[]>(insightTags.map(([key]) => key))
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
+  const [projectId, setProjectId] = useState(initialProjectId ?? '')
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
+  const [productPreview, setProductPreview] = useState('')
+  const [referencePreview, setReferencePreview] = useState('')
+  const [generationTask, setGenerationTask] = useState<InlineGenerationTask | null>(null)
+  const hasProductImage = Boolean(productFile)
+  const hasReferenceImage = Boolean(referenceFile)
+  const isGenerating = Boolean(generationTask && !terminalStatuses.has(generationTask.status))
 
   useEffect(() => {
     const savedSide = window.localStorage.getItem('istudio-config-side')
@@ -116,6 +144,80 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   useEffect(() => {
     window.localStorage.setItem('istudio-config-side', configSide)
   }, [configSide])
+
+  useEffect(() => {
+    const token = getAccessToken()
+    if (!token) return
+    fetch(`${apiBaseUrl}/v1/projects`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('项目加载失败')))
+      .then((data: { projects?: Array<{ id: string; name: string }> }) => setProjects(data.projects ?? []))
+      .catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    if (!getAccessToken()) router.replace('/login')
+  }, [router])
+
+  useEffect(() => {
+    fetch(`${apiBaseUrl}/v1/generation/capabilities`)
+      .then((response) => response.json())
+      .then((data: { aiEnabled?: boolean }) => setAiEnabled(Boolean(data.aiEnabled)))
+      .catch(() => setAiEnabled(false))
+  }, [])
+
+  useEffect(() => {
+    if (!generationTask || terminalStatuses.has(generationTask.status)) return
+
+    let cancelled = false
+    let timer = 0
+    const loadTask = async () => {
+      try {
+        const token = getAccessToken()
+        if (!token) return
+        const response = await fetch(`${apiBaseUrl}/v1/generation/tasks/${generationTask.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!response.ok) throw new Error(await readApiError(response, '任务状态获取失败'))
+        const data = await response.json() as { task: InlineGenerationTask }
+        if (cancelled) return
+        setGenerationTask(data.task)
+        if (!terminalStatuses.has(data.task.status)) timer = window.setTimeout(loadTask, 3000)
+      } catch (error) {
+        if (cancelled) return
+        setGenerationTask((current) => current ? {
+          ...current,
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : '任务状态获取失败',
+        } : current)
+      }
+    }
+
+    void loadTask()
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [generationTask?.id, generationTask?.status])
+
+  useEffect(() => {
+    if (!productFile) {
+      setProductPreview('')
+      return
+    }
+    const url = URL.createObjectURL(productFile)
+    setProductPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [productFile])
+
+  useEffect(() => {
+    if (!referenceFile) {
+      setReferencePreview('')
+      return
+    }
+    const url = URL.createObjectURL(referenceFile)
+    setReferencePreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [referenceFile])
 
   const currentTask = taskMeta[task]
   const canvasImage = mode === 'general'
@@ -143,14 +245,14 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     router.replace(`/workbench?mode=commerce&task=${nextTask}`)
   }
 
-  function buildPayload(): unknown {
+  function buildPayload(productAssetIds: string[], referenceAssetIds: string[]): unknown {
     const imageSettings = { model, aspectRatio, resolution, count }
 
     if (mode === 'general') {
       return {
         mode: 'general',
         prompt,
-        referenceAssetIds: hasReferenceImage ? ['local-reference'] : [],
+        referenceAssetIds,
         style: 'unspecified',
         referenceStrength: 'medium',
         ...imageSettings,
@@ -160,41 +262,77 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     const common = {
       mode: 'commerce',
       taskType: task,
-      productAssetIds: hasProductImage ? ['local-product'] : [],
+      productAssetIds,
       productName: productFile?.name.replace(/\.[^.]+$/, '') || 'Aero H1',
       productCategory: '其他',
       platform,
       consistencyProtection: true,
+      projectId: projectId || undefined,
       ...imageSettings,
     }
 
     if (task === 'white-background') return { ...common, requirements, naturalShadow: true }
-    if (task === 'scene') return { ...common, sceneDescription: requirements, referenceAssetIds: hasReferenceImage ? ['local-reference'] : [], visualDirection: visualDirections }
+    if (task === 'scene') return { ...common, sceneDescription: requirements, referenceAssetIds, visualDirection: visualDirections }
     if (task === 'selling-point') return { ...common, sellingPoints: parsedSellingPoints, outputLanguage, requirements, reserveCopyArea: true }
     return { ...common, module: detailModule, sellingPoints: parsedSellingPoints, outputLanguage, requirements }
   }
 
   async function createGenerationTask() {
-    const result = generationInputSchema.safeParse(buildPayload())
-
-    if (!result.success) {
-      const firstIssue = result.error.issues[0]
-      setNotice({ kind: 'error', message: firstIssue?.message ?? '请完成必填配置' })
+    const token = getAccessToken()
+    if (!token) {
+      router.replace('/login')
+      return
+    }
+    if (aiEnabled === false) {
+      setNotice({ kind: 'error', message: 'AI 服务尚未配置，请先在后端设置供应商密钥' })
+      return
+    }
+    if (mode === 'commerce' && !productFile) {
+      setNotice({ kind: 'error', message: '请先上传商品原图' })
       return
     }
 
-    const validatedInput: GenerationInput = result.data
+    setIsSubmitting(true)
+    setNotice(null)
+    setGenerationTask(null)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'}/v1/generation/tasks`, {
+      const draftResult = generationInputSchema.safeParse(buildPayload(
+        productFile ? ['pending-product'] : [],
+        referenceFile ? ['pending-reference'] : [],
+      ))
+      if (!draftResult.success) {
+        const firstIssue = draftResult.error.issues[0]
+        throw new Error(firstIssue?.message ?? '请完成必填配置')
+      }
+      const [productAssetId, referenceAssetId] = await Promise.all([
+        productFile ? uploadAsset(productFile, token, projectId || undefined) : Promise.resolve(''),
+        referenceFile ? uploadAsset(referenceFile, token, projectId || undefined) : Promise.resolve(''),
+      ])
+      const result = generationInputSchema.safeParse(buildPayload(
+        productAssetId ? [productAssetId] : [],
+        referenceAssetId ? [referenceAssetId] : [],
+      ))
+
+      if (!result.success) {
+        const firstIssue = result.error.issues[0]
+        throw new Error(firstIssue?.message ?? '请完成必填配置')
+      }
+
+      const validatedInput: GenerationInput = result.data
+      const response = await fetch(`${apiBaseUrl}/v1/generation/tasks`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(validatedInput),
       })
-      if (!response.ok) throw new Error('API unavailable')
-      const data = await response.json() as { task: { id: string; status: string }; message: string }
-      setNotice({ kind: 'success', message: `任务 ${data.task.id.slice(0, 8)} 已创建（${data.task.status}）。${data.message}` })
-    } catch {
-      setNotice({ kind: 'success', message: `${validatedInput.mode === 'general' ? '通用生图' : title}参数已通过校验。API 尚未启动，暂未提交任务。` })
+      if (response.status === 401) { router.replace('/login'); return }
+      if (!response.ok) throw new Error(await readApiError(response, '任务创建失败'))
+      const data = await response.json() as { task: InlineGenerationTask; message: string }
+      setGenerationTask(data.task)
+      setNotice({ kind: 'success', message: '任务已提交，结果将在当前页面显示' })
+    } catch (error) {
+      setNotice({ kind: 'error', message: error instanceof Error ? error.message : '任务创建失败，请稍后重试' })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -246,10 +384,14 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
             <fieldset className="form-section">
               <div className="field-heading"><legend>{mode === 'general' ? '参考图片' : '商品原图'}</legend><span>{mode === 'general' ? '可选，最多 4 张' : '支持 1-3 张，多角度效果更佳'}</span></div>
               <div className="upload-list">
-                {(mode === 'general' ? hasReferenceImage : hasProductImage) && <div className="uploaded-thumb"><img src={mode === 'general' ? canvasImage : taskMeta.scene.image} alt="已选择图片" /><span>{mode === 'general' ? '参考' : '主图'}</span><button type="button" aria-label="删除图片" onClick={() => { if (mode === 'general') { setReferenceFile(null); setHasReferenceImage(false) } else { setProductFile(null); setHasProductImage(false) } }}><X size={13} /></button></div>}
-                <label className="add-thumb"><Upload size={20} /><span>{(mode === 'general' ? hasReferenceImage : hasProductImage) ? '添加图片' : '选择图片'}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0] ?? null; if (mode === 'general') { setReferenceFile(file); setHasReferenceImage(Boolean(file)) } else { setProductFile(file); setHasProductImage(Boolean(file)) } }} /></label>
+                {((mode === 'general' && hasReferenceImage && referencePreview) || (mode === 'commerce' && hasProductImage && productPreview)) && <div className="uploaded-thumb"><img src={mode === 'general' ? referencePreview : productPreview} alt="已选择图片" /><span>{mode === 'general' ? '参考' : '主图'}</span><button type="button" aria-label="删除图片" onClick={() => { if (mode === 'general') setReferenceFile(null); else setProductFile(null) }}><X size={13} /></button></div>}
+                <label className="add-thumb"><Upload size={20} /><span>{(mode === 'general' ? hasReferenceImage : hasProductImage) ? '更换图片' : '选择图片'}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0] ?? null; if (mode === 'general') setReferenceFile(file); else setProductFile(file); event.target.value = '' }} /></label>
               </div>
             </fieldset>
+
+            {mode === 'commerce' && (
+              <fieldset className="form-section compact-fields"><label>所属项目<span className="select-shell"><select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">未选择项目</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><ChevronDown size={14} /></span></label></fieldset>
+            )}
 
             {mode === 'commerce' && (
               <fieldset className="form-section two-columns compact-fields">
@@ -294,17 +436,35 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
           <footer className="configuration-footer">
             {notice && <p className={`form-notice ${notice.kind}`} role="status">{notice.kind === 'success' && <Check size={15} />}{notice.message}</p>}
             <label className="model-button"><Sparkles size={16} /><select aria-label="生图模型" value={model} onChange={(event) => setModel(event.target.value as GenerationModel)}><option value="gpt-image-2">Auto · 推荐</option><option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></select><ChevronDown size={14} /></label>
-            <Button onClick={createGenerationTask}><Sparkles size={17} />生成 {title}</Button>
+          <Button disabled={isSubmitting || isGenerating || aiEnabled === null} onClick={createGenerationTask}><Sparkles size={17} />{isSubmitting ? '正在提交…' : isGenerating ? '正在生成…' : aiEnabled === null ? '检查 AI 服务…' : `生成 ${title}`}</Button>
           </footer>
         </aside>
 
-        <section className="creation-canvas">
-          <div className="canvas-copy"><span>{mode === 'general' ? 'AI 图片' : '电商工具'}</span><h1>{title}</h1><p>{description}</p></div>
-          <div className="canvas-preview">
-            <img src={canvasImage} alt={`${title}效果预览`} />
-            <span>效果预览</span>
-          </div>
-          <p className="integration-note"><Box size={16} />当前展示设计参考图；尚未调用 AI，也不会产生费用。</p>
+        <section className={`creation-canvas ${generationTask ? 'has-generation-result' : ''}`}>
+          {!generationTask && <>
+            <div className="canvas-copy"><span>{mode === 'general' ? 'AI 图片' : '电商工具'}</span><h1>{title}</h1><p>{description}</p></div>
+            <div className="canvas-preview">
+              <img src={canvasImage} alt={`${title}效果预览`} />
+              <span>效果预览</span>
+            </div>
+            <p className="integration-note"><Box size={16} />当前展示设计参考图；尚未调用 AI，也不会产生费用。</p>
+          </>}
+
+          {generationTask && isGenerating && <div className="generation-feedback">
+            <div className="generating-image"><img src={canvasImage} alt="正在生成的图片" /><div className="scan-line" /><span><Sparkles size={21} /></span></div>
+            <h2>{generationStatusLabels[generationTask.status] ?? '正在构建画面'}</h2>
+            <p>正在匹配构图、光影与创作约束，请稍候。</p>
+            <div className="stage-track"><i className="done" /><i className="active" /><i /></div>
+            <div className="stage-labels"><span><Check size={13} />理解需求</span><span className="active">生成画面</span><span>自动质检</span></div>
+          </div>}
+
+          {generationTask && !isGenerating && generationTask.status === 'succeeded' && generationTask.resultImages?.length ? <div className="editor-result">
+            <div className="result-topline"><div><span className="success-label"><Check size={13} />生成完成</span><h2>{title}</h2></div><span>{generationTask.resultImages.length} 张图片</span></div>
+            <div className="inline-result-grid">{generationTask.resultImages.map((path, index) => <div className="inline-result-image" key={path}><AuthenticatedImage path={path} alt={`AI 生成结果 ${index + 1}`} /><span className="ai-badge">AI 生成</span><button type="button" aria-label={`下载第 ${index + 1} 张图片`} onClick={() => void downloadProtectedAsset(path, `istudio-${generationTask.id.slice(0, 8)}-${index + 1}.png`)}><Download size={16} /></button></div>)}</div>
+            <p className="integration-note"><RefreshCw size={16} />结果已保存到任务记录，也可以从“任务”页面继续查看。</p>
+          </div> : null}
+
+          {generationTask && !isGenerating && generationTask.status !== 'succeeded' && <div className="inline-generation-error"><strong>生成失败</strong><span>{generationTask.errorMessage || '供应商未返回错误详情，请重试。'}</span></div>}
         </section>
       </section>
     </main>

@@ -9,8 +9,10 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
+    "dev:test": "./scripts/start-test.sh",
     "dev:web": "pnpm --filter @istudio/web dev",
-    "dev:api": "pnpm --filter @istudio/api dev",
+    "dev:api": "go -C apps/server run .",
+    "dev:server": "go -C apps/server run .",
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "clean": "turbo clean"
@@ -20,4 +22,3 @@
     "typescript": "^5.9.2"
   }
 }
-

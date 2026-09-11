@@ -43,5 +43,14 @@ describe('generation input contracts', () => {
 
     expect(result.success).toBe(false)
   })
-})
 
+  it('keeps an optional project association', () => {
+    const result = generalGenerationInputSchema.parse({
+      mode: 'general',
+      prompt: '极简商品摄影',
+      projectId: 'project-1',
+    })
+
+    expect(result.projectId).toBe('project-1')
+  })
+})

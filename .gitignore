@@ -5,6 +5,8 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+apps/server/server
+apps/server/api-go
 .env
 .env.local
 .env.*.local
@@ -14,4 +16,3 @@ coverage/
 # Keep the legacy UI prototype intact while excluding future generated output.
 UI/node_modules/
 UI/dist/
-

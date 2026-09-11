@@ -26,6 +26,7 @@ const imageSettingsSchema = z.object({
   aspectRatio: aspectRatioSchema.default('1:1'),
   resolution: resolutionSchema.default('2K'),
   count: generationCountSchema,
+  projectId: z.string().trim().min(1).optional(),
 })
 
 const productAssetsSchema = z.array(z.string().min(1)).min(1).max(10)
