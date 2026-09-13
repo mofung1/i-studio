@@ -2,7 +2,9 @@
 
 import { ArrowRight, Box, ChevronDown, Clock3, Images, Maximize, Palette, Send, Sparkles } from 'lucide-react'
 import Link from 'next/link'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+
+import { apiBaseUrl } from '@/lib/api'
 
 import { TopNavigation } from './top-navigation'
 
@@ -18,6 +20,12 @@ const inspiration = [
   ['安静的居家办公', '数码', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85'],
   ['现代主义客厅', '家居', 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=85'],
 ]
+
+type HomeProject = {
+  id: string
+  name: string
+  updatedAt?: string
+}
 
 interface ComposerSelectProps {
   label: string
@@ -43,6 +51,24 @@ export function HomePage() {
   const [ratio, setRatio] = useState('1:1')
   const [resolution, setResolution] = useState('2K')
   const [count, setCount] = useState('1')
+  const [projects, setProjects] = useState<HomeProject[]>([])
+
+  useEffect(() => {
+    const token = window.localStorage.getItem('istudio-access-token')
+    if (!token) return
+
+    const controller = new AbortController()
+    fetch(`${apiBaseUrl}/v1/projects`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('项目加载失败')))
+      .then((data: { projects?: HomeProject[] }) => setProjects((data.projects ?? []).slice(0, 3)))
+      .catch(() => undefined)
+
+    return () => controller.abort()
+  }, [])
+
   return (
     <div className="site-shell">
       <TopNavigation />
@@ -84,19 +110,18 @@ export function HomePage() {
 
         <section className="content-section" id="projects">
           <div className="section-heading"><Clock3 size={20} /><div><h2>最近项目</h2><p>继续上次未完成的创作。</p></div></div>
-          <article className="recent-project">
-            <img src={commerceTools[1]?.image} alt="Aero H1 秋季上新" />
-            <div><strong>Aero H1 秋季上新</strong><span>场景图 · 12 个资产</span></div>
-            <time>刚刚</time>
-            <Link href="/workbench?mode=commerce&task=scene">继续创作</Link>
-          </article>
+          {projects.length ? <div className="recent-project-list">{projects.map((project) => <article className="recent-project no-cover" key={project.id}>
+            <div><strong>{project.name}</strong><span>项目</span></div>
+            {project.updatedAt && <time>{new Date(project.updatedAt).toLocaleDateString('zh-CN')}</time>}
+            <Link href={`/workbench?mode=commerce&task=scene&projectId=${project.id}`}>继续创作</Link>
+          </article>)}</div> : <div className="home-empty-state"><span>还没有项目，先创建第一个</span><Link href="/projects">创建项目</Link></div>}
         </section>
 
         <section className="content-section" id="inspiration">
           <div className="section-heading"><Palette size={20} /><div><h2>发现灵感</h2><p>精选可复用的构图和视觉方向。</p></div></div>
           <div className="inspiration-grid">
             {inspiration.map(([title, category, image]) => (
-              <article key={title}><img src={image} alt={title} /><strong>{title}</strong><span>{category}</span></article>
+              <article className="inspiration-coming-soon" key={title} aria-disabled="true"><div><img src={image} alt={title} /><span>即将上线</span></div><strong>{title}</strong><span>{category}</span></article>
             ))}
           </div>
         </section>

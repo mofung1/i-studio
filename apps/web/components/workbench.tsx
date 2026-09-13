@@ -19,7 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
 import {
@@ -45,9 +45,9 @@ type InlineGenerationTask = {
 
 const terminalStatuses = new Set(['succeeded', 'failed', 'cancelled', 'expired'])
 const generationStatusLabels: Record<string, string> = {
-  queued: '排队中',
+  queued: '排队中，前面还有任务',
   processing: '正在生成',
-  waiting_provider: '等待 AI 服务',
+  waiting_provider: '已提交给 AI 服务，等待返回',
 }
 
 interface WorkbenchProps {
@@ -106,20 +106,47 @@ const insightTags = [
 ] as const
 
 type VisualDirection = (typeof insightTags)[number][0]
+type GeneralStyle = 'unspecified' | 'studio' | 'minimal' | 'fresh' | 'technology' | 'guochao'
+type ReferenceStrength = 'low' | 'medium' | 'high'
+
+function SelectedImageThumbnail({ file, label, onRemove }: { file: File; label: string; onRemove: () => void }) {
+  const [preview, setPreview] = useState('')
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file)
+    setPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+
+  return (
+    <div className="uploaded-thumb">
+      {preview ? <img src={preview} alt={`${label}：${file.name}`} /> : null}
+      <span>{label}</span>
+      <button type="button" aria-label={`删除${label}`} onClick={onRemove}><X size={13} /></button>
+    </div>
+  )
+}
 
 export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount, initialProjectId }: WorkbenchProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
   const [configSide, setConfigSide] = useState<ConfigSide>('left')
   const [prompt, setPrompt] = useState(initialPrompt ?? '柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
-  const [requirements, setRequirements] = useState('突出长效续航、舒适佩戴与沉浸降噪。画面干净克制，适合高端数码品牌。')
-  const [productFile, setProductFile] = useState<File | null>(null)
-  const [referenceFile, setReferenceFile] = useState<File | null>(null)
+  const [requirements, setRequirements] = useState('')
+  const [productFiles, setProductFiles] = useState<File[]>([])
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([])
   const [count, setCount] = useState(() => Math.min(4, Math.max(1, Number(initialCount) || 1)))
   const [model, setModel] = useState<GenerationModel>((initialModel as GenerationModel) ?? 'gpt-image-2')
   const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? '1:1')
   const [resolution, setResolution] = useState(initialResolution ?? '2K')
+  const [style, setStyle] = useState<GeneralStyle>('unspecified')
+  const [referenceStrength, setReferenceStrength] = useState<ReferenceStrength>('medium')
+  const [productName, setProductName] = useState('')
+  const [productCategory, setProductCategory] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ productName?: string }>({})
   const [platform, setPlatform] = useState('amazon')
   const [outputLanguage, setOutputLanguage] = useState<'zh-CN' | 'zh-TW' | 'en'>('en')
   const [detailModule, setDetailModule] = useState<(typeof detailModules)[number][0]>('core-selling-point')
@@ -129,11 +156,9 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
-  const [productPreview, setProductPreview] = useState('')
-  const [referencePreview, setReferencePreview] = useState('')
   const [generationTask, setGenerationTask] = useState<InlineGenerationTask | null>(null)
-  const hasProductImage = Boolean(productFile)
-  const hasReferenceImage = Boolean(referenceFile)
+  const hasProductImage = productFiles.length > 0
+  const hasReferenceImage = referenceFiles.length > 0
   const isGenerating = Boolean(generationTask && !terminalStatuses.has(generationTask.status))
 
   useEffect(() => {
@@ -153,10 +178,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       .then((data: { projects?: Array<{ id: string; name: string }> }) => setProjects(data.projects ?? []))
       .catch(() => undefined)
   }, [])
-
-  useEffect(() => {
-    if (!getAccessToken()) router.replace('/login')
-  }, [router])
 
   useEffect(() => {
     fetch(`${apiBaseUrl}/v1/generation/capabilities`)
@@ -199,26 +220,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     }
   }, [generationTask?.id, generationTask?.status])
 
-  useEffect(() => {
-    if (!productFile) {
-      setProductPreview('')
-      return
-    }
-    const url = URL.createObjectURL(productFile)
-    setProductPreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [productFile])
-
-  useEffect(() => {
-    if (!referenceFile) {
-      setReferencePreview('')
-      return
-    }
-    const url = URL.createObjectURL(referenceFile)
-    setReferencePreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [referenceFile])
-
   const currentTask = taskMeta[task]
   const canvasImage = mode === 'general'
     ? 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=1400&q=88'
@@ -228,9 +229,15 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const description = mode === 'general' ? '用文字描述或参考图片构建画面' : currentTask.description
 
   const parsedSellingPoints = useMemo(
-    () => requirements.split(/[\n，。；]/).map((item) => item.trim()).filter(Boolean).slice(0, 8),
+    () => requirements.split('\n').map((item) => item.trim()).filter(Boolean).slice(0, 8),
     [requirements],
   )
+
+  const requirementsPlaceholder = task === 'selling-point' || task === 'detail-page'
+    ? '每行一条卖点，最多 8 条'
+    : task === 'scene'
+      ? '描述目标场景、光线和氛围'
+      : '补充背景、阴影和商品呈现要求'
 
   function changeMode(nextMode: WorkbenchMode) {
     setMode(nextMode)
@@ -253,8 +260,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         mode: 'general',
         prompt,
         referenceAssetIds,
-        style: 'unspecified',
-        referenceStrength: 'medium',
+        style,
+        referenceStrength,
         ...imageSettings,
       }
     }
@@ -263,8 +270,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       mode: 'commerce',
       taskType: task,
       productAssetIds,
-      productName: productFile?.name.replace(/\.[^.]+$/, '') || 'Aero H1',
-      productCategory: '其他',
+      productName: productName.trim(),
+      productCategory: productCategory.trim() || '未分类',
       platform,
       consistencyProtection: true,
       projectId: projectId || undefined,
@@ -280,38 +287,41 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   async function createGenerationTask() {
     const token = getAccessToken()
     if (!token) {
-      router.replace('/login')
+      const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`
+      router.push(`/login?next=${encodeURIComponent(currentUrl)}`)
       return
     }
     if (aiEnabled === false) {
       setNotice({ kind: 'error', message: 'AI 服务尚未配置，请先在后端设置供应商密钥' })
       return
     }
-    if (mode === 'commerce' && !productFile) {
+    if (mode === 'commerce' && !hasProductImage) {
       setNotice({ kind: 'error', message: '请先上传商品原图' })
+      return
+    }
+    if (mode === 'commerce' && !productName.trim()) {
+      setFieldErrors({ productName: '请输入商品名称' })
       return
     }
 
     setIsSubmitting(true)
+    setFieldErrors({})
     setNotice(null)
     setGenerationTask(null)
     try {
       const draftResult = generationInputSchema.safeParse(buildPayload(
-        productFile ? ['pending-product'] : [],
-        referenceFile ? ['pending-reference'] : [],
+        productFiles.map((_, index) => `pending-product-${index}`),
+        referenceFiles.map((_, index) => `pending-reference-${index}`),
       ))
       if (!draftResult.success) {
         const firstIssue = draftResult.error.issues[0]
         throw new Error(firstIssue?.message ?? '请完成必填配置')
       }
-      const [productAssetId, referenceAssetId] = await Promise.all([
-        productFile ? uploadAsset(productFile, token, projectId || undefined) : Promise.resolve(''),
-        referenceFile ? uploadAsset(referenceFile, token, projectId || undefined) : Promise.resolve(''),
+      const [productAssetIds, referenceAssetIds] = await Promise.all([
+        Promise.all(productFiles.map((file) => uploadAsset(file, token, projectId || undefined))),
+        Promise.all(referenceFiles.map((file) => uploadAsset(file, token, projectId || undefined))),
       ])
-      const result = generationInputSchema.safeParse(buildPayload(
-        productAssetId ? [productAssetId] : [],
-        referenceAssetId ? [referenceAssetId] : [],
-      ))
+      const result = generationInputSchema.safeParse(buildPayload(productAssetIds, referenceAssetIds))
 
       if (!result.success) {
         const firstIssue = result.error.issues[0]
@@ -324,7 +334,11 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(validatedInput),
       })
-      if (response.status === 401) { router.replace('/login'); return }
+      if (response.status === 401) {
+        const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`
+        router.push(`/login?next=${encodeURIComponent(currentUrl)}`)
+        return
+      }
       if (!response.ok) throw new Error(await readApiError(response, '任务创建失败'))
       const data = await response.json() as { task: InlineGenerationTask; message: string }
       setGenerationTask(data.task)
@@ -334,13 +348,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  function improveDescription() {
-    setRequirements(mode === 'commerce'
-      ? '突出商品核心卖点，保持外观和材质准确，使用克制的高端商业摄影风格。'
-      : requirements)
-    setNotice({ kind: 'success', message: '已优化画面描述' })
   }
 
   function toggleVisualDirection(direction: VisualDirection) {
@@ -384,13 +391,31 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
             <fieldset className="form-section">
               <div className="field-heading"><legend>{mode === 'general' ? '参考图片' : '商品原图'}</legend><span>{mode === 'general' ? '可选，最多 4 张' : '支持 1-3 张，多角度效果更佳'}</span></div>
               <div className="upload-list">
-                {((mode === 'general' && hasReferenceImage && referencePreview) || (mode === 'commerce' && hasProductImage && productPreview)) && <div className="uploaded-thumb"><img src={mode === 'general' ? referencePreview : productPreview} alt="已选择图片" /><span>{mode === 'general' ? '参考' : '主图'}</span><button type="button" aria-label="删除图片" onClick={() => { if (mode === 'general') setReferenceFile(null); else setProductFile(null) }}><X size={13} /></button></div>}
-                <label className="add-thumb"><Upload size={20} /><span>{(mode === 'general' ? hasReferenceImage : hasProductImage) ? '更换图片' : '选择图片'}</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { const file = event.target.files?.[0] ?? null; if (mode === 'general') setReferenceFile(file); else setProductFile(file); event.target.value = '' }} /></label>
+                {(mode === 'general' ? referenceFiles : productFiles).map((file, index) => (
+                  <SelectedImageThumbnail
+                    key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
+                    file={file}
+                    label={mode === 'general' ? `参考 ${index + 1}` : index === 0 ? '主图' : `辅图 ${index}`}
+                    onRemove={() => mode === 'general'
+                      ? setReferenceFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))
+                      : setProductFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}
+                  />
+                ))}
+                {(mode === 'general' ? referenceFiles.length < 4 : productFiles.length < 3) && <label className="add-thumb"><Upload size={20} /><span>添加图片</span><input multiple type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
+                  const selectedFiles = Array.from(event.target.files ?? [])
+                  if (mode === 'general') setReferenceFiles((current) => [...current, ...selectedFiles].slice(0, 4))
+                  else setProductFiles((current) => [...current, ...selectedFiles].slice(0, 3))
+                  event.target.value = ''
+                }} /></label>}
               </div>
             </fieldset>
 
             {mode === 'commerce' && (
-              <fieldset className="form-section compact-fields"><label>所属项目<span className="select-shell"><select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">未选择项目</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><ChevronDown size={14} /></span></label></fieldset>
+              <fieldset className="form-section compact-fields">
+                <label>商品名称<input type="text" value={productName} aria-invalid={Boolean(fieldErrors.productName)} onChange={(event) => { setProductName(event.target.value); setFieldErrors({}) }} placeholder="请输入商品名称" />{fieldErrors.productName && <span className="field-error">{fieldErrors.productName}</span>}</label>
+                <label>商品类目<input type="text" list="product-categories" value={productCategory} onChange={(event) => setProductCategory(event.target.value)} placeholder="选填，可选择或手动输入" /><datalist id="product-categories"><option value="服饰鞋包" /><option value="美妆护肤" /><option value="食品饮料" /><option value="家居家电" /><option value="数码电子" /><option value="母婴用品" /><option value="运动户外" /></datalist></label>
+                <label>所属项目<span className="select-shell"><select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">未选择项目</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><ChevronDown size={14} /></span></label>
+              </fieldset>
             )}
 
             {mode === 'commerce' && (
@@ -400,26 +425,36 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               </fieldset>
             )}
 
+            {mode === 'commerce' && task === 'scene' && (
+              <fieldset className="form-section">
+                <div className="field-heading"><legend>参考图片</legend><span>可选，最多 4 张</span></div>
+                <div className="upload-list">
+                  {referenceFiles.map((file, index) => <SelectedImageThumbnail key={`${file.name}-${file.size}-${file.lastModified}-${index}`} file={file} label={`参考 ${index + 1}`} onRemove={() => setReferenceFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} />)}
+                  {referenceFiles.length < 4 && <label className="add-thumb"><Upload size={20} /><span>添加图片</span><input multiple type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setReferenceFiles((current) => [...current, ...Array.from(event.target.files ?? [])].slice(0, 4)); event.target.value = '' }} /></label>}
+                </div>
+              </fieldset>
+            )}
+
             {mode === 'general' ? (
               <fieldset className="form-section">
                 <label>画面描述<textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} /></label>
                 <div className="two-columns">
-                  <label>创作风格<span className="select-shell"><select defaultValue="unspecified"><option value="unspecified">不指定</option><option value="studio">摄影棚</option><option value="minimal">极简</option><option value="fresh">清新</option></select><ChevronDown size={14} /></span></label>
-                  <label>参考强度<span className="select-shell"><select defaultValue="medium" disabled={!hasReferenceImage}><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select><ChevronDown size={14} /></span></label>
+                  <label>创作风格<span className="select-shell"><select value={style} onChange={(event) => setStyle(event.target.value as GeneralStyle)}><option value="unspecified">不指定</option><option value="studio">摄影棚</option><option value="minimal">极简</option><option value="fresh">清新</option><option value="technology">科技</option><option value="guochao">国潮</option></select><ChevronDown size={14} /></span></label>
+                  <label>参考强度<span className="select-shell"><select value={referenceStrength} onChange={(event) => setReferenceStrength(event.target.value as ReferenceStrength)} disabled={!hasReferenceImage}><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select><ChevronDown size={14} /></span></label>
                 </div>
               </fieldset>
             ) : (
               <>
                 <fieldset className="form-section">
-                  <div className="field-heading"><legend>商品卖点与要求</legend><button className="ai-write" type="button" onClick={improveDescription}><WandSparkles size={15} />AI 优化</button></div>
-                  <textarea value={requirements} onChange={(event) => setRequirements(event.target.value)} placeholder="描述商品卖点、目标场景和画面要求" />
+                  <div className="field-heading"><legend>商品卖点与要求</legend></div>
+                  <textarea value={requirements} onChange={(event) => setRequirements(event.target.value)} placeholder={requirementsPlaceholder} />
+                  {(task === 'selling-point' || task === 'detail-page') && <p className="field-helper">已识别 {parsedSellingPoints.length} 条卖点</p>}
                 </fieldset>
                 {task === 'detail-page' && <fieldset className="form-section"><div className="field-heading stacked"><legend>详情页内容模块</legend><span>选择本页要表达的一个主题</span></div><div className="module-grid">{detailModules.map(([value, label]) => <button key={value} className={detailModule === value ? 'selected' : ''} type="button" onClick={() => setDetailModule(value)}>{detailModule === value && <Check size={13} />}{label}</button>)}</div></fieldset>}
-                <fieldset className="form-section">
-                  <div className="field-heading"><legend>视觉方向</legend><span>取消不希望参考的维度</span></div>
-                  <div className="reference-insight"><img src={taskMeta.scene.image} alt="视觉参考" /><div><strong>智能匹配</strong><span>基于商品图推荐当前方向</span></div><Sparkles size={17} /></div>
+                {task === 'scene' && <fieldset className="form-section">
+                  <div className="field-heading"><legend>视觉方向</legend><span>未上传参考图时不生效</span></div>
                   <div className="insight-chips">{insightTags.map(([value, label, detail]) => <button key={value} className={visualDirections.includes(value) ? 'selected' : ''} type="button" onClick={() => toggleVisualDirection(value)}><span>{label}</span>{detail}{visualDirections.includes(value) && <Check size={12} />}</button>)}</div>
-                </fieldset>
+                </fieldset>}
               </>
             )}
 
@@ -435,7 +470,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
           <footer className="configuration-footer">
             {notice && <p className={`form-notice ${notice.kind}`} role="status">{notice.kind === 'success' && <Check size={15} />}{notice.message}</p>}
-            <label className="model-button"><Sparkles size={16} /><select aria-label="生图模型" value={model} onChange={(event) => setModel(event.target.value as GenerationModel)}><option value="gpt-image-2">Auto · 推荐</option><option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></select><ChevronDown size={14} /></label>
+            <label className="model-button"><Sparkles size={16} /><select aria-label="生图模型" value={model} onChange={(event) => setModel(event.target.value as GenerationModel)}><option value="gpt-image-2">GPT Image 2</option><option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></select><ChevronDown size={14} /></label>
           <Button disabled={isSubmitting || isGenerating || aiEnabled === null} onClick={createGenerationTask}><Sparkles size={17} />{isSubmitting ? '正在提交…' : isGenerating ? '正在生成…' : aiEnabled === null ? '检查 AI 服务…' : `生成 ${title}`}</Button>
           </footer>
         </aside>
@@ -451,11 +486,10 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
           </>}
 
           {generationTask && isGenerating && <div className="generation-feedback">
-            <div className="generating-image"><img src={canvasImage} alt="正在生成的图片" /><div className="scan-line" /><span><Sparkles size={21} /></span></div>
-            <h2>{generationStatusLabels[generationTask.status] ?? '正在构建画面'}</h2>
-            <p>正在匹配构图、光影与创作约束，请稍候。</p>
-            <div className="stage-track"><i className="done" /><i className="active" /><i /></div>
-            <div className="stage-labels"><span><Check size={13} />理解需求</span><span className="active">生成画面</span><span>自动质检</span></div>
+            <span className="generation-status-icon"><Sparkles size={22} /></span>
+            <h2>{generationStatusLabels[generationTask.status] ?? '任务处理中'}</h2>
+            <p>结果返回后会自动显示在当前页面。</p>
+            <div className="generation-progress" aria-label="任务处理中"><span /></div>
           </div>}
 
           {generationTask && !isGenerating && generationTask.status === 'succeeded' && generationTask.resultImages?.length ? <div className="editor-result">

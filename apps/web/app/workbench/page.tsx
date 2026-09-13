@@ -1,5 +1,6 @@
 import { Workbench } from '@/components/workbench'
 import type { CommerceTaskType } from '@istudio/contracts'
+import { Suspense } from 'react'
 
 const commerceTasks: CommerceTaskType[] = ['white-background', 'scene', 'selling-point', 'detail-page']
 
@@ -15,15 +16,17 @@ export default async function WorkbenchPage({ searchParams }: WorkbenchPageProps
     : 'white-background'
 
   return (
-    <Workbench
-      initialMode={initialMode}
-      initialPrompt={params.prompt}
-      initialTask={initialTask}
-      initialModel={params.model}
-      initialAspectRatio={params.aspectRatio}
-      initialResolution={params.resolution}
-      initialCount={params.count}
-      initialProjectId={params.projectId}
-    />
+    <Suspense fallback={<main className="workbench-page" aria-label="工作台加载中" />}>
+      <Workbench
+        initialMode={initialMode}
+        initialPrompt={params.prompt}
+        initialTask={initialTask}
+        initialModel={params.model}
+        initialAspectRatio={params.aspectRatio}
+        initialResolution={params.resolution}
+        initialCount={params.count}
+        initialProjectId={params.projectId}
+      />
+    </Suspense>
   )
 }

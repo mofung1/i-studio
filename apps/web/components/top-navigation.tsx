@@ -1,17 +1,60 @@
 'use client'
 
-import { Bell, Coins } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+
+import { apiBaseUrl, getAccessToken } from '@/lib/api'
 
 import { Brand } from './brand'
 
 export function TopNavigation() {
   const router = useRouter()
+  const [username, setUsername] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const accountRef = useRef<HTMLDivElement>(null)
 
-  function handleAccountClick() {
-    const token = window.localStorage.getItem('istudio-access-token')
-    router.push(token ? '/projects' : '/login')
+  useEffect(() => {
+    const token = getAccessToken()
+    if (!token) return
+
+    const controller = new AbortController()
+    fetch(`${apiBaseUrl}/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('登录状态获取失败')))
+      .then((data: { authenticated?: boolean; user?: { username?: string } }) => {
+        if (data.authenticated && data.user?.username) setUsername(data.user.username)
+      })
+      .catch(() => undefined)
+
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!accountRef.current?.contains(event.target as Node)) setMenuOpen(false)
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [menuOpen])
+
+  function logout() {
+    window.localStorage.removeItem('istudio-access-token')
+    setUsername('')
+    setMenuOpen(false)
+    router.push('/')
+    router.refresh()
   }
 
   return (
@@ -25,9 +68,13 @@ export function TopNavigation() {
         <Link href="/projects">项目与资产</Link>
       </nav>
       <div className="nav-actions">
-        <span className="credit-badge"><Coins size={16} />1,280</span>
-        <button className="icon-button" type="button" aria-label="通知"><Bell size={19} /></button>
-        <button className="avatar-button" type="button" onClick={handleAccountClick} aria-label="账户">M</button>
+        {username ? <div className="account-menu" ref={accountRef}>
+          <button className="avatar-button" type="button" onClick={() => setMenuOpen((open) => !open)} aria-label={`${username}的账户菜单`} aria-haspopup="menu" aria-expanded={menuOpen}>{username.slice(0, 1).toUpperCase()}</button>
+          {menuOpen && <div className="account-dropdown" role="menu">
+            <span>{username}</span>
+            <button type="button" role="menuitem" onClick={logout}>退出登录</button>
+          </div>}
+        </div> : <Link className="login-button" href="/login">登录</Link>}
       </div>
     </header>
   )
