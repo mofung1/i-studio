@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -76,70 +77,81 @@ func (q *taskQueue) worker() {
 			q.server.updateTaskResult(id, "failed", nil, err.Error())
 			continue
 		}
-		input["taskId"] = id
-		remote, err := q.server.provider.Submit(context.Background(), input)
+		images, err := q.generateBatches(id, input)
 		if err != nil {
-			fmt.Printf("task %s provider submit failed: %v\n", id, err)
+			fmt.Printf("task %s generation failed: %v\n", id, err)
 			q.server.updateTaskResult(id, "failed", nil, err.Error())
 			continue
 		}
-		if len(remote.Images) > 0 {
-			images, persistErr := q.server.persistGeneratedImages(id, remote.Images)
-			if persistErr != nil {
-				q.server.updateTaskResult(id, "failed", nil, persistErr.Error())
-				continue
-			}
-			q.server.updateTaskResult(id, "succeeded", images, "")
+		paths, err := q.server.persistGeneratedImages(id, images)
+		if err != nil {
+			q.server.updateTaskResult(id, "failed", nil, err.Error())
 			continue
 		}
-		q.server.updateTaskStatus(id, "waiting_provider")
-		finished := false
-		lastPollError := ""
-		for attempt := 0; attempt < 24; attempt++ {
-			time.Sleep(5 * time.Second)
-			result, pollErr := q.server.provider.Poll(context.Background(), remote.ID)
-			if pollErr != nil {
-				lastPollError = pollErr.Error()
-				fmt.Printf("task %s provider poll failed: %v\n", id, pollErr)
-				continue
-			}
-			switch result.Status {
-			case "success":
-				if len(result.Images) == 0 {
-					q.server.updateTaskResult(id, "failed", nil, "供应商返回成功状态，但没有生成图片")
-					finished = true
-					attempt = 24
-					continue
-				}
-				images, persistErr := q.server.persistGeneratedImages(id, result.Images)
-				if persistErr != nil {
-					q.server.updateTaskResult(id, "failed", nil, persistErr.Error())
-					finished = true
-					attempt = 24
-					continue
-				}
-				q.server.updateTaskResult(id, "succeeded", images, "")
-				finished = true
-				attempt = 24
-			case "failed", "cancelled", "expired":
-				message := result.Error
-				if message == "" {
-					message = "供应商返回失败状态，但未提供错误详情"
-				}
-				fmt.Printf("task %s provider returned %s: %s\n", id, result.Status, message)
-				q.server.updateTaskResult(id, "failed", nil, message)
-				finished = true
-				attempt = 24
+		q.server.updateTaskResult(id, "succeeded", paths, "")
+	}
+}
+
+func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, error) {
+	remaining := intValue(input["count"], 1)
+	batchSize := 4
+	if strings.HasPrefix(stringValue(input["model"], ""), "gemini-") {
+		batchSize = 1
+	}
+	images := make([]string, 0, remaining)
+	for batch := 1; remaining > 0; batch++ {
+		size := min(remaining, batchSize)
+		input["count"] = size
+		input["taskId"] = fmt.Sprintf("%s-%d", id, batch)
+		q.server.updateTaskStatus(id, "processing")
+		remote, err := q.server.provider.Submit(context.Background(), input)
+		if err != nil {
+			return nil, fmt.Errorf("第 %d 批提交失败：%w", batch, err)
+		}
+		batchImages := remote.Images
+		if len(batchImages) == 0 {
+			q.server.updateTaskStatus(id, "waiting_provider")
+			batchImages, err = q.waitForImages(id, remote.ID)
+			if err != nil {
+				return nil, fmt.Errorf("第 %d 批生成失败：%w", batch, err)
 			}
 		}
-		if !finished {
-			message := "等待供应商结果超时，请稍后重试"
-			if lastPollError != "" {
-				message += "；最后一次查询错误：" + lastPollError
+		if len(batchImages) != size {
+			return nil, fmt.Errorf("第 %d 批预期 %d 张，供应商实际返回 %d 张", batch, size, len(batchImages))
+		}
+		images = append(images, batchImages...)
+		remaining -= size
+	}
+	return images, nil
+}
+
+func (q *taskQueue) waitForImages(id, remoteID string) ([]string, error) {
+	lastPollError := ""
+	for attempt := 0; attempt < 24; attempt++ {
+		time.Sleep(5 * time.Second)
+		result, err := q.server.provider.Poll(context.Background(), remoteID)
+		if err != nil {
+			lastPollError = err.Error()
+			fmt.Printf("task %s provider poll failed: %v\n", id, err)
+			continue
+		}
+		switch result.Status {
+		case "success":
+			if len(result.Images) == 0 {
+				return nil, fmt.Errorf("供应商返回成功状态，但没有生成图片")
 			}
-			q.server.updateTaskResult(id, "failed", nil, message)
+			return result.Images, nil
+		case "failed", "cancelled", "expired":
+			if result.Error != "" {
+				return nil, fmt.Errorf("%s", result.Error)
+			}
+			return nil, fmt.Errorf("供应商返回失败状态，但未提供错误详情")
 		}
 	}
+	if lastPollError != "" {
+		return nil, fmt.Errorf("等待供应商结果超时；最后一次查询错误：%s", lastPollError)
+	}
+	return nil, fmt.Errorf("等待供应商结果超时，请稍后重试")
 }
 
 func (s *server) attachSourceImages(input map[string]any) error {

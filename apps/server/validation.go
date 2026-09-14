@@ -8,8 +8,8 @@ import (
 var allowedModels = stringSet("gpt-image-2", "gemini-2.5-flash-image", "gemini-3.1-flash-image", "gemini-3-pro-image")
 var allowedRatios = stringSet("1:1", "3:4", "4:3", "9:16", "16:9")
 var allowedResolutions = stringSet("1K", "2K", "4K")
-var allowedPlatforms = stringSet("taobao-tmall", "jd", "pinduoduo", "douyin", "xiaohongshu", "amazon", "shopify", "generic")
-var allowedLanguages = stringSet("zh-CN", "zh-TW", "en")
+var allowedPlatforms = stringSet("taobao-tmall", "jd", "pinduoduo", "douyin", "xiaohongshu", "amazon", "shopify", "ebay", "etsy", "walmart", "aliexpress", "generic")
+var allowedLanguages = stringSet("none", "zh-CN", "zh-TW", "en", "ja", "ko", "fr", "de", "es", "pt")
 var allowedTasks = stringSet("white-background", "scene", "selling-point", "detail-page")
 var allowedModules = stringSet("hero", "core-selling-point", "usage-scene", "multi-angle", "specification", "material", "accessories")
 
@@ -24,8 +24,8 @@ func validateGenerationInput(input map[string]any) error {
 		return err
 	}
 	count := intValue(input["count"], 1)
-	if count < 1 || count > 4 || (input["count"] != nil && !isJSONInteger(input["count"])) {
-		return fmt.Errorf("count must be an integer between 1 and 4")
+	if count < 1 || count > 16 || (input["count"] != nil && !isJSONInteger(input["count"])) {
+		return fmt.Errorf("count must be an integer between 1 and 16")
 	}
 	mode, ok := input["mode"].(string)
 	if !ok {
@@ -36,7 +36,7 @@ func validateGenerationInput(input map[string]any) error {
 		if err := requireText(input, "prompt", 1, 4000); err != nil {
 			return err
 		}
-		return validateStringArray(input, "referenceAssetIds", 0, 4, 200)
+		return validateStringArray(input, "referenceAssetIds", 0, 6, 200)
 	case "commerce":
 		return validateCommerceInput(input)
 	default:
@@ -51,22 +51,29 @@ func validateCommerceInput(input map[string]any) error {
 	if err := validateStringArray(input, "productAssetIds", 1, 10, 200); err != nil {
 		return err
 	}
-	if err := requireText(input, "productName", 1, 100); err != nil {
-		return err
-	}
-	if err := requireText(input, "productCategory", 1, 100); err != nil {
-		return err
-	}
 	if err := requireOneOf(input, "platform", allowedPlatforms, "generic"); err != nil {
 		return err
 	}
 	taskType, _ := input["taskType"].(string)
+	if taskType != "white-background" {
+		if err := requireText(input, "productName", 1, 100); err != nil {
+			return err
+		}
+		if err := requireText(input, "productCategory", 1, 100); err != nil {
+			return err
+		}
+	}
 	switch taskType {
+	case "white-background":
+		return requireOneOf(input, "outputLanguage", allowedLanguages, "none")
 	case "scene":
 		if err := requireText(input, "sceneDescription", 1, 1000); err != nil {
 			return err
 		}
-		return validateStringArray(input, "referenceAssetIds", 0, 4, 200)
+		if err := validateStringArray(input, "referenceAssetIds", 0, 6, 200); err != nil {
+			return err
+		}
+		return requireOneOf(input, "outputLanguage", allowedLanguages, "none")
 	case "selling-point":
 		if err := validateStringArray(input, "sellingPoints", 1, 8, 50); err != nil {
 			return err

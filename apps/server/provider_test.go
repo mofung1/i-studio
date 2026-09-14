@@ -55,6 +55,17 @@ func TestBananaRouterGeminiSubmit(t *testing.T) {
 	}
 }
 
+func TestWhiteBackgroundPromptUsesPlatformAndLanguage(t *testing.T) {
+	prompt := promptForInput(map[string]any{
+		"taskType": "white-background", "platform": "aliexpress", "outputLanguage": "none",
+	})
+	for _, expected := range []string{"商品", "白色背景", "AliExpress", "不生成任何文字"} {
+		if !strings.Contains(prompt, expected) {
+			t.Fatalf("prompt %q missing %q", prompt, expected)
+		}
+	}
+}
+
 func TestBananaRouterOpenAIGenerationSubmit(t *testing.T) {
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path != "/v1/images/generations/async" {

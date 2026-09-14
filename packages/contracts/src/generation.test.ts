@@ -18,17 +18,23 @@ describe('generation input contracts', () => {
     expect(result.aspectRatio).toBe('1:1')
   })
 
-  it('does not require language for white-background tasks', () => {
+  it('defaults white-background to no text without product metadata', () => {
     const result = whiteBackgroundInputSchema.parse({
       mode: 'commerce',
       taskType: 'white-background',
       productAssetIds: ['asset-1'],
-      productName: '保温杯',
-      productCategory: '家居用品',
     })
 
     expect(result.taskType).toBe('white-background')
-    expect('outputLanguage' in result).toBe(false)
+    expect(result.outputLanguage).toBe('none')
+    expect('productName' in result).toBe(false)
+  })
+
+  it('accepts six references and sixteen images, but rejects larger requests', () => {
+    const input = { mode: 'general', prompt: '商品摄影', referenceAssetIds: Array(6).fill('asset-1'), count: 16 }
+    expect(generalGenerationInputSchema.safeParse(input).success).toBe(true)
+    expect(generalGenerationInputSchema.safeParse({ ...input, count: 17 }).success).toBe(false)
+    expect(generalGenerationInputSchema.safeParse({ ...input, referenceAssetIds: [...input.referenceAssetIds, 'asset-7'] }).success).toBe(false)
   })
 
   it('requires at least one selling point for selling-point tasks', () => {

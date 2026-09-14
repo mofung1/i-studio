@@ -9,11 +9,9 @@ import {
   Download,
   Image as ImageIcon,
   LayoutPanelLeft,
-  Minus,
   Package,
   PanelRight,
   Palette,
-  Plus,
   RefreshCw,
   RotateCcw,
   Sparkles,
@@ -24,6 +22,7 @@ import {
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import {
   generationInputSchema,
@@ -240,6 +239,7 @@ function SellingPointTagInput({
 
 function SelectedImageThumbnail({ file, label, onRemove }: { file: File; label: string; onRemove: () => void }) {
   const [preview, setPreview] = useState('')
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     const url = URL.createObjectURL(file)
@@ -247,12 +247,32 @@ function SelectedImageThumbnail({ file, label, onRemove }: { file: File; label: 
     return () => URL.revokeObjectURL(url)
   }, [file])
 
+  useEffect(() => {
+    if (!expanded) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setExpanded(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [expanded])
+
   return (
-    <div className="uploaded-thumb">
-      {preview ? <img src={preview} alt={`${label}：${file.name}`} /> : null}
-      <span>{label}</span>
-      <button type="button" aria-label={`删除${label}`} onClick={onRemove}><X size={13} /></button>
-    </div>
+    <>
+      <div className="uploaded-thumb">
+        {preview && <button className="thumb-preview" type="button" aria-label={`放大查看${label}`} title="放大查看" onClick={() => setExpanded(true)}><img src={preview} alt={`${label}：${file.name}`} /></button>}
+        <span>{label}</span>
+        <button className="thumb-remove" type="button" aria-label={`删除${label}`} title="删除图片" onClick={onRemove}><X size={13} /></button>
+      </div>
+      {expanded && preview && createPortal(
+        <div className="image-lightbox" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setExpanded(false) }}>
+          <div className="image-lightbox-content" role="dialog" aria-modal="true" aria-label={`${label}图片预览`}>
+            <button type="button" aria-label="关闭图片预览" title="关闭" autoFocus onClick={() => setExpanded(false)}><X size={20} /></button>
+            <img src={preview} alt={`${label}：${file.name}`} />
+            <span>{file.name}</span>
+          </div>
+        </div>, document.body,
+      )}
+    </>
   )
 }
 
@@ -269,7 +289,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [sellingPointTags, setSellingPointTags] = useState<string[]>([])
   const [productFiles, setProductFiles] = useState<File[]>([])
   const [referenceFiles, setReferenceFiles] = useState<File[]>([])
-  const [count, setCount] = useState(() => Math.min(4, Math.max(1, Number(initialCount) || 1)))
+  const [count, setCount] = useState(() => Math.min(16, Math.max(1, Number(initialCount) || 1)))
   const [model, setModel] = useState<GenerationModel>((initialModel as GenerationModel) ?? 'gpt-image-2')
   const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? '1:1')
   const [resolution, setResolution] = useState(initialResolution ?? '2K')
@@ -279,7 +299,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [productCategory, setProductCategory] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ productName?: string }>({})
   const [platform, setPlatform] = useState('amazon')
-  const [outputLanguage, setOutputLanguage] = useState<'zh-CN' | 'zh-TW' | 'en'>('en')
+  const [outputLanguage, setOutputLanguage] = useState('none')
   const [detailModule, setDetailModule] = useState<(typeof detailModules)[number][0]>('core-selling-point')
   const [visualDirections, setVisualDirections] = useState<VisualDirection[]>(insightTags.map(([key]) => key))
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
@@ -395,17 +415,16 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       mode: 'commerce',
       taskType: task,
       productAssetIds,
-      productName: productName.trim(),
-      productCategory: productCategory.trim() || '未分类',
       platform,
       consistencyProtection: true,
       ...imageSettings,
     }
 
-    if (task === 'white-background') return { ...common, requirements, naturalShadow: true }
-    if (task === 'scene') return { ...common, sceneDescription: requirements, referenceAssetIds, visualDirection: [] }
-    if (task === 'selling-point') return { ...common, sellingPoints: sellingPointTags, outputLanguage, requirements, reserveCopyArea: true }
-    return { ...common, module: detailModule, sellingPoints: sellingPointTags, outputLanguage, requirements }
+    if (task === 'white-background') return { ...common, requirements, outputLanguage, naturalShadow: true }
+    const namedProduct = { ...common, productName: productName.trim(), productCategory: productCategory.trim() || '未分类' }
+    if (task === 'scene') return { ...namedProduct, sceneDescription: requirements, referenceAssetIds, outputLanguage, visualDirection: [] }
+    if (task === 'selling-point') return { ...namedProduct, sellingPoints: sellingPointTags, outputLanguage, requirements, reserveCopyArea: true }
+    return { ...namedProduct, module: detailModule, sellingPoints: sellingPointTags, outputLanguage, requirements }
   }
 
   async function createGenerationTask() {
@@ -423,8 +442,14 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       setNotice({ kind: 'error', message: '请先上传商品原图' })
       return
     }
-    if (mode === 'commerce' && !productName.trim()) {
+    if (mode === 'commerce' && task !== 'white-background' && !productName.trim()) {
       setFieldErrors({ productName: '请输入商品名称' })
+      return
+    }
+
+    const sourceFiles = mode === 'general' ? referenceFiles : task === 'scene' ? [...productFiles, ...referenceFiles] : productFiles
+    if (sourceFiles.reduce((total, file) => total + file.size, 0) > 20 * 1024 * 1024) {
+      setNotice({ kind: 'error', message: '本次上传图片总大小不能超过 20 MB' })
       return
     }
 
@@ -513,7 +538,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
           <div className="configuration-scroll">
             <fieldset className="form-section">
-              <div className="field-heading"><legend>{mode === 'general' ? '参考图片' : '商品原图'}</legend><span>{mode === 'general' ? '可选，最多 4 张' : '支持 1-3 张，多角度效果更佳'}</span></div>
+              <div className="field-heading"><legend>{mode === 'general' ? '参考图片' : '商品原图'}</legend><span>{mode === 'general' ? `${referenceFiles.length}/6 张 · 可选` : `${productFiles.length}/3 张 · 至少 1 张`}</span></div>
               <div className="upload-list">
                 {(mode === 'general' ? referenceFiles : productFiles).map((file, index) => (
                   <SelectedImageThumbnail
@@ -525,16 +550,16 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
                       : setProductFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}
                   />
                 ))}
-                {(mode === 'general' ? referenceFiles.length < 4 : productFiles.length < 3) && <label className="add-thumb"><Upload size={20} /><span>添加图片</span><input multiple type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
+                {(mode === 'general' ? referenceFiles.length < 6 : productFiles.length < 3) && <label className="add-thumb"><Upload size={20} /><span>添加图片</span><input multiple type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
                   const selectedFiles = Array.from(event.target.files ?? [])
-                  if (mode === 'general') setReferenceFiles((current) => [...current, ...selectedFiles].slice(0, 4))
+                  if (mode === 'general') setReferenceFiles((current) => [...current, ...selectedFiles].slice(0, 6))
                   else setProductFiles((current) => [...current, ...selectedFiles].slice(0, 3))
                   event.target.value = ''
                 }} /></label>}
               </div>
             </fieldset>
 
-            {mode === 'commerce' && (
+            {mode === 'commerce' && task !== 'white-background' && (
               <fieldset className="form-section compact-fields">
                 <label>商品名称<input type="text" value={productName} aria-invalid={Boolean(fieldErrors.productName)} onChange={(event) => { setProductName(event.target.value); setFieldErrors({}) }} placeholder="请输入商品名称" />{fieldErrors.productName && <span className="field-error">{fieldErrors.productName}</span>}</label>
                 <label>商品类目<input type="text" list="product-categories" value={productCategory} onChange={(event) => setProductCategory(event.target.value)} placeholder="选填，可选择或手动输入" /><datalist id="product-categories"><option value="服饰鞋包" /><option value="美妆护肤" /><option value="食品饮料" /><option value="家居家电" /><option value="数码电子" /><option value="母婴用品" /><option value="运动户外" /></datalist></label>
@@ -543,23 +568,23 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
             {mode === 'commerce' && (
               <fieldset className="form-section two-columns compact-fields">
-                <label>上架平台<span className="select-shell"><select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="taobao-tmall">淘宝 / 天猫</option><option value="jd">京东</option><option value="douyin">抖音</option><option value="amazon">Amazon</option><option value="shopify">Shopify</option></select><ChevronDown size={14} /></span></label>
-                <label>输出语言<span className="select-shell"><select value={outputLanguage} onChange={(event) => setOutputLanguage(event.target.value as typeof outputLanguage)}><option value="zh-CN">简体中文</option><option value="zh-TW">繁体中文</option><option value="en">English</option></select><ChevronDown size={14} /></span></label>
+                <label>上架平台<span className="select-shell"><select value={platform} onChange={(event) => setPlatform(event.target.value)}><option value="taobao-tmall">淘宝 / 天猫</option><option value="jd">京东</option><option value="pinduoduo">拼多多</option><option value="douyin">抖音</option><option value="xiaohongshu">小红书</option><option value="amazon">Amazon</option><option value="shopify">Shopify</option><option value="ebay">eBay</option><option value="etsy">Etsy</option><option value="walmart">Walmart</option><option value="aliexpress">AliExpress</option><option value="generic">其他平台</option></select><ChevronDown size={14} /></span></label>
+                <label>输出语言<span className="select-shell"><select value={outputLanguage} onChange={(event) => setOutputLanguage(event.target.value)}><option value="none">无文字（纯视觉）</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁体中文</option><option value="en">英语</option><option value="ja">日语</option><option value="ko">韩语</option><option value="fr">法语</option><option value="de">德语</option><option value="es">西班牙语</option><option value="pt">葡萄牙语</option></select><ChevronDown size={14} /></span></label>
               </fieldset>
             )}
 
             {mode === 'commerce' && task === 'scene' && (
               <fieldset className="form-section">
-                <div className="field-heading"><legend>参考图片</legend><span>可选，最多 4 张</span></div>
+                <div className="field-heading"><legend>参考图片</legend><span>{referenceFiles.length}/6 张 · 可选</span></div>
                 <div className="upload-list">
                   {referenceFiles.map((file, index) => <SelectedImageThumbnail key={`${file.name}-${file.size}-${file.lastModified}-${index}`} file={file} label={`参考 ${index + 1}`} onRemove={() => setReferenceFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} />)}
-                  {referenceFiles.length < 4 && <label className="add-thumb"><Upload size={20} /><span>添加图片</span><input multiple type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setReferenceFiles((current) => [...current, ...Array.from(event.target.files ?? [])].slice(0, 4)); event.target.value = '' }} /></label>}
+                  {referenceFiles.length < 6 && <label className="add-thumb"><Upload size={20} /><span>添加图片</span><input multiple type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setReferenceFiles((current) => [...current, ...Array.from(event.target.files ?? [])].slice(0, 6)); event.target.value = '' }} /></label>}
                 </div>
               </fieldset>
             )}
 
             {mode === 'general' ? (
-              <fieldset className="form-section">
+              <fieldset className="form-section general-description">
                 <label>画面描述<textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} /></label>
                 <div className="two-columns">
                   <label>创作风格<span className="select-shell"><select value={style} onChange={(event) => setStyle(event.target.value as GeneralStyle)}><option value="unspecified">不指定</option><option value="studio">摄影棚</option><option value="minimal">极简</option><option value="fresh">清新</option><option value="technology">科技</option><option value="guochao">国潮</option></select><ChevronDown size={14} /></span></label>
@@ -625,7 +650,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               <div className="settings-grid">
                 <span className="select-shell"><select aria-label="画面比例" value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)}><option>1:1</option><option>3:4</option><option>4:3</option><option>9:16</option><option>16:9</option></select><ChevronDown size={14} /></span>
                 <span className="select-shell"><select aria-label="清晰度" value={resolution} onChange={(event) => setResolution(event.target.value)}><option>1K</option><option>2K</option><option>4K</option></select><ChevronDown size={14} /></span>
-                <div className="stepper"><button type="button" aria-label="减少生成数量" disabled={count === 1} onClick={() => setCount((value) => Math.max(1, value - 1))}><Minus size={15} /></button><strong>{count}</strong><button type="button" aria-label="增加生成数量" disabled={count === 4} onClick={() => setCount((value) => Math.min(4, value + 1))}><Plus size={15} /></button></div>
+                <span className="select-shell"><select aria-label="生成数量" value={count} onChange={(event) => setCount(Number(event.target.value))}>{Array.from({ length: 16 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1} 张</option>)}</select><ChevronDown size={14} /></span>
               </div>
             </fieldset>
           </div>
@@ -717,7 +742,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
                           const blob = await resp.blob()
                           const filename = `ref-${activeResult.id.slice(0, 8)}-${index + 1}.png`
                           const file = new File([blob], filename, { type: blob.type || 'image/png' })
-                          setReferenceFiles((prev) => [...prev, file].slice(0, 4))
+                          setReferenceFiles((prev) => [...prev, file].slice(0, 6))
                           // 滚动配置面板至顶部（让用户看到参考图已填入）
                           document.querySelector('.configuration-scroll')?.scrollTo({ top: 0, behavior: 'smooth' })
                         }}

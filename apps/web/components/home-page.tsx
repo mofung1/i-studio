@@ -90,7 +90,7 @@ export function HomePage() {
                 <ComposerSelect className="model-select" label="生图模型" value={model} onChange={setModel} icon={<Sparkles size={15} />}><option value="gpt-image-2">GPT Image 2</option><option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></ComposerSelect>
                 <ComposerSelect label="画面比例" value={ratio} onChange={setRatio} icon={<Maximize size={15} />}><option>1:1</option><option>3:4</option><option>4:3</option><option>9:16</option><option>16:9</option></ComposerSelect>
                 <ComposerSelect label="清晰度" value={resolution} onChange={setResolution} icon={<Images size={15} />}><option>1K</option><option>2K</option><option>4K</option></ComposerSelect>
-                <ComposerSelect label="生成数量" value={count} onChange={setCount} icon={<Images size={15} />}>{[1, 2, 3, 4].map((item) => <option key={item} value={item}>{item} 张</option>)}</ComposerSelect>
+                <ComposerSelect label="生成数量" value={count} onChange={setCount} icon={<Images size={15} />}>{Array.from({ length: 16 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1} 张</option>)}</ComposerSelect>
               </div>
               <button type="submit" aria-label="开始生成配置"><Send size={19} /></button>
             </div>

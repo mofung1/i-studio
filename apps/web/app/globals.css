@@ -885,8 +885,26 @@ img {
 
 .two-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.form-section .two-columns > label + label,
+.form-section.two-columns > label + label {
+  margin-top: 0;
+}
+
+.general-description {
+  display: grid;
+  gap: 16px;
+}
+
+.general-description textarea {
+  min-height: 108px;
+}
+
+.general-description .two-columns > label {
+  min-width: 0;
 }
 
 .file-input {
@@ -920,16 +938,26 @@ img {
 .upload-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .uploaded-thumb,
 .add-thumb {
   position: relative;
-  width: 82px;
-  height: 82px;
+  width: 88px;
+  height: 88px;
   overflow: hidden;
   border-radius: 8px;
+}
+
+.thumb-preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+  padding: 0;
+  background: #eef0ed;
+  border: 0;
+  cursor: zoom-in;
 }
 
 .uploaded-thumb img {
@@ -949,7 +977,7 @@ img {
   font-size: 9px;
 }
 
-.uploaded-thumb > button {
+.uploaded-thumb > .thumb-remove {
   position: absolute;
   right: 5px;
   top: 5px;
@@ -972,7 +1000,7 @@ img {
   justify-content: center;
   gap: 7px;
   color: #526b62;
-  background: #edf2ef;
+  background: #f1f5f2;
   border: 1px dashed #b9c8c1;
   font-size: 10px;
   cursor: pointer;
@@ -983,6 +1011,61 @@ img {
   background: #e5eeea;
   border-color: #8fa69c;
   transform: translateY(-1px);
+}
+
+.add-thumb:focus-within {
+  border-color: #526b62;
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.image-lightbox {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 21, 19, 0.82);
+}
+
+.image-lightbox-content {
+  position: relative;
+  max-width: min(960px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  color: white;
+}
+
+.image-lightbox-content img {
+  max-height: calc(100dvh - 100px);
+  width: auto;
+  object-fit: contain;
+}
+
+.image-lightbox-content > button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: white;
+  background: rgba(23, 23, 23, 0.72);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.image-lightbox-content > span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .add-thumb input {
