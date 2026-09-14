@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+**/node_modules
+**/.env
+**/.env.local
+apps/server/storage/uploads
+UI
+coverage
+.turbo
+*.log

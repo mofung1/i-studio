@@ -18,13 +18,13 @@ UI                    UI 原型，不作为正式运行入口
 
 ## 本地开发
 
-推荐使用一键启动脚本：
+推荐使用 Docker Compose 一键启动完整测试环境：
 
 ```bash
-pnpm dev:test
+docker compose up --build
 ```
 
-脚本会创建缺失的本地环境文件、启动 PostgreSQL/Redis、Go API 和 Next.js Web。按 `Ctrl+C` 会停止 Web 与 API；数据库容器会继续运行以保留测试数据。已经自行启动基础设施时可运行 `./scripts/start-test.sh --no-infra`。
+Compose 会同时启动 PostgreSQL、Redis、Go API 和 Next.js Web。默认端口为 Web `3000`、API `4000`、PostgreSQL `55432`、Redis `56379`，可通过根目录 `.env` 中的 `WEB_PORT`、`API_PORT`、`POSTGRES_PORT`、`REDIS_PORT` 覆盖。前台运行时按 `Ctrl+C` 会停止整组服务，不会留下孤立的基础设施容器。数据保存在 Docker volumes 中，下次启动仍会保留。
 
 首次运行前安装依赖：
 
@@ -43,12 +43,6 @@ cp apps/server/.env.example apps/server/.env
 在后端 `.env` 中填写 `BANANA_ROUTER_API_KEY`。不要把供应商密钥放在前端环境变量中；未配置时工作台会明确阻止提交，不会创建永久等待的任务。
 
 Web 默认运行在 `http://127.0.0.1:3000`，API 默认运行在 `http://127.0.0.1:4000`。
-
-本地数据库与 Redis：
-
-```bash
-docker compose -f infra/docker/docker-compose.yml up -d
-```
 
 ## 交付验证
 

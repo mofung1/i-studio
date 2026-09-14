@@ -26,8 +26,13 @@ func dbInsertUser(db *sql.DB, u user) error {
 }
 
 func dbInsertTask(db *sql.DB, t task, userID string, input []byte) error {
-	_, err := db.Exec("INSERT INTO generation_tasks (id, user_id, project_id, status, input, created_at) VALUES ($1, $2, $3, $4, $5::jsonb, $6)", t.ID, userID, nullableString(t.ProjectID), t.Status, input, t.CreatedAt)
-	return err
+	if _, err := db.Exec("INSERT INTO generation_tasks (id, user_id, project_id, status, input, created_at) VALUES ($1, $2, $3, $4, $5::jsonb, $6)", t.ID, userID, nullableString(t.ProjectID), t.Status, input, t.CreatedAt); err != nil {
+		return err
+	}
+	if t.ProjectID != "" {
+		_, _ = db.Exec("UPDATE projects SET updated_at=now() WHERE id=$1 AND user_id=$2", t.ProjectID, userID)
+	}
+	return nil
 }
 
 func (s *server) userOwnsProject(userID, projectID string) bool {

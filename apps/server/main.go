@@ -203,7 +203,19 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == http.MethodGet && s.db != nil {
-		rows, err := s.db.Query("SELECT id,project_id,status,created_at,input FROM generation_tasks WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50", userID)
+		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
+		query := "SELECT id,project_id,status,created_at,input FROM generation_tasks WHERE user_id=$1"
+		args := []any{userID}
+		if projectID != "" {
+			if !s.userOwnsProject(userID, projectID) {
+				s.error(w, http.StatusNotFound, "PROJECT_NOT_FOUND", "项目不存在")
+				return
+			}
+			query += " AND project_id=$2"
+			args = append(args, projectID)
+		}
+		query += " ORDER BY created_at DESC LIMIT 50"
+		rows, err := s.db.Query(query, args...)
 		if err != nil {
 			s.error(w, 500, "TASK_STORAGE_ERROR", "任务查询失败")
 			return
@@ -224,10 +236,11 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == http.MethodGet {
+		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
 		s.mu.RLock()
 		list := make([]task, 0, len(s.tasks))
 		for _, item := range s.tasks {
-			if item.UserID == userID {
+			if item.UserID == userID && (projectID == "" || item.ProjectID == projectID) {
 				list = append(list, item)
 			}
 		}
@@ -476,7 +489,10 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	rows, err := s.db.Query("SELECT id,name,created_at,updated_at FROM projects WHERE user_id=$1 ORDER BY updated_at DESC", uid)
+	rows, err := s.db.Query(`SELECT p.id,p.name,p.created_at,p.updated_at,
+		(SELECT COUNT(*) FROM assets a WHERE a.project_id=p.id),
+		(SELECT COUNT(*) FROM generation_tasks t WHERE t.project_id=p.id)
+		FROM projects p WHERE p.user_id=$1 ORDER BY p.updated_at DESC`, uid)
 	if err != nil {
 		s.error(w, 500, "PROJECT_STORAGE_ERROR", "项目查询失败")
 		return
@@ -486,8 +502,9 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id, name string
 		var created, updated time.Time
-		if rows.Scan(&id, &name, &created, &updated) == nil {
-			list = append(list, map[string]any{"id": id, "name": name, "createdAt": created, "updatedAt": updated})
+		var assetCount, taskCount int
+		if rows.Scan(&id, &name, &created, &updated, &assetCount, &taskCount) == nil {
+			list = append(list, map[string]any{"id": id, "name": name, "createdAt": created, "updatedAt": updated, "assetCount": assetCount, "taskCount": taskCount})
 		}
 	}
 	s.json(w, 200, map[string]any{"projects": list})
@@ -584,6 +601,9 @@ func (s *server) assets(w http.ResponseWriter, r *http.Request) {
 			_ = s.storage.Delete(key)
 			s.error(w, 500, "ASSET_STORAGE_ERROR", "资产记录保存失败")
 			return
+		}
+		if projectID != "" {
+			_, _ = s.db.Exec("UPDATE projects SET updated_at=now() WHERE id=$1 AND user_id=$2", projectID, uid)
 		}
 	}
 	s.json(w, 201, map[string]any{"asset": map[string]any{"id": id, "filename": filepath.Base(header.Filename), "mime": expectedMime, "sizeBytes": len(data), "width": width, "height": height, "hash": hex.EncodeToString(hash[:]), "projectId": projectID}})

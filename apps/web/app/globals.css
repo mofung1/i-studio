@@ -1913,6 +1913,9 @@ img {
   gap: 7px;
 }
 
+.project-item-actions { display: flex; gap: 12px; margin-top: 12px; }
+.project-item-actions a { color: #2d6b55; font-size: 12px; }
+
 @media (max-width: 780px) {
   .projects-page,
   .task-detail-page {
