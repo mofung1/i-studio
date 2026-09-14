@@ -551,7 +551,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               <fieldset className="form-section compact-fields">
                 <label>商品名称<input type="text" value={productName} aria-invalid={Boolean(fieldErrors.productName)} onChange={(event) => { setProductName(event.target.value); setFieldErrors({}) }} placeholder="请输入商品名称" />{fieldErrors.productName && <span className="field-error">{fieldErrors.productName}</span>}</label>
                 <label>商品类目<input type="text" list="product-categories" value={productCategory} onChange={(event) => setProductCategory(event.target.value)} placeholder="选填，可选择或手动输入" /><datalist id="product-categories"><option value="服饰鞋包" /><option value="美妆护肤" /><option value="食品饮料" /><option value="家居家电" /><option value="数码电子" /><option value="母婴用品" /><option value="运动户外" /></datalist></label>
-                <label>所属项目<span className="select-shell"><select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">未选择项目</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><ChevronDown size={14} /></span></label>
+                <label>所属项目<span className="select-shell"><select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">未选择项目</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><ChevronDown size={14} /></span>{projectId ? <span className="field-helper">本次生成会归入所选项目。</span> : <span className="field-helper">未选择项目，生成任务仍会保存在任务中心。<Link href="/projects">创建项目</Link></span>}</label>
               </fieldset>
             )}
 

@@ -31,6 +31,7 @@ type task struct {
 	ID           string   `json:"id"`
 	UserID       string   `json:"-"`
 	ProjectID    string   `json:"projectId,omitempty"`
+	ProjectName  string   `json:"projectName,omitempty"`
 	Status       string   `json:"status"`
 	CreatedAt    string   `json:"createdAt"`
 	Input        any      `json:"input"`
@@ -204,7 +205,7 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodGet && s.db != nil {
 		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
-		query := "SELECT id,project_id,status,created_at,input FROM generation_tasks WHERE user_id=$1"
+		query := "SELECT t.id,t.project_id,p.name,t.status,t.created_at,t.input FROM generation_tasks t LEFT JOIN projects p ON p.id=t.project_id WHERE t.user_id=$1"
 		args := []any{userID}
 		if projectID != "" {
 			if !s.userOwnsProject(userID, projectID) {
@@ -226,8 +227,10 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 			var t task
 			var project sql.NullString
 			var input []byte
-			if rows.Scan(&t.ID, &project, &t.Status, &t.CreatedAt, &input) == nil {
+			var projectName sql.NullString
+			if rows.Scan(&t.ID, &project, &projectName, &t.Status, &t.CreatedAt, &input) == nil {
 				t.ProjectID = project.String
+				t.ProjectName = projectName.String
 				_ = json.Unmarshal(input, &t.Input)
 				list = append(list, t)
 			}

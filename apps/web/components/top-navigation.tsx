@@ -65,7 +65,7 @@ export function TopNavigation() {
         <Link href="/workbench?mode=commerce&task=white-background">电商工具</Link>
         <Link href="/#inspiration">发现灵感</Link>
         <Link href="/tasks">任务</Link>
-        <Link href="/projects">项目与资产</Link>
+        <Link href="/projects">项目</Link>
       </nav>
       <div className="nav-actions">
         {username ? <div className="account-menu" ref={accountRef}>

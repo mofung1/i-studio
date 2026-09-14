@@ -1915,6 +1915,8 @@ img {
 
 .project-item-actions { display: flex; gap: 12px; margin-top: 12px; }
 .project-item-actions a { color: #2d6b55; font-size: 12px; }
+.field-helper a { margin-left: 4px; color: #2d6b55; text-decoration: underline; text-underline-offset: 2px; }
+.task-detail-navigation { display: flex; align-items: center; gap: 16px; }
 
 @media (max-width: 780px) {
   .projects-page,
