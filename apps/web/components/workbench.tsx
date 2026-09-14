@@ -4,6 +4,8 @@ import {
   Box,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Image as ImageIcon,
   LayoutPanelLeft,
@@ -13,6 +15,7 @@ import {
   Palette,
   Plus,
   RefreshCw,
+  RotateCcw,
   Sparkles,
   Upload,
   WandSparkles,
@@ -20,7 +23,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   generationInputSchema,
@@ -105,9 +108,136 @@ const insightTags = [
   ['atmosphere', '氛围', '安静专注'],
 ] as const
 
+// 场景风格图库：每个条目带预览图、中文名和自动填入的场景描述
+const sceneStyles = [
+  {
+    id: 'indoor-minimal',
+    label: '简约室内',
+    description: '白色极简室内背景，柔和自然散射光，浅灰木纹桌面，干净留白',
+    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=75',
+  },
+  {
+    id: 'nordic-wood',
+    label: '北欧木质',
+    description: '浅木色原木桌面，北欧风室内，暖白自然光，温馨简约氛围',
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=75',
+  },
+  {
+    id: 'outdoor-natural',
+    label: '户外自然',
+    description: '户外自然环境，绿植背景，柔和日光，清新通透的氛围',
+    image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=75',
+  },
+  {
+    id: 'flat-lay',
+    label: '俯拍平铺',
+    description: '俯视角度，平铺摆拍，浅色背景，物品有序排列，构图干净',
+    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=400&q=75',
+  },
+  {
+    id: 'tech-dark',
+    label: '科技深色',
+    description: '深色科技感背景，冷色调打光，硬朗光影，精密材质细节突出',
+    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=400&q=75',
+  },
+  {
+    id: 'lifestyle',
+    label: '生活场景',
+    description: '真实生活使用场景，暖色调居家环境，自然随意的生活感',
+    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=400&q=75',
+  },
+  {
+    id: 'gradient-studio',
+    label: '渐变摄影棚',
+    description: '摄影棚渐变背景，专业商业打光，阴影自然，主体突出',
+    image: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?auto=format&fit=crop&w=400&q=75',
+  },
+  {
+    id: 'holiday',
+    label: '节日氛围',
+    description: '节日氛围装饰背景，暖色调，彩带或鲜花点缀，喜庆温馨',
+    image: 'https://images.unsplash.com/photo-1512389142860-9c449e58a543?auto=format&fit=crop&w=400&q=75',
+  },
+] as const
+
+type SceneStyleId = (typeof sceneStyles)[number]['id']
+
 type VisualDirection = (typeof insightTags)[number][0]
 type GeneralStyle = 'unspecified' | 'studio' | 'minimal' | 'fresh' | 'technology' | 'guochao'
 type ReferenceStrength = 'low' | 'medium' | 'high'
+
+const MAX_SELLING_POINTS = 8
+
+function SellingPointTagInput({
+  tags,
+  onChange,
+}: {
+  tags: string[]
+  onChange: (tags: string[]) => void
+}) {
+  const [inputValue, setInputValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const atMax = tags.length >= MAX_SELLING_POINTS
+
+  function addTag(raw: string) {
+    const trimmed = raw.trim().replace(/,|，/g, '').trim()
+    if (!trimmed || tags.includes(trimmed) || tags.length >= MAX_SELLING_POINTS) return
+    onChange([...tags, trimmed])
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter' || event.key === ',' || event.key === '，') {
+      event.preventDefault()
+      addTag(inputValue)
+      setInputValue('')
+    } else if (event.key === 'Backspace' && inputValue === '' && tags.length > 0) {
+      onChange(tags.slice(0, -1))
+    }
+  }
+
+  function handleBlur() {
+    if (inputValue.trim()) {
+      addTag(inputValue)
+      setInputValue('')
+    }
+  }
+
+  return (
+    <div
+      className={`selling-point-input${atMax ? ' at-max' : ''}`}
+      onClick={() => inputRef.current?.focus()}
+      role="group"
+      aria-label="卖点标签输入"
+    >
+      {tags.map((tag, index) => (
+        <span key={tag} className="sp-tag">
+          {tag}
+          <button
+            type="button"
+            aria-label={`删除卖点：${tag}`}
+            onClick={(e) => { e.stopPropagation(); onChange(tags.filter((_, i) => i !== index)) }}
+          >
+            <X size={11} />
+          </button>
+        </span>
+      ))}
+      {!atMax && (
+        <input
+          ref={inputRef}
+          type="text"
+          className="sp-tag-input"
+          value={inputValue}
+          placeholder={tags.length === 0 ? '输入卖点，回车或逗号分隔' : '继续添加…'}
+          maxLength={50}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          aria-label="输入卖点"
+        />
+      )}
+    </div>
+  )
+}
 
 function SelectedImageThumbnail({ file, label, onRemove }: { file: File; label: string; onRemove: () => void }) {
   const [preview, setPreview] = useState('')
@@ -136,6 +266,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [configSide, setConfigSide] = useState<ConfigSide>('left')
   const [prompt, setPrompt] = useState(initialPrompt ?? '柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
   const [requirements, setRequirements] = useState('')
+  const [sceneStyleId, setSceneStyleId] = useState<SceneStyleId | null>(null)
+  const [sellingPointTags, setSellingPointTags] = useState<string[]>([])
   const [productFiles, setProductFiles] = useState<File[]>([])
   const [referenceFiles, setReferenceFiles] = useState<File[]>([])
   const [count, setCount] = useState(() => Math.min(4, Math.max(1, Number(initialCount) || 1)))
@@ -156,10 +288,14 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
+  // 历史生成结果列表，每次成功生成追加一项，支持切换查看
+  const [resultHistory, setResultHistory] = useState<InlineGenerationTask[]>([])
+  const [activeResultIndex, setActiveResultIndex] = useState(0)
   const [generationTask, setGenerationTask] = useState<InlineGenerationTask | null>(null)
   const hasProductImage = productFiles.length > 0
   const hasReferenceImage = referenceFiles.length > 0
   const isGenerating = Boolean(generationTask && !terminalStatuses.has(generationTask.status))
+  const activeResult = resultHistory[activeResultIndex] ?? null
 
   useEffect(() => {
     const savedSide = window.localStorage.getItem('istudio-config-side')
@@ -202,6 +338,14 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         const data = await response.json() as { task: InlineGenerationTask }
         if (cancelled) return
         setGenerationTask(data.task)
+        // 任务完成后追加到历史列表，切换到最新结果
+        if (terminalStatuses.has(data.task.status) && data.task.status === 'succeeded') {
+          setResultHistory((prev) => {
+            const next = [...prev, data.task]
+            setActiveResultIndex(next.length - 1)
+            return next
+          })
+        }
         if (!terminalStatuses.has(data.task.status)) timer = window.setTimeout(loadTask, 3000)
       } catch (error) {
         if (cancelled) return
@@ -228,16 +372,9 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const title = mode === 'general' ? '通用生图' : currentTask.title
   const description = mode === 'general' ? '用文字描述或参考图片构建画面' : currentTask.description
 
-  const parsedSellingPoints = useMemo(
-    () => requirements.split('\n').map((item) => item.trim()).filter(Boolean).slice(0, 8),
-    [requirements],
-  )
-
-  const requirementsPlaceholder = task === 'selling-point' || task === 'detail-page'
-    ? '每行一条卖点，最多 8 条'
-    : task === 'scene'
-      ? '描述目标场景、光线和氛围'
-      : '补充背景、阴影和商品呈现要求'
+  const requirementsPlaceholder = task === 'scene'
+    ? '描述目标场景、光线和氛围'
+    : '补充背景、阴影和商品呈现要求'
 
   function changeMode(nextMode: WorkbenchMode) {
     setMode(nextMode)
@@ -279,9 +416,9 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     }
 
     if (task === 'white-background') return { ...common, requirements, naturalShadow: true }
-    if (task === 'scene') return { ...common, sceneDescription: requirements, referenceAssetIds, visualDirection: visualDirections }
-    if (task === 'selling-point') return { ...common, sellingPoints: parsedSellingPoints, outputLanguage, requirements, reserveCopyArea: true }
-    return { ...common, module: detailModule, sellingPoints: parsedSellingPoints, outputLanguage, requirements }
+    if (task === 'scene') return { ...common, sceneDescription: requirements, referenceAssetIds, visualDirection: [] }
+    if (task === 'selling-point') return { ...common, sellingPoints: sellingPointTags, outputLanguage, requirements, reserveCopyArea: true }
+    return { ...common, module: detailModule, sellingPoints: sellingPointTags, outputLanguage, requirements }
   }
 
   async function createGenerationTask() {
@@ -445,15 +582,54 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               </fieldset>
             ) : (
               <>
-                <fieldset className="form-section">
-                  <div className="field-heading"><legend>商品卖点与要求</legend></div>
-                  <textarea value={requirements} onChange={(event) => setRequirements(event.target.value)} placeholder={requirementsPlaceholder} />
-                  {(task === 'selling-point' || task === 'detail-page') && <p className="field-helper">已识别 {parsedSellingPoints.length} 条卖点</p>}
-                </fieldset>
+                {(task === 'selling-point' || task === 'detail-page') ? (
+                  <fieldset className="form-section">
+                    <div className="field-heading">
+                      <legend>商品卖点</legend>
+                      <span>{sellingPointTags.length}/{MAX_SELLING_POINTS}</span>
+                    </div>
+                    <SellingPointTagInput tags={sellingPointTags} onChange={setSellingPointTags} />
+                    {sellingPointTags.length >= MAX_SELLING_POINTS && (
+                      <p className="field-helper">已达到最多 {MAX_SELLING_POINTS} 条</p>
+                    )}
+                  </fieldset>
+                ) : (
+                  <fieldset className="form-section">
+                    <div className="field-heading"><legend>补充要求</legend></div>
+                    <textarea value={requirements} onChange={(event) => setRequirements(event.target.value)} placeholder={requirementsPlaceholder} />
+                  </fieldset>
+                )}
                 {task === 'detail-page' && <fieldset className="form-section"><div className="field-heading stacked"><legend>详情页内容模块</legend><span>选择本页要表达的一个主题</span></div><div className="module-grid">{detailModules.map(([value, label]) => <button key={value} className={detailModule === value ? 'selected' : ''} type="button" onClick={() => setDetailModule(value)}>{detailModule === value && <Check size={13} />}{label}</button>)}</div></fieldset>}
                 {task === 'scene' && <fieldset className="form-section">
-                  <div className="field-heading"><legend>视觉方向</legend><span>未上传参考图时不生效</span></div>
-                  <div className="insight-chips">{insightTags.map(([value, label, detail]) => <button key={value} className={visualDirections.includes(value) ? 'selected' : ''} type="button" onClick={() => toggleVisualDirection(value)}><span>{label}</span>{detail}{visualDirections.includes(value) && <Check size={12} />}</button>)}</div>
+                  <div className="field-heading stacked">
+                    <legend>场景风格</legend>
+                    <span>选择后自动填入场景描述，可手动修改</span>
+                  </div>
+                  <div className="scene-style-grid">
+                    {sceneStyles.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className={`scene-style-card${sceneStyleId === s.id ? ' selected' : ''}`}
+                        onClick={() => {
+                          const next = sceneStyleId === s.id ? null : s.id as SceneStyleId
+                          setSceneStyleId(next)
+                          setRequirements(next ? s.description : '')
+                        }}
+                        aria-pressed={sceneStyleId === s.id}
+                      >
+                        <img src={s.image} alt={s.label} />
+                        <span>{s.label}</span>
+                        {sceneStyleId === s.id && <span className="scene-style-check"><Check size={10} /></span>}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    className="scene-desc-textarea"
+                    value={requirements}
+                    onChange={(event) => { setRequirements(event.target.value); setSceneStyleId(null) }}
+                    placeholder="描述目标场景、光线和氛围，或从上方选择风格快速填入"
+                  />
                 </fieldset>}
               </>
             )}
@@ -475,8 +651,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
           </footer>
         </aside>
 
-        <section className={`creation-canvas ${generationTask ? 'has-generation-result' : ''}`}>
-          {!generationTask && <>
+        <section className={`creation-canvas ${(resultHistory.length > 0 || isGenerating) ? 'has-generation-result' : ''}`}>
+          {resultHistory.length === 0 && !isGenerating && <>
             <div className="canvas-copy"><span>{mode === 'general' ? 'AI 图片' : '电商工具'}</span><h1>{title}</h1><p>{description}</p></div>
             <div className="canvas-preview">
               <img src={canvasImage} alt={`${title}效果预览`} />
@@ -485,20 +661,104 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
             <p className="integration-note"><Box size={16} />当前展示设计参考图；尚未调用 AI，也不会产生费用。</p>
           </>}
 
-          {generationTask && isGenerating && <div className="generation-feedback">
+          {isGenerating && <div className="generation-feedback">
             <span className="generation-status-icon"><Sparkles size={22} /></span>
-            <h2>{generationStatusLabels[generationTask.status] ?? '任务处理中'}</h2>
+            <h2>{generationStatusLabels[generationTask?.status ?? ''] ?? '任务处理中'}</h2>
             <p>结果返回后会自动显示在当前页面。</p>
             <div className="generation-progress" aria-label="任务处理中"><span /></div>
           </div>}
 
-          {generationTask && !isGenerating && generationTask.status === 'succeeded' && generationTask.resultImages?.length ? <div className="editor-result">
-            <div className="result-topline"><div><span className="success-label"><Check size={13} />生成完成</span><h2>{title}</h2></div><span>{generationTask.resultImages.length} 张图片</span></div>
-            <div className="inline-result-grid">{generationTask.resultImages.map((path, index) => <div className="inline-result-image" key={path}><AuthenticatedImage path={path} alt={`AI 生成结果 ${index + 1}`} /><span className="ai-badge">AI 生成</span><button type="button" aria-label={`下载第 ${index + 1} 张图片`} onClick={() => void downloadProtectedAsset(path, `istudio-${generationTask.id.slice(0, 8)}-${index + 1}.png`)}><Download size={16} /></button></div>)}</div>
-            <p className="integration-note"><RefreshCw size={16} />结果已保存到任务记录，也可以从“任务”页面继续查看。</p>
-          </div> : null}
+          {!isGenerating && generationTask && generationTask.status !== 'succeeded' && resultHistory.length === 0 && (
+            <div className="inline-generation-error"><strong>生成失败</strong><span>{generationTask.errorMessage || '供应商未返回错误详情，请重试。'}</span></div>
+          )}
 
-          {generationTask && !isGenerating && generationTask.status !== 'succeeded' && <div className="inline-generation-error"><strong>生成失败</strong><span>{generationTask.errorMessage || '供应商未返回错误详情，请重试。'}</span></div>}
+          {resultHistory.length > 0 && !isGenerating && activeResult && activeResult.resultImages?.length ? (
+            <div className="editor-result">
+              {/* 历史结果导航栏 */}
+              {resultHistory.length > 1 && (
+                <div className="result-history-nav" role="navigation" aria-label="历史生成结果">
+                  <button
+                    type="button"
+                    aria-label="上一次结果"
+                    disabled={activeResultIndex === 0}
+                    onClick={() => setActiveResultIndex((i) => Math.max(0, i - 1))}
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+                  <span>第 {activeResultIndex + 1} / {resultHistory.length} 次</span>
+                  <button
+                    type="button"
+                    aria-label="下一次结果"
+                    disabled={activeResultIndex === resultHistory.length - 1}
+                    onClick={() => setActiveResultIndex((i) => Math.min(resultHistory.length - 1, i + 1))}
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
+              )}
+
+              <div className="result-topline">
+                <div><span className="success-label"><Check size={13} />生成完成</span><h2>{title}</h2></div>
+                <span>{activeResult.resultImages.length} 张图片</span>
+              </div>
+
+              <div className="inline-result-grid">
+                {activeResult.resultImages.map((path, index) => (
+                  <div className="inline-result-image" key={path}>
+                    <AuthenticatedImage path={path} alt={`AI 生成结果 ${index + 1}`} />
+                    <span className="ai-badge">AI 生成</span>
+                    <div className="result-image-actions">
+                      <button
+                        type="button"
+                        aria-label={`下载第 ${index + 1} 张图片`}
+                        title="下载"
+                        onClick={() => void downloadProtectedAsset(path, `istudio-${activeResult.id.slice(0, 8)}-${index + 1}.png`)}
+                      >
+                        <Download size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`以第 ${index + 1} 张图片为参考再生成`}
+                        title="以此图为参考再生成"
+                        onClick={async () => {
+                          // 将已生成图片下载为 Blob，转换为 File，填入 referenceFiles
+                          const url = path.startsWith('/') ? `${apiBaseUrl}${path}` : path
+                          const token = getAccessToken()
+                          const resp = await fetch(url, {
+                            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                          })
+                          if (!resp.ok) return
+                          const blob = await resp.blob()
+                          const filename = `ref-${activeResult.id.slice(0, 8)}-${index + 1}.png`
+                          const file = new File([blob], filename, { type: blob.type || 'image/png' })
+                          setReferenceFiles((prev) => [...prev, file].slice(0, 4))
+                          // 滚动配置面板至顶部（让用户看到参考图已填入）
+                          document.querySelector('.configuration-scroll')?.scrollTo({ top: 0, behavior: 'smooth' })
+                        }}
+                      >
+                        <RotateCcw size={15} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* 继续调整操作行 */}
+              <div className="result-action-bar">
+                <button
+                  type="button"
+                  className="result-action-btn"
+                  disabled={isSubmitting || isGenerating || aiEnabled === null}
+                  onClick={() => void createGenerationTask()}
+                >
+                  <RefreshCw size={14} />修改参数重新生成
+                </button>
+                <p className="integration-note" style={{ margin: 0 }}>
+                  <RefreshCw size={14} />结果已保存到任务记录
+                </p>
+              </div>
+            </div>
+          ) : null}
         </section>
       </section>
     </main>

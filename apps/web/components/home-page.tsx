@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowRight, Box, ChevronDown, Clock3, Images, Maximize, Palette, Send, Sparkles } from 'lucide-react'
+import { ArrowRight, Box, ChevronDown, Clock3, Images, Layers, Maximize, Palette, Send, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState, type ReactNode } from 'react'
 
@@ -98,6 +98,14 @@ export function HomePage() {
 
         <section className="content-section">
           <div className="section-heading"><Box size={20} /><div><h2>电商创作工具</h2><p>选择创作目标，加载对应的商品图参数。</p></div></div>
+          <Link className="full-set-banner" href="/workbench?mode=commerce&task=white-background">
+            <div className="full-set-banner-left">
+              <span className="full-set-badge"><Layers size={13} />一键全套</span>
+              <h3>上传商品图，生成完整上架素材</h3>
+              <p>白底图 · 场景图 · 卖点主图 · 详情页，一次配置，分步生成</p>
+            </div>
+            <span className="full-set-arrow"><ArrowRight size={20} /></span>
+          </Link>
           <div className="commerce-grid">
             {commerceTools.map((tool) => (
               <Link key={tool.task} className={`commerce-card accent-${tool.accent}`} href={`/workbench?mode=commerce&task=${tool.task}`}>
