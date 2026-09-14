@@ -205,14 +205,14 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodGet && s.db != nil {
 		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
-		query := "SELECT t.id,t.project_id,p.name,t.status,t.created_at,t.input FROM generation_tasks t LEFT JOIN projects p ON p.id=t.project_id WHERE t.user_id=$1"
+		query := "SELECT t.id,t.status,t.created_at,t.input,t.result_images FROM generation_tasks t WHERE t.user_id=$1"
 		args := []any{userID}
 		if projectID != "" {
 			if !s.userOwnsProject(userID, projectID) {
 				s.error(w, http.StatusNotFound, "PROJECT_NOT_FOUND", "项目不存在")
 				return
 			}
-			query += " AND project_id=$2"
+			query += " AND t.project_id=$2"
 			args = append(args, projectID)
 		}
 		query += " ORDER BY created_at DESC LIMIT 50"
@@ -225,13 +225,11 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 		list := []task{}
 		for rows.Next() {
 			var t task
-			var project sql.NullString
 			var input []byte
-			var projectName sql.NullString
-			if rows.Scan(&t.ID, &project, &projectName, &t.Status, &t.CreatedAt, &input) == nil {
-				t.ProjectID = project.String
-				t.ProjectName = projectName.String
+			var resultRaw []byte
+			if rows.Scan(&t.ID, &t.Status, &t.CreatedAt, &input, &resultRaw) == nil {
 				_ = json.Unmarshal(input, &t.Input)
+				_ = json.Unmarshal(resultRaw, &t.ResultImages)
 				list = append(list, t)
 			}
 		}

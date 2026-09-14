@@ -83,10 +83,8 @@ func dbFindTask(db *sql.DB, id, userID string) (task, bool, error) {
 	var resultRaw []byte
 	var errorMessage sql.NullString
 	var projectID sql.NullString
-	var projectName sql.NullString
-	err := db.QueryRow("SELECT t.id, t.project_id, p.name, t.status, t.created_at, t.input, t.result_images, t.error_message FROM generation_tasks t LEFT JOIN projects p ON p.id=t.project_id WHERE t.id = $1 AND t.user_id = $2", id, userID).Scan(&t.ID, &projectID, &projectName, &t.Status, &t.CreatedAt, &input, &resultRaw, &errorMessage)
+	err := db.QueryRow("SELECT id, project_id, status, created_at, input, result_images, error_message FROM generation_tasks WHERE id = $1 AND user_id = $2", id, userID).Scan(&t.ID, &projectID, &t.Status, &t.CreatedAt, &input, &resultRaw, &errorMessage)
 	t.ProjectID = projectID.String
-	t.ProjectName = projectName.String
 	if err == sql.ErrNoRows {
 		return task{}, false, nil
 	}

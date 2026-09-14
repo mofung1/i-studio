@@ -18,10 +18,9 @@ export async function readApiError(response: Response, fallback: string) {
   }
 }
 
-export async function uploadAsset(file: File, token: string, projectId?: string) {
+export async function uploadAsset(file: File, token: string) {
   const body = new FormData()
   body.append('file', file)
-  if (projectId) body.append('projectId', projectId)
 
   const response = await fetch(`${apiBaseUrl}/v1/assets`, {
     method: 'POST',

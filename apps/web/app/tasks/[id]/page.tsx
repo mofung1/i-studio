@@ -9,8 +9,6 @@ import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authent
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 
 interface GenerationTask {
-  projectId?: string
-  projectName?: string
   status: string
   createdAt: string
   input: Record<string, unknown>
@@ -89,12 +87,12 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   return <main className="task-detail-page">
-    <div className="task-detail-navigation"><Link href="/tasks" className="auth-back"><ArrowLeft size={16} />返回任务中心</Link>{task?.projectId && <Link href={`/tasks?projectId=${task.projectId}`} className="auth-back">返回项目任务</Link>}</div>
+    <Link href="/tasks" className="auth-back"><ArrowLeft size={16} />返回任务中心</Link>
     <div className="task-detail-card">
       <span className="eyebrow"><LoaderCircle size={16} />生成任务</span>
       <h1>任务详情</h1>
       {error ? <p className="auth-notice">{error}</p> : task ? <>
-        <div className="task-status"><strong>{statusLabels[task.status] ?? task.status}</strong><span>{task.projectName ? `项目：${task.projectName} · ` : '未归属项目 · '}{new Date(task.createdAt).toLocaleString()}</span></div>
+        <div className="task-status"><strong>{statusLabels[task.status] ?? task.status}</strong><span>{new Date(task.createdAt).toLocaleString()}</span></div>
         <section className="task-results">
           <h2>生成结果</h2>
           {task.resultImages?.length ? <div className="result-grid">{task.resultImages.map((path, index) => <article key={path}><AuthenticatedImage path={path} alt={`生成结果 ${index + 1}`} /><button type="button" onClick={() => void downloadProtectedAsset(path, `istudio-${id.slice(0, 8)}-${index + 1}.png`)}><Download size={15} />下载</button></article>)}</div> : task.errorMessage ? <div className="empty-state">{task.errorMessage}</div> : task.status === 'failed' ? <div className="empty-state">生成失败，但供应商未返回错误详情。请重试或查看 API 日志。</div> : <div className="empty-state">生成完成后，图片将在这里显示。</div>}

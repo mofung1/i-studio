@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 const commerceTasks: CommerceTaskType[] = ['white-background', 'scene', 'selling-point', 'detail-page']
 
 interface WorkbenchPageProps {
-  searchParams: Promise<{ mode?: string; task?: string; prompt?: string; model?: string; aspectRatio?: string; resolution?: string; count?: string; projectId?: string }>
+  searchParams: Promise<{ mode?: string; task?: string; prompt?: string; model?: string; aspectRatio?: string; resolution?: string; count?: string }>
 }
 
 export default async function WorkbenchPage({ searchParams }: WorkbenchPageProps) {
@@ -25,7 +25,6 @@ export default async function WorkbenchPage({ searchParams }: WorkbenchPageProps
         initialAspectRatio={params.aspectRatio}
         initialResolution={params.resolution}
         initialCount={params.count}
-        initialProjectId={params.projectId}
       />
     </Suspense>
   )

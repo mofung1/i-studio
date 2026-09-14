@@ -21,10 +21,11 @@ const inspiration = [
   ['现代主义客厅', '家居', 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=85'],
 ]
 
-type HomeProject = {
+type HomeTask = {
   id: string
-  name: string
-  updatedAt?: string
+  status: string
+  createdAt: string
+  input: { productName?: string; prompt?: string; mode?: string }
 }
 
 interface ComposerSelectProps {
@@ -51,19 +52,19 @@ export function HomePage() {
   const [ratio, setRatio] = useState('1:1')
   const [resolution, setResolution] = useState('2K')
   const [count, setCount] = useState('1')
-  const [projects, setProjects] = useState<HomeProject[]>([])
+  const [tasks, setTasks] = useState<HomeTask[]>([])
 
   useEffect(() => {
     const token = window.localStorage.getItem('istudio-access-token')
     if (!token) return
 
     const controller = new AbortController()
-    fetch(`${apiBaseUrl}/v1/projects`, {
+    fetch(`${apiBaseUrl}/v1/generation/tasks`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
     })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('项目加载失败')))
-      .then((data: { projects?: HomeProject[] }) => setProjects((data.projects ?? []).slice(0, 3)))
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('任务加载失败')))
+      .then((data: { tasks?: HomeTask[] }) => setTasks((data.tasks ?? []).slice(0, 3)))
       .catch(() => undefined)
 
     return () => controller.abort()
@@ -116,13 +117,13 @@ export function HomePage() {
           </div>
         </section>
 
-        <section className="content-section" id="projects">
-          <div className="section-heading"><Clock3 size={20} /><div><h2>最近项目</h2><p>继续上次未完成的创作。</p></div></div>
-          {projects.length ? <div className="recent-project-list">{projects.map((project) => <article className="recent-project no-cover" key={project.id}>
-            <div><strong>{project.name}</strong><span>项目</span></div>
-            {project.updatedAt && <time>{new Date(project.updatedAt).toLocaleDateString('zh-CN')}</time>}
-            <Link href={`/workbench?mode=commerce&task=scene&projectId=${project.id}`}>继续创作</Link>
-          </article>)}</div> : <div className="home-empty-state"><span>还没有项目，先创建第一个</span><Link href="/projects">创建项目</Link></div>}
+        <section className="content-section" id="tasks">
+          <div className="section-heading"><Clock3 size={20} /><div><h2>最近任务</h2><p>继续查看最近的生成任务。</p></div></div>
+          {tasks.length ? <div className="recent-project-list">{tasks.map((task) => <article className="recent-project no-cover" key={task.id}>
+            <div><strong>{task.input.productName ?? task.input.prompt?.slice(0, 24) ?? (task.input.mode === 'commerce' ? '电商图片' : '通用生图')}</strong><span>{task.status === 'succeeded' ? '已完成' : task.status === 'failed' ? '生成失败' : '处理中'}</span></div>
+            <time>{new Date(task.createdAt).toLocaleDateString('zh-CN')}</time>
+            <Link href={`/tasks/${task.id}`}>查看任务</Link>
+          </article>)}</div> : <div className="home-empty-state"><span>还没有生成任务，先开始创作</span><Link href="/workbench?mode=general">开始创作</Link></div>}
         </section>
 
         <section className="content-section" id="inspiration">

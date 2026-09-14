@@ -61,7 +61,6 @@ interface WorkbenchProps {
   initialAspectRatio?: string
   initialResolution?: string
   initialCount?: string
-  initialProjectId?: string
 }
 
 const taskMeta: Record<CommerceTaskType, { title: string; description: string; image: string }> = {
@@ -257,7 +256,7 @@ function SelectedImageThumbnail({ file, label, onRemove }: { file: File; label: 
   )
 }
 
-export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount, initialProjectId }: WorkbenchProps) {
+export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount }: WorkbenchProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -284,8 +283,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [detailModule, setDetailModule] = useState<(typeof detailModules)[number][0]>('core-selling-point')
   const [visualDirections, setVisualDirections] = useState<VisualDirection[]>(insightTags.map(([key]) => key))
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
-  const [projectId, setProjectId] = useState(initialProjectId ?? '')
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
   // 历史生成结果列表，每次成功生成追加一项，支持切换查看
@@ -305,15 +302,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   useEffect(() => {
     window.localStorage.setItem('istudio-config-side', configSide)
   }, [configSide])
-
-  useEffect(() => {
-    const token = getAccessToken()
-    if (!token) return
-    fetch(`${apiBaseUrl}/v1/projects`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('项目加载失败')))
-      .then((data: { projects?: Array<{ id: string; name: string }> }) => setProjects(data.projects ?? []))
-      .catch(() => undefined)
-  }, [])
 
   useEffect(() => {
     fetch(`${apiBaseUrl}/v1/generation/capabilities`)
@@ -411,7 +399,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       productCategory: productCategory.trim() || '未分类',
       platform,
       consistencyProtection: true,
-      projectId: projectId || undefined,
       ...imageSettings,
     }
 
@@ -455,8 +442,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         throw new Error(firstIssue?.message ?? '请完成必填配置')
       }
       const [productAssetIds, referenceAssetIds] = await Promise.all([
-        Promise.all(productFiles.map((file) => uploadAsset(file, token, projectId || undefined))),
-        Promise.all(referenceFiles.map((file) => uploadAsset(file, token, projectId || undefined))),
+        Promise.all(productFiles.map((file) => uploadAsset(file, token))),
+        Promise.all(referenceFiles.map((file) => uploadAsset(file, token))),
       ])
       const result = generationInputSchema.safeParse(buildPayload(productAssetIds, referenceAssetIds))
 
@@ -551,7 +538,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               <fieldset className="form-section compact-fields">
                 <label>商品名称<input type="text" value={productName} aria-invalid={Boolean(fieldErrors.productName)} onChange={(event) => { setProductName(event.target.value); setFieldErrors({}) }} placeholder="请输入商品名称" />{fieldErrors.productName && <span className="field-error">{fieldErrors.productName}</span>}</label>
                 <label>商品类目<input type="text" list="product-categories" value={productCategory} onChange={(event) => setProductCategory(event.target.value)} placeholder="选填，可选择或手动输入" /><datalist id="product-categories"><option value="服饰鞋包" /><option value="美妆护肤" /><option value="食品饮料" /><option value="家居家电" /><option value="数码电子" /><option value="母婴用品" /><option value="运动户外" /></datalist></label>
-                <label>所属项目<span className="select-shell"><select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">未选择项目</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><ChevronDown size={14} /></span>{projectId ? <span className="field-helper">本次生成会归入所选项目。</span> : <span className="field-helper">未选择项目，生成任务仍会保存在任务中心。<Link href="/projects">创建项目</Link></span>}</label>
               </fieldset>
             )}
 
@@ -577,7 +563,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
                 <label>画面描述<textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} /></label>
                 <div className="two-columns">
                   <label>创作风格<span className="select-shell"><select value={style} onChange={(event) => setStyle(event.target.value as GeneralStyle)}><option value="unspecified">不指定</option><option value="studio">摄影棚</option><option value="minimal">极简</option><option value="fresh">清新</option><option value="technology">科技</option><option value="guochao">国潮</option></select><ChevronDown size={14} /></span></label>
-                  <label>参考强度<span className="select-shell"><select value={referenceStrength} onChange={(event) => setReferenceStrength(event.target.value as ReferenceStrength)} disabled={!hasReferenceImage}><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select><ChevronDown size={14} /></span></label>
+                  <label>参考强度<span className="select-shell"><select value={referenceStrength} onChange={(event) => setReferenceStrength(event.target.value as ReferenceStrength)}><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select><ChevronDown size={14} /></span></label>
                 </div>
               </fieldset>
             ) : (
