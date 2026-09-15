@@ -548,13 +548,6 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               </div>
             </fieldset>
 
-            {mode === 'commerce' && (
-              <fieldset className={`form-section config-card two-columns compact-fields ${task === 'product-retouch' ? 'single-field' : ''}`}>
-                <label>目标平台<Select value={platform} onValueChange={setPlatform}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{platformOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
-                {task !== 'product-retouch' && <label>目标语言<Select value={outputLanguage} onValueChange={setOutputLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{languageOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>}
-              </fieldset>
-            )}
-
             {mode === 'commerce' && task === 'viral-recreate' && (
               <fieldset className="form-section config-card">
                 <div className="field-heading"><legend>参考图（爆款图）</legend><span>{referenceFiles.length}/1 张 · 必须 1 张</span></div>
@@ -563,6 +556,13 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
                   {referenceFiles.length < 1 && <label className="add-thumb"><span className="add-thumb-icon"><Upload size={16} /></span><span>添加参考图</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setReferenceFiles(Array.from(event.target.files ?? []).slice(0, 1)); event.target.value = '' }} /></label>}
                 </div>
                 <div className="choice-group"><span className="choice-label">复刻程度</span><div className="recreate-options"><label className={recreateStrength === 'style' ? 'selected' : ''}><input type="radio" checked={recreateStrength === 'style'} onChange={() => setRecreateStrength('style')} /><span><strong>参考风格</strong><small>参考整体风格和结构，自动调整色彩和重构场景</small></span></label><label className={recreateStrength === 'high' ? 'selected' : ''}><input type="radio" checked={recreateStrength === 'high'} onChange={() => setRecreateStrength('high')} /><span><strong>高度复刻</strong><small>参照参考图视觉结构替换产品和文案，场景细节略有差异</small></span></label></div></div>
+              </fieldset>
+            )}
+
+            {mode === 'commerce' && (
+              <fieldset className={`form-section config-card two-columns compact-fields ${task === 'product-retouch' ? 'single-field' : ''}`}>
+                <label>目标平台<Select value={platform} onValueChange={setPlatform}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{platformOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+                {task !== 'product-retouch' && <label>目标语言<Select value={outputLanguage} onValueChange={setOutputLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{languageOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>}
               </fieldset>
             )}
 
