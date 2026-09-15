@@ -641,7 +641,7 @@ img {
   padding: 0 18px 0 24px;
 }
 
-.workbench-header > a {
+.workbench-header > .header-actions > a {
   width: 36px;
   height: 36px;
   flex: 0 0 auto;
@@ -715,51 +715,11 @@ img {
   margin: 4px 14px 20px 0;
 }
 
-.configuration-heading {
-  min-height: 72px;
+.header-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.5);
-  border-bottom: 1px solid rgba(23, 23, 23, 0.06);
-}
-
-.configuration-heading-copy {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.configuration-heading-copy > span {
-  justify-self: start;
-  padding: 2px 8px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.configuration-heading-copy strong {
-  margin-top: 2px;
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.configuration-heading-copy p {
-  overflow: hidden;
-  margin: 0;
-  color: #8b8f8b;
-  font-size: 11px;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .side-toggle {

@@ -515,22 +515,16 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               {commerceTasks.map(([taskId, meta]) => <button key={taskId} className={task === taskId ? 'active' : ''} type="button" onClick={() => changeTask(taskId)}>{taskId === 'product-main' && <Box size={16} />}{taskId === 'detail-page' && <ImageIcon size={16} />}{taskId === 'viral-recreate' && <Sparkles size={16} />}{taskId === 'product-retouch' && <Palette size={16} />}{meta.title}</button>)}
             </nav>
           ) : <strong className="workbench-title"><WandSparkles size={17} />通用生图</strong>}
-          <Button asChild size="icon" variant="ghost"><Link href="/" aria-label="关闭工作台"><X size={20} /></Link></Button>
-        </header>
-
-        <aside className="configuration-panel">
-          <div className="configuration-heading">
-            <div className="configuration-heading-copy">
-              <span>配置工作区</span>
-              <strong>生成配置</strong>
-              <p>{mode === 'commerce' ? `${title} · 先完善素材与输出要求` : '描述你的画面，再选择输出规格'}</p>
-            </div>
+          <div className="header-actions">
             <div className="side-toggle" aria-label="生成配置位置">
               <button className={configSide === 'left' ? 'active' : ''} type="button" aria-label="配置显示在左侧" aria-pressed={configSide === 'left'} onClick={() => setConfigSide('left')}><LayoutPanelLeft size={17} /></button>
               <button className={configSide === 'right' ? 'active' : ''} type="button" aria-label="配置显示在右侧" aria-pressed={configSide === 'right'} onClick={() => setConfigSide('right')}><PanelRight size={17} /></button>
             </div>
+            <Button asChild size="icon" variant="ghost"><Link href="/" aria-label="关闭工作台"><X size={20} /></Link></Button>
           </div>
+        </header>
 
+        <aside className="configuration-panel">
           <div className="configuration-scroll">
             <fieldset className="form-section config-card config-card-assets">
               <div className="field-heading"><legend>{mode === 'general' ? '参考图片' : task === 'viral-recreate' ? '商品原图' : '产品素材'}</legend><span>{mode === 'general' ? `${referenceFiles.length}/6 张 · 可选` : task === 'product-retouch' ? `${productFiles.length}/1 张 · 必须 1 张` : `${productFiles.length}/6 张 · 至少 1 张`}</span></div>
