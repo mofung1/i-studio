@@ -87,7 +87,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   return <main className="task-detail-page">
-    <Link href="/tasks" className="auth-back"><ArrowLeft size={16} />返回任务中心</Link>
+    <Link href="/assets?view=tasks" className="auth-back"><ArrowLeft size={16} />返回资产库</Link>
     <div className="task-detail-card">
       <span className="eyebrow"><LoaderCircle size={16} />生成任务</span>
       <h1>任务详情</h1>

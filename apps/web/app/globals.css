@@ -1603,6 +1603,249 @@ img {
   object-fit: cover;
 }
 
+.library-content {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.library-views {
+  display: inline-flex;
+  gap: 3px;
+  margin-bottom: 24px;
+  padding: 4px;
+  background: #eaeae7;
+  border-radius: 8px;
+}
+
+.library-views a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  color: #666;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.library-views a[aria-current="page"] {
+  color: #171717;
+  background: white;
+  box-shadow: 0 1px 4px rgba(23, 23, 23, 0.08);
+}
+
+.library-active {
+  margin-bottom: 27px;
+}
+
+.library-active h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.library-active-list {
+  display: grid;
+  gap: 7px;
+}
+
+.library-active-list a {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 13px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.library-active-list a span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-active-list a strong {
+  flex: 0 0 auto;
+  color: #526b62;
+  font-size: 12px;
+}
+
+.asset-item > button.library-image-preview {
+  width: 100%;
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: zoom-in;
+}
+
+.library-image-preview .asset-placeholder {
+  width: 100%;
+  margin-bottom: 9px;
+}
+
+.library-image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.library-image-actions a,
+.library-image-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: #345d50;
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.library-task-item {
+  min-width: 0;
+  gap: 8px;
+}
+
+.library-task-thumbs {
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  overflow: hidden;
+  color: #888;
+  background: #f0f0ed;
+  border-radius: 6px;
+}
+
+.library-task-thumbs > img,
+.library-task-thumbs > div {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-task-item > strong,
+.library-task-item > span {
+  margin: 0;
+}
+
+.library-task-item .library-task-status {
+  color: #555;
+}
+
+.library-task-item .library-task-status.active {
+  color: #345d50;
+}
+
+.library-empty {
+  padding: 24px 0;
+}
+
+.library-empty a {
+  color: #345d50;
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.library-load-more {
+  display: block;
+  margin: 20px auto 0;
+  padding: 9px 16px;
+  color: #345d50;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.library-lightbox {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 21, 19, 0.84);
+}
+
+.library-lightbox-content {
+  position: relative;
+  width: min(960px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.library-lightbox-content > img,
+.library-lightbox-content > div[aria-label] {
+  max-width: 100%;
+  max-height: calc(100dvh - 130px);
+  object-fit: contain;
+}
+
+.library-lightbox-content > button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: white;
+  background: rgba(23, 23, 23, 0.75);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.library-lightbox-content > div:last-child {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 12px;
+}
+
+.library-lightbox-content > div:last-child a,
+.library-lightbox-content > div:last-child button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: white;
+  background: none;
+  border: 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.section-heading .section-more {
+  margin: 7px 0 0 auto;
+  color: #345d50;
+  font-size: 13px;
+}
+
 .asset-item > a,
 .asset-item > button {
   display: inline-block;

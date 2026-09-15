@@ -118,7 +118,7 @@ export function HomePage() {
         </section>
 
         <section className="content-section" id="tasks">
-          <div className="section-heading"><Clock3 size={20} /><div><h2>最近任务</h2><p>继续查看最近的生成任务。</p></div></div>
+          <div className="section-heading"><Clock3 size={20} /><div><h2>最近任务</h2><p>继续查看最近的生成任务。</p></div><Link className="section-more" href="/assets?view=tasks">查看任务记录</Link></div>
           {tasks.length ? <div className="recent-project-list">{tasks.map((task) => <article className="recent-project no-cover" key={task.id}>
             <div><strong>{task.input.productName ?? task.input.prompt?.slice(0, 24) ?? (task.input.mode === 'commerce' ? '电商图片' : '通用生图')}</strong><span>{task.status === 'succeeded' ? '已完成' : task.status === 'failed' ? '生成失败' : '处理中'}</span></div>
             <time>{new Date(task.createdAt).toLocaleDateString('zh-CN')}</time>
