@@ -2184,6 +2184,18 @@ img {
   border-radius: 8px;
 }
 
+.library-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.library-toolbar .library-views {
+  margin-bottom: 0;
+}
+
 .library-views a {
   min-height: 36px;
   display: inline-flex;

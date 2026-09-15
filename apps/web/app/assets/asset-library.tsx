@@ -1,11 +1,12 @@
 'use client'
 
-import { ArrowLeft, Clock3, Download, Image as ImageIcon, X } from 'lucide-react'
+import { Clock3, Download, Image as ImageIcon, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
+import { TopNavigation } from '@/components/top-navigation'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 
 interface GeneratedTask {
@@ -128,13 +129,17 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
   const activeTasks = tasks.filter((task) => activeStatuses.has(task.status))
   const images = tasks.flatMap((task) => (task.resultImages ?? []).map((path, index) => ({ task, path, index })))
 
-  return <main className="content-page">
-    <div className="content-page-head"><div><Link href="/" className="auth-back"><ArrowLeft size={16} />返回首页</Link><h1>资产库</h1><p>查看生成图片与任务记录。</p></div><Link className="primary-action" href="/workbench?mode=general">新建任务</Link></div>
+  return <div className="site-shell">
+    <TopNavigation />
+    <main className="content-page">
     <div className="library-content">
-      <nav className="library-views" aria-label="资产库视图">
-        <Link href="/assets" aria-current={view === 'images' ? 'page' : undefined}><ImageIcon size={16} />生成图片</Link>
-        <Link href="/assets?view=tasks" aria-current={view === 'tasks' ? 'page' : undefined}><Clock3 size={16} />按任务查看</Link>
-      </nav>
+      <div className="library-toolbar">
+        <nav className="library-views" aria-label="资产库视图">
+          <Link href="/assets" aria-current={view === 'images' ? 'page' : undefined}><ImageIcon size={16} />生成图片</Link>
+          <Link href="/assets?view=tasks" aria-current={view === 'tasks' ? 'page' : undefined}><Clock3 size={16} />按任务查看</Link>
+        </nav>
+        <Link className="primary-action" href="/workbench?mode=general">新建任务</Link>
+      </div>
       {error && <p className="auth-notice" role="alert">{error}</p>}
       {view === 'images' ? <>
         {activeTasks.length > 0 && <section className="library-active" aria-label="进行中的任务">
@@ -173,5 +178,6 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
         <div><span>{taskTitle(selectedImage.task)}</span><Link href={`/tasks/${selectedImage.task.id}`}>查看来源任务</Link><button type="button" onClick={() => void downloadProtectedAsset(selectedImage.path, `istudio-${selectedImage.task.id.slice(0, 8)}-${selectedImage.index + 1}.png`).catch(() => setError('下载失败'))}><Download size={15} />下载</button></div>
       </div>
     </div>}
-  </main>
+    </main>
+  </div>
 }
