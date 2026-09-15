@@ -21,6 +21,7 @@ function SelectTrigger({
 }: ComponentProps<typeof SelectPrimitive.Trigger>) {
   return (
     <SelectPrimitive.Trigger
+      type="button"
       className={cn('select-trigger', className)}
       {...props}
     >

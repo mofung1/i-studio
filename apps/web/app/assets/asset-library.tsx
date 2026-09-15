@@ -163,7 +163,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
             <strong>{taskTitle(task)}</strong>
             <span>{taskLabels[task.input.taskType ?? ''] ?? '通用生图'} · {new Date(task.createdAt).toLocaleString('zh-CN')}</span>
             <span className={`library-task-status${activeStatuses.has(task.status) ? ' active' : ''}`}>{statusLabels[task.status] ?? task.status}{task.status === 'failed' ? ' · 查看原因与重试' : ''}{task.status === 'succeeded' ? ` · ${task.resultImages?.length ?? 0} 张` : ''}</span>
-          </Link>)}</div> : <div className="library-empty"><p className="empty-state">暂无任务，先创建第一张图片。</p><Link href="/workbench?mode=general">开始创作</Link></div>}
+          </Link>)}</div> : <div className="library-empty"><p className="empty-state">暂无任务，先创建第一张图片。</p></div>}
       </section>}
     </div>
     {selectedImage && <div className="library-lightbox" onMouseDown={(event) => { if (event.target === event.currentTarget) closePreview() }}>

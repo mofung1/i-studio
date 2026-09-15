@@ -1,9 +1,10 @@
 'use client'
 
-import { ArrowRight, Box, ChevronDown, Clock3, Images, Layers, Maximize, Palette, Send, Sparkles } from 'lucide-react'
+import { ArrowRight, Box, Clock3, Images, Layers, Maximize, Palette, Send, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState, type ReactNode } from 'react'
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import { apiBaseUrl } from '@/lib/api'
 
 import { TopNavigation } from './top-navigation'
@@ -33,17 +34,23 @@ interface ComposerSelectProps {
   value: string
   onChange: (value: string) => void
   icon: ReactNode
-  children: ReactNode
+  options: ReadonlyArray<readonly [string, string]>
   className?: string
 }
 
-function ComposerSelect({ label, value, onChange, icon, children, className = '' }: ComposerSelectProps) {
+function ComposerSelect({ label, value, onChange, icon, options, className = '' }: ComposerSelectProps) {
   return (
-    <label className={`composer-select ${className}`}>
-      {icon}
-      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>{children}</select>
-      <ChevronDown size={14} aria-hidden="true" />
-    </label>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={`composer-select ${className}`} aria-label={label}>
+        {icon}
+        <SelectValue className="composer-select-value" />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map(([optionValue, optionLabel]) => (
+          <SelectItem key={optionValue} value={optionValue}>{optionLabel}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 
@@ -87,10 +94,10 @@ export function HomePage() {
             <textarea name="prompt" aria-label="创作描述" defaultValue="柔和晨光中的极简静物摄影，构图干净，材质细节清晰。" />
             <div className="composer-footer">
               <div className="composer-controls">
-                <ComposerSelect className="model-select" label="生图模型" value={model} onChange={setModel} icon={<Sparkles size={15} />}><option value="gpt-image-2">GPT Image 2</option><option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></ComposerSelect>
-                <ComposerSelect label="画面比例" value={ratio} onChange={setRatio} icon={<Maximize size={15} />}><option>1:1</option><option>3:4</option><option>4:3</option><option>9:16</option><option>16:9</option></ComposerSelect>
-                <ComposerSelect label="清晰度" value={resolution} onChange={setResolution} icon={<Images size={15} />}><option>1K</option><option>2K</option><option>4K</option></ComposerSelect>
-                <ComposerSelect label="生成数量" value={count} onChange={setCount} icon={<Images size={15} />}>{Array.from({ length: 16 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1} 张</option>)}</ComposerSelect>
+                <ComposerSelect className="model-select" label="生图模型" value={model} onChange={setModel} icon={<Sparkles size={15} />} options={[['gpt-image-2', 'GPT Image 2'], ['gemini-2.5-flash-image', 'Gemini 2.5 Flash'], ['gemini-3.1-flash-image', 'Gemini 3.1 Flash'], ['gemini-3-pro-image', 'Gemini 3 Pro Image']]} />
+                <ComposerSelect label="画面比例" value={ratio} onChange={setRatio} icon={<Maximize size={15} />} options={[['1:1', '1:1'], ['3:4', '3:4'], ['4:3', '4:3'], ['9:16', '9:16'], ['16:9', '16:9']]} />
+                <ComposerSelect label="清晰度" value={resolution} onChange={setResolution} icon={<Images size={15} />} options={[['1K', '1K'], ['2K', '2K'], ['4K', '4K']]} />
+                <ComposerSelect label="生成数量" value={count} onChange={setCount} icon={<Images size={15} />} options={Array.from({ length: 16 }, (_, index) => [String(index + 1), `${index + 1} 张`] as const)} />
               </div>
               <button type="submit" aria-label="开始生成配置"><Send size={19} /></button>
             </div>

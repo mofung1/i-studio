@@ -603,9 +603,21 @@ img {
   width: 13px;
   height: 13px;
   left: 8px;
-  top: 7px;
+  top: 6px;
   border: 3px solid white;
   border-radius: 50%;
+}
+
+.compact-brand::after {
+  position: absolute;
+  width: 14px;
+  height: 3px;
+  left: 12px;
+  top: 19px;
+  background: white;
+  border-radius: 4px;
+  content: '';
+  transform: rotate(-31deg);
 }
 
 .mode-rail > button {
@@ -1005,6 +1017,46 @@ img {
   flex: 0 0 auto;
   color: #747a76;
   opacity: 0.7;
+  pointer-events: none;
+}
+
+/* 首页 composer：用 Radix Select 复刻原紧凑胶囊外观 */
+.composer-select.select-trigger {
+  width: auto;
+  height: 36px;
+  margin-top: 0;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 0 9px;
+  color: #575b58;
+  background: #f3f4f1;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.composer-select.select-trigger:hover {
+  color: #232624;
+  background: #eceeeb;
+  border-color: #d9dcd8;
+}
+
+.composer-select.select-trigger[data-state='open'] {
+  color: #244b3f;
+  background: #edf4f0;
+  border-color: #abc0b8;
+  box-shadow: 0 0 0 3px rgba(73, 101, 91, 0.09);
+}
+
+.composer-select-value {
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-select.model-select .composer-select-value {
+  max-width: 150px;
 }
 
 .select-content {
@@ -1156,6 +1208,25 @@ img {
   border: 1px solid #cddbd2;
   border-radius: 6px;
   font-size: 10px;
+}
+
+/* 模块数量：Radix Select 紧凑触发器 */
+.select-trigger-count {
+  width: 62px;
+  height: 28px;
+  flex: 0 0 auto;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 4px;
+  color: #355f50;
+  border-color: #cddbd2;
+  border-radius: 6px;
+  font-size: 10px;
+}
+
+.select-trigger-count .select-chevron {
+  width: 12px;
+  height: 12px;
 }
 
 .choice-group {
@@ -2764,6 +2835,199 @@ img {
     margin: 24px auto;
     padding: 22px 16px;
   }
+}
+
+/* ===== 首页 & 资产库 UI 美化 ===== */
+
+/* 资产库：柔和背景 + 顶部微渐变，增加层次 */
+.content-page {
+  background: linear-gradient(180deg, #fafbf9 0%, #f4f5f2 100%);
+}
+
+/* 页面主标题 */
+.content-page-head h1 {
+  letter-spacing: -0.02em;
+  font-weight: 680;
+}
+
+/* 新建任务按钮 */
+.primary-action {
+  height: 42px;
+  padding: 0 18px;
+  color: #fff;
+  background: linear-gradient(180deg, #262626 0%, #171717 100%);
+  border-radius: 10px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(23, 23, 23, 0.16);
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.primary-action:hover {
+  background: linear-gradient(180deg, #171717 0%, #050505 100%);
+  box-shadow: 0 6px 16px rgba(23, 23, 23, 0.22);
+  transform: translateY(-1px);
+}
+
+/* 视图切换 tab */
+.library-views {
+  gap: 4px;
+  background: #ecece8;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 2px rgba(23, 23, 23, 0.04);
+}
+
+.library-views a {
+  border-radius: 7px;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.library-views a:hover:not([aria-current='page']) {
+  color: #333;
+}
+
+.library-views a[aria-current='page'] {
+  box-shadow: 0 1px 3px rgba(23, 23, 23, 0.1);
+}
+
+/* 生成图片卡片 */
+.asset-item {
+  padding: 8px;
+  border-color: #e7e7e2;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.03);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.asset-item:hover {
+  transform: translateY(-2px);
+  border-color: #d9ddd9;
+  box-shadow: 0 10px 24px rgba(23, 23, 23, 0.08);
+}
+
+.asset-placeholder {
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+/* 任务卡片 */
+.task-item {
+  border-color: #e7e7e2;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.03);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.task-item:hover {
+  transform: translateY(-2px);
+  border-color: #d9ddd9;
+  box-shadow: 0 10px 24px rgba(23, 23, 23, 0.08);
+}
+
+.library-task-thumbs {
+  border-radius: 8px;
+}
+
+/* 进行中的任务 */
+.library-active-list a {
+  border-color: #e7e7e2;
+  border-radius: 10px;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.library-active-list a:hover {
+  border-color: #cfe0d6;
+  background: #fbfdfb;
+  box-shadow: 0 2px 8px rgba(23, 23, 23, 0.05);
+}
+
+.library-active-list a strong {
+  color: var(--accent-strong);
+}
+
+/* 加载更多按钮 */
+.library-load-more {
+  border-color: #e0e3df;
+  border-radius: 10px;
+  font-weight: 500;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.library-load-more:hover {
+  background: #f7f9f7;
+  border-color: #c8d4cc;
+  box-shadow: 0 2px 8px rgba(23, 23, 23, 0.05);
+}
+
+/* ===== 首页 ===== */
+
+.eyebrow {
+  padding: 5px 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.home-hero h1 {
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.prompt-composer {
+  border-color: #e3e4df;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.04), 0 12px 32px rgba(23, 23, 23, 0.06);
+}
+
+.prompt-composer:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 4px var(--accent-ring), 0 16px 42px rgba(23, 23, 23, 0.09);
+}
+
+.composer-footer button {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(23, 23, 23, 0.16);
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.composer-footer button:hover {
+  background: #050505;
+  transform: translateY(-1px);
+}
+
+.section-heading > svg {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-radius: 10px;
+}
+
+.commerce-card {
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.04);
+}
+
+.commerce-card:hover {
+  border-color: #d8ddd8;
+  box-shadow: 0 14px 32px rgba(23, 23, 23, 0.1);
+}
+
+.recent-project {
+  border-color: #e7e7e2;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.02);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.recent-project:hover {
+  transform: translateY(-1px);
+  border-color: #dcddda;
+  box-shadow: 0 6px 18px rgba(23, 23, 23, 0.06);
+}
+
+.inspiration-grid article img {
+  border-radius: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {
