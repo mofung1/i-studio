@@ -62,7 +62,7 @@ export function TopNavigation() {
       <Brand />
       <nav aria-label="主导航">
         <Link href="/workbench?mode=general">AI 图片</Link>
-        <Link href="/workbench?mode=commerce&task=white-background">电商工具</Link>
+        <Link href="/workbench?mode=commerce&task=product-main">电商工具</Link>
         <Link href="/#inspiration">发现灵感</Link>
         <Link href="/assets">资产库</Link>
       </nav>

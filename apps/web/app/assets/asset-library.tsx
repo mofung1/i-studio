@@ -23,10 +23,10 @@ interface GeneratedImage {
 }
 
 const taskLabels: Record<string, string> = {
-  'white-background': '白底精修',
-  scene: '商品场景图',
-  'selling-point': '卖点主图',
-  'detail-page': '详情页单页',
+  'product-main': '商品主图',
+  'detail-page': '详情页',
+  'viral-recreate': '爆款复刻',
+  'product-retouch': '产品精修',
 }
 
 const statusLabels: Record<string, string> = {

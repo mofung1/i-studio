@@ -71,15 +71,12 @@ func TestValidateGenerationInput(t *testing.T) {
 			input: map[string]any{"mode": "general", "prompt": "minimal product photo"},
 		},
 		{
-			name: "valid commerce",
-			input: map[string]any{
-				"mode": "commerce", "taskType": "scene", "productAssetIds": []any{"asset-1"},
-				"productName": "Headphones", "productCategory": "Electronics", "sceneDescription": "On a clean desk",
-			},
+			name:  "valid commerce",
+			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"}},
 		},
 		{
 			name:    "missing product asset",
-			input:   map[string]any{"mode": "commerce", "taskType": "white-background", "productAssetIds": []any{}, "productName": "Cup", "productCategory": "Home"},
+			input:   map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{}},
 			wantErr: true,
 		},
 		{
@@ -99,8 +96,8 @@ func TestValidateGenerationInput(t *testing.T) {
 		},
 		{
 			name: "white background without metadata",
-			input: map[string]any{"mode": "commerce", "taskType": "white-background", "productAssetIds": []any{"asset-1"},
-				"platform": "ebay", "outputLanguage": "none", "count": float64(16)},
+			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"},
+				"platform": "ebay", "outputLanguage": "none", "moduleMode": "smart", "count": float64(16)},
 		},
 		{
 			name:  "too many results",

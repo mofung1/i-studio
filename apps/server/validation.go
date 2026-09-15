@@ -8,10 +8,11 @@ import (
 var allowedModels = stringSet("gpt-image-2", "gemini-2.5-flash-image", "gemini-3.1-flash-image", "gemini-3-pro-image")
 var allowedRatios = stringSet("1:1", "3:4", "4:3", "9:16", "16:9")
 var allowedResolutions = stringSet("1K", "2K", "4K")
-var allowedPlatforms = stringSet("taobao-tmall", "jd", "pinduoduo", "douyin", "xiaohongshu", "amazon", "shopify", "ebay", "etsy", "walmart", "aliexpress", "generic")
-var allowedLanguages = stringSet("none", "zh-CN", "zh-TW", "en", "ja", "ko", "fr", "de", "es", "pt")
-var allowedTasks = stringSet("white-background", "scene", "selling-point", "detail-page")
-var allowedModules = stringSet("hero", "core-selling-point", "usage-scene", "multi-angle", "specification", "material", "accessories")
+var allowedPlatforms = stringSet("smart", "taobao", "1688", "tmall", "pinduoduo", "jd", "douyin", "amazon", "temu", "ebay")
+var allowedLanguages = stringSet("none", "zh-CN", "zh-TW", "en", "ja", "ko", "th", "ms", "id", "ru")
+var allowedTasks = stringSet("product-main", "detail-page", "viral-recreate", "product-retouch")
+var allowedRecreateStrengths = stringSet("style", "high")
+var allowedEnhancements = stringSet("gloss", "repair", "clarity", "color", "perspective", "background")
 
 func validateGenerationInput(input map[string]any) error {
 	if err := requireOneOf(input, "model", allowedModels, "gpt-image-2"); err != nil {
@@ -48,45 +49,54 @@ func validateCommerceInput(input map[string]any) error {
 	if err := requireOneOf(input, "taskType", allowedTasks, ""); err != nil {
 		return err
 	}
-	if err := validateStringArray(input, "productAssetIds", 1, 10, 200); err != nil {
+	if err := validateStringArray(input, "productAssetIds", 1, 6, 200); err != nil {
 		return err
 	}
-	if err := requireOneOf(input, "platform", allowedPlatforms, "generic"); err != nil {
+	if err := requireOneOf(input, "platform", allowedPlatforms, "smart"); err != nil {
 		return err
 	}
 	taskType, _ := input["taskType"].(string)
-	if taskType != "white-background" {
-		if err := requireText(input, "productName", 1, 100); err != nil {
-			return err
-		}
-		if err := requireText(input, "productCategory", 1, 100); err != nil {
-			return err
-		}
-	}
 	switch taskType {
-	case "white-background":
-		return requireOneOf(input, "outputLanguage", allowedLanguages, "none")
-	case "scene":
-		if err := requireText(input, "sceneDescription", 1, 1000); err != nil {
+	case "product-main", "detail-page":
+		if err := requireOneOf(input, "outputLanguage", allowedLanguages, "none"); err != nil {
 			return err
 		}
-		if err := validateStringArray(input, "referenceAssetIds", 0, 6, 200); err != nil {
+		if err := requireOneOf(input, "moduleMode", stringSet("smart", "custom"), "smart"); err != nil {
 			return err
 		}
-		return requireOneOf(input, "outputLanguage", allowedLanguages, "none")
-	case "selling-point":
-		if err := validateStringArray(input, "sellingPoints", 1, 8, 50); err != nil {
+		if counts, ok := input["moduleCounts"].(map[string]any); ok {
+			for key, value := range counts {
+				if _, valid := value.(float64); !valid || value.(float64) < 1 || value.(float64) > 4 {
+					return fmt.Errorf("moduleCounts contains invalid %s", key)
+				}
+			}
+		}
+		return nil
+	case "viral-recreate":
+		if err := validateStringArray(input, "referenceAssetIds", 1, 1, 200); err != nil {
 			return err
 		}
-		return requireOneOf(input, "outputLanguage", allowedLanguages, "zh-CN")
-	case "detail-page":
-		if err := requireOneOf(input, "module", allowedModules, ""); err != nil {
-			return err
+		return requireOneOf(input, "recreateStrength", allowedRecreateStrengths, "style")
+	case "product-retouch":
+		values, exists := input["enhancements"]
+		if !exists {
+			input["enhancements"] = []any{}
+			return nil
 		}
-		if err := validateStringArray(input, "sellingPoints", 0, 8, 50); err != nil {
-			return err
+		items, ok := values.([]any)
+		if !ok {
+			return fmt.Errorf("enhancements must be an array")
 		}
-		return requireOneOf(input, "outputLanguage", allowedLanguages, "zh-CN")
+		for _, item := range items {
+			value, ok := item.(string)
+			if !ok {
+				return fmt.Errorf("enhancements contains an invalid item")
+			}
+			if _, valid := allowedEnhancements[value]; !valid {
+				return fmt.Errorf("unsupported enhancement %q", value)
+			}
+		}
+		return nil
 	default:
 		return nil
 	}

@@ -393,24 +393,34 @@ func promptForInput(input map[string]any) string {
 		return prompt
 	}
 	parts := []string{stringValue(input["productName"], "商品"), stringValue(input["requirements"], "专业电商产品图")}
-	if input["taskType"] == "white-background" {
-		parts = append(parts, "白色背景，保留商品真实外观与自然阴影")
+	taskPrompts := map[string]string{"product-main": "商品主图", "detail-page": "电商详情页", "viral-recreate": "参考爆款视觉复刻", "product-retouch": "产品精修，保留真实商品外观"}
+	if taskPrompt := taskPrompts[stringValue(input["taskType"], "")]; taskPrompt != "" {
+		parts = append(parts, taskPrompt)
 	}
 	platforms := map[string]string{
-		"taobao-tmall": "淘宝/天猫", "jd": "京东", "pinduoduo": "拼多多", "douyin": "抖音电商", "xiaohongshu": "小红书",
-		"amazon": "Amazon", "shopify": "Shopify", "ebay": "eBay", "etsy": "Etsy", "walmart": "Walmart", "aliexpress": "AliExpress",
+		"smart": "适合目标平台", "taobao": "淘宝", "1688": "1688", "tmall": "天猫", "pinduoduo": "拼多多", "jd": "京东", "douyin": "抖音",
+		"amazon": "Amazon", "temu": "TEMU", "ebay": "eBay",
 	}
 	if platform := platforms[stringValue(input["platform"], "")]; platform != "" {
 		parts = append(parts, "适配"+platform+"平台商品图片")
 	}
 	languages := map[string]string{
 		"zh-CN": "简体中文", "zh-TW": "繁体中文", "en": "英语", "ja": "日语", "ko": "韩语",
-		"fr": "法语", "de": "德语", "es": "西班牙语", "pt": "葡萄牙语",
+		"th": "泰语", "ms": "马来语", "id": "印尼语", "ru": "俄语",
 	}
 	if language := stringValue(input["outputLanguage"], ""); language == "none" {
 		parts = append(parts, "纯视觉画面，不生成任何文字、字母或数字")
 	} else if name := languages[language]; name != "" {
 		parts = append(parts, "画面中如需文字，仅使用"+name)
+	}
+	if strength := stringValue(input["recreateStrength"], ""); strength == "high" {
+		parts = append(parts, "高度复刻参考图的视觉结构，替换为商品原图")
+	}
+	if enhancements, ok := input["enhancements"].([]any); ok {
+		parts = append(parts, "快捷优化项："+fmt.Sprint(enhancements))
+	}
+	if counts, ok := input["moduleCounts"].(map[string]any); ok {
+		parts = append(parts, "按以下模块生成详情素材："+fmt.Sprint(counts))
 	}
 	if scene := stringValue(input["sceneDescription"], ""); scene != "" {
 		parts = append(parts, scene)

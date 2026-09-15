@@ -57,9 +57,9 @@ func TestBananaRouterGeminiSubmit(t *testing.T) {
 
 func TestWhiteBackgroundPromptUsesPlatformAndLanguage(t *testing.T) {
 	prompt := promptForInput(map[string]any{
-		"taskType": "white-background", "platform": "aliexpress", "outputLanguage": "none",
+		"taskType": "product-main", "platform": "ebay", "outputLanguage": "none",
 	})
-	for _, expected := range []string{"商品", "白色背景", "AliExpress", "不生成任何文字"} {
+	for _, expected := range []string{"商品", "商品主图", "eBay", "不生成任何文字"} {
 		if !strings.Contains(prompt, expected) {
 			t.Fatalf("prompt %q missing %q", prompt, expected)
 		}

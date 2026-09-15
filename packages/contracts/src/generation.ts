@@ -10,20 +10,18 @@ export const generationModelSchema = z.enum([
 ])
 export const generationCountSchema = z.number().int().min(1).max(16).default(1)
 export const platformSchema = z.enum([
-  'taobao-tmall',
-  'jd',
+  'smart',
+  'taobao',
+  '1688',
+  'tmall',
   'pinduoduo',
+  'jd',
   'douyin',
-  'xiaohongshu',
   'amazon',
-  'shopify',
+  'temu',
   'ebay',
-  'etsy',
-  'walmart',
-  'aliexpress',
-  'generic',
 ])
-export const outputLanguageSchema = z.enum(['none', 'zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'pt'])
+export const outputLanguageSchema = z.enum(['none', 'zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'th', 'ms', 'id', 'ru'])
 
 const imageSettingsSchema = z.object({
   model: generationModelSchema.default('gpt-image-2'),
@@ -33,9 +31,9 @@ const imageSettingsSchema = z.object({
   projectId: z.string().trim().min(1).optional(),
 })
 
-const productAssetsSchema = z.array(z.string().min(1)).min(1).max(10)
+const productAssetsSchema = z.array(z.string().min(1)).min(1).max(6)
 const referenceAssetsSchema = z.array(z.string().min(1)).max(6).default([])
-const sellingPointsSchema = z.array(z.string().trim().min(1).max(50)).max(8)
+const moduleCountsSchema = z.record(z.string(), z.number().int().min(1).max(4)).default({})
 
 export const generalGenerationInputSchema = imageSettingsSchema.extend({
   mode: z.literal('general'),
@@ -48,51 +46,45 @@ export const generalGenerationInputSchema = imageSettingsSchema.extend({
 const commerceBaseSchema = imageSettingsSchema.extend({
   mode: z.literal('commerce'),
   productAssetIds: productAssetsSchema,
-  platform: platformSchema.default('generic'),
+  platform: platformSchema.default('smart'),
   consistencyProtection: z.boolean().default(true),
 })
 
-export const whiteBackgroundInputSchema = commerceBaseSchema.extend({
-  taskType: z.literal('white-background'),
+export const productMainInputSchema = commerceBaseSchema.extend({
+  taskType: z.literal('product-main'),
+  requirements: z.string().trim().max(2000).default(''),
   outputLanguage: outputLanguageSchema.default('none'),
-  requirements: z.string().trim().max(1000).default(''),
-  naturalShadow: z.boolean().default(true),
+  moduleMode: z.enum(['smart', 'custom']).default('smart'),
+  moduleCounts: moduleCountsSchema,
 })
 
-const namedProductSchema = commerceBaseSchema.extend({
-  productName: z.string().trim().min(1).max(100),
-  productCategory: z.string().trim().min(1).max(100),
-})
-
-export const sceneGenerationInputSchema = namedProductSchema.extend({
-  taskType: z.literal('scene'),
-  sceneDescription: z.string().trim().min(1).max(1000),
-  referenceAssetIds: referenceAssetsSchema,
-  outputLanguage: outputLanguageSchema.default('none'),
-  visualDirection: z.array(z.enum(['composition', 'color', 'material', 'lighting', 'style', 'atmosphere'])).default([]),
-})
-
-export const sellingPointInputSchema = namedProductSchema.extend({
-  taskType: z.literal('selling-point'),
-  sellingPoints: sellingPointsSchema.min(1),
-  outputLanguage: outputLanguageSchema.default('zh-CN'),
-  requirements: z.string().trim().max(1000).default(''),
-  reserveCopyArea: z.boolean().default(true),
-})
-
-export const detailPageInputSchema = namedProductSchema.extend({
+export const detailPageInputSchema = commerceBaseSchema.extend({
   taskType: z.literal('detail-page'),
-  module: z.enum(['hero', 'core-selling-point', 'usage-scene', 'multi-angle', 'specification', 'material', 'accessories']),
-  sellingPoints: sellingPointsSchema.default([]),
-  outputLanguage: outputLanguageSchema.default('zh-CN'),
+  requirements: z.string().trim().max(2000).default(''),
+  outputLanguage: outputLanguageSchema.default('none'),
+  moduleMode: z.enum(['smart', 'custom']).default('smart'),
+  moduleCounts: moduleCountsSchema,
+})
+
+export const viralRecreateInputSchema = commerceBaseSchema.extend({
+  taskType: z.literal('viral-recreate'),
+  referenceAssetIds: z.array(z.string().min(1)).length(1),
+  recreateStrength: z.enum(['style', 'high']).default('style'),
+  requirements: z.string().trim().max(1000).default(''),
+  outputLanguage: outputLanguageSchema.default('none'),
+})
+
+export const productRetouchInputSchema = commerceBaseSchema.extend({
+  taskType: z.literal('product-retouch'),
+  enhancements: z.array(z.enum(['gloss', 'repair', 'clarity', 'color', 'perspective', 'background'])).default([]),
   requirements: z.string().trim().max(1000).default(''),
 })
 
 export const commerceGenerationInputSchema = z.discriminatedUnion('taskType', [
-  whiteBackgroundInputSchema,
-  sceneGenerationInputSchema,
-  sellingPointInputSchema,
+  productMainInputSchema,
   detailPageInputSchema,
+  viralRecreateInputSchema,
+  productRetouchInputSchema,
 ])
 
 export const generationInputSchema = z.union([
@@ -107,24 +99,8 @@ export type GenerationModel = z.infer<typeof generationModelSchema>
 export type CommerceTaskType = CommerceGenerationInput['taskType']
 
 export const commerceTaskCapabilities = {
-  'white-background': {
-    title: '白底精修',
-    required: ['productAssetIds'],
-    optional: ['platform', 'outputLanguage', 'requirements', 'naturalShadow'],
-  },
-  scene: {
-    title: '商品场景图',
-    required: ['productAssetIds', 'productName', 'productCategory', 'sceneDescription'],
-    optional: ['platform', 'referenceAssetIds', 'outputLanguage', 'visualDirection'],
-  },
-  'selling-point': {
-    title: '卖点主图',
-    required: ['productAssetIds', 'productName', 'productCategory', 'sellingPoints'],
-    optional: ['platform', 'outputLanguage', 'requirements', 'reserveCopyArea'],
-  },
-  'detail-page': {
-    title: '详情页单页',
-    required: ['productAssetIds', 'productName', 'productCategory', 'module'],
-    optional: ['platform', 'sellingPoints', 'outputLanguage', 'requirements'],
-  },
+  'product-main': { title: '商品主图', required: ['productAssetIds'], optional: ['platform', 'outputLanguage', 'moduleMode', 'moduleCounts', 'requirements'] },
+  'detail-page': { title: '详情页', required: ['productAssetIds'], optional: ['platform', 'outputLanguage', 'moduleMode', 'moduleCounts', 'requirements'] },
+  'viral-recreate': { title: '爆款复刻', required: ['productAssetIds', 'referenceAssetIds'], optional: ['platform', 'outputLanguage', 'recreateStrength', 'requirements'] },
+  'product-retouch': { title: '产品精修', required: ['productAssetIds'], optional: ['platform', 'enhancements', 'requirements'] },
 } as const satisfies Record<CommerceTaskType, { title: string; required: readonly string[]; optional: readonly string[] }>

@@ -9,10 +9,10 @@ import { apiBaseUrl } from '@/lib/api'
 import { TopNavigation } from './top-navigation'
 
 const commerceTools = [
-  { task: 'white-background', accent: 'mint', title: '白底精修', description: '干净规范的上架主图', image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=900&q=85' },
-  { task: 'scene', accent: 'yellow', title: '商品场景图', description: '把商品自然放入真实场景', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85' },
-  { task: 'selling-point', accent: 'coral', title: '卖点主图', description: '生成有信息留白的主视觉', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85' },
-  { task: 'detail-page', accent: 'blue', title: '详情页单页', description: '围绕单一主题表达商品信息', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85' },
+  { task: 'product-main', accent: 'mint', title: '商品主图', description: '生成适配平台规范的商品主视觉', image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=900&q=85' },
+  { task: 'detail-page', accent: 'yellow', title: '详情页', description: '围绕商品信息生成详情页素材', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85' },
+  { task: 'viral-recreate', accent: 'coral', title: '爆款复刻', description: '参考爆款视觉重构商品画面', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85' },
+  { task: 'product-retouch', accent: 'blue', title: '产品精修', description: '修复和提升商品原图质量', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85' },
 ]
 
 const inspiration = [
@@ -99,11 +99,11 @@ export function HomePage() {
 
         <section className="content-section">
           <div className="section-heading"><Box size={20} /><div><h2>电商创作工具</h2><p>选择创作目标，加载对应的商品图参数。</p></div></div>
-          <Link className="full-set-banner" href="/workbench?mode=commerce&task=white-background">
+          <Link className="full-set-banner" href="/workbench?mode=commerce&task=product-main">
             <div className="full-set-banner-left">
               <span className="full-set-badge"><Layers size={13} />一键全套</span>
               <h3>上传商品图，生成完整上架素材</h3>
-              <p>白底图 · 场景图 · 卖点主图 · 详情页，一次配置，分步生成</p>
+              <p>商品主图 · 详情页 · 爆款复刻 · 产品精修，一站式完成商品视觉</p>
             </div>
             <span className="full-set-arrow"><ArrowRight size={20} /></span>
           </Link>

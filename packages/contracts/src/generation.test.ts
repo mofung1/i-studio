@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   generalGenerationInputSchema,
-  sellingPointInputSchema,
-  whiteBackgroundInputSchema,
+  productMainInputSchema,
 } from './generation.js'
 
 describe('generation input contracts', () => {
@@ -18,14 +17,14 @@ describe('generation input contracts', () => {
     expect(result.aspectRatio).toBe('1:1')
   })
 
-  it('defaults white-background to no text without product metadata', () => {
-    const result = whiteBackgroundInputSchema.parse({
+  it('defaults product-main to no text without product metadata', () => {
+    const result = productMainInputSchema.parse({
       mode: 'commerce',
-      taskType: 'white-background',
+      taskType: 'product-main',
       productAssetIds: ['asset-1'],
     })
 
-    expect(result.taskType).toBe('white-background')
+    expect(result.taskType).toBe('product-main')
     expect(result.outputLanguage).toBe('none')
     expect('productName' in result).toBe(false)
   })
@@ -35,19 +34,6 @@ describe('generation input contracts', () => {
     expect(generalGenerationInputSchema.safeParse(input).success).toBe(true)
     expect(generalGenerationInputSchema.safeParse({ ...input, count: 17 }).success).toBe(false)
     expect(generalGenerationInputSchema.safeParse({ ...input, referenceAssetIds: [...input.referenceAssetIds, 'asset-7'] }).success).toBe(false)
-  })
-
-  it('requires at least one selling point for selling-point tasks', () => {
-    const result = sellingPointInputSchema.safeParse({
-      mode: 'commerce',
-      taskType: 'selling-point',
-      productAssetIds: ['asset-1'],
-      productName: '降噪耳机',
-      productCategory: '数码',
-      sellingPoints: [],
-    })
-
-    expect(result.success).toBe(false)
   })
 
   it('keeps an optional project association', () => {
