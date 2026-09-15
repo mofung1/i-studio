@@ -13,6 +13,7 @@
   "dependencies": {
     "@istudio/contracts": "workspace:*",
     "@istudio/ui": "workspace:*",
+    "@radix-ui/react-select": "^2.3.7",
     "lucide-react": "^0.544.0",
     "next": "^15.5.0",
     "react": "^19.1.1",
@@ -29,4 +30,3 @@
     "vitest": "^3.2.4"
   }
 }
-

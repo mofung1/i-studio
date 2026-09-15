@@ -3,7 +3,6 @@
 import {
   Box,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -33,6 +32,7 @@ import {
 import { Button } from '@istudio/ui'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import { apiBaseUrl, getAccessToken, readApiError, uploadAsset } from '@/lib/api'
 
 type WorkbenchMode = 'general' | 'commerce'
@@ -545,7 +545,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
                       : setProductFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}
                   />
                 ))}
-                {(mode === 'general' ? referenceFiles.length < 6 : productFiles.length < (task === 'product-retouch' ? 1 : task === 'viral-recreate' ? 3 : 6)) && <label className="add-thumb"><Upload size={20} /><span>添加图片</span><input multiple type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
+                {(mode === 'general' ? referenceFiles.length < 6 : productFiles.length < (task === 'product-retouch' ? 1 : task === 'viral-recreate' ? 3 : 6)) && <label className="add-thumb"><span className="add-thumb-icon"><Upload size={16} /></span><span>添加图片</span><input multiple type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
                   const selectedFiles = Array.from(event.target.files ?? [])
                   if (mode === 'general') setReferenceFiles((current) => [...current, ...selectedFiles].slice(0, 6))
                   else setProductFiles((current) => [...current, ...selectedFiles].slice(0, task === 'product-retouch' ? 1 : task === 'viral-recreate' ? 3 : 6))
@@ -556,8 +556,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
             {mode === 'commerce' && (
               <fieldset className={`form-section config-card two-columns compact-fields ${task === 'product-retouch' ? 'single-field' : ''}`}>
-                <label>目标平台<span className="select-shell"><select value={platform} onChange={(event) => setPlatform(event.target.value)}>{platformOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={14} /></span></label>
-                {task !== 'product-retouch' && <label>目标语言<span className="select-shell"><select value={outputLanguage} onChange={(event) => setOutputLanguage(event.target.value)}>{languageOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={14} /></span></label>}
+                <label>目标平台<Select value={platform} onValueChange={setPlatform}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{platformOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
+                {task !== 'product-retouch' && <label>目标语言<Select value={outputLanguage} onValueChange={setOutputLanguage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{languageOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>}
               </fieldset>
             )}
 
@@ -566,7 +566,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
                 <div className="field-heading"><legend>参考图（爆款图）</legend><span>{referenceFiles.length}/1 张 · 必须 1 张</span></div>
                 <div className="upload-list">
                   {referenceFiles.map((file, index) => <SelectedImageThumbnail key={`${file.name}-${file.size}-${file.lastModified}-${index}`} file={file} label={`参考 ${index + 1}`} onRemove={() => setReferenceFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} />)}
-                  {referenceFiles.length < 1 && <label className="add-thumb"><Upload size={20} /><span>添加参考图</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setReferenceFiles(Array.from(event.target.files ?? []).slice(0, 1)); event.target.value = '' }} /></label>}
+                  {referenceFiles.length < 1 && <label className="add-thumb"><span className="add-thumb-icon"><Upload size={16} /></span><span>添加参考图</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { setReferenceFiles(Array.from(event.target.files ?? []).slice(0, 1)); event.target.value = '' }} /></label>}
                 </div>
                 <div className="choice-group"><span className="choice-label">复刻程度</span><div className="recreate-options"><label className={recreateStrength === 'style' ? 'selected' : ''}><input type="radio" checked={recreateStrength === 'style'} onChange={() => setRecreateStrength('style')} /><span><strong>参考风格</strong><small>参考整体风格和结构，自动调整色彩和重构场景</small></span></label><label className={recreateStrength === 'high' ? 'selected' : ''}><input type="radio" checked={recreateStrength === 'high'} onChange={() => setRecreateStrength('high')} /><span><strong>高度复刻</strong><small>参照参考图视觉结构替换产品和文案，场景细节略有差异</small></span></label></div></div>
               </fieldset>
@@ -576,8 +576,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
                   <fieldset className="form-section config-card general-description">
                 <label>画面描述<textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} /></label>
                 <div className="two-columns">
-                  <label>创作风格<span className="select-shell"><select value={style} onChange={(event) => setStyle(event.target.value as GeneralStyle)}><option value="unspecified">不指定</option><option value="studio">摄影棚</option><option value="minimal">极简</option><option value="fresh">清新</option><option value="technology">科技</option><option value="guochao">国潮</option></select><ChevronDown size={14} /></span></label>
-                  <label>参考强度<span className="select-shell"><select value={referenceStrength} onChange={(event) => setReferenceStrength(event.target.value as ReferenceStrength)}><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select><ChevronDown size={14} /></span></label>
+                  <label>创作风格<Select value={style} onValueChange={(value) => setStyle(value as GeneralStyle)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="unspecified">不指定</SelectItem><SelectItem value="studio">摄影棚</SelectItem><SelectItem value="minimal">极简</SelectItem><SelectItem value="fresh">清新</SelectItem><SelectItem value="technology">科技</SelectItem><SelectItem value="guochao">国潮</SelectItem></SelectContent></Select></label>
+                  <label>参考强度<Select value={referenceStrength} onValueChange={(value) => setReferenceStrength(value as ReferenceStrength)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">低</SelectItem><SelectItem value="medium">中</SelectItem><SelectItem value="high">高</SelectItem></SelectContent></Select></label>
                 </div>
               </fieldset>
             ) : (
@@ -606,10 +606,10 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
             <fieldset className="form-section config-card config-card-output">
               <div className="field-heading"><legend>输出设置</legend>{mode === 'general' && <span>最多 16 张</span>}</div>
               <div className="settings-grid">
-                <label className="settings-field"><span>尺寸比例</span><span className="select-shell"><select aria-label="画面比例" value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value)}><option>1:1</option><option>3:4</option><option>4:3</option><option>9:16</option><option>16:9</option></select><ChevronDown size={14} /></span></label>
-                <label className="settings-field"><span>分辨率</span><span className="select-shell"><select aria-label="清晰度" value={resolution} onChange={(event) => setResolution(event.target.value)}><option>1K</option><option>2K</option><option>4K</option></select><ChevronDown size={14} /></span></label>
-                <label className="settings-field"><span>生图模型</span><span className="select-shell"><select aria-label="生图模型" value={model} onChange={(event) => setModel(event.target.value as GenerationModel)}><option value="gpt-image-2">GPT Image 2</option><option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-image">Gemini 3.1 Flash</option><option value="gemini-3-pro-image">Gemini 3 Pro Image</option></select><ChevronDown size={14} /></span></label>
-                <label className="settings-field"><span>生成数量</span>{mode === 'general' ? <span className="select-shell"><select aria-label="生成数量" value={count} onChange={(event) => setCount(Number(event.target.value))}>{Array.from({ length: 16 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1} 张</option>)}</select><ChevronDown size={14} /></span> : <span className="settings-value">{task === 'product-main' || task === 'detail-page' ? moduleMode === 'custom' ? `${Math.max(1, Object.values(moduleCounts).reduce((total, value) => total + value, 0))} 张` : '智能生成' : '1 张'}</span>}</label>
+                <label className="settings-field"><span>尺寸比例</span><Select value={aspectRatio} onValueChange={setAspectRatio}><SelectTrigger aria-label="画面比例"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1:1">1:1</SelectItem><SelectItem value="3:4">3:4</SelectItem><SelectItem value="4:3">4:3</SelectItem><SelectItem value="9:16">9:16</SelectItem><SelectItem value="16:9">16:9</SelectItem></SelectContent></Select></label>
+                <label className="settings-field"><span>分辨率</span><Select value={resolution} onValueChange={setResolution}><SelectTrigger aria-label="清晰度"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="1K">1K</SelectItem><SelectItem value="2K">2K</SelectItem><SelectItem value="4K">4K</SelectItem></SelectContent></Select></label>
+                <label className="settings-field"><span>生图模型</span><Select value={model} onValueChange={(value) => setModel(value as GenerationModel)}><SelectTrigger aria-label="生图模型"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="gpt-image-2">GPT Image 2</SelectItem><SelectItem value="gemini-2.5-flash-image">Gemini 2.5 Flash</SelectItem><SelectItem value="gemini-3.1-flash-image">Gemini 3.1 Flash</SelectItem><SelectItem value="gemini-3-pro-image">Gemini 3 Pro Image</SelectItem></SelectContent></Select></label>
+                <label className="settings-field"><span>生成数量</span>{mode === 'general' ? <Select value={String(count)} onValueChange={(value) => setCount(Number(value))}><SelectTrigger aria-label="生成数量"><SelectValue /></SelectTrigger><SelectContent>{Array.from({ length: 16 }, (_, index) => <SelectItem key={index + 1} value={String(index + 1)}>{index + 1} 张</SelectItem>)}</SelectContent></Select> : <span className="settings-value">{task === 'product-main' || task === 'detail-page' ? moduleMode === 'custom' ? `${Math.max(1, Object.values(moduleCounts).reduce((total, value) => total + value, 0))} 张` : '智能生成' : '1 张'}</span>}</label>
               </div>
             </fieldset>
           </div>
