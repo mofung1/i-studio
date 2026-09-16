@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -31,6 +32,16 @@ func (p *batchProvider) Poll(context.Context, string) (providerPollResult, error
 	return providerPollResult{}, fmt.Errorf("unexpected poll")
 }
 
+// sortedModuleKeys 与 generateModuleBatches 的遍历顺序保持一致（模块 key 字典序）。
+func sortedModuleCounts(raw map[string]any) []string {
+	keys := make([]string, 0, len(raw))
+	for key := range raw {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func TestGenerateBatches(t *testing.T) {
 	for _, test := range []struct {
 		model         string
@@ -43,9 +54,17 @@ func TestGenerateBatches(t *testing.T) {
 		t.Run(test.model, func(t *testing.T) {
 			provider := &batchProvider{}
 			queue := &taskQueue{server: &server{tasks: map[string]task{}, provider: provider}}
-			images, err := queue.generateBatches("test-task", map[string]any{"model": test.model, "count": 16})
+			images, modules, err := queue.generateBatches("test-task", map[string]any{"model": test.model, "count": 16})
 			if err != nil || len(images) != 16 || len(provider.counts) != test.wantBatches {
 				t.Fatalf("images=%d batches=%v err=%v", len(images), provider.counts, err)
+			}
+			if len(modules) != len(images) {
+				t.Fatalf("attribution length %d != images %d", len(modules), len(images))
+			}
+			for _, module := range modules {
+				if module != "" {
+					t.Fatalf("linear batches must not attribute modules, got %q", module)
+				}
 			}
 			for _, count := range provider.counts {
 				if count != test.wantBatchSize {
@@ -56,7 +75,7 @@ func TestGenerateBatches(t *testing.T) {
 	}
 	provider := &batchProvider{failAt: 2}
 	queue := &taskQueue{server: &server{tasks: map[string]task{}, provider: provider}}
-	_, err := queue.generateBatches("test-task", map[string]any{"model": "gpt-image-2", "count": 8})
+	_, _, err := queue.generateBatches("test-task", map[string]any{"model": "gpt-image-2", "count": 8})
 	if err == nil || !strings.Contains(err.Error(), "第 2 批") {
 		t.Fatalf("expected batch-specific error, got %v", err)
 	}
@@ -89,7 +108,7 @@ func TestGenerateModuleBatches(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			provider := &batchProvider{}
 			queue := &taskQueue{server: &server{tasks: map[string]task{}, provider: provider}}
-			images, err := queue.generateBatches("test-task", map[string]any{
+			images, modules, err := queue.generateBatches("test-task", map[string]any{
 				"model":        test.model,
 				"mode":         "commerce",
 				"taskType":     "product-main",
@@ -106,6 +125,21 @@ func TestGenerateModuleBatches(t *testing.T) {
 			if len(images) != wantTotal || len(provider.counts) != len(test.wantBatches) {
 				t.Fatalf("images=%d batches=%v want %d images in %v batches", len(images), provider.counts, wantTotal, len(test.wantBatches))
 			}
+			if len(modules) != wantTotal {
+				t.Fatalf("attribution length %d != images %d", len(modules), wantTotal)
+			}
+			// 模块按 key 排序逐个生成，归属应与各模块张数逐一吻合
+			wantAttribution := make([]string, 0, wantTotal)
+			for _, module := range sortedModuleCounts(test.moduleCounts) {
+				for range intValue(test.moduleCounts[module], 0) {
+					wantAttribution = append(wantAttribution, module)
+				}
+			}
+			for index, module := range modules {
+				if module != wantAttribution[index] {
+					t.Fatalf("image %d attributed to %q want %q", index, module, wantAttribution[index])
+				}
+			}
 			for index, count := range test.wantBatches {
 				if provider.counts[index] != count {
 					t.Fatalf("batch %d size %d want %d", index, provider.counts[index], count)
@@ -120,7 +154,7 @@ func TestGenerateModuleBatches(t *testing.T) {
 	// 回归：smart 模式即使带 moduleCounts 也走线性分批，不注入 moduleHint
 	provider := &batchProvider{}
 	queue := &taskQueue{server: &server{tasks: map[string]task{}, provider: provider}}
-	images, err := queue.generateBatches("test-task", map[string]any{
+	images, _, err := queue.generateBatches("test-task", map[string]any{
 		"model":        "gpt-image-2",
 		"mode":         "commerce",
 		"taskType":     "product-main",

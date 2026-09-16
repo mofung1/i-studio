@@ -66,38 +66,44 @@ func (q *taskQueue) worker() {
 		}
 		q.server.updateTaskStatus(id, "processing")
 		if q.server.provider == nil {
-			q.server.updateTaskResult(id, "failed", nil, "AI 服务尚未配置")
+			q.server.updateTaskResult(id, "failed", nil, nil, "AI 服务尚未配置")
 			continue
 		}
 		input, ok := q.server.taskInput(id)
 		if !ok {
-			q.server.updateTaskResult(id, "failed", nil, "无法读取任务参数")
+			q.server.updateTaskResult(id, "failed", nil, nil, "无法读取任务参数")
 			continue
 		}
 		if err := q.server.attachSourceImages(input); err != nil {
-			q.server.updateTaskResult(id, "failed", nil, err.Error())
+			q.server.updateTaskResult(id, "failed", nil, nil, err.Error())
 			continue
 		}
-		images, err := q.generateBatches(id, input)
+		images, modules, err := q.generateBatches(id, input)
 		if err != nil {
 			fmt.Printf("task %s generation failed: %v\n", id, err)
-			q.server.updateTaskResult(id, "failed", nil, err.Error())
+			q.server.updateTaskResult(id, "failed", nil, nil, err.Error())
 			continue
 		}
 		paths, err := q.server.persistGeneratedImages(id, images)
 		if err != nil {
-			q.server.updateTaskResult(id, "failed", nil, err.Error())
+			q.server.updateTaskResult(id, "failed", nil, nil, err.Error())
 			continue
 		}
-		q.server.updateTaskResult(id, "succeeded", paths, "")
+		q.server.updateTaskResult(id, "succeeded", paths, modules, "")
 	}
 }
 
-func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, error) {
+// generateBatches 返回图片列表与逐图模块归属（modules[i] 为 images[i] 所属模块 key，
+// 非模块化生成时为空切片）。两者按下标一一对应。
+func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, []string, error) {
 	if counts := customModuleCounts(input); len(counts) > 0 {
 		return q.generateModuleBatches(id, input, counts)
 	}
-	return q.generateLinearBatches(id, input)
+	images, err := q.generateLinearBatches(id, input)
+	if err != nil {
+		return nil, nil, err
+	}
+	return images, make([]string, len(images)), nil
 }
 
 // customModuleCounts 返回 custom 模式下的模块明细（模块 -> 张数）；
@@ -158,7 +164,8 @@ func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]st
 
 // generateModuleBatches 按模块逐个生成，每个模块批次注入专属 moduleHint，
 // 使不同模块产出构图差异化的图片，而非全部共用同一个 prompt。
-func (q *taskQueue) generateModuleBatches(id string, input map[string]any, counts map[string]int) ([]string, error) {
+// 返回值第二项为逐图模块归属，与图片列表按下标一一对应。
+func (q *taskQueue) generateModuleBatches(id string, input map[string]any, counts map[string]int) ([]string, []string, error) {
 	batchSize := 4
 	if strings.HasPrefix(stringValue(input["model"], ""), "gemini-") {
 		batchSize = 1
@@ -173,6 +180,7 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 	sort.Strings(modules)
 
 	images := make([]string, 0)
+	attribution := make([]string, 0)
 	for _, module := range modules {
 		remaining := counts[module]
 		for batch := 1; remaining > 0; batch++ {
@@ -183,24 +191,27 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 			q.server.updateTaskStatus(id, "processing")
 			remote, err := q.server.provider.Submit(context.Background(), input)
 			if err != nil {
-				return nil, fmt.Errorf("模块 %s 第 %d 批提交失败：%w", module, batch, err)
+				return nil, nil, fmt.Errorf("模块 %s 第 %d 批提交失败：%w", module, batch, err)
 			}
 			batchImages := remote.Images
 			if len(batchImages) == 0 {
 				q.server.updateTaskStatus(id, "waiting_provider")
 				batchImages, err = q.waitForImages(id, remote.ID)
 				if err != nil {
-					return nil, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", module, batch, err)
+					return nil, nil, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", module, batch, err)
 				}
 			}
 			if len(batchImages) != size {
-				return nil, fmt.Errorf("模块 %s 第 %d 批预期 %d 张，供应商实际返回 %d 张", module, batch, size, len(batchImages))
+				return nil, nil, fmt.Errorf("模块 %s 第 %d 批预期 %d 张，供应商实际返回 %d 张", module, batch, size, len(batchImages))
 			}
 			images = append(images, batchImages...)
+			for range batchImages {
+				attribution = append(attribution, module)
+			}
 			remaining -= size
 		}
 	}
-	return images, nil
+	return images, attribution, nil
 }
 
 func (q *taskQueue) waitForImages(id, remoteID string) ([]string, error) {
