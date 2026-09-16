@@ -65,9 +65,16 @@ func validateCommerceInput(input map[string]any) error {
 			return err
 		}
 		if counts, ok := input["moduleCounts"].(map[string]any); ok {
+			allowed := allowedModules[taskType]
 			for key, value := range counts {
-				if _, valid := value.(float64); !valid || value.(float64) < 1 || value.(float64) > 4 {
+				number, valid := value.(float64)
+				if !valid || number < 1 || number > 4 {
 					return fmt.Errorf("moduleCounts contains invalid %s", key)
+				}
+				if allowed != nil {
+					if _, supported := allowed[key]; !supported {
+						return fmt.Errorf("unsupported module %q", key)
+					}
 				}
 			}
 		}
