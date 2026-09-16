@@ -388,6 +388,31 @@ func providerModelID(model string) string {
 	}
 }
 
+// moduleHints 把模块标识翻译成自然语言生成指导，供模块化差异化生成使用。
+var moduleHints = map[string]string{
+	"hero":        "主视觉首图，突出商品主体与品牌调性，构图干净居中",
+	"white":       "纯白底主图，商品居中、光影均匀，符合平台主图规范",
+	"selling":     "卖点主图，围绕核心卖点构图，画面有清晰的信息层次",
+	"scene":       "场景应用图，商品置于真实使用场景中，氛围自然",
+	"detail":      "产品细节图，近景特写材质与工艺细节",
+	"spec":        "规格参数图，清晰直观地展示商品规格信息",
+	"feedback":    "用户反馈图，呈现真实使用场景与口碑氛围",
+	"package":     "包装内容图，展示商品包装与配件全家福",
+	"brand":       "品牌故事图，传达品牌调性与生活方式",
+	"certificate": "品质认证图，突出品质保障与认证信息",
+	"install":     "安装指引图，分步骤清晰展示安装过程",
+	"faq":         "常见问题图，以画面解答用户疑虑",
+	"size":        "尺码对照图，直观展示尺寸规格对比",
+	"material":    "材质纹理图，特写材质质感与用料",
+	"promotion":   "结尾促销图，营造促成购买的促销氛围",
+}
+
+// allowedModules 按任务类型限定 moduleCounts 可使用的模块 key。
+var allowedModules = map[string]map[string]struct{}{
+	"product-main": stringSet("hero", "white", "selling", "scene", "detail"),
+	"detail-page":  stringSet("hero", "selling", "scene", "detail", "spec", "feedback", "package", "brand", "certificate", "install", "faq", "size", "material", "promotion"),
+}
+
 func promptForInput(input map[string]any) string {
 	if prompt := strings.TrimSpace(stringValue(input["prompt"], "")); prompt != "" {
 		return prompt
@@ -419,7 +444,10 @@ func promptForInput(input map[string]any) string {
 	if enhancements, ok := input["enhancements"].([]any); ok {
 		parts = append(parts, "快捷优化项："+fmt.Sprint(enhancements))
 	}
-	if counts, ok := input["moduleCounts"].(map[string]any); ok {
+	// 模块化差异化生成：模块批次注入 moduleHint 时用自然语言指导，替代原始 map 拼接
+	if hint := stringValue(input["moduleHint"], ""); hint != "" {
+		parts = append(parts, "本组图片的生成方向："+hint)
+	} else if counts, ok := input["moduleCounts"].(map[string]any); ok {
 		parts = append(parts, "按以下模块生成详情素材："+fmt.Sprint(counts))
 	}
 	if scene := stringValue(input["sceneDescription"], ""); scene != "" {

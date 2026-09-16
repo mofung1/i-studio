@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 
@@ -93,6 +94,36 @@ func (q *taskQueue) worker() {
 }
 
 func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, error) {
+	if counts := customModuleCounts(input); len(counts) > 0 {
+		return q.generateModuleBatches(id, input, counts)
+	}
+	return q.generateLinearBatches(id, input)
+}
+
+// customModuleCounts 返回 custom 模式下的模块明细（模块 -> 张数）；
+// 非 custom 模式或未配置模块时返回空 map，走线性分批。
+func customModuleCounts(input map[string]any) map[string]int {
+	taskType := stringValue(input["taskType"], "")
+	if taskType != "product-main" && taskType != "detail-page" {
+		return nil
+	}
+	if stringValue(input["moduleMode"], "smart") != "custom" {
+		return nil
+	}
+	raw, ok := input["moduleCounts"].(map[string]any)
+	if !ok || len(raw) == 0 {
+		return nil
+	}
+	counts := make(map[string]int, len(raw))
+	for key, value := range raw {
+		if count := intValue(value, 0); count > 0 {
+			counts[key] = count
+		}
+	}
+	return counts
+}
+
+func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]string, error) {
 	remaining := intValue(input["count"], 1)
 	batchSize := 4
 	if strings.HasPrefix(stringValue(input["model"], ""), "gemini-") {
@@ -121,6 +152,53 @@ func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, 
 		}
 		images = append(images, batchImages...)
 		remaining -= size
+	}
+	return images, nil
+}
+
+// generateModuleBatches 按模块逐个生成，每个模块批次注入专属 moduleHint，
+// 使不同模块产出构图差异化的图片，而非全部共用同一个 prompt。
+func (q *taskQueue) generateModuleBatches(id string, input map[string]any, counts map[string]int) ([]string, error) {
+	batchSize := 4
+	if strings.HasPrefix(stringValue(input["model"], ""), "gemini-") {
+		batchSize = 1
+	}
+	savedHint := stringValue(input["moduleHint"], "")
+	defer func() { input["moduleHint"] = savedHint }()
+
+	modules := make([]string, 0, len(counts))
+	for module := range counts {
+		modules = append(modules, module)
+	}
+	sort.Strings(modules)
+
+	images := make([]string, 0)
+	for _, module := range modules {
+		remaining := counts[module]
+		for batch := 1; remaining > 0; batch++ {
+			size := min(remaining, batchSize)
+			input["count"] = size
+			input["taskId"] = fmt.Sprintf("%s-%s-%d", id, module, batch)
+			input["moduleHint"] = moduleHints[module]
+			q.server.updateTaskStatus(id, "processing")
+			remote, err := q.server.provider.Submit(context.Background(), input)
+			if err != nil {
+				return nil, fmt.Errorf("模块 %s 第 %d 批提交失败：%w", module, batch, err)
+			}
+			batchImages := remote.Images
+			if len(batchImages) == 0 {
+				q.server.updateTaskStatus(id, "waiting_provider")
+				batchImages, err = q.waitForImages(id, remote.ID)
+				if err != nil {
+					return nil, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", module, batch, err)
+				}
+			}
+			if len(batchImages) != size {
+				return nil, fmt.Errorf("模块 %s 第 %d 批预期 %d 张，供应商实际返回 %d 张", module, batch, size, len(batchImages))
+			}
+			images = append(images, batchImages...)
+			remaining -= size
+		}
 	}
 	return images, nil
 }

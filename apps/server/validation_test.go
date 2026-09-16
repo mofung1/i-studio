@@ -9,6 +9,7 @@ import (
 
 type batchProvider struct {
 	counts []int
+	hints  []string
 	failAt int
 }
 
@@ -18,6 +19,7 @@ func (p *batchProvider) Submit(_ context.Context, input map[string]any) (provide
 	}
 	count := intValue(input["count"], 1)
 	p.counts = append(p.counts, count)
+	p.hints = append(p.hints, stringValue(input["moduleHint"], ""))
 	images := make([]string, count)
 	for index := range images {
 		images[index] = fmt.Sprintf("image-%d-%d", len(p.counts), index)
@@ -60,6 +62,85 @@ func TestGenerateBatches(t *testing.T) {
 	}
 }
 
+func TestGenerateModuleBatches(t *testing.T) {
+	tests := []struct {
+		name         string
+		model        string
+		moduleCounts map[string]any
+		wantBatches  []int
+		wantHints    []string
+	}{
+		{
+			name:         "gpt batches per module",
+			model:        "gpt-image-2",
+			moduleCounts: map[string]any{"hero": float64(2), "scene": float64(3)},
+			wantBatches:  []int{2, 3},
+			wantHints:    []string{moduleHints["hero"], moduleHints["scene"]},
+		},
+		{
+			name:         "gemini one image per batch",
+			model:        "gemini-3.1-flash-image",
+			moduleCounts: map[string]any{"detail": float64(2)},
+			wantBatches:  []int{1, 1},
+			wantHints:    []string{moduleHints["detail"], moduleHints["detail"]},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			provider := &batchProvider{}
+			queue := &taskQueue{server: &server{tasks: map[string]task{}, provider: provider}}
+			images, err := queue.generateBatches("test-task", map[string]any{
+				"model":        test.model,
+				"mode":         "commerce",
+				"taskType":     "product-main",
+				"moduleMode":   "custom",
+				"moduleCounts": test.moduleCounts,
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			wantTotal := 0
+			for _, count := range test.wantBatches {
+				wantTotal += count
+			}
+			if len(images) != wantTotal || len(provider.counts) != len(test.wantBatches) {
+				t.Fatalf("images=%d batches=%v want %d images in %v batches", len(images), provider.counts, wantTotal, len(test.wantBatches))
+			}
+			for index, count := range test.wantBatches {
+				if provider.counts[index] != count {
+					t.Fatalf("batch %d size %d want %d", index, provider.counts[index], count)
+				}
+				if provider.hints[index] != test.wantHints[index] {
+					t.Fatalf("batch %d hint %q want %q", index, provider.hints[index], test.wantHints[index])
+				}
+			}
+		})
+	}
+
+	// 回归：smart 模式即使带 moduleCounts 也走线性分批，不注入 moduleHint
+	provider := &batchProvider{}
+	queue := &taskQueue{server: &server{tasks: map[string]task{}, provider: provider}}
+	images, err := queue.generateBatches("test-task", map[string]any{
+		"model":        "gpt-image-2",
+		"mode":         "commerce",
+		"taskType":     "product-main",
+		"moduleMode":   "smart",
+		"count":        float64(5),
+		"moduleCounts": map[string]any{"hero": float64(2)},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(images) != 5 || len(provider.counts) != 2 || provider.counts[0] != 4 || provider.counts[1] != 1 {
+		t.Fatalf("smart mode should batch linearly: images=%d batches=%v", len(images), provider.counts)
+	}
+	for _, hint := range provider.hints {
+		if hint != "" {
+			t.Fatalf("smart mode must not inject moduleHint, got %q", hint)
+		}
+	}
+}
+
 func TestValidateGenerationInput(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -98,6 +179,34 @@ func TestValidateGenerationInput(t *testing.T) {
 			name: "white background without metadata",
 			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"},
 				"platform": "ebay", "outputLanguage": "none", "moduleMode": "smart", "count": float64(16)},
+		},
+		{
+			name: "custom modules valid",
+			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "moduleCounts": map[string]any{"hero": float64(2), "scene": float64(3)}},
+		},
+		{
+			name: "detail page modules valid",
+			input: map[string]any{"mode": "commerce", "taskType": "detail-page", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "moduleCounts": map[string]any{"spec": float64(1), "promotion": float64(4)}},
+		},
+		{
+			name: "unsupported module key rejected",
+			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "moduleCounts": map[string]any{"not-a-module": float64(1)}},
+			wantErr: true,
+		},
+		{
+			name: "module belongs to wrong task type rejected",
+			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "moduleCounts": map[string]any{"spec": float64(1)}},
+			wantErr: true,
+		},
+		{
+			name: "module count out of range rejected",
+			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "moduleCounts": map[string]any{"hero": float64(5)}},
+			wantErr: true,
 		},
 		{
 			name:  "too many results",
