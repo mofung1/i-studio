@@ -10,10 +10,10 @@ import { apiBaseUrl } from '@/lib/api'
 import { TopNavigation } from './top-navigation'
 
 const commerceTools = [
-  { task: 'product-main', accent: 'mint', title: '商品主图', description: '生成适配平台规范的商品主视觉', image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=900&q=85' },
-  { task: 'detail-page', accent: 'yellow', title: '详情页', description: '围绕商品信息生成详情页素材', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85' },
-  { task: 'viral-recreate', accent: 'coral', title: '爆款复刻', description: '参考爆款视觉重构商品画面', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85' },
-  { task: 'product-retouch', accent: 'blue', title: '产品精修', description: '修复和提升商品原图质量', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85' },
+  { task: 'product-main', title: '商品主图', description: '生成适配平台规范的商品主视觉', image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=900&q=85' },
+  { task: 'detail-page', title: '详情页', description: '围绕商品信息生成详情页素材', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85' },
+  { task: 'viral-recreate', title: '爆款复刻', description: '参考爆款视觉重构商品画面', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85' },
+  { task: 'product-retouch', title: '产品精修', description: '修复和提升商品原图质量', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85' },
 ]
 
 const inspiration = [
@@ -60,6 +60,7 @@ export function HomePage() {
   const [resolution, setResolution] = useState('2K')
   const [count, setCount] = useState('1')
   const [tasks, setTasks] = useState<HomeTask[]>([])
+  const [tasksFailed, setTasksFailed] = useState(false)
 
   useEffect(() => {
     const token = window.localStorage.getItem('istudio-access-token')
@@ -71,8 +72,15 @@ export function HomePage() {
       signal: controller.signal,
     })
       .then((response) => response.ok ? response.json() : Promise.reject(new Error('任务加载失败')))
-      .then((data: { tasks?: HomeTask[] }) => setTasks((data.tasks ?? []).slice(0, 3)))
-      .catch(() => undefined)
+      .then((data: { tasks?: HomeTask[] }) => {
+        setTasks((data.tasks ?? []).slice(0, 3))
+        setTasksFailed(false)
+      })
+      .catch((error) => {
+        // 组件卸载时主动中止，不当作失败
+        if (error.name === 'AbortError') return
+        setTasksFailed(true)
+      })
 
     return () => controller.abort()
   }, [])
@@ -116,7 +124,7 @@ export function HomePage() {
           </Link>
           <div className="commerce-grid">
             {commerceTools.map((tool) => (
-              <Link key={tool.task} className={`commerce-card accent-${tool.accent}`} href={`/workbench?mode=commerce&task=${tool.task}`}>
+              <Link key={tool.task} className="commerce-card" href={`/workbench?mode=commerce&task=${tool.task}`}>
                 <div><h3>{tool.title}</h3><p>{tool.description}</p><span className="tool-arrow"><ArrowRight size={18} /></span></div>
                 <img src={tool.image} alt={`${tool.title}示例`} />
               </Link>
@@ -130,7 +138,7 @@ export function HomePage() {
             <div><strong>{task.input.productName ?? task.input.prompt?.slice(0, 24) ?? (task.input.mode === 'commerce' ? '电商图片' : '通用生图')}</strong><span>{task.status === 'succeeded' ? '已完成' : task.status === 'failed' ? '生成失败' : '处理中'}</span></div>
             <time>{new Date(task.createdAt).toLocaleDateString('zh-CN')}</time>
             <Link href={`/tasks/${task.id}`}>查看任务</Link>
-          </article>)}</div> : <div className="home-empty-state"><span>还没有生成任务，先开始创作</span><Link href="/workbench?mode=general">开始创作</Link></div>}
+          </article>)}</div> : tasksFailed ? <div className="home-empty-state" role="alert"><span>任务记录加载失败，请稍后重试</span><Link href="/assets?view=tasks">前往任务记录</Link></div> : <div className="home-empty-state"><span>还没有生成任务，先开始创作</span><Link href="/workbench?mode=general">开始创作</Link></div>}
         </section>
 
         <section className="content-section" id="inspiration">

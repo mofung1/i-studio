@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 
 import { apiBaseUrl, getAccessToken } from '@/lib/api'
 
@@ -10,17 +11,23 @@ interface AuthenticatedImageProps {
   className?: string
 }
 
+type LoadState = 'loading' | 'loaded' | 'failed'
+
 export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageProps) {
   const [source, setSource] = useState('')
+  const [state, setState] = useState<LoadState>('loading')
+  const [retryToken, setRetryToken] = useState(0)
 
   useEffect(() => {
     if (!path.startsWith('/')) {
       setSource(path)
+      setState('loaded')
       return
     }
 
     const controller = new AbortController()
     let objectUrl = ''
+    setState('loading')
     fetch(`${apiBaseUrl}${path}`, {
       headers: { Authorization: `Bearer ${getAccessToken()}` },
       signal: controller.signal,
@@ -32,16 +39,38 @@ export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageP
       .then((blob) => {
         objectUrl = URL.createObjectURL(blob)
         setSource(objectUrl)
+        setState('loaded')
       })
-      .catch(() => undefined)
+      .catch((error) => {
+        // 组件卸载或主动中止时保持安静，不向用户暴露失败态
+        if (error.name === 'AbortError') return
+        setState('failed')
+      })
 
     return () => {
       controller.abort()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [path])
+  }, [path, retryToken])
 
-  if (!source) return <div className={className} aria-label={`${alt}加载中`} />
+  if (state === 'failed') {
+    return (
+      <div className={`${className ?? ''} auth-image-failed`} role="alert" aria-label={`${alt}加载失败`}>
+        <button
+          type="button"
+          onClick={() => setRetryToken((token) => token + 1)}
+          aria-label={`重试加载${alt}`}
+          title="重新加载"
+        >
+          <RefreshCw size={16} />
+        </button>
+      </div>
+    )
+  }
+
+  if (state === 'loading' || !source) {
+    return <div className={`${className ?? ''} auth-image-loading`} aria-label={`${alt}加载中`} />
+  }
   return <img className={className} src={source} alt={alt} />
 }
 

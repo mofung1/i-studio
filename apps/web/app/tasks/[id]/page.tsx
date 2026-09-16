@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Download, LoaderCircle, RefreshCw, RotateCcw } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Download, LoaderCircle, RefreshCw, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
@@ -93,6 +93,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       <h1>任务详情</h1>
       {error ? <p className="auth-notice">{error}</p> : task ? <>
         <div className="task-status"><strong>{statusLabels[task.status] ?? task.status}</strong><span>{new Date(task.createdAt).toLocaleString()}</span></div>
+        {task.errorMessage && task.status === 'failed' && <p className="task-failure-reason" role="alert"><AlertCircle size={15} />失败原因：{task.errorMessage}</p>}
         <section className="task-results">
           <h2>生成结果</h2>
           {task.resultImages?.length ? <div className="result-grid">{task.resultImages.map((path, index) => <article key={path}><AuthenticatedImage path={path} alt={`生成结果 ${index + 1}`} /><button type="button" onClick={() => void downloadProtectedAsset(path, `istudio-${id.slice(0, 8)}-${index + 1}.png`)}><Download size={15} />下载</button></article>)}</div> : task.errorMessage ? <div className="empty-state">{task.errorMessage}</div> : task.status === 'failed' ? <div className="empty-state">生成失败，但供应商未返回错误详情。请重试或查看 API 日志。</div> : <div className="empty-state">生成完成后，图片将在这里显示。</div>}

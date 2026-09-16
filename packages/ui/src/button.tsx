@@ -1,22 +1,25 @@
 import { Slot } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'
-import type { ButtonHTMLAttributes } from 'react'
+import { Loader2 } from 'lucide-react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 import { cn } from './lib/utils.js'
 
 const buttonVariants = cva(
-  'inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/30 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/25 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        primary: 'bg-neutral-950 text-white hover:bg-black',
-        secondary: 'border border-neutral-200 bg-white text-neutral-950 hover:bg-neutral-50',
-        ghost: 'bg-transparent text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950',
+        primary: 'bg-primary text-white hover:bg-primary-hover',
+        secondary: 'border border-border bg-surface text-foreground hover:bg-surface-subtle',
+        ghost: 'bg-transparent text-muted hover:bg-surface-subtle hover:text-foreground',
       },
       size: {
-        default: 'h-10 px-4',
+        // 对齐 DESIGN-SYSTEM §5：默认 36px，核心生成 42px，图标 32px
+        default: 'h-9 px-4 text-sm',
+        large: 'h-[42px] px-5 text-sm',
         small: 'h-9 px-3 text-xs',
-        icon: 'size-10 p-0',
+        icon: 'size-8 p-0',
       },
     },
     defaultVariants: {
@@ -30,11 +33,29 @@ export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  loading?: boolean
+  children?: ReactNode
 }
 
-export function Button({ asChild = false, className, size, variant, ...props }: ButtonProps) {
+export function Button({ asChild = false, className, size, variant, loading, disabled, children, ...props }: ButtonProps) {
   const Component = asChild ? Slot : 'button'
 
-  return <Component className={cn(buttonVariants({ className, size, variant }))} {...props} />
+  // asChild 模式下 Slot 只接受单一子元素，loading 图标无法额外插入，此时忽略 loading
+  const content = loading && !asChild ? (
+    <>
+      <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+      {children}
+    </>
+  ) : children
+
+  return (
+    <Component
+      className={cn(buttonVariants({ className, size, variant }))}
+      disabled={loading || disabled}
+      {...props}
+    >
+      {content}
+    </Component>
+  )
 }
 

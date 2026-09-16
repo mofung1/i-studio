@@ -37,14 +37,14 @@ services:
       DATABASE_URL: postgresql://istudio:${POSTGRES_PASSWORD:-istudio_dev}@postgres:5432/istudio?sslmode=disable
       REDIS_URL: redis://redis:6379
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-istudio-docker-secret-change-me}
-      WEB_ORIGINS: http://127.0.0.1:3000,http://localhost:3000
+      WEB_ORIGINS: http://127.0.0.1:33000,http://localhost:33000
       AI_PROVIDER_ENABLED: ${AI_PROVIDER_ENABLED:-true}
       BANANA_ROUTER_BASE_URL: ${BANANA_ROUTER_BASE_URL:-https://api.bananarouter.com}
       BANANA_ROUTER_API_KEY: ${BANANA_ROUTER_API_KEY:-}
       BANANA_ROUTER_TIMEOUT_SECONDS: ${BANANA_ROUTER_TIMEOUT_SECONDS:-300}
       STORAGE_ROOT: /data/uploads
     ports:
-      - "127.0.0.1:${API_PORT:-4000}:4000"
+      - "127.0.0.1:${API_PORT:-44000}:4000"
     volumes:
       - istudio_uploads:/data/uploads
     depends_on:
@@ -63,11 +63,11 @@ services:
       context: .
       dockerfile: docker/web.Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:4000}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:44000}
     environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:4000}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:44000}
     ports:
-      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+      - "127.0.0.1:${WEB_PORT:-33000}:3000"
     depends_on:
       api:
         condition: service_healthy

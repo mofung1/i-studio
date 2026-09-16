@@ -1,5 +1,6 @@
 'use client'
 
+import { Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -12,6 +13,7 @@ export function TopNavigation() {
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -60,11 +62,21 @@ export function TopNavigation() {
   return (
     <header className="top-navigation">
       <Brand />
-      <nav aria-label="主导航">
-        <Link href="/workbench?mode=general">AI 图片</Link>
-        <Link href="/workbench?mode=commerce&task=product-main">电商工具</Link>
-        <Link href="/#inspiration">发现灵感</Link>
-        <Link href="/assets">资产库</Link>
+      <button
+        className="nav-toggle"
+        type="button"
+        aria-label={navOpen ? '关闭导航' : '打开导航'}
+        aria-expanded={navOpen}
+        aria-controls="primary-navigation"
+        onClick={() => setNavOpen((open) => !open)}
+      >
+        {navOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+      <nav id="primary-navigation" aria-label="主导航" data-open={navOpen}>
+        <Link href="/workbench?mode=general" onClick={() => setNavOpen(false)}>AI 图片</Link>
+        <Link href="/workbench?mode=commerce&task=product-main" onClick={() => setNavOpen(false)}>电商工具</Link>
+        <Link href="/#inspiration" onClick={() => setNavOpen(false)}>发现灵感</Link>
+        <Link href="/assets" onClick={() => setNavOpen(false)}>资产库</Link>
       </nav>
       <div className="nav-actions">
         {username ? <div className="account-menu" ref={accountRef}>
