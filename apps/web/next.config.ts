@@ -1,8 +1,5 @@
 import type { NextConfig } from 'next'
 
-const nextConfig: NextConfig = {
-  transpilePackages: ['@istudio/contracts', '@istudio/ui'],
-}
+const nextConfig: NextConfig = {}
 
 export default nextConfig
-
