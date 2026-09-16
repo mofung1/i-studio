@@ -1,3 +1,5 @@
+name: i-studio
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -29,7 +31,7 @@ services:
 
   api:
     build:
-      context: .
+      context: ..
       dockerfile: docker/api.Dockerfile
     environment:
       API_HOST: 0.0.0.0
@@ -60,7 +62,7 @@ services:
 
   web:
     build:
-      context: .
+      context: ..
       dockerfile: docker/web.Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:44000}

@@ -1,5 +1,5 @@
 import { Workbench } from '@/components/workbench'
-import type { CommerceTaskType } from '@istudio/contracts'
+import type { CommerceTaskType } from '@/lib/contracts'
 import { Suspense } from 'react'
 
 const commerceTasks: CommerceTaskType[] = ['product-main', 'detail-page', 'viral-recreate', 'product-retouch']

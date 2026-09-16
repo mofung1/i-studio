@@ -1,7 +1,8 @@
 {
-  "name": "@istudio/web",
+  "name": "istudio-web",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.12.1",
   "scripts": {
     "build": "next build",
     "dev": "next dev --hostname 127.0.0.1 --port 3000",
@@ -11,16 +12,18 @@
     "clean": "rm -rf .next coverage"
   },
   "dependencies": {
-    "@istudio/contracts": "workspace:*",
-    "@istudio/ui": "workspace:*",
     "@radix-ui/react-select": "^2.3.7",
+    "@radix-ui/react-slot": "^1.2.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.544.0",
     "next": "^15.5.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@istudio/config": "workspace:*",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^20.19.14",
     "@types/react": "^19.1.13",

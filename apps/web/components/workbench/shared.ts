@@ -1,4 +1,4 @@
-import type { CommerceTaskType } from '@istudio/contracts'
+import type { CommerceTaskType } from '@/lib/contracts'
 
 export type WorkbenchMode = 'general' | 'commerce'
 export type ConfigSide = 'left' | 'right'

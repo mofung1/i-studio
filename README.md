@@ -1,55 +1,59 @@
 # iStudio
 
-iStudio 是面向国内和跨境电商团队的 AI 图片创作平台。正式项目采用 pnpm workspace 与 Turborepo 管理，`UI/` 目录仅作为高保真原型和视觉参考。
+面向国内和跨境电商团队的 AI 图片创作平台。
 
-## 目录
+## 目录结构
 
 ```text
-apps/web              Next.js 用户端
-apps/server           Go API server
-packages/ui           共享 UI 组件
-packages/contracts    Zod 业务契约
-packages/config       共享工程配置
-infra/docker          本地 PostgreSQL / Redis
-development-progress  开发进度与决策记录
-docs                  产品需求文档
-UI                    UI 原型，不作为正式运行入口
+apps/web     Next.js 用户端（独立 pnpm 项目）
+apps/server  Go API server
+docker       Docker Compose（PostgreSQL / Redis / API / Web）
 ```
 
 ## 本地开发
 
-推荐使用 Docker Compose 一键启动完整测试环境：
+### Docker 一键启动（推荐）
 
 ```bash
+cd docker
 docker compose up --build
 ```
 
-Compose 会同时启动 PostgreSQL、Redis、Go API 和 Next.js Web。默认端口为 Web `3000`、API `4000`、PostgreSQL `55432`、Redis `56379`，可通过根目录 `.env` 中的 `WEB_PORT`、`API_PORT`、`POSTGRES_PORT`、`REDIS_PORT` 覆盖。前台运行时按 `Ctrl+C` 会停止整组服务，不会留下孤立的基础设施容器。数据保存在 Docker volumes 中，下次启动仍会保留。
+同时启动 PostgreSQL、Redis、Go API 和 Next.js Web。默认端口：
 
-首次运行前安装依赖：
+| 服务 | 端口 |
+| --- | --- |
+| Web | `33000` |
+| API | `44000` |
+| PostgreSQL | `55432` |
+| Redis | `56379` |
+
+可通过环境变量覆盖（`WEB_PORT`、`API_PORT`、`POSTGRES_PORT`、`REDIS_PORT`）。前台运行时按 `Ctrl+C` 停止整组服务；数据保存在 Docker volumes 中，下次启动仍保留。
+
+### 前端单独开发
 
 ```bash
+cd apps/web
 pnpm install
-cp apps/web/.env.local.example apps/web/.env.local
 pnpm dev
 ```
 
-后端配置单独放在 `apps/server/.env`：
+默认运行在 http://127.0.0.1:3000。
+
+### 后端
 
 ```bash
-cp apps/server/.env.example apps/server/.env
+cd apps/server
+cp .env.example .env   # 在其中填写 BANANA_ROUTER_API_KEY
+go run .
 ```
 
-在后端 `.env` 中填写 `BANANA_ROUTER_API_KEY`。不要把供应商密钥放在前端环境变量中；未配置时工作台会明确阻止提交，不会创建永久等待的任务。
-
-Web 默认运行在 `http://127.0.0.1:3000`，API 默认运行在 `http://127.0.0.1:4000`。
+不要把供应商密钥放在前端环境变量中；未配置时工作台会明确阻止提交，不会创建永久等待的任务。
 
 ## 交付验证
 
 ```bash
-pnpm typecheck
-pnpm test
-pnpm build
+cd apps/web && pnpm typecheck && pnpm test && pnpm build
 GOCACHE=/tmp/istudio-go-cache go -C apps/server test -race ./...
 ```
 

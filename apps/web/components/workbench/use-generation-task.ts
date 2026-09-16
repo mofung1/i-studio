@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 
-import { generationInputSchema, type GenerationInput } from '@istudio/contracts'
+import { generationInputSchema, type GenerationInput } from '@/lib/contracts'
 
 import { apiBaseUrl, getAccessToken, readApiError, uploadAsset } from '@/lib/api'
 

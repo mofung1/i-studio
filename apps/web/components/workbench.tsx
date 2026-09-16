@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
-import type { CommerceTaskType, GenerationModel } from '@istudio/contracts'
+import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
 
 import { apiBaseUrl, getAccessToken } from '@/lib/api'
 

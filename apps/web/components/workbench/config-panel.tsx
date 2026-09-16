@@ -1,6 +1,6 @@
 import { Check, Sparkles, Upload } from 'lucide-react'
-import { Button } from '@istudio/ui'
-import type { GenerationModel } from '@istudio/contracts'
+import { Button } from '@/components/ui'
+import type { GenerationModel } from '@/lib/contracts'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 
 import type { InlineGenerationTask, GenerationNotice } from './use-generation-task'
@@ -16,7 +16,7 @@ import {
   type ReferenceStrength,
   type WorkbenchMode,
 } from './shared'
-import type { CommerceTaskType } from '@istudio/contracts'
+import type { CommerceTaskType } from '@/lib/contracts'
 import { SelectedImageThumbnail } from './selected-image-thumbnail'
 
 interface ConfigPanelProps {

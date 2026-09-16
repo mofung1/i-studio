@@ -5,7 +5,7 @@ import { apiBaseUrl, getAccessToken } from '@/lib/api'
 
 import { generationStatusLabels, type InlineGenerationTask } from './use-generation-task'
 import { generalCanvasImage, taskMeta } from './shared'
-import type { CommerceTaskType } from '@istudio/contracts'
+import type { CommerceTaskType } from '@/lib/contracts'
 import type { WorkbenchMode } from './shared'
 
 interface ResultCanvasProps {

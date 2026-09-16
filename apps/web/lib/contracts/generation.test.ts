@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   generalGenerationInputSchema,
   productMainInputSchema,
-} from './generation.js'
+} from './generation'
 
 describe('generation input contracts', () => {
   it('defaults general generation to one image', () => {

@@ -1,8 +1,8 @@
 import { Box, Image as ImageIcon, LayoutPanelLeft, Palette, PanelRight, Sparkles, WandSparkles, X } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@istudio/ui'
+import { Button } from '@/components/ui'
 
-import type { CommerceTaskType } from '@istudio/contracts'
+import type { CommerceTaskType } from '@/lib/contracts'
 
 import { commerceTasks, type ConfigSide, type WorkbenchMode } from './shared'
 
