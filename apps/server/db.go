@@ -83,7 +83,8 @@ func dbFindTask(db *sql.DB, id, userID string) (task, bool, error) {
 	var resultRaw []byte
 	var errorMessage sql.NullString
 	var projectID sql.NullString
-	err := db.QueryRow("SELECT id, project_id, status, created_at, input, result_images, error_message FROM generation_tasks WHERE id = $1 AND user_id = $2", id, userID).Scan(&t.ID, &projectID, &t.Status, &t.CreatedAt, &input, &resultRaw, &errorMessage)
+	var modulesRaw []byte
+	err := db.QueryRow("SELECT id, project_id, status, created_at, input, result_images, result_modules, error_message FROM generation_tasks WHERE id = $1 AND user_id = $2", id, userID).Scan(&t.ID, &projectID, &t.Status, &t.CreatedAt, &input, &resultRaw, &modulesRaw, &errorMessage)
 	t.ProjectID = projectID.String
 	if err == sql.ErrNoRows {
 		return task{}, false, nil
@@ -95,6 +96,7 @@ func dbFindTask(db *sql.DB, id, userID string) (task, bool, error) {
 		return task{}, false, err
 	}
 	_ = json.Unmarshal(resultRaw, &t.ResultImages)
+	_ = json.Unmarshal(modulesRaw, &t.ResultModules)
 	t.ErrorMessage = errorMessage.String
 	return t, true, nil
 }
@@ -125,11 +127,11 @@ func migrateDatabase(db *sql.DB) error {
 CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS assets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL, filename TEXT NOT NULL, storage_key TEXT NOT NULL UNIQUE, mime TEXT NOT NULL, size_bytes BIGINT NOT NULL, width INT NOT NULL DEFAULT 0, height INT NOT NULL DEFAULT 0, hash TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 ALTER TABLE assets ADD COLUMN IF NOT EXISTS width INT NOT NULL DEFAULT 0; ALTER TABLE assets ADD COLUMN IF NOT EXISTS height INT NOT NULL DEFAULT 0; ALTER TABLE assets ADD COLUMN IF NOT EXISTS hash TEXT NOT NULL DEFAULT '';
-CREATE TABLE IF NOT EXISTS generation_tasks (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL, status TEXT NOT NULL, input JSONB NOT NULL, result_images JSONB NOT NULL DEFAULT '[]'::jsonb, error_message TEXT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now());`)
+CREATE TABLE IF NOT EXISTS generation_tasks (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL, status TEXT NOT NULL, input JSONB NOT NULL, result_images JSONB NOT NULL DEFAULT '[]'::jsonb, result_modules JSONB NOT NULL DEFAULT '[]'::jsonb, error_message TEXT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now());`)
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(`ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL; ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS result_images JSONB NOT NULL DEFAULT '[]'::jsonb; ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS error_message TEXT NULL;`)
+	_, err = db.Exec(`ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL; ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS result_images JSONB NOT NULL DEFAULT '[]'::jsonb; ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS result_modules JSONB NOT NULL DEFAULT '[]'::jsonb; ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS error_message TEXT NULL;`)
 	return err
 }
 

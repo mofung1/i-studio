@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
+import { moduleLabel } from '@/components/workbench/shared'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 
 interface GenerationTask {
@@ -13,6 +14,7 @@ interface GenerationTask {
   createdAt: string
   input: Record<string, unknown>
   resultImages?: string[]
+  resultModules?: string[]
   errorMessage?: string
 }
 
@@ -96,7 +98,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
         {task.errorMessage && task.status === 'failed' && <p className="task-failure-reason" role="alert"><AlertCircle size={15} />失败原因：{task.errorMessage}</p>}
         <section className="task-results">
           <h2>生成结果</h2>
-          {task.resultImages?.length ? <div className="result-grid">{task.resultImages.map((path, index) => <article key={path}><AuthenticatedImage path={path} alt={`生成结果 ${index + 1}`} /><button type="button" onClick={() => void downloadProtectedAsset(path, `istudio-${id.slice(0, 8)}-${index + 1}.png`)}><Download size={15} />下载</button></article>)}</div> : task.errorMessage ? <div className="empty-state">{task.errorMessage}</div> : task.status === 'failed' ? <div className="empty-state">生成失败，但供应商未返回错误详情。请重试或查看 API 日志。</div> : <div className="empty-state">生成完成后，图片将在这里显示。</div>}
+          {task.resultImages?.length ? <div className="result-grid">{task.resultImages.map((path, index) => { const label = moduleLabel(String(task.input.taskType ?? ''), task.resultModules?.[index] ?? ''); return <article key={path}><AuthenticatedImage path={path} alt={`生成结果 ${index + 1}`} />{label && <span className="module-badge">{label}</span>}<button type="button" onClick={() => void downloadProtectedAsset(path, `istudio-${id.slice(0, 8)}-${index + 1}.png`)}><Download size={15} />下载</button></article> })}</div> : task.errorMessage ? <div className="empty-state">{task.errorMessage}</div> : task.status === 'failed' ? <div className="empty-state">生成失败，但供应商未返回错误详情。请重试或查看 API 日志。</div> : <div className="empty-state">生成完成后，图片将在这里显示。</div>}
         </section>
         <details><summary>查看生成参数</summary><pre>{JSON.stringify(task.input, null, 2)}</pre></details>
         {task.status === 'failed' && <button className="task-retry-button" type="button" disabled={isRetrying} onClick={() => void retryTask()}><RotateCcw size={16} />{isRetrying ? '正在重试…' : '使用原参数重新生成'}</button>}

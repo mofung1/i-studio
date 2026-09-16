@@ -28,15 +28,16 @@ import (
 
 type user struct{ ID, Username, PasswordHash string }
 type task struct {
-	ID           string   `json:"id"`
-	UserID       string   `json:"-"`
-	ProjectID    string   `json:"projectId,omitempty"`
-	ProjectName  string   `json:"projectName,omitempty"`
-	Status       string   `json:"status"`
-	CreatedAt    string   `json:"createdAt"`
-	Input        any      `json:"input"`
-	ResultImages []string `json:"resultImages,omitempty"`
-	ErrorMessage string   `json:"errorMessage,omitempty"`
+	ID            string   `json:"id"`
+	UserID        string   `json:"-"`
+	ProjectID     string   `json:"projectId,omitempty"`
+	ProjectName   string   `json:"projectName,omitempty"`
+	Status        string   `json:"status"`
+	CreatedAt     string   `json:"createdAt"`
+	Input         any      `json:"input"`
+	ResultImages  []string `json:"resultImages,omitempty"`
+	ResultModules []string `json:"resultModules,omitempty"`
+	ErrorMessage  string   `json:"errorMessage,omitempty"`
 }
 type assetRecord struct {
 	ID, UserID, ProjectID, Filename, StorageKey, Mime, Hash string
@@ -205,7 +206,7 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodGet && s.db != nil {
 		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
-		query := "SELECT t.id,t.status,t.created_at,t.input,t.result_images FROM generation_tasks t WHERE t.user_id=$1"
+		query := "SELECT t.id,t.status,t.created_at,t.input,t.result_images,t.result_modules FROM generation_tasks t WHERE t.user_id=$1"
 		args := []any{userID}
 		if projectID != "" {
 			if !s.userOwnsProject(userID, projectID) {
@@ -227,9 +228,11 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 			var t task
 			var input []byte
 			var resultRaw []byte
-			if rows.Scan(&t.ID, &t.Status, &t.CreatedAt, &input, &resultRaw) == nil {
+			var modulesRaw []byte
+			if rows.Scan(&t.ID, &t.Status, &t.CreatedAt, &input, &resultRaw, &modulesRaw) == nil {
 				_ = json.Unmarshal(input, &t.Input)
 				_ = json.Unmarshal(resultRaw, &t.ResultImages)
+				_ = json.Unmarshal(modulesRaw, &t.ResultModules)
 				list = append(list, t)
 			}
 		}
@@ -406,10 +409,11 @@ func (s *server) updateTaskStatus(id, status string) {
 	}
 }
 
-func (s *server) updateTaskResult(id, status string, images []string, message string) {
+func (s *server) updateTaskResult(id, status string, images []string, modules []string, message string) {
 	if s.db != nil {
 		raw, _ := json.Marshal(images)
-		_, _ = s.db.Exec("UPDATE generation_tasks SET status=$1, result_images=$2::jsonb, error_message=$3 WHERE id=$4", status, raw, nullableString(message), id)
+		modulesRaw, _ := json.Marshal(modules)
+		_, _ = s.db.Exec("UPDATE generation_tasks SET status=$1, result_images=$2::jsonb, result_modules=$3::jsonb, error_message=$4 WHERE id=$5", status, raw, modulesRaw, nullableString(message), id)
 		return
 	}
 	s.mu.Lock()
@@ -417,6 +421,7 @@ func (s *server) updateTaskResult(id, status string, images []string, message st
 	if t, ok := s.tasks[id]; ok {
 		t.Status = status
 		t.ResultImages = images
+		t.ResultModules = modules
 		t.ErrorMessage = message
 		s.tasks[id] = t
 	}

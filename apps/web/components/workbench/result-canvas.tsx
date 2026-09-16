@@ -4,7 +4,7 @@ import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authent
 import { apiBaseUrl, getAccessToken } from '@/lib/api'
 
 import { generationStatusLabels, type InlineGenerationTask } from './use-generation-task'
-import { generalCanvasImage, taskMeta } from './shared'
+import { generalCanvasImage, moduleLabel, taskMeta } from './shared'
 import type { CommerceTaskType } from '@/lib/contracts'
 import type { WorkbenchMode } from './shared'
 
@@ -85,10 +85,14 @@ export function ResultCanvas({
           </div>
 
           <div className="inline-result-grid">
-            {activeResult.resultImages.map((path, index) => (
+            {activeResult.resultImages.map((path, index) => {
+              const moduleKey = activeResult.resultModules?.[index] ?? ''
+              const label = moduleLabel(task, moduleKey)
+              return (
               <div className="inline-result-image" key={path}>
                 <AuthenticatedImage path={path} alt={`AI 生成结果 ${index + 1}`} />
                 <span className="ai-badge">AI 生成</span>
+                {label && <span className="module-badge">{label}</span>}
                 <div className="result-image-actions">
                   <button
                     type="button"
@@ -122,7 +126,8 @@ export function ResultCanvas({
                   </button>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="result-action-bar">

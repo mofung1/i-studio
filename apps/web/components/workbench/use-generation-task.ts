@@ -10,6 +10,8 @@ export type InlineGenerationTask = {
   id: string
   status: string
   resultImages?: string[]
+  /** 与 resultImages 逐项对应的模块 key（custom 模块化生成时才有） */
+  resultModules?: string[]
   errorMessage?: string
 }
 
