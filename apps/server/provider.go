@@ -413,6 +413,16 @@ var allowedModules = map[string]map[string]struct{}{
 	"detail-page":  stringSet("hero", "selling", "scene", "detail", "spec", "feedback", "package", "brand", "certificate", "install", "faq", "size", "material", "promotion"),
 }
 
+// enhancementHints 把精修选项翻译成自然语言指导，替代原始数组拼接。
+var enhancementHints = map[string]string{
+	"gloss":       "增强产品光泽与质感",
+	"repair":      "修复划痕与瑕疵",
+	"clarity":     "提升整体清晰度",
+	"color":       "校正色彩",
+	"perspective": "修正透视变形",
+	"background":  "净化背景",
+}
+
 func promptForInput(input map[string]any) string {
 	if prompt := strings.TrimSpace(stringValue(input["prompt"], "")); prompt != "" {
 		return prompt
@@ -442,7 +452,17 @@ func promptForInput(input map[string]any) string {
 		parts = append(parts, "高度复刻参考图的视觉结构，替换为商品原图")
 	}
 	if enhancements, ok := input["enhancements"].([]any); ok {
-		parts = append(parts, "快捷优化项："+fmt.Sprint(enhancements))
+		items := make([]string, 0, len(enhancements))
+		for _, item := range enhancements {
+			if text, ok := item.(string); ok {
+				if hint := enhancementHints[text]; hint != "" {
+					items = append(items, hint)
+				}
+			}
+		}
+		if len(items) > 0 {
+			parts = append(parts, "产品精修要求："+strings.Join(items, "、"))
+		}
 	}
 	// 模块化差异化生成：模块批次注入 moduleHint 时用自然语言指导，替代原始 map 拼接
 	if hint := stringValue(input["moduleHint"], ""); hint != "" {
