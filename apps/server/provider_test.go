@@ -66,6 +66,34 @@ func TestWhiteBackgroundPromptUsesPlatformAndLanguage(t *testing.T) {
 	}
 }
 
+func TestPromptTranslatesEnhancements(t *testing.T) {
+	prompt := promptForInput(map[string]any{
+		"taskType":     "product-retouch",
+		"enhancements": []any{"gloss", "repair", "background"},
+	})
+	for _, expected := range []string{"产品精修要求", "增强产品光泽与质感", "修复划痕与瑕疵", "净化背景"} {
+		if !strings.Contains(prompt, expected) {
+			t.Fatalf("prompt %q missing %q", prompt, expected)
+		}
+	}
+	if strings.Contains(prompt, "gloss") || strings.Contains(prompt, "[") {
+		t.Fatalf("prompt %q must not contain raw enhancement keys", prompt)
+	}
+}
+
+func TestPromptIgnoresUnknownEnhancements(t *testing.T) {
+	prompt := promptForInput(map[string]any{
+		"taskType":     "product-retouch",
+		"enhancements": []any{"gloss", "not-an-option"},
+	})
+	if !strings.Contains(prompt, "增强产品光泽与质感") {
+		t.Fatalf("prompt %q missing known enhancement", prompt)
+	}
+	if strings.Contains(prompt, "not-an-option") {
+		t.Fatalf("prompt %q must not contain unknown enhancement", prompt)
+	}
+}
+
 func TestBananaRouterOpenAIGenerationSubmit(t *testing.T) {
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path != "/v1/images/generations/async" {
