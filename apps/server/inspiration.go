@@ -34,14 +34,22 @@ func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	category := strings.TrimSpace(r.URL.Query().Get("category"))
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	page := clampInt(parseQueryInt(r.URL.Query().Get("page"), 1), 1, 200)
 	pageSize := clampInt(parseQueryInt(r.URL.Query().Get("pageSize"), 24), 1, 60)
 
 	where := "WHERE enabled = true"
 	args := []any{}
 	if category != "" {
-		where += " AND category = $1"
+		where += " AND category = $" + strconv.Itoa(len(args)+1)
 		args = append(args, category)
+	}
+	if query != "" {
+		// 标题、提示词、来源三字段模糊匹配，大小写不敏感
+		where += " AND (title ILIKE $" + strconv.Itoa(len(args)+1) +
+			" OR prompt ILIKE $" + strconv.Itoa(len(args)+1) +
+			" OR source ILIKE $" + strconv.Itoa(len(args)+1) + ")"
+		args = append(args, "%"+query+"%")
 	}
 
 	var total int

@@ -541,6 +541,61 @@ img {
 }
 
 
+/* hero 主搜索：视觉中心，比 body 宽，有存在感 */
+.inspire-hero-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(620px, 100%);
+  margin: 30px auto 0;
+  background: var(--surface);
+  border: 1px solid var(--line-hover);
+  border-radius: 14px;
+  box-shadow: 0 2px 4px rgba(23, 23, 23, 0.03), 0 12px 32px rgba(23, 23, 23, 0.06);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+
+.inspire-hero-search:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 4px var(--focus-soft), 0 16px 40px rgba(23, 23, 23, 0.1);
+  transform: translateY(-2px);
+}
+
+
+.inspire-hero-search .inspire-search-icon { left: 18px }
+
+
+.inspire-hero-search .inspire-search-input { padding: 17px 108px 17px 48px; font-size: 15.5px }
+
+
+.inspire-hero-search .inspire-search-clear { right: 52px }
+
+
+/* ⌘K 快捷键提示，搜索框聚焦时隐去（用户已在输入） */
+.inspire-search-kbd {
+  position: absolute;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  color: var(--foreground-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+
+.inspire-hero-search:focus-within .inspire-search-kbd { opacity: 0 }
+
+
 .inspire-body {
   width: min(1200px, calc(100% - 32px));
   margin: 0 auto 90px;
@@ -549,6 +604,75 @@ img {
   background: transparent;
   box-shadow: none;
 }
+
+
+.inspire-search-icon {
+  position: absolute;
+  left: 15px;
+  color: var(--foreground-3);
+  pointer-events: none;
+  transition: color 180ms ease;
+}
+
+
+.inspire-hero-search:focus-within .inspire-search-icon { color: var(--foreground) }
+
+
+.inspire-search-input {
+  width: 100%;
+  padding: 13px 40px 13px 42px;
+  color: var(--foreground);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 14.5px;
+  letter-spacing: 0.01em;
+}
+
+
+.inspire-search-input::placeholder { color: var(--placeholder) }
+
+
+/* 原生 type=search 的清除按钮与自定义按钮重复，隐去 */
+.inspire-search-input::-webkit-search-cancel-button { -webkit-appearance: none }
+
+
+.inspire-search-clear {
+  position: absolute;
+  right: 9px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--foreground-3);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+
+.inspire-search-clear:hover {
+  color: var(--foreground);
+  background: var(--surface-2);
+}
+
+
+.inspire-empty-action {
+  margin-top: 10px;
+  padding: 7px 16px;
+  color: var(--background);
+  background: var(--primary);
+  border: 0;
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+
+.inspire-empty-action:hover { background: var(--primary-hover) }
 
 
 .inspire-filters {
@@ -585,15 +709,17 @@ img {
 
 
 .inspire-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  /* 瀑布流：按图片真实比例错落排布，不强制裁切 */
+  columns: 3;
+  column-gap: 16px;
 }
 
 
 .inspire-card {
   display: flex;
   flex-direction: column;
+  break-inside: avoid;
+  margin-bottom: 16px;
   min-width: 0;
   overflow: hidden;
   background: var(--surface);
@@ -613,6 +739,7 @@ img {
 
 .inspire-cover {
   position: relative;
+  /* 无尺寸信息时的兜底比例；有宽高时由组件内联 aspectRatio 覆盖 */
   aspect-ratio: 16 / 10;
   background: var(--surface-2);
   overflow: hidden;
@@ -668,6 +795,49 @@ img {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+
+/* 长提示词：收起态截断，展开态显示全文 */
+.inspire-prompt-wrap {
+  position: relative;
+}
+
+
+.inspire-prompt-preview[data-expanded='false'] {
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+
+.inspire-prompt-preview[data-expanded='true'] {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+
+/* 展开按钮压在底部渐变上，暗示「还有内容」 */
+.inspire-prompt-toggle {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -30px;
+  padding: 4px 12px 4px 9px;
+  color: var(--foreground-2);
+  background: linear-gradient(to right, transparent, var(--surface-subtle) 28%);
+  border: 0;
+  border-radius: 0 8px 8px 0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 160ms ease;
+}
+
+
+.inspire-prompt-toggle:hover { color: var(--foreground) }
 
 
 .inspire-actions {
@@ -2165,7 +2335,7 @@ img {
   }
 
   .inspire-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    columns: 2;
   }
 
   /* 平板竖屏：5 列过挤，收到 3 列 */
@@ -2203,7 +2373,7 @@ img {
   .inspire-hero { padding: 54px 0 26px }
 
   .inspire-grid {
-    grid-template-columns: minmax(0, 1fr);
+    columns: 1;
   }
 
   .top-navigation {
@@ -2379,7 +2549,7 @@ img {
 
   .inspire-actions { flex-direction: column }
 
-  .inspire-prompt-preview { -webkit-line-clamp: 3; line-clamp: 3 }
+  .inspire-prompt-preview[data-expanded='false'] { -webkit-line-clamp: 3; line-clamp: 3 }
 
   .home-hero {
     width: calc(100% - 28px);
