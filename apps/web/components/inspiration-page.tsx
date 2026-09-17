@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUpRight, Check, Copy, Palette } from 'lucide-react'
+import { ArrowUpRight, Check, ChevronDown, ChevronUp, Copy, Palette, Search, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -10,9 +10,24 @@ import { TopNavigation } from './top-navigation'
 import { useInspirationPrompts } from './workbench/use-inspiration-prompts'
 
 export function InspirationPage() {
-  const { prompts, categories, category, total, allTotal, isLoading, error, hasMore, sentinelRef, changeCategory } =
-    useInspirationPrompts()
+  const {
+    prompts,
+    categories,
+    category,
+    searchInput,
+    query,
+    total,
+    allTotal,
+    isLoading,
+    error,
+    hasMore,
+    sentinelRef,
+    changeCategory,
+    setSearchInput,
+    clearSearch,
+  } = useInspirationPrompts()
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
   // 后端返回相对路径时拼上 API 基址；配置了 CDN 则是绝对地址，原样使用。
   function resolveImage(url: string) {
@@ -29,6 +44,18 @@ export function InspirationPage() {
     }
   }
 
+  // 提示词超过 N 个字符才显示「展开」，短提示词不需要
+  const PROMPT_EXPAND_THRESHOLD = 120
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   return (
     <div className="site-shell">
       <TopNavigation />
@@ -37,6 +64,30 @@ export function InspirationPage() {
           <span className="eyebrow"><Palette size={16} />发现灵感</span>
           <h1>选一个提示词，直接开始生成</h1>
           <p>点击卡片跳转通用生图，提示词已自动填好。共 {allTotal || total} 条提示词。</p>
+
+          <div className="inspire-hero-search" role="search">
+            <Search size={17} className="inspire-search-icon" aria-hidden="true" />
+            <input
+              type="search"
+              className="inspire-search-input"
+              placeholder="搜索标题、提示词或来源…"
+              aria-label="搜索提示词"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+            />
+            {searchInput ? (
+              <button
+                type="button"
+                className="inspire-search-clear"
+                aria-label="清除搜索"
+                onClick={clearSearch}
+              >
+                <X size={15} />
+              </button>
+            ) : (
+              <kbd className="inspire-search-kbd" aria-hidden="true">⌘K</kbd>
+            )}
+          </div>
         </section>
 
         <section className="content-section inspire-body" aria-label="提示词卡片列表">
@@ -65,7 +116,18 @@ export function InspirationPage() {
           {error && <div className="inspire-empty-state" role="alert"><span>{error}</span></div>}
 
           {prompts.length === 0 && !isLoading && !error ? (
-            <div className="inspire-empty-state"><span>还没有提示词，请先导入数据。</span></div>
+            <div className="inspire-empty-state">
+              {query ? (
+                <>
+                  <span>没有匹配「{query}」的提示词。</span>
+                  <button type="button" className="inspire-empty-action" onClick={clearSearch}>
+                    清除搜索
+                  </button>
+                </>
+              ) : (
+                <span>还没有提示词，请先导入数据。</span>
+              )}
+            </div>
           ) : (
             <div className="inspire-grid">
               {prompts.map((item) => (
@@ -84,7 +146,31 @@ export function InspirationPage() {
                   <div className="inspire-copy">
                     <h3>{item.title}</h3>
                     {item.source && <p className="inspire-source">来源：{item.source}</p>}
-                    <p className="inspire-prompt-preview" aria-label="提示词预览">{item.prompt}</p>
+                    {item.prompt.length > PROMPT_EXPAND_THRESHOLD ? (
+                      <div className="inspire-prompt-wrap">
+                        <p
+                          className="inspire-prompt-preview"
+                          aria-label="提示词预览"
+                          data-expanded={expandedIds.has(item.id)}
+                        >
+                          {item.prompt}
+                        </p>
+                        <button
+                          type="button"
+                          className="inspire-prompt-toggle"
+                          aria-expanded={expandedIds.has(item.id)}
+                          onClick={() => toggleExpanded(item.id)}
+                        >
+                          {expandedIds.has(item.id) ? (
+                            <><ChevronUp size={13} />收起</>
+                          ) : (
+                            <><ChevronDown size={13} />展开全文</>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="inspire-prompt-preview" aria-label="提示词预览">{item.prompt}</p>
+                    )}
                   </div>
                   <div className="inspire-actions">
                     <button
