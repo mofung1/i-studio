@@ -37,7 +37,7 @@ const moduleCountsSchema = z.record(z.string(), z.number().int().min(1).max(4)).
 
 export const generalGenerationInputSchema = imageSettingsSchema.extend({
   mode: z.literal('general'),
-  prompt: z.string().trim().min(1).max(4000),
+  prompt: z.string().trim().min(1).max(10000),
   referenceAssetIds: referenceAssetsSchema,
   style: z.enum(['unspecified', 'studio', 'minimal', 'fresh', 'technology', 'guochao']).default('unspecified'),
   referenceStrength: z.enum(['low', 'medium', 'high']).default('medium'),

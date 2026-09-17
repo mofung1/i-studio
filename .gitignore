@@ -7,6 +7,8 @@ coverage/
 *.tsbuildinfo
 apps/server/server
 apps/server/api-go
+# 灵感库案例图：seed-inspiration 命令从公开画廊下载，151MB 可随时重建
+apps/server/storage/uploads/inspiration/
 .env
 .env.local
 .env.*.local

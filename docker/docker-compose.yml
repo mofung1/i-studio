@@ -48,7 +48,9 @@ services:
     ports:
       - "127.0.0.1:${API_PORT:-44000}:4000"
     volumes:
-      - istudio_uploads:/data/uploads
+      # 绑定挂载宿主机 uploads：灵感库案例图由 seed-inspiration 生成在宿主机，
+      # 命名卷会让容器与宿主机隔离，导致 /v1/inspiration/images/* 全部 404。
+      - ../apps/server/storage/uploads:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,4 +79,3 @@ services:
 volumes:
   istudio_postgres_data:
   istudio_redis_data:
-  istudio_uploads:
