@@ -1,11 +1,10 @@
 'use client'
 
-import { ArrowRight, Box, Clock3, Images, Layers, Maximize, Palette, Send, Sparkles } from 'lucide-react'
+import { ArrowRight, Box, Images, Layers, Maximize, Send, Sparkles } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
-import { apiBaseUrl } from '@/lib/api'
 
 import { TopNavigation } from './top-navigation'
 
@@ -15,19 +14,6 @@ const commerceTools = [
   { task: 'viral-recreate', title: '爆款复刻', description: '参考爆款视觉重构商品画面', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85' },
   { task: 'product-retouch', title: '产品精修', description: '修复和提升商品原图质量', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85' },
 ]
-
-const inspiration = [
-  ['晨光下的护肤仪式', '美妆', 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85'],
-  ['安静的居家办公', '数码', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85'],
-  ['现代主义客厅', '家居', 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=85'],
-]
-
-type HomeTask = {
-  id: string
-  status: string
-  createdAt: string
-  input: { productName?: string; prompt?: string; mode?: string }
-}
 
 interface ComposerSelectProps {
   label: string
@@ -59,31 +45,6 @@ export function HomePage() {
   const [ratio, setRatio] = useState('1:1')
   const [resolution, setResolution] = useState('2K')
   const [count, setCount] = useState('1')
-  const [tasks, setTasks] = useState<HomeTask[]>([])
-  const [tasksFailed, setTasksFailed] = useState(false)
-
-  useEffect(() => {
-    const token = window.localStorage.getItem('istudio-access-token')
-    if (!token) return
-
-    const controller = new AbortController()
-    fetch(`${apiBaseUrl}/v1/generation/tasks`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('任务加载失败')))
-      .then((data: { tasks?: HomeTask[] }) => {
-        setTasks((data.tasks ?? []).slice(0, 3))
-        setTasksFailed(false)
-      })
-      .catch((error) => {
-        // 组件卸载时主动中止，不当作失败
-        if (error.name === 'AbortError') return
-        setTasksFailed(true)
-      })
-
-    return () => controller.abort()
-  }, [])
 
   return (
     <div className="site-shell">
@@ -131,25 +92,6 @@ export function HomePage() {
             ))}
           </div>
         </section>
-
-        <section className="content-section" id="tasks">
-          <div className="section-heading"><Clock3 size={20} /><div><h2>最近任务</h2><p>继续查看最近的生成任务。</p></div><Link className="section-more" href="/assets?view=tasks">查看任务记录</Link></div>
-          {tasks.length ? <div className="recent-project-list">{tasks.map((task) => <article className="recent-project no-cover" key={task.id}>
-            <div><strong>{task.input.productName ?? task.input.prompt?.slice(0, 24) ?? (task.input.mode === 'commerce' ? '电商图片' : '通用生图')}</strong><span>{task.status === 'succeeded' ? '已完成' : task.status === 'failed' ? '生成失败' : '处理中'}</span></div>
-            <time>{new Date(task.createdAt).toLocaleDateString('zh-CN')}</time>
-            <Link href={`/tasks/${task.id}`}>查看任务</Link>
-          </article>)}</div> : tasksFailed ? <div className="home-empty-state" role="alert"><span>任务记录加载失败，请稍后重试</span><Link href="/assets?view=tasks">前往任务记录</Link></div> : <div className="home-empty-state"><span>还没有生成任务，先开始创作</span><Link href="/workbench?mode=general">开始创作</Link></div>}
-        </section>
-
-        <section className="content-section" id="inspiration">
-          <div className="section-heading"><Palette size={20} /><div><h2>发现灵感</h2><p>精选可复用的构图和视觉方向。</p></div></div>
-          <div className="inspiration-grid">
-            {inspiration.map(([title, category, image]) => (
-              <article className="inspiration-coming-soon" key={title} aria-disabled="true"><div><img src={image} alt={title} /><span>即将上线</span></div><strong>{title}</strong><span>{category}</span></article>
-            ))}
-          </div>
-        </section>
-        <div id="assets" />
       </main>
     </div>
   )

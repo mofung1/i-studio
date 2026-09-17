@@ -34,7 +34,7 @@ func validateGenerationInput(input map[string]any) error {
 	}
 	switch mode {
 	case "general":
-		if err := requireText(input, "prompt", 1, 4000); err != nil {
+		if err := requireText(input, "prompt", 1, 10000); err != nil {
 			return err
 		}
 		return validateStringArray(input, "referenceAssetIds", 0, 6, 200)
