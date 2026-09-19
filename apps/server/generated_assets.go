@@ -10,6 +10,7 @@ import (
 	"image"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -26,6 +27,7 @@ func (s *server) persistGeneratedImages(taskID string, urls []string) ([]string,
 		return nil, err
 	}
 	client := &http.Client{Timeout: 45 * time.Second}
+	generationDate := time.Now()
 	paths := make([]string, 0, len(urls))
 	for index, url := range urls {
 		data, mime, err := readGeneratedImage(client, url)
@@ -36,7 +38,8 @@ func (s *server) persistGeneratedImages(taskID string, urls []string) ([]string,
 		if ext == "" {
 			return nil, fmt.Errorf("unsupported generated image type %q", mime)
 		}
-		assetID, key := randomID(), randomID()+ext
+		assetID := randomID()
+		key := generatedImageStorageKey(generationDate, randomID(), ext)
 		if err := s.storage.Save(key, bytes.NewReader(data)); err != nil {
 			return nil, err
 		}
@@ -107,4 +110,8 @@ func extensionForMime(mime string) string {
 	default:
 		return ""
 	}
+}
+
+func generatedImageStorageKey(now time.Time, id, ext string) string {
+	return filepath.Join(now.Format("20060102"), id+ext)
 }

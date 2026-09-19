@@ -59,7 +59,7 @@ func TestWhiteBackgroundPromptUsesPlatformAndLanguage(t *testing.T) {
 	prompt := promptForInput(map[string]any{
 		"taskType": "product-main", "platform": "ebay", "outputLanguage": "none",
 	})
-	for _, expected := range []string{"商品", "商品主图", "eBay", "不生成任何文字"} {
+	for _, expected := range []string{"商品", "商品主图", "eBay", "不新增营销文案", "包装文字", "Logo"} {
 		if !strings.Contains(prompt, expected) {
 			t.Fatalf("prompt %q missing %q", prompt, expected)
 		}

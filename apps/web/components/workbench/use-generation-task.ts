@@ -34,11 +34,12 @@ export type SubmitParams = {
   onAuthRequired: () => void
 }
 
-export function useGenerationTask() {
+export function useGenerationTask(scopeKey = 'default') {
   // 历史生成结果列表，每次成功生成追加一项，支持切换查看
   const [resultHistory, setResultHistory] = useState<InlineGenerationTask[]>([])
   const [activeResultIndex, setActiveResultIndex] = useState(0)
   const [generationTask, setGenerationTask] = useState<InlineGenerationTask | null>(null)
+  const [generationTaskScope, setGenerationTaskScope] = useState(scopeKey)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [notice, setNotice] = useState<GenerationNotice | null>(null)
 
@@ -50,9 +51,18 @@ export function useGenerationTask() {
     setNotice(null)
   }, [])
 
+  // 通用生图和电商生图使用不同的结果作用域，切换工作台时不能沿用另一类结果。
+  useEffect(() => {
+    setResultHistory([])
+    setActiveResultIndex(0)
+    setGenerationTask(null)
+    setGenerationTaskScope(scopeKey)
+    setNotice(null)
+  }, [scopeKey])
+
   // 轮询任务状态，结束后把成功结果追加到历史并切到最新
   useEffect(() => {
-    if (!generationTask || terminalStatuses.has(generationTask.status)) return
+    if (generationTaskScope !== scopeKey || !generationTask || terminalStatuses.has(generationTask.status)) return
 
     let cancelled = false
     let timer = 0
@@ -90,7 +100,7 @@ export function useGenerationTask() {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [generationTask?.id, generationTask?.status])
+  }, [generationTask?.id, generationTask?.status, generationTaskScope, scopeKey])
 
   const submit = useCallback(async ({ productFiles, referenceFiles, buildPayload, onAuthRequired }: SubmitParams) => {
     const token = getAccessToken()
@@ -102,6 +112,7 @@ export function useGenerationTask() {
     setIsSubmitting(true)
     setNotice(null)
     setGenerationTask(null)
+    setGenerationTaskScope(scopeKey)
     try {
       const draftResult = generationInputSchema.safeParse(buildPayload(
         productFiles.map((_, index) => `pending-product-${index}`),
@@ -141,7 +152,7 @@ export function useGenerationTask() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [])
+  }, [scopeKey])
 
   return {
     generationTask,

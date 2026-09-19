@@ -72,6 +72,9 @@ func main() {
 	root := env("STORAGE_ROOT", "storage/uploads")
 	_ = os.MkdirAll(root, 0o755)
 	s := &server{users: map[string]user{}, tasks: map[string]task{}, secret: []byte(env("AUTH_JWT_SECRET", "istudio-dev-secret-change-me")), db: db, storageRoot: root, storage: newLocalStorage(root)}
+	if err := cleanupLegacyGeneratedAssets(s.db, s.storage); err != nil {
+		fmt.Printf("legacy generated asset cleanup skipped: %v\n", err)
+	}
 	if os.Getenv("BANANA_ROUTER_API_KEY") != "" && !strings.EqualFold(env("AI_PROVIDER_ENABLED", "true"), "false") {
 		s.provider = newBananaRouterProvider()
 	}

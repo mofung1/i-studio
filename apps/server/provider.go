@@ -425,7 +425,12 @@ var enhancementHints = map[string]string{
 
 func promptForInput(input map[string]any) string {
 	if prompt := strings.TrimSpace(stringValue(input["prompt"], "")); prompt != "" {
-		return prompt
+		if stringValue(input["mode"], "") != "commerce" {
+			return prompt
+		}
+		parts := []string{prompt}
+		appendCommerceTextPolicy(&parts, input)
+		return strings.Join(parts, "。")
 	}
 	parts := []string{stringValue(input["productName"], "商品"), stringValue(input["requirements"], "专业电商产品图")}
 	taskPrompts := map[string]string{"product-main": "商品主图", "detail-page": "电商详情页", "viral-recreate": "参考爆款视觉复刻", "product-retouch": "产品精修，保留真实商品外观"}
@@ -439,15 +444,7 @@ func promptForInput(input map[string]any) string {
 	if platform := platforms[stringValue(input["platform"], "")]; platform != "" {
 		parts = append(parts, "适配"+platform+"平台商品图片")
 	}
-	languages := map[string]string{
-		"zh-CN": "简体中文", "zh-TW": "繁体中文", "en": "英语", "ja": "日语", "ko": "韩语",
-		"th": "泰语", "ms": "马来语", "id": "印尼语", "ru": "俄语",
-	}
-	if language := stringValue(input["outputLanguage"], ""); language == "none" {
-		parts = append(parts, "纯视觉画面，不生成任何文字、字母或数字")
-	} else if name := languages[language]; name != "" {
-		parts = append(parts, "画面中如需文字，仅使用"+name)
-	}
+	appendCommerceTextPolicy(&parts, input)
 	if strength := stringValue(input["recreateStrength"], ""); strength == "high" {
 		parts = append(parts, "高度复刻参考图的视觉结构，替换为商品原图")
 	}
@@ -482,12 +479,33 @@ func promptForInput(input map[string]any) string {
 	}
 	return strings.Join(parts, "。")
 }
+
+func appendCommerceTextPolicy(parts *[]string, input map[string]any) {
+	if stringValue(input["mode"], "") != "commerce" && stringValue(input["taskType"], "") == "" {
+		return
+	}
+	preserve := "必须保留商品原图中已有的包装文字、品牌名、Logo、型号和商标，不要删除、替换、翻译或重写"
+	languages := map[string]string{
+		"zh-CN": "简体中文", "zh-TW": "繁体中文", "en": "英语", "ja": "日语", "ko": "韩语",
+		"th": "泰语", "ms": "马来语", "id": "印尼语", "ru": "俄语",
+	}
+	language := stringValue(input["outputLanguage"], "")
+	if language == "none" {
+		*parts = append(*parts, "不新增营销文案、字母或数字；"+preserve)
+	} else if name := languages[language]; name != "" {
+		*parts = append(*parts, preserve+"；如需新增文字，仅使用"+name)
+	} else {
+		*parts = append(*parts, preserve)
+	}
+}
+
 func stringValue(v any, fallback string) string {
 	if s, ok := v.(string); ok && strings.TrimSpace(s) != "" {
 		return s
 	}
 	return fallback
 }
+
 func intValue(v any, fallback int) int {
 	switch n := v.(type) {
 	case float64:

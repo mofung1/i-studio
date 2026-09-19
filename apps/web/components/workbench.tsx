@@ -63,7 +63,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     generationTask, resultHistory, activeResultIndex, activeResult,
     isSubmitting, isGenerating, notice, setNotice,
     setActiveResultIndex, submit,
-  } = useGenerationTask()
+  } = useGenerationTask(`${mode}:${task}`)
 
   const hasProductImage = productFiles.length > 0
 
