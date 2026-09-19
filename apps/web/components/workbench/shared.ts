@@ -46,7 +46,7 @@ export function moduleLabel(taskType: string, moduleKey: string): string {
 }
 
 export const platformOptions = [['smart', '智能匹配'], ['taobao', '淘宝'], ['1688', '1688'], ['tmall', '天猫'], ['pinduoduo', '拼多多'], ['jd', '京东'], ['douyin', '抖音'], ['amazon', '亚马逊'], ['temu', 'TEMU'], ['ebay', 'eBay']] as const
-export const languageOptions = [['none', '无文字（纯视觉）'], ['zh-CN', '中文（简体）'], ['zh-TW', '中文（繁体）'], ['en', '英文'], ['ja', '日语'], ['ko', '韩文'], ['th', '泰语'], ['ms', '马来语'], ['id', '印尼语'], ['ru', '俄语']] as const
+export const languageOptions = [['none', '不新增文字（保留包装文字）'], ['zh-CN', '中文（简体）'], ['zh-TW', '中文（繁体）'], ['en', '英文'], ['ja', '日语'], ['ko', '韩文'], ['th', '泰语'], ['ms', '马来语'], ['id', '印尼语'], ['ru', '俄语']] as const
 export const retouchOptions = [['gloss', '增强产品光泽'], ['repair', '修复划痕瑕疵'], ['clarity', '提升整体清晰度'], ['color', '色彩校正'], ['perspective', '修正透视变形'], ['background', '背景净化']] as const
 
 /** 各任务在画布空态展示的设计参考图 */
