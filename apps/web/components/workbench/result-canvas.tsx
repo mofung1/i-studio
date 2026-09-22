@@ -34,7 +34,7 @@ export function ResultCanvas({
   const description = mode === 'general' ? '用文字描述或参考图片构建画面' : currentTask.description
 
   return (
-    <section className={`creation-canvas ${(resultHistory.length > 0 || isGenerating) ? 'has-generation-result' : ''}`}>
+    <section className={`creation-canvas ${(resultHistory.length > 0 || isGenerating) ? 'has-generation-result' : ''} ${isGenerating ? 'is-generating' : ''}`}>
       {resultHistory.length === 0 && !isGenerating && <>
         <div className="canvas-copy"><span>{mode === 'general' ? 'AI 图片' : '电商工具'}</span><h1>{title}</h1><p>{description}</p></div>
         <div className="canvas-preview">
@@ -51,8 +51,8 @@ export function ResultCanvas({
         <div className="generation-progress" aria-label="任务处理中"><span /></div>
       </div>}
 
-      {!isGenerating && generationTask && generationTask.status !== 'succeeded' && resultHistory.length === 0 && (
-        <div className="inline-generation-error"><strong>生成失败</strong><span>{generationTask.errorMessage || '供应商未返回错误详情，请重试。'}</span></div>
+      {!isGenerating && generationTask && generationTask.status !== 'succeeded' && (
+        <div className="inline-generation-error"><strong>{generationTask.resultImages?.length ? `已生成 ${generationTask.resultImages.length} 张，部分生成失败` : '生成失败'}</strong><span>{generationTask.errorMessage || '供应商未返回错误详情，请重试。'}</span></div>
       )}
 
       {resultHistory.length > 0 && !isGenerating && activeResult && activeResult.resultImages?.length ? (
@@ -80,7 +80,7 @@ export function ResultCanvas({
           )}
 
           <div className="result-topline">
-            <div><span className="success-label"><Check size={13} />生成完成</span><h2>{title}</h2></div>
+            <div><span className="success-label"><Check size={13} />{activeResult.status === 'succeeded' ? '生成完成' : '部分完成'}</span><h2>{title}</h2></div>
             <span>{activeResult.resultImages.length} 张图片</span>
           </div>
 

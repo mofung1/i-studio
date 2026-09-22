@@ -45,4 +45,16 @@ describe('generation input contracts', () => {
 
     expect(result.projectId).toBe('project-1')
   })
+  it('rejects custom module totals over sixteen images', () => {
+    const result = productMainInputSchema.safeParse({
+      mode: 'commerce',
+      taskType: 'product-main',
+      productAssetIds: ['asset-1'],
+      moduleMode: 'custom',
+      moduleCounts: { hero: 4, white: 4, selling: 4, scene: 4, detail: 1 },
+      count: 17,
+    })
+    expect(result.success).toBe(false)
+  })
+
 })

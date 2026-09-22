@@ -35,7 +35,7 @@ export type SubmitParams = {
 }
 
 export function useGenerationTask(scopeKey = 'default') {
-  // 历史生成结果列表，每次成功生成追加一项，支持切换查看
+  // 历史生成结果列表；即使任务失败，只要有部分图片也保留结果，支持切换查看
   const [resultHistory, setResultHistory] = useState<InlineGenerationTask[]>([])
   const [activeResultIndex, setActiveResultIndex] = useState(0)
   const [generationTask, setGenerationTask] = useState<InlineGenerationTask | null>(null)
@@ -77,8 +77,9 @@ export function useGenerationTask(scopeKey = 'default') {
         const data = await response.json() as { task: InlineGenerationTask }
         if (cancelled) return
         setGenerationTask(data.task)
-        if (terminalStatuses.has(data.task.status) && data.task.status === 'succeeded') {
+        if (terminalStatuses.has(data.task.status) && data.task.resultImages?.length) {
           setResultHistory((prev) => {
+            if (prev.some((item) => item.id === data.task.id)) return prev
             const next = [...prev, data.task]
             setActiveResultIndex(next.length - 1)
             return next

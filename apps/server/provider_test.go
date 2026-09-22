@@ -34,6 +34,17 @@ func TestBananaRouterGeminiSubmit(t *testing.T) {
 		if request.Header.Get("x-goog-api-key") != "test-key" {
 			t.Fatal("missing Gemini API key header")
 		}
+		var body map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		generationConfig, ok := body["generationConfig"].(map[string]any)
+		if !ok {
+			t.Fatalf("missing generationConfig in %#v", body)
+		}
+		if _, exists := generationConfig["candidateCount"]; exists {
+			t.Fatalf("Gemini image request must not set candidateCount: %#v", generationConfig)
+		}
 		return &http.Response{
 			StatusCode: http.StatusOK,
 			Status:     "200 OK",
@@ -45,7 +56,8 @@ func TestBananaRouterGeminiSubmit(t *testing.T) {
 
 	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Submit(context.Background(), map[string]any{
-		"model": "gemini-3.1-flash-image", "prompt": "product photo", "sourceImages": []map[string]string{{"mime": "image/png", "data": imageData}},
+		"model": "gemini-3.1-flash-image", "prompt": "product photo", "count": 4,
+		"sourceImages": []map[string]string{{"mime": "image/png", "data": imageData}},
 	})
 	if err != nil {
 		t.Fatalf("Submit() error = %v", err)
@@ -115,12 +127,15 @@ func TestBananaRouterOpenAIGenerationSubmit(t *testing.T) {
 		if body["size"] != "1024x1024" {
 			t.Fatalf("unexpected size %#v", body["size"])
 		}
+		if body["n"] != float64(1) {
+			t.Fatalf("OpenAI image request n = %#v, want 1", body["n"])
+		}
 		return jsonResponse(request, `{"taskID":"generation-task","status":"pending"}`), nil
 	})}
 
 	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Submit(context.Background(), map[string]any{
-		"model": "gpt-image-2", "prompt": "product photo", "aspectRatio": "1:1", "resolution": "1K",
+		"model": "gpt-image-2", "prompt": "product photo", "aspectRatio": "1:1", "resolution": "1K", "count": 4,
 	})
 	if err != nil {
 		t.Fatalf("Submit() error = %v", err)
@@ -171,7 +186,7 @@ func TestBananaRouterOpenAIEditSubmit(t *testing.T) {
 
 	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Submit(context.Background(), map[string]any{
-		"model": "gpt-image-2", "prompt": "edit product photo", "aspectRatio": "1:1", "resolution": "2K",
+		"model": "gpt-image-2", "prompt": "edit product photo", "aspectRatio": "1:1", "resolution": "2K", "count": 4,
 		"sourceImages": []map[string]string{
 			{"mime": "image/png", "data": base64.StdEncoding.EncodeToString(sourceData)},
 			{"mime": "image/jpeg", "data": base64.StdEncoding.EncodeToString(secondSourceData)},

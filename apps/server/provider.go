@@ -66,10 +66,9 @@ func (p *bananaRouterProvider) submitGemini(ctx context.Context, model, prompt s
 	for _, image := range sourceImages(input) {
 		parts = append(parts, map[string]any{"inlineData": map[string]string{"mimeType": image["mime"], "data": image["data"]}})
 	}
+	// Gemini 图像生成文档不保证单次请求的精确图片数量。为保证用户
+	// 选择的张数，多图统一由队列拆成多次单图调用，不依赖 candidateCount。
 	generationConfig := map[string]any{"responseModalities": []string{"IMAGE"}, "imageConfig": map[string]any{"aspectRatio": stringValue(input["aspectRatio"], "1:1")}}
-	if count := intValue(input["count"], 1); count > 1 {
-		generationConfig["candidateCount"] = count
-	}
 	if size := stringValue(input["resolution"], ""); size != "" && size != "auto" {
 		generationConfig["imageConfig"].(map[string]any)["imageSize"] = size
 	}
@@ -81,7 +80,7 @@ func (p *bananaRouterProvider) submitOpenAIGeneration(ctx context.Context, model
 	body := map[string]any{
 		"model":  model,
 		"prompt": prompt,
-		"n":      intValue(input["count"], 1),
+		"n":      1,
 		"size":   openAISize(stringValue(input["aspectRatio"], "1:1"), stringValue(input["resolution"], "1K")),
 	}
 	return p.submitJSON(ctx, "/v1/images/generations/async", input, body, false)
@@ -114,7 +113,7 @@ func (p *bananaRouterProvider) submitOpenAIEdit(ctx context.Context, model, prom
 	fields := map[string]string{
 		"model":  model,
 		"prompt": prompt,
-		"n":      strconv.Itoa(intValue(input["count"], 1)),
+		"n":      "1",
 		"size":   openAISize(stringValue(input["aspectRatio"], "1:1"), stringValue(input["resolution"], "1K")),
 	}
 	for name, value := range fields {

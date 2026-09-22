@@ -33,7 +33,12 @@ const imageSettingsSchema = z.object({
 
 const productAssetsSchema = z.array(z.string().min(1)).min(1).max(6)
 const referenceAssetsSchema = z.array(z.string().min(1)).max(6).default([])
-const moduleCountsSchema = z.record(z.string(), z.number().int().min(1).max(4)).default({})
+const moduleCountsSchema = z.record(z.string(), z.number().int().min(1).max(4)).superRefine((counts, ctx) => {
+  const total = Object.values(counts).reduce((sum, value) => sum + value, 0)
+  if (total > 16) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: '自定义模块最多生成 16 张图片' })
+  }
+}).default({})
 
 export const generalGenerationInputSchema = imageSettingsSchema.extend({
   mode: z.literal('general'),

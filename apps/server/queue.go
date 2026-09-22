@@ -6,11 +6,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"sort"
-	"strings"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+)
+
+const (
+	generationQueueKey           = "istudio:generation"
+	generationProcessingKey      = "istudio:generation:processing"
+	defaultGenerationWorkerCount = 4
 )
 
 type taskQueue struct {
@@ -25,15 +32,30 @@ func newTaskQueue(s *server) *taskQueue {
 		client := redis.NewClient(options)
 		if client.Ping(context.Background()).Err() == nil {
 			q.redis = client
+			q.recoverRedisTasks()
 		}
 	}
-	go q.worker()
+	workerCount := generationWorkerCount(env("GENERATION_WORKERS", ""))
+	for range workerCount {
+		go q.worker()
+	}
 	return q
+}
+
+func generationWorkerCount(raw string) int {
+	count, err := strconv.Atoi(raw)
+	if err != nil || count < 1 {
+		return defaultGenerationWorkerCount
+	}
+	if count > 16 {
+		return 16
+	}
+	return count
 }
 
 func (q *taskQueue) enqueue(id string) {
 	if q.redis != nil {
-		if q.redis.LPush(context.Background(), "istudio:generation", id).Err() == nil {
+		if q.redis.LPush(context.Background(), generationQueueKey, id).Err() == nil {
 			return
 		}
 	}
@@ -44,53 +66,97 @@ func (q *taskQueue) enqueue(id string) {
 	}
 }
 
+// recoverRedisTasks moves jobs left in the processing list back to the pending
+// list after a process restart. BRPopLPush keeps jobs in the processing list
+// while a worker is executing them, so a crash cannot silently lose a task.
+func (q *taskQueue) recoverRedisTasks() {
+	if q.redis == nil {
+		return
+	}
+	ctx := context.Background()
+	ids, err := q.redis.LRange(ctx, generationProcessingKey, 0, -1).Result()
+	if err != nil || len(ids) == 0 {
+		return
+	}
+	values := make([]any, len(ids))
+	for index, id := range ids {
+		values[index] = id
+	}
+	if err := q.redis.LPush(ctx, generationQueueKey, values...).Err(); err != nil {
+		fmt.Printf("failed to recover generation tasks: %v\n", err)
+		return
+	}
+	if err := q.redis.Del(ctx, generationProcessingKey).Err(); err != nil {
+		fmt.Printf("failed to clear recovered generation tasks: %v\n", err)
+	}
+}
+
+func (q *taskQueue) nextTask() (string, bool) {
+	if q.redis != nil {
+		values, err := q.redis.BRPopLPush(context.Background(), generationQueueKey, generationProcessingKey, 3*time.Second).Result()
+		if err == nil && values != "" {
+			return values, true
+		}
+	}
+	select {
+	case id := <-q.fallback:
+		return id, id != ""
+	default:
+		return "", false
+	}
+}
+
+func (q *taskQueue) acknowledgeTask(id string) {
+	if q.redis == nil || id == "" {
+		return
+	}
+	if err := q.redis.LRem(context.Background(), generationProcessingKey, 1, id).Err(); err != nil {
+		fmt.Printf("failed to acknowledge generation task %s: %v\n", id, err)
+	}
+}
+
 func (q *taskQueue) worker() {
 	for {
-		var id string
-		if q.redis != nil {
-			values, err := q.redis.BRPop(context.Background(), 3*time.Second, "istudio:generation").Result()
-			if err == nil && len(values) == 2 {
-				id = values[1]
-			}
-			if id == "" {
-				select {
-				case id = <-q.fallback:
-				default:
-				}
-			}
-		} else {
-			id = <-q.fallback
-		}
-		if id == "" {
-			continue
-		}
-		q.server.updateTaskStatus(id, "processing")
-		if q.server.provider == nil {
-			q.server.updateTaskResult(id, "failed", nil, nil, "AI 服务尚未配置")
-			continue
-		}
-		input, ok := q.server.taskInput(id)
+		id, ok := q.nextTask()
 		if !ok {
-			q.server.updateTaskResult(id, "failed", nil, nil, "无法读取任务参数")
 			continue
 		}
-		if err := q.server.attachSourceImages(input); err != nil {
-			q.server.updateTaskResult(id, "failed", nil, nil, err.Error())
-			continue
-		}
-		images, modules, err := q.generateBatches(id, input)
-		if err != nil {
-			fmt.Printf("task %s generation failed: %v\n", id, err)
-			q.server.updateTaskResult(id, "failed", nil, nil, err.Error())
-			continue
-		}
-		paths, err := q.server.persistGeneratedImages(id, images)
-		if err != nil {
-			q.server.updateTaskResult(id, "failed", nil, nil, err.Error())
-			continue
-		}
-		q.server.updateTaskResult(id, "succeeded", paths, modules, "")
+		q.processTask(id)
+		q.acknowledgeTask(id)
 	}
+}
+
+func (q *taskQueue) processTask(id string) {
+	q.server.updateTaskStatus(id, "processing")
+	if q.server.provider == nil {
+		q.server.updateTaskResult(id, "failed", nil, nil, "AI 服务尚未配置")
+		return
+	}
+	input, ok := q.server.taskInput(id)
+	if !ok {
+		q.server.updateTaskResult(id, "failed", nil, nil, "无法读取任务参数")
+		return
+	}
+	if err := q.server.attachSourceImages(input); err != nil {
+		q.server.updateTaskResult(id, "failed", nil, nil, err.Error())
+		return
+	}
+	images, modules, err := q.generateBatches(id, input)
+	if err != nil {
+		fmt.Printf("task %s generation failed: %v\n", id, err)
+		paths, persistErr := q.server.persistGeneratedImages(id, images)
+		if persistErr != nil {
+			err = fmt.Errorf("%v；已生成图片保存失败：%w", err, persistErr)
+		}
+		q.server.updateTaskResult(id, "failed", paths, modules, err.Error())
+		return
+	}
+	paths, err := q.server.persistGeneratedImages(id, images)
+	if err != nil {
+		q.server.updateTaskResult(id, "failed", paths, modules, err.Error())
+		return
+	}
+	q.server.updateTaskResult(id, "succeeded", paths, modules, "")
 }
 
 // generateBatches 返回图片列表与逐图模块归属（modules[i] 为 images[i] 所属模块 key，
@@ -100,10 +166,11 @@ func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, 
 		return q.generateModuleBatches(id, input, counts)
 	}
 	images, err := q.generateLinearBatches(id, input)
+	modules := make([]string, len(images))
 	if err != nil {
-		return nil, nil, err
+		return images, modules, err
 	}
-	return images, make([]string, len(images)), nil
+	return images, modules, nil
 }
 
 // customModuleCounts 返回 custom 模式下的模块明细（模块 -> 张数）；
@@ -129,12 +196,11 @@ func customModuleCounts(input map[string]any) map[string]int {
 	return counts
 }
 
+const imageRequestBatchSize = 1
+
 func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]string, error) {
 	remaining := intValue(input["count"], 1)
-	batchSize := 4
-	if strings.HasPrefix(stringValue(input["model"], ""), "gemini-") {
-		batchSize = 1
-	}
+	batchSize := imageRequestBatchSize
 	images := make([]string, 0, remaining)
 	for batch := 1; remaining > 0; batch++ {
 		size := min(remaining, batchSize)
@@ -143,21 +209,25 @@ func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]st
 		q.server.updateTaskStatus(id, "processing")
 		remote, err := q.server.provider.Submit(context.Background(), input)
 		if err != nil {
-			return nil, fmt.Errorf("第 %d 批提交失败：%w", batch, err)
+			return images, fmt.Errorf("第 %d 批提交失败：%w", batch, err)
 		}
 		batchImages := remote.Images
 		if len(batchImages) == 0 {
 			q.server.updateTaskStatus(id, "waiting_provider")
 			batchImages, err = q.waitForImages(id, remote.ID)
 			if err != nil {
-				return nil, fmt.Errorf("第 %d 批生成失败：%w", batch, err)
+				return images, fmt.Errorf("第 %d 批生成失败：%w", batch, err)
 			}
 		}
-		if len(batchImages) != size {
-			return nil, fmt.Errorf("第 %d 批预期 %d 张，供应商实际返回 %d 张", batch, size, len(batchImages))
+		if len(batchImages) > size {
+			return images, fmt.Errorf("第 %d 批预期最多 %d 张，供应商实际返回 %d 张", batch, size, len(batchImages))
+		}
+		if len(batchImages) == 0 {
+			return images, fmt.Errorf("第 %d 批供应商未返回图片", batch)
 		}
 		images = append(images, batchImages...)
-		remaining -= size
+		// 按实际返回数量扣减，并继续提交剩余的单图请求。
+		remaining -= len(batchImages)
 	}
 	return images, nil
 }
@@ -166,10 +236,7 @@ func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]st
 // 使不同模块产出构图差异化的图片，而非全部共用同一个 prompt。
 // 返回值第二项为逐图模块归属，与图片列表按下标一一对应。
 func (q *taskQueue) generateModuleBatches(id string, input map[string]any, counts map[string]int) ([]string, []string, error) {
-	batchSize := 4
-	if strings.HasPrefix(stringValue(input["model"], ""), "gemini-") {
-		batchSize = 1
-	}
+	batchSize := imageRequestBatchSize
 	savedHint := stringValue(input["moduleHint"], "")
 	defer func() { input["moduleHint"] = savedHint }()
 
@@ -191,24 +258,27 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 			q.server.updateTaskStatus(id, "processing")
 			remote, err := q.server.provider.Submit(context.Background(), input)
 			if err != nil {
-				return nil, nil, fmt.Errorf("模块 %s 第 %d 批提交失败：%w", module, batch, err)
+				return images, attribution, fmt.Errorf("模块 %s 第 %d 批提交失败：%w", module, batch, err)
 			}
 			batchImages := remote.Images
 			if len(batchImages) == 0 {
 				q.server.updateTaskStatus(id, "waiting_provider")
 				batchImages, err = q.waitForImages(id, remote.ID)
 				if err != nil {
-					return nil, nil, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", module, batch, err)
+					return images, attribution, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", module, batch, err)
 				}
 			}
-			if len(batchImages) != size {
-				return nil, nil, fmt.Errorf("模块 %s 第 %d 批预期 %d 张，供应商实际返回 %d 张", module, batch, size, len(batchImages))
+			if len(batchImages) > size {
+				return images, attribution, fmt.Errorf("模块 %s 第 %d 批预期最多 %d 张，供应商实际返回 %d 张", module, batch, size, len(batchImages))
+			}
+			if len(batchImages) == 0 {
+				return images, attribution, fmt.Errorf("模块 %s 第 %d 批供应商未返回图片", module, batch)
 			}
 			images = append(images, batchImages...)
 			for range batchImages {
 				attribution = append(attribution, module)
 			}
-			remaining -= size
+			remaining -= len(batchImages)
 		}
 	}
 	return images, attribution, nil
@@ -289,7 +359,7 @@ func (s *server) taskInput(id string) (map[string]any, bool) {
 		if json.Unmarshal(raw, &input) != nil {
 			return nil, false
 		}
-		return input, true
+		return maps.Clone(input), true
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -298,5 +368,11 @@ func (s *server) taskInput(id string) (map[string]any, bool) {
 		return nil, false
 	}
 	input, ok := t.Input.(map[string]any)
-	return input, ok
+	if !ok {
+		return nil, false
+	}
+	// 队列会为每次单图调用临时覆写 count、taskId、moduleHint，并附加
+	// sourceImages。内存存储模式也必须返回副本，否则任务详情和重试参数会被
+	// 最后一次供应商请求污染（例如用户选 10 张，任务 input 最终会变成 1 张）。
+	return maps.Clone(input), true
 }

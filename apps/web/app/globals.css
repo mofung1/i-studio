@@ -2267,6 +2267,9 @@ img {
 .has-generation-result { justify-content: flex-start; }
 
 
+.creation-canvas.is-generating { justify-content: center; }
+
+
 .generation-feedback, .editor-result { width: min(720px, 100%); text-align: center; }
 
 

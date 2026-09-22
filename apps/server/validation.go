@@ -46,6 +46,7 @@ func validateGenerationInput(input map[string]any) error {
 }
 
 func validateCommerceInput(input map[string]any) error {
+	count := intValue(input["count"], 1)
 	if err := requireOneOf(input, "taskType", allowedTasks, ""); err != nil {
 		return err
 	}
@@ -64,18 +65,35 @@ func validateCommerceInput(input map[string]any) error {
 		if err := requireOneOf(input, "moduleMode", stringSet("smart", "custom"), "smart"); err != nil {
 			return err
 		}
+		moduleTotal := 0
+		countProvided := input["count"] != nil
 		if counts, ok := input["moduleCounts"].(map[string]any); ok {
 			allowed := allowedModules[taskType]
 			for key, value := range counts {
-				number, valid := value.(float64)
-				if !valid || number < 1 || number > 4 {
+				if !isJSONInteger(value) {
 					return fmt.Errorf("moduleCounts contains invalid %s", key)
 				}
+				number := int(value.(float64))
+				if number < 1 || number > 4 {
+					return fmt.Errorf("moduleCounts contains invalid %s", key)
+				}
+				moduleTotal += number
 				if allowed != nil {
 					if _, supported := allowed[key]; !supported {
 						return fmt.Errorf("unsupported module %q", key)
 					}
 				}
+			}
+		}
+		if moduleTotal > 16 {
+			return fmt.Errorf("moduleCounts total must not exceed 16")
+		}
+		if stringValue(input["moduleMode"], "smart") == "custom" && moduleTotal > 0 {
+			if !countProvided {
+				count = moduleTotal
+				input["count"] = float64(moduleTotal)
+			} else if count != moduleTotal {
+				return fmt.Errorf("count must equal the total of moduleCounts in custom module mode")
 			}
 		}
 		return nil
