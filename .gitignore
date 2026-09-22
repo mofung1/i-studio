@@ -14,3 +14,6 @@ apps/server/storage/uploads/inspiration/
 .env.*.local
 !.env.example
 .DS_Store
+
+# 运行时上传和生成图片：保存在本地/挂载卷，不提交到 Git
+apps/server/storage/uploads/

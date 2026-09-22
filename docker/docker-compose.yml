@@ -1,5 +1,7 @@
 name: i-studio
 
+# compose 的 ${VAR} 插值读的是宿主机 shell 环境变量，不会读 apps/server/.env。
+# 显式指定 env_file，让 AI 服务配置与本地运行时同源。
 services:
   postgres:
     image: postgres:17-alpine
@@ -33,17 +35,17 @@ services:
     build:
       context: ..
       dockerfile: docker/api.Dockerfile
+    # env_file 提供 AI 服务与鉴权配置；environment 只覆盖容器内专属配置，
+    # 避免把 .env 中自定义的图片中转域名、超时等设置覆盖掉。
+    env_file:
+      - path: ../apps/server/.env
+        required: false
     environment:
       API_HOST: 0.0.0.0
       API_PORT: 4000
       DATABASE_URL: postgresql://istudio:${POSTGRES_PASSWORD:-istudio_dev}@postgres:5432/istudio?sslmode=disable
       REDIS_URL: redis://redis:6379
-      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-istudio-docker-secret-change-me}
       WEB_ORIGINS: http://127.0.0.1:33000,http://localhost:33000
-      AI_PROVIDER_ENABLED: ${AI_PROVIDER_ENABLED:-true}
-      BANANA_ROUTER_BASE_URL: ${BANANA_ROUTER_BASE_URL:-https://api.bananarouter.com}
-      BANANA_ROUTER_API_KEY: ${BANANA_ROUTER_API_KEY:-}
-      BANANA_ROUTER_TIMEOUT_SECONDS: ${BANANA_ROUTER_TIMEOUT_SECONDS:-300}
       STORAGE_ROOT: /data/uploads
     ports:
       - "127.0.0.1:${API_PORT:-44000}:4000"

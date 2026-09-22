@@ -17,31 +17,33 @@ import (
 
 const maxGeneratedImageBytes = 25 << 20
 
+var generationStorageLocation = time.FixedZone("Asia/Shanghai", 8*60*60)
+
 func (s *server) persistGeneratedImages(taskID string, urls []string) ([]string, error) {
 	if s.db == nil {
 		return urls, nil
 	}
+	paths := make([]string, 0, len(urls))
 	var userID string
 	var projectID *string
 	if err := s.db.QueryRow("SELECT user_id, project_id FROM generation_tasks WHERE id=$1", taskID).Scan(&userID, &projectID); err != nil {
-		return nil, err
+		return paths, err
 	}
 	client := &http.Client{Timeout: 45 * time.Second}
-	generationDate := time.Now()
-	paths := make([]string, 0, len(urls))
+	generationDate := time.Now().In(generationStorageLocation)
 	for index, url := range urls {
 		data, mime, err := readGeneratedImage(client, url)
 		if err != nil {
-			return nil, fmt.Errorf("download generated image %d failed: %w", index+1, err)
+			return paths, fmt.Errorf("download generated image %d failed: %w", index+1, err)
 		}
 		ext := extensionForMime(mime)
 		if ext == "" {
-			return nil, fmt.Errorf("unsupported generated image type %q", mime)
+			return paths, fmt.Errorf("unsupported generated image type %q", mime)
 		}
 		assetID := randomID()
 		key := generatedImageStorageKey(generationDate, randomID(), ext)
 		if err := s.storage.Save(key, bytes.NewReader(data)); err != nil {
-			return nil, err
+			return paths, err
 		}
 		width, height := 0, 0
 		if config, _, err := image.DecodeConfig(bytes.NewReader(data)); err == nil {
@@ -50,7 +52,7 @@ func (s *server) persistGeneratedImages(taskID string, urls []string) ([]string,
 		hash := sha256.Sum256(data)
 		filename := fmt.Sprintf("generated-%s-%02d%s", taskID[:8], index+1, ext)
 		if _, err := s.db.Exec("INSERT INTO assets (id,user_id,project_id,filename,storage_key,mime,size_bytes,width,height,hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)", assetID, userID, projectID, filename, key, mime, len(data), width, height, hex.EncodeToString(hash[:])); err != nil {
-			return nil, err
+			return paths, err
 		}
 		paths = append(paths, "/v1/assets/"+assetID+"/content")
 	}

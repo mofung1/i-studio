@@ -43,19 +43,21 @@ func sortedModuleCounts(raw map[string]any) []string {
 }
 
 func TestGenerateBatches(t *testing.T) {
-	for _, test := range []struct {
-		model         string
-		wantBatches   int
-		wantBatchSize int
+	tests := []struct {
+		name      string
+		model     string
+		requested int
 	}{
-		{model: "gpt-image-2", wantBatches: 4, wantBatchSize: 4},
-		{model: "gemini-3.1-flash-image", wantBatches: 16, wantBatchSize: 1},
-	} {
-		t.Run(test.model, func(t *testing.T) {
+		{name: "OpenAI four images use four requests", model: "gpt-image-2", requested: 4},
+		{name: "OpenAI ten images use ten requests", model: "gpt-image-2", requested: 10},
+		{name: "Gemini four images use four requests", model: "gemini-3.1-flash-image", requested: 4},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			provider := &batchProvider{}
 			queue := &taskQueue{server: &server{tasks: map[string]task{}, provider: provider}}
-			images, modules, err := queue.generateBatches("test-task", map[string]any{"model": test.model, "count": 16})
-			if err != nil || len(images) != 16 || len(provider.counts) != test.wantBatches {
+			images, modules, err := queue.generateBatches("test-task", map[string]any{"model": test.model, "count": test.requested})
+			if err != nil || len(images) != test.requested || len(provider.counts) != test.requested {
 				t.Fatalf("images=%d batches=%v err=%v", len(images), provider.counts, err)
 			}
 			if len(modules) != len(images) {
@@ -67,17 +69,41 @@ func TestGenerateBatches(t *testing.T) {
 				}
 			}
 			for _, count := range provider.counts {
-				if count != test.wantBatchSize {
+				if count != 1 {
 					t.Fatalf("unexpected batch size %d", count)
 				}
 			}
 		})
 	}
+
 	provider := &batchProvider{failAt: 2}
 	queue := &taskQueue{server: &server{tasks: map[string]task{}, provider: provider}}
-	_, _, err := queue.generateBatches("test-task", map[string]any{"model": "gpt-image-2", "count": 8})
+	images, modules, err := queue.generateBatches("test-task", map[string]any{"model": "gpt-image-2", "count": 8})
 	if err == nil || !strings.Contains(err.Error(), "第 2 批") {
 		t.Fatalf("expected batch-specific error, got %v", err)
+	}
+	if len(images) != 1 || len(modules) != 1 {
+		t.Fatalf("partial images were lost: images=%v modules=%v", images, modules)
+	}
+}
+
+func TestTaskInputMemoryStoreReturnsCopy(t *testing.T) {
+	original := map[string]any{"mode": "general", "prompt": "photo", "count": float64(4)}
+	s := &server{tasks: map[string]task{"test-task": {ID: "test-task", Input: original}}}
+
+	input, ok := s.taskInput("test-task")
+	if !ok {
+		t.Fatal("taskInput() did not find in-memory task")
+	}
+	input["count"] = 1
+	input["taskId"] = "test-task-1"
+
+	stored := s.tasks["test-task"].Input.(map[string]any)
+	if got := intValue(stored["count"], 0); got != 4 {
+		t.Fatalf("stored count = %d, want 4", got)
+	}
+	if _, exists := stored["taskId"]; exists {
+		t.Fatalf("temporary taskId leaked into stored input: %#v", stored)
 	}
 }
 
@@ -90,11 +116,14 @@ func TestGenerateModuleBatches(t *testing.T) {
 		wantHints    []string
 	}{
 		{
-			name:         "gpt batches per module",
+			name:         "gpt one image per request",
 			model:        "gpt-image-2",
 			moduleCounts: map[string]any{"hero": float64(2), "scene": float64(3)},
-			wantBatches:  []int{2, 3},
-			wantHints:    []string{moduleHints["hero"], moduleHints["scene"]},
+			wantBatches:  []int{1, 1, 1, 1, 1},
+			wantHints: []string{
+				moduleHints["hero"], moduleHints["hero"],
+				moduleHints["scene"], moduleHints["scene"], moduleHints["scene"],
+			},
 		},
 		{
 			name:         "gemini one image per batch",
@@ -165,8 +194,13 @@ func TestGenerateModuleBatches(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(images) != 5 || len(provider.counts) != 2 || provider.counts[0] != 4 || provider.counts[1] != 1 {
-		t.Fatalf("smart mode should batch linearly: images=%d batches=%v", len(images), provider.counts)
+	if len(images) != 5 || len(provider.counts) != 5 {
+		t.Fatalf("smart mode should use one request per image: images=%d batches=%v", len(images), provider.counts)
+	}
+	for _, count := range provider.counts {
+		if count != 1 {
+			t.Fatalf("smart mode batch size = %d, want 1", count)
+		}
 	}
 	for _, hint := range provider.hints {
 		if hint != "" {
@@ -243,6 +277,29 @@ func TestValidateGenerationInput(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "custom modules total sixteen valid",
+			input: map[string]any{"mode": "commerce", "taskType": "detail-page", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "count": float64(16), "moduleCounts": map[string]any{"hero": float64(4), "selling": float64(4), "scene": float64(4), "detail": float64(4)}},
+		},
+		{
+			name: "custom modules total seventeen rejected",
+			input: map[string]any{"mode": "commerce", "taskType": "detail-page", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "count": float64(17), "moduleCounts": map[string]any{"hero": float64(4), "selling": float64(4), "scene": float64(4), "detail": float64(4), "spec": float64(1)}},
+			wantErr: true,
+		},
+		{
+			name: "custom modules count mismatch rejected",
+			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "count": float64(2), "moduleCounts": map[string]any{"hero": float64(1), "scene": float64(1), "detail": float64(1)}},
+			wantErr: true,
+		},
+		{
+			name: "fractional module count rejected",
+			input: map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset-1"},
+				"moduleMode": "custom", "count": float64(1), "moduleCounts": map[string]any{"hero": 1.5}},
+			wantErr: true,
+		},
+		{
 			name:  "too many results",
 			input: map[string]any{"mode": "general", "prompt": "photo", "count": float64(17)}, wantErr: true,
 		},
@@ -265,6 +322,22 @@ func TestValidUsername(t *testing.T) {
 	for _, value := range []string{"ab", "user-name", "用户", "name with spaces"} {
 		if validUsername(value) {
 			t.Fatalf("expected %q to be invalid", value)
+		}
+	}
+}
+
+func TestGenerationWorkerCount(t *testing.T) {
+	for _, test := range []struct {
+		raw  string
+		want int
+	}{
+		{raw: "", want: defaultGenerationWorkerCount},
+		{raw: "0", want: defaultGenerationWorkerCount},
+		{raw: "2", want: 2},
+		{raw: "99", want: 16},
+	} {
+		if got := generationWorkerCount(test.raw); got != test.want {
+			t.Fatalf("generationWorkerCount(%q) = %d, want %d", test.raw, got, test.want)
 		}
 	}
 }
