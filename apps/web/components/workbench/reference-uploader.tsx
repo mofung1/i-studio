@@ -1,7 +1,7 @@
 'use client'
 
 import { ImagePlus, Upload } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { SelectedImageThumbnail } from './selected-image-thumbnail'
 
@@ -11,8 +11,6 @@ interface ReferenceUploaderProps {
   max: number
   /** 每个缩略图下方的主标签 */
   labelFor: (index: number) => string
-  /** 第一张素材的角标文案，例如「主图」 */
-  badgeFor?: (index: number) => string | undefined
   emptyTitle: string
   emptyHint: string
   acceptedHint: string
@@ -26,7 +24,6 @@ export function ReferenceUploader({
   onChange,
   max,
   labelFor,
-  badgeFor,
   emptyTitle,
   emptyHint,
   acceptedHint,
@@ -35,6 +32,7 @@ export function ReferenceUploader({
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const sortRef = useRef<{ index: number; startX: number; startY: number; active: boolean } | null>(null)
 
   const full = files.length >= max
 
@@ -60,10 +58,73 @@ export function ReferenceUploader({
     onChange(next)
   }
 
+  /** 缩略图排序：用指针事件实现，比 HTML5 拖放稳定，触控板/鼠标都能用 */
+  useEffect(() => {
+    const onPointerMove = (event: PointerEvent) => {
+      const drag = sortRef.current
+      if (!drag) return
+      if (!drag.active) {
+        if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 5) return
+        drag.active = true
+        setDraggingIndex(drag.index)
+      }
+      const items = Array.from(document.querySelectorAll('.uploaded-thumb'))
+      const overIndex = items.findIndex((element) => {
+        const rect = element.getBoundingClientRect()
+        return event.clientX >= rect.left && event.clientX <= rect.right
+          && event.clientY >= rect.top && event.clientY <= rect.bottom
+      })
+      if (overIndex >= 0 && overIndex !== drag.index) {
+        move(drag.index, overIndex)
+        drag.index = overIndex
+        setDraggingIndex(overIndex)
+      }
+    }
+
+    const onPointerUp = () => {
+      const drag = sortRef.current
+      sortRef.current = null
+      setDraggingIndex(null)
+      if (!drag?.active) return
+      // 刚刚是排序而不是点击，吞掉这次 click，避免顺手打开预览
+      const swallowClick = (event: MouseEvent) => {
+        event.preventDefault()
+        event.stopPropagation()
+        window.removeEventListener('click', swallowClick, true)
+      }
+      window.addEventListener('click', swallowClick, true)
+      window.setTimeout(() => window.removeEventListener('click', swallowClick, true), 0)
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+    }
+  }, [files])
+
+  function startSort(index: number, event: React.PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    const target = event.target as HTMLElement
+    // 工具按钮（前移 / 替换 / 删除）不触发排序
+    if (target.closest('.thumb-tools') || target.closest('.thumb-remove')) return
+    sortRef.current = { index, startX: event.clientX, startY: event.clientY, active: false }
+  }
+
+  /** 只有从系统拖入文件时才显示整块覆盖层，避免盖住缩略图之间的排序拖放 */
+  function isExternalFileDrag(event: React.DragEvent) {
+    const types = event.dataTransfer?.types
+    return draggingIndex === null && !!types && Array.from(types).includes('Files')
+  }
+
   return (
     <div
       className={`reference-uploader ${isDraggingOver ? 'is-dragging-over' : ''}`}
       onDragOver={(event) => {
+        if (!isExternalFileDrag(event)) return
         event.preventDefault()
         if (!full) setIsDraggingOver(true)
       }}
@@ -72,6 +133,7 @@ export function ReferenceUploader({
         setIsDraggingOver(false)
       }}
       onDrop={(event) => {
+        if (!isExternalFileDrag(event)) return
         event.preventDefault()
         setIsDraggingOver(false)
         if (full) {
@@ -106,18 +168,12 @@ export function ReferenceUploader({
                 key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
                 file={file}
                 label={labelFor(index)}
-                badge={badgeFor?.(index)}
                 index={index}
                 total={files.length}
                 isDragging={draggingIndex === index}
+                onPointerDown={(event) => startSort(index, event)}
                 onRemove={() => onChange(files.filter((_, fileIndex) => fileIndex !== index))}
                 onReplace={(next) => onChange(files.map((current, fileIndex) => (fileIndex === index ? next : current)))}
-                onDragStart={() => setDraggingIndex(index)}
-                onDragEnd={() => setDraggingIndex(null)}
-                onDropOn={() => {
-                  if (draggingIndex !== null) move(draggingIndex, index)
-                  setDraggingIndex(null)
-                }}
                 onMove={move}
               />
             ))}

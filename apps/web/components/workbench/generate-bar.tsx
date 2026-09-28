@@ -38,7 +38,7 @@ export function GenerateBar({
   return (
     <footer className="configuration-footer generate-bar">
       <div className="generate-meta">
-        <span>预计产出 <strong>{expectedCount}</strong> 张</span>
+        <span>{expectedCount > 0 ? <>预计产出 <strong>{expectedCount}</strong> 张</> : '请先选择图片模块'}</span>
         <span className="dot" aria-hidden="true" />
         <span>{aspectRatio} · {resolution}</span>
       </div>

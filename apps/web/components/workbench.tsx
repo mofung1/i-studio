@@ -72,6 +72,8 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyTask, setHistoryTask] = useState<HistoryTask | null>(null)
   const [loadingConfigId, setLoadingConfigId] = useState<string | null>(null)
+  // 提交那一刻的产出张数：生成过程中再改参数，加载占位不会跟着变
+  const [submittedCount, setSubmittedCount] = useState<number | null>(null)
 
   const {
     generationTask, resultHistory, activeResultIndex, activeResult,
@@ -100,11 +102,11 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
   const currentTask = taskMeta[task]
   const title = mode === 'general' ? '通用生图' : currentTask.title
   const moduleTotal = Object.values(moduleCounts).reduce((total, value) => total + value, 0)
-  // 与提交给后端的 count 保持一致，让「预计产出」不是一句空话
+  // 与提交给后端的 count 保持一致；自定义模块按实际勾选的张数算，没选就是 0
   const expectedCount = mode === 'general'
     ? count
     : task === 'product-main' || task === 'detail-page'
-      ? moduleMode === 'custom' ? Math.max(1, moduleTotal) : 1
+      ? moduleMode === 'custom' ? moduleTotal : 1
       : 1
 
   const requirementsPlaceholder = task === 'product-main' || task === 'detail-page'
@@ -266,6 +268,10 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
       setNotice({ kind: 'error', message: '爆款复刻需要上传 1 张参考爆款图' })
       return
     }
+    if (mode === 'commerce' && (task === 'product-main' || task === 'detail-page') && moduleMode === 'custom' && moduleTotal === 0) {
+      setNotice({ kind: 'error', message: '自定义模块至少选择 1 个图片模块' })
+      return
+    }
 
     const sourceFiles = mode === 'general' ? referenceFiles : task === 'viral-recreate' ? [...productFiles, ...referenceFiles] : productFiles
     if (sourceFiles.reduce((total, file) => total + file.size, 0) > 20 * 1024 * 1024) {
@@ -273,6 +279,7 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
       return
     }
 
+    setSubmittedCount(expectedCount)
     void submit({
       productFiles,
       referenceFiles,
@@ -365,6 +372,7 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
               aspectRatio={aspectRatio}
               resolution={resolution}
               expectedCount={expectedCount}
+              generatingCount={submittedCount}
               resultHistory={resultHistory}
               activeResultIndex={activeResultIndex}
               activeResult={activeResult}

@@ -1896,14 +1896,14 @@ img {
 }
 
 
-.form-section .recreate-options label {
+.recreate-options label {
   min-width: 0;
   display: flex;
   align-items: flex-start;
   gap: 8px;
   margin: 0;
   padding: 11px 10px;
-  background: var(--surface-subtle);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
@@ -1912,9 +1912,9 @@ img {
 
 
 .recreate-options label.selected {
-  background: var(--primary-soft);
-  border-color: var(--line-strong);
-  box-shadow: 0 3px 9px rgba(23, 23, 23, 0.08);
+  background: var(--surface);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus-soft);
 }
 
 
@@ -2000,6 +2000,8 @@ img {
 .uploaded-thumb {
   background: var(--surface-subtle);
   box-shadow: 0 4px 10px rgba(23, 23, 23, 0.1);
+  cursor: grab;
+  user-select: none;
 }
 
 
@@ -2010,7 +2012,7 @@ img {
   padding: 0;
   background: var(--surface-2);
   border: 0;
-  cursor: zoom-in;
+  cursor: inherit;
 }
 
 
@@ -2035,18 +2037,13 @@ img {
 
 .uploaded-thumb.is-dragging {
   opacity: 0.5;
+  cursor: grabbing;
 }
 
 
-.thumb-badge {
-  position: absolute;
-  left: 5px;
-  top: 5px;
-  padding: 3px 5px;
-  color: var(--background);
-  background: rgba(23, 23, 23, 0.68);
-  border-radius: 4px;
-  font-size: 9px;
+.uploaded-thumb:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 
@@ -2447,21 +2444,14 @@ img {
 }
 
 
-/* 结果工作区：标题行 + 画布主体 + 最近生成，三段共用一列，不产生多余滚动 */
+/* 结果工作区：工具行 + 画布主体 + 最近生成，三段共用一列，不产生多余滚动 */
 .result-head {
   flex: 0 0 auto;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: flex-end;
   gap: 16px;
   padding: 2px 0 14px;
-}
-
-
-.result-head-copy h1 {
-  margin: 0;
-  font-size: 22px;
-  letter-spacing: -0.01em;
 }
 
 
@@ -2531,38 +2521,6 @@ img {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.65;
-}
-
-
-.result-empty-action {
-  height: 42px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 0 22px;
-  color: var(--background);
-  background: var(--primary);
-  border: 1px solid var(--primary);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
-}
-
-
-.result-empty-action:hover:not(:disabled) {
-  background: var(--primary-hover);
-  box-shadow: 0 6px 16px rgba(23, 23, 23, 0.16);
-  transform: translateY(-1px);
-}
-
-
-.result-empty-action:disabled {
-  background: var(--placeholder);
-  border-color: var(--placeholder);
-  cursor: not-allowed;
 }
 
 
@@ -2943,11 +2901,6 @@ img {
 .history-open {
   display: grid;
   gap: 8px;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  text-align: left;
-  cursor: pointer;
 }
 
 
@@ -2963,9 +2916,23 @@ img {
   height: 46px;
   display: block;
   overflow: hidden;
+  padding: 0;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+
+.history-thumb:hover {
+  border-color: var(--line-hover);
+}
+
+
+.history-thumb.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(23, 23, 23, 0.14);
 }
 
 
@@ -2983,17 +2950,24 @@ img {
   height: 46px;
   display: grid;
   place-items: center;
+  padding: 0;
   color: var(--foreground-3);
   background: var(--surface);
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
   font-size: 11px;
+  cursor: pointer;
 }
 
 
 .history-meta {
   display: grid;
   gap: 2px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
 
@@ -3049,11 +3023,9 @@ img {
 .success-label { display: inline-flex; align-items: center; gap: 5px; color: var(--foreground); font-size: 12px; font-weight: 600; }
 
 
-.ai-badge { position: absolute; top: 10px; left: 10px; padding: 5px 7px; color: var(--background); background: rgba(23, 23, 23, 0.7); border-radius: 5px; font-size: 11px; }
+.module-badge { position: absolute; top: 10px; left: 10px; padding: 4px 8px; color: var(--foreground-2); background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(23, 23, 23, 0.06); border-radius: 5px; font-size: 11px; box-shadow: 0 2px 6px rgba(23, 23, 23, 0.1); }
 
-.module-badge { position: absolute; top: 38px; left: 10px; padding: 4px 7px; color: var(--surface-2); background: rgba(255, 255, 255, 0.9); border-radius: 5px; font-size: 11px; box-shadow: 0 2px 6px rgba(23, 23, 23, 0.12); }
-
-/* 任务详情页没有 AI 角标，模块标签直接占左上角 */
+/* 任务详情页的模块标签位置 */
 .result-grid .module-badge { top: 12px; left: 12px; }
 
 
@@ -4572,6 +4544,8 @@ img {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
+  /* 覆盖层不能吃掉缩略图上的拖放事件，否则列表内排序会失效 */
+  pointer-events: none;
 }
 
 
@@ -4632,9 +4606,15 @@ img {
 
 .advanced-settings {
   margin: 12px 0 0;
-  background: var(--surface-subtle);
-  border: 1px solid rgba(23, 23, 23, 0.06);
+  /* 淡淡的一层绿，用来区分「高级设置」与常调项，不抢视觉 */
+  background: #eaf3ec;
+  border: 1px solid #d7e6db;
   border-radius: 14px;
+}
+
+
+.advanced-settings .module-helper {
+  background: rgba(255, 255, 255, 0.72);
 }
 
 
@@ -5139,34 +5119,11 @@ img {
 }
 
 
-/* 查看历史记录时结果区顶部的提示条 */
-.result-history-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  color: var(--foreground-2);
-  background: var(--surface-subtle);
-  border: 1px solid var(--line-strong);
-  border-radius: 11px;
-  font-size: 12px;
-}
-
-
-.result-history-banner > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-
 .result-history-actions {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 

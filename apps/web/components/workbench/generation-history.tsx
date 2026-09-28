@@ -9,16 +9,18 @@ import type { InlineGenerationTask } from './use-generation-task'
 interface GenerationHistoryProps {
   items: InlineGenerationTask[]
   activeIndex: number
+  /** 当前选中的版本里正在查看第几张 */
+  activeImageIndex: number
   onSelect: (resultIndex: number, imageIndex: number) => void
   onDownload: (path: string, filename: string) => void
   onUseAsReference: (path: string) => void
 }
 
-const MAX_THUMBS = 3
+const MAX_THUMBS = 4
 
 /** 最近生成：让「一次生成」变成可以来回对比、继续迭代的版本列表。 */
 export function GenerationHistory({
-  items, activeIndex, onSelect, onDownload, onUseAsReference,
+  items, activeIndex, activeImageIndex, onSelect, onDownload, onUseAsReference,
 }: GenerationHistoryProps) {
   const versions = items.filter((item) => item.resultImages?.length)
   if (versions.length === 0) return null
@@ -35,28 +37,44 @@ export function GenerationHistory({
           const cover = images[0]
           if (!cover) return null
           const versionIndex = items.indexOf(item)
+          const isActiveVersion = versionIndex === activeIndex
           return (
-            <li key={item.id} className={versionIndex === activeIndex ? 'history-item active' : 'history-item'}>
-              <button
-                type="button"
-                className="history-open"
-                aria-label={`查看第 ${index + 1} 个版本的生成结果`}
-                aria-pressed={versionIndex === activeIndex}
-                onClick={() => onSelect(versionIndex, 0)}
-              >
+            <li key={item.id} className={isActiveVersion ? 'history-item active' : 'history-item'}>
+              <div className="history-open">
                 <span className="history-thumbs">
                   {images.slice(0, MAX_THUMBS).map((path, imageIndex) => (
-                    <span key={path} className="history-thumb">
+                    <button
+                      key={path}
+                      type="button"
+                      className={isActiveVersion && imageIndex === activeImageIndex ? 'history-thumb selected' : 'history-thumb'}
+                      aria-pressed={isActiveVersion && imageIndex === activeImageIndex}
+                      aria-label={`查看第 ${index + 1} 个版本的第 ${imageIndex + 1} 张`}
+                      onClick={() => onSelect(versionIndex, imageIndex)}
+                    >
                       <AuthenticatedImage path={path} alt={`第 ${index + 1} 个版本第 ${imageIndex + 1} 张`} />
-                    </span>
+                    </button>
                   ))}
-                  {images.length > MAX_THUMBS && <span className="history-more">+{images.length - MAX_THUMBS}</span>}
+                  {images.length > MAX_THUMBS && (
+                    <button
+                      type="button"
+                      className="history-more"
+                      aria-label={`查看第 ${index + 1} 个版本的其余 ${images.length - MAX_THUMBS} 张`}
+                      onClick={() => onSelect(versionIndex, MAX_THUMBS)}
+                    >
+                      +{images.length - MAX_THUMBS}
+                    </button>
+                  )}
                 </span>
-                <span className="history-meta">
+                <button
+                  type="button"
+                  className="history-meta"
+                  aria-label={`查看第 ${index + 1} 个版本的生成结果`}
+                  onClick={() => onSelect(versionIndex, 0)}
+                >
                   <strong>第 {index + 1} 次</strong>
                   <small>{images.length} 张 · {item.status === 'succeeded' ? '已完成' : '部分完成'}</small>
-                </span>
-              </button>
+                </button>
+              </div>
               <div className="history-tools">
                 <button
                   type="button"
