@@ -4,26 +4,34 @@ import { ArrowLeft, ArrowRight, RefreshCw, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+// 同一个 File 复用同一个对象 URL：排序导致的重挂载不会让缩略图闪一下重新加载
+const previewUrls = new WeakMap<File, string>()
+
+function previewUrlFor(file: File) {
+  const cached = previewUrls.get(file)
+  if (cached) return cached
+  const url = URL.createObjectURL(file)
+  previewUrls.set(file, url)
+  return url
+}
+
 interface SelectedImageThumbnailProps {
   file: File
   label: string
-  /** 角标，例如电商第一张素材的「主图」 */
-  badge?: string
   index: number
   total: number
   isDragging: boolean
   onRemove: () => void
   onReplace: (file: File) => void
-  onDragStart: () => void
-  onDragEnd: () => void
-  onDropOn: () => void
+  /** 按住缩略图开始拖动排序（指针事件，桌面与触控笔都可用） */
+  onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void
   onMove: (from: number, to: number) => void
 }
 
 /** 已上传素材缩略图：查看 / 替换 / 删除 / 拖动排序都在这一处完成。 */
 export function SelectedImageThumbnail({
-  file, label, badge, index, total, isDragging,
-  onRemove, onReplace, onDragStart, onDragEnd, onDropOn, onMove,
+  file, label, index, total, isDragging,
+  onRemove, onReplace, onPointerDown, onMove,
 }: SelectedImageThumbnailProps) {
   const [preview, setPreview] = useState('')
   const [isLoaded, setIsLoaded] = useState(false)
@@ -32,10 +40,8 @@ export function SelectedImageThumbnail({
   const replaceRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const url = URL.createObjectURL(file)
     setIsLoaded(false)
-    setPreview(url)
-    return () => URL.revokeObjectURL(url)
+    setPreview(previewUrlFor(file))
   }, [file])
 
   useEffect(() => {
@@ -69,23 +75,27 @@ export function SelectedImageThumbnail({
     <>
       <div
         className={`uploaded-thumb ${isDragging ? 'is-dragging' : ''}`}
-        draggable
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault()
-          onDropOn()
+        role="group"
+        tabIndex={0}
+        aria-label={`${label}，左右方向键可调整顺序`}
+        onPointerDown={onPointerDown}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowLeft') {
+            event.preventDefault()
+            onMove(index, index - 1)
+          } else if (event.key === 'ArrowRight') {
+            event.preventDefault()
+            onMove(index, index + 1)
+          }
         }}
       >
         {preview ? (
           <button className="thumb-preview" type="button" aria-label={`放大查看${label}`} title="放大查看" onClick={() => setExpanded(true)}>
             {!isLoaded && <span className="thumb-skeleton" aria-hidden="true" />}
-            <img src={preview} alt={`${label}：${file.name}`} onLoad={() => setIsLoaded(true)} />
+            <img src={preview} alt={`${label}：${file.name}`} draggable={false} onLoad={() => setIsLoaded(true)} />
           </button>
         ) : <span className="thumb-skeleton" aria-hidden="true" />}
         <span className="thumb-label">{label}</span>
-        {badge && <span className="thumb-badge">{badge}</span>}
 
         <div className="thumb-tools">
           <button

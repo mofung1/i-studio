@@ -112,7 +112,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   const outputSummary = isGeneral
     ? `${count} 张`
     : task === 'product-main' || task === 'detail-page'
-      ? moduleMode === 'custom' ? `${Math.max(1, moduleTotal)} 张` : '智能生成'
+      ? moduleMode === 'custom' ? (moduleTotal > 0 ? `${moduleTotal} 张` : '未选模块') : '智能生成'
       : '1 张'
 
   const advancedSummary = [
@@ -141,7 +141,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
             max={maxFiles}
             onChange={isGeneral ? onSetReferenceFiles : onSetProductFiles}
             labelFor={(index) => isGeneral ? `参考 ${index + 1}` : index === 0 ? '主图' : `素材 ${index + 1}`}
-            badgeFor={(index) => (!isGeneral && index === 0 ? '主图' : undefined)}
             emptyTitle={isGeneral ? '添加参考图片' : '上传商品原图'}
             emptyHint="拖拽或点击上传"
             acceptedHint={`JPG / PNG · 最多 ${maxFiles} 张`}

@@ -3,7 +3,7 @@
 import {
   AlertTriangle, Check, Download, History, Image as ImageIcon, Loader2, Maximize2, RotateCcw, SlidersHorizontal, Sparkles,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
 import { apiBaseUrl, getAccessToken } from '@/lib/api'
@@ -25,6 +25,8 @@ interface ResultWorkspaceProps {
   aspectRatio: string
   resolution: string
   expectedCount: number
+  /** 提交生成时快照的产出张数：生成中修改参数不会影响加载占位数量 */
+  generatingCount: number | null
   resultHistory: InlineGenerationTask[]
   activeResultIndex: number
   activeResult: InlineGenerationTask | null
@@ -51,7 +53,7 @@ const MAX_SKELETONS = 8
 
 /** 右侧结果工作区：当前任务结果 + 历史记录抽屉 + 图片查看/裁剪。 */
 export function ResultWorkspace({
-  mode, task, aspectRatio, resolution, expectedCount,
+  mode, task, aspectRatio, resolution, expectedCount, generatingCount,
   resultHistory, activeResultIndex, activeResult, generationTask,
   isGenerating, isSubmitting, aiEnabled, configRows,
   historyOpen, historyTask, loadingHistoryConfigId,
@@ -63,6 +65,8 @@ export function ResultWorkspace({
   const referenceImage = mode === 'general' ? generalCanvasImage : currentTask.image
 
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  // 从「最近生成」里指定了具体某张图时，切版本后要落在这张图上而不是第一张
+  const pendingImageRef = useRef<number | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [referenceError, setReferenceError] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -79,7 +83,8 @@ export function ResultWorkspace({
     : ''
 
   useEffect(() => {
-    setActiveImageIndex(0)
+    setActiveImageIndex(pendingImageRef.current ?? 0)
+    pendingImageRef.current = null
     setLightboxOpen(false)
   }, [activeResult?.id, historyTask?.id])
 
@@ -123,11 +128,8 @@ export function ResultWorkspace({
   return (
     <section className="creation-canvas result-workspace">
       <header className="result-head">
-        <div className="result-head-copy">
-          <h1>{title}</h1>
-        </div>
         <div className="result-meta">
-          <span className="meta-chip">{expectedCount} 张</span>
+          <span className="meta-chip">{expectedCount > 0 ? `${expectedCount} 张` : '—'}</span>
           <span className="meta-chip">{aspectRatio}</span>
           <span className="meta-chip">{resolution}</span>
           <button
@@ -142,28 +144,6 @@ export function ResultWorkspace({
       </header>
 
       <div className="result-body">
-        {isHistoryView && historyTask && (
-          <div className="result-history-banner">
-            <span>
-              <History size={14} aria-hidden="true" />
-              正在查看历史记录 · {taskModeLabel(historyTask.input)} · {new Date(historyTask.createdAt).toLocaleString('zh-CN')}
-            </span>
-            <div className="result-history-actions">
-              <button
-                type="button"
-                disabled={loadingHistoryConfigId === historyTask.id}
-                onClick={() => onLoadHistoryConfig(historyTask)}
-              >
-                {loadingHistoryConfigId === historyTask.id
-                  ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                  : <SlidersHorizontal size={14} aria-hidden="true" />}
-                载入配置继续编辑
-              </button>
-              <button type="button" onClick={onExitHistoryView}>回到当前任务</button>
-            </div>
-          </div>
-        )}
-
         {isGenerating && !isHistoryView && (
           <div className="result-generating">
             <div className="result-generating-head">
@@ -172,7 +152,7 @@ export function ResultWorkspace({
               <span>结果返回后会自动显示在这里。</span>
             </div>
             <div className="result-skeletons" aria-hidden="true">
-              {Array.from({ length: Math.min(Math.max(expectedCount, 1), MAX_SKELETONS) }, (_, index) => <span key={index} />)}
+              {Array.from({ length: Math.min(Math.max(generatingCount ?? expectedCount, 1), MAX_SKELETONS) }, (_, index) => <span key={index} />)}
             </div>
           </div>
         )}
@@ -182,15 +162,6 @@ export function ResultWorkspace({
             <span className="result-empty-icon"><Sparkles size={22} aria-hidden="true" /></span>
             <h2>生成你的第一张图片</h2>
             <p>{mode === 'general' ? '上传参考图片或描述你的想法。' : '上传商品原图并补充需求即可开始。'}</p>
-            <button
-              type="button"
-              className="result-empty-action"
-              disabled={isSubmitting || aiEnabled === null}
-              onClick={onRegenerate}
-            >
-              {isSubmitting ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Sparkles size={16} aria-hidden="true" />}
-              {isSubmitting ? '正在提交…' : '开始生成'}
-            </button>
             {failureMessage && (
               <p className="result-empty-error" role="alert">
                 <AlertTriangle size={15} aria-hidden="true" />
@@ -209,7 +180,6 @@ export function ResultWorkspace({
             <div className="result-stage">
               <div className="result-hero">
                 <AuthenticatedImage path={heroImage} alt={`AI 生成结果 ${safeIndex + 1}`} className="result-hero-image" />
-                <span className="ai-badge">{isHistoryView ? '历史结果' : 'AI 生成'}</span>
                 {moduleLabel(task, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '') && (
                   <span className="module-badge">
                     {moduleLabel(task, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '')}
@@ -254,11 +224,26 @@ export function ResultWorkspace({
                   {isHistoryView ? '历史记录' : activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'}
                 </span>
                 <span>
-                  {isHistoryView
-                    ? `${images.length} 张`
+                  {isHistoryView && historyTask
+                    ? `${taskModeLabel(historyTask.input)} · ${images.length} 张`
                     : `第 ${activeResultIndex + 1} / ${resultHistory.length} 次 · ${images.length} 张`}
                 </span>
               </div>
+              {isHistoryView && historyTask && (
+                <div className="result-history-actions">
+                  <button
+                    type="button"
+                    disabled={loadingHistoryConfigId === historyTask.id}
+                    onClick={() => onLoadHistoryConfig(historyTask)}
+                  >
+                    {loadingHistoryConfigId === historyTask.id
+                      ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                      : <SlidersHorizontal size={14} aria-hidden="true" />}
+                    载入配置继续编辑
+                  </button>
+                  <button type="button" onClick={onExitHistoryView}>回到当前任务</button>
+                </div>
+              )}
               {failureMessage && !isHistoryView && (
                 <p className="result-side-error" role="alert">
                   <AlertTriangle size={15} aria-hidden="true" />
@@ -268,7 +253,7 @@ export function ResultWorkspace({
               {referenceError && <p className="result-side-error" role="alert">{referenceError}</p>}
               <p className="result-side-note">
                 {isHistoryView
-                  ? '历史结果：可下载、用作参考图或载入配置。'
+                  ? '可下载或用作参考图。'
                   : '结果已保存到任务记录。'}
               </p>
               <ResultActions
@@ -286,7 +271,16 @@ export function ResultWorkspace({
         <GenerationHistory
           items={resultHistory}
           activeIndex={activeResultIndex}
-          onSelect={(resultIndex) => onSetActiveResultIndex(() => resultIndex)}
+          activeImageIndex={safeIndex}
+          onSelect={(resultIndex, imageIndex) => {
+            pendingImageRef.current = imageIndex
+            if (resultIndex === activeResultIndex) {
+              setActiveImageIndex(imageIndex)
+              pendingImageRef.current = null
+              return
+            }
+            onSetActiveResultIndex(() => resultIndex)
+          }}
           onDownload={(path, filename) => void downloadProtectedAsset(path, filename)}
           onUseAsReference={(path) => void useAsReference(path)}
         />

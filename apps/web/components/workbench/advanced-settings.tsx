@@ -172,9 +172,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
                   <small>自己挑模块</small>
                 </button>
               </div>
-              {moduleMode === 'smart' ? (
-                <p className="field-helper module-helper">AI 会根据商品特征自动组合模块。</p>
-              ) : (
+              {moduleMode === 'custom' && (
                 <>
                   <div className="module-picker">
                     {moduleList.map(([value, label]) => {
@@ -216,7 +214,11 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
                       )
                     })}
                   </div>
-                  <p className="field-helper module-helper">已选 {Object.keys(moduleCounts).length} 个模块、共 {Math.max(1, moduleTotal)} 张（最多 16 张）。</p>
+                  <p className="field-helper module-helper">
+                    {moduleTotal > 0
+                      ? `已选 ${Object.keys(moduleCounts).length} 个模块、共 ${moduleTotal} 张（最多 16 张）。`
+                      : '还没有选择模块，至少选一个才能生成。'}
+                  </p>
                 </>
               )}
             </div>
