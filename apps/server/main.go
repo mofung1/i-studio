@@ -20,6 +20,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -40,6 +42,20 @@ type task struct {
 	ResultModules []string `json:"resultModules,omitempty"`
 	ErrorMessage  string   `json:"errorMessage,omitempty"`
 }
+
+// taskInputField 读取任务输入里的字符串字段；用于内存模式下按模式 / 任务类型过滤。
+func taskInputField(input any, key string) string {
+	fields, ok := input.(map[string]any)
+	if !ok {
+		return ""
+	}
+	value, ok := fields[key].(string)
+	if !ok {
+		return ""
+	}
+	return value
+}
+
 type assetRecord struct {
 	ID, UserID, ProjectID, Filename, StorageKey, Mime, Hash string
 	SizeBytes                                               int64
@@ -216,6 +232,10 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodGet && s.db != nil {
 		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
+		mode := strings.TrimSpace(r.URL.Query().Get("mode"))
+		taskType := strings.TrimSpace(r.URL.Query().Get("taskType"))
+		// 可选过滤：工作台按当前生图类型查看历史记录时使用，不传则保持原有行为
+		limit := clampInt(parseQueryInt(r.URL.Query().Get("limit"), 50), 1, 200)
 		query := "SELECT t.id,t.status,t.created_at,t.input,t.result_images,t.result_modules FROM generation_tasks t WHERE t.user_id=$1"
 		args := []any{userID}
 		if projectID != "" {
@@ -226,7 +246,16 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 			query += " AND t.project_id=$2"
 			args = append(args, projectID)
 		}
-		query += " ORDER BY created_at DESC LIMIT 50"
+		if mode != "" {
+			args = append(args, mode)
+			query += " AND t.input->>'mode'=$" + strconv.Itoa(len(args))
+		}
+		if taskType != "" {
+			args = append(args, taskType)
+			query += " AND t.input->>'taskType'=$" + strconv.Itoa(len(args))
+		}
+		args = append(args, limit)
+		query += " ORDER BY created_at DESC LIMIT $" + strconv.Itoa(len(args))
 		rows, err := s.db.Query(query, args...)
 		if err != nil {
 			s.error(w, 500, "TASK_STORAGE_ERROR", "任务查询失败")
@@ -251,14 +280,31 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodGet {
 		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
+		mode := strings.TrimSpace(r.URL.Query().Get("mode"))
+		taskType := strings.TrimSpace(r.URL.Query().Get("taskType"))
+		limit := clampInt(parseQueryInt(r.URL.Query().Get("limit"), 50), 1, 200)
 		s.mu.RLock()
 		list := make([]task, 0, len(s.tasks))
 		for _, item := range s.tasks {
-			if item.UserID == userID && (projectID == "" || item.ProjectID == projectID) {
-				list = append(list, item)
+			if item.UserID != userID {
+				continue
 			}
+			if projectID != "" && item.ProjectID != projectID {
+				continue
+			}
+			if mode != "" && taskInputField(item.Input, "mode") != mode {
+				continue
+			}
+			if taskType != "" && taskInputField(item.Input, "taskType") != taskType {
+				continue
+			}
+			list = append(list, item)
 		}
 		s.mu.RUnlock()
+		sort.SliceStable(list, func(i, j int) bool { return list[i].CreatedAt > list[j].CreatedAt })
+		if len(list) > limit {
+			list = list[:limit]
+		}
 		s.json(w, 200, map[string]any{"tasks": list})
 		return
 	}

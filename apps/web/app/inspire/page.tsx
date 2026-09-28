@@ -1,5 +1,6 @@
-import { InspirationPage } from '@/components/inspiration-page'
+import { redirect } from 'next/navigation'
 
+/** 灵感瀑布流已经并入工作台的「灵感」菜单页，老链接继续可用。 */
 export default function Page() {
-  return <InspirationPage />
+  redirect('/workbench?view=inspire')
 }

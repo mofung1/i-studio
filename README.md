@@ -8,6 +8,11 @@
 apps/web     Next.js 用户端（独立 pnpm 项目）
 apps/server  Go API server
 docker       Docker Compose（PostgreSQL / Redis / API / Web）
+ui           Appica Nova 版前端（保留原路由与业务逻辑的换肤版）
+UI-1         灯箱与工单版前端（无落地页，首页即工作台）
+UI-2         柔光台版前端（浅色玻璃 + 柔和彩色，先做生成页与登录页）
+UI-3         黑白工坊版前端（黑白主题 + 柠檬黄点缀，先做生成页与登录页）
+UI-4         Studio Calm 版前端（简约大气、雾蓝与薄荷色点缀，当前只设计生图主页）
 ```
 
 ## 本地开发

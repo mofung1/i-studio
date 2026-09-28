@@ -59,7 +59,12 @@ export function useInspirationPrompts() {
         const params = new URLSearchParams({ page: String(targetPage), pageSize: String(PAGE_SIZE) })
         if (selectedCategory) params.set('category', selectedCategory)
         if (searchQuery) params.set('q', searchQuery)
-        const response = await fetch(`${apiBaseUrl}/v1/inspiration/prompts?${params.toString()}`)
+        let response: Response
+        try {
+          response = await fetch(`${apiBaseUrl}/v1/inspiration/prompts?${params.toString()}`)
+        } catch {
+          throw new Error('灵感库加载失败，请检查后端服务是否已启动')
+        }
         if (!response.ok) throw new Error('灵感库加载失败')
         const data = (await response.json()) as InspirationResponse
         setPrompts((prev) => (replace ? data.prompts : [...prev, ...data.prompts]))
