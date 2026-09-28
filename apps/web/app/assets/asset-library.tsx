@@ -148,7 +148,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
             <Link href={`/tasks/${task.id}`} key={task.id}><span>{taskTitle(task)}</span><strong>{statusLabels[task.status]}</strong></Link>)}</div>
         </section>}
         <section className="asset-list">
-          <div className="asset-head"><h2><ImageIcon size={18} />生成图片</h2><span className="field-helper">最近任务生成的图片</span></div>
+          <div className="asset-head"><h2><ImageIcon size={18} />生成图片</h2></div>
           {loading ? <p className="empty-state">正在加载…</p> : images.length ? <><div className="asset-grid">{images.slice(0, visibleImages).map((image) =>
             <article key={`${image.task.id}-${image.index}`} className="asset-item generated-asset-item">
               <button className="library-image-preview" type="button" aria-label={`预览${taskTitle(image.task)}第${image.index + 1}张图片`} onClick={(event) => { previewTrigger.current = event.currentTarget; setSelectedImage(image) }}>
@@ -160,7 +160,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
             </article>)}</div>{images.length > visibleImages && <button className="library-load-more" type="button" onClick={() => setVisibleImages((current) => current + 30)}>加载更多图片</button>}</> : <div className="library-empty"><p className="empty-state">暂无生成图片。完成的任务结果会自动出现在这里。</p>{tasks.length > 0 && <Link href="/assets?view=tasks">查看任务记录</Link>}</div>}
         </section>
       </> : <section className="task-list">
-        <div className="asset-head"><h2><Clock3 size={18} />任务记录</h2><span className="field-helper">最近任务</span></div>
+        <div className="asset-head"><h2><Clock3 size={18} />任务记录</h2></div>
         {loading ? <p className="empty-state">正在加载…</p> : tasks.length ? <div className="task-grid">{tasks.map((task) =>
           <Link href={`/tasks/${task.id}`} key={task.id} className="task-item library-task-item">
             <div className="library-task-thumbs">{task.resultImages?.length ? task.resultImages.slice(0, 3).map((path, index) =>

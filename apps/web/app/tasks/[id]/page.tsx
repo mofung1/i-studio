@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertCircle, ArrowLeft, Download, LoaderCircle, RefreshCw, RotateCcw } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Download, RefreshCw, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
@@ -91,7 +91,6 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   return <main className="task-detail-page">
     <Link href="/assets?view=tasks" className="auth-back"><ArrowLeft size={16} />返回资产库</Link>
     <div className="task-detail-card">
-      <span className="eyebrow"><LoaderCircle size={16} />生成任务</span>
       <h1>任务详情</h1>
       {error ? <p className="auth-notice">{error}</p> : task ? <>
         <div className="task-status"><strong>{statusLabels[task.status] ?? task.status}</strong><span>{new Date(task.createdAt).toLocaleString()}</span></div>

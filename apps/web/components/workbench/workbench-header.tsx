@@ -1,18 +1,22 @@
-import { Box, Image as ImageIcon, LayoutPanelLeft, Palette, PanelRight, Sparkles, WandSparkles, X } from 'lucide-react'
+'use client'
+
+import { Box, Image as ImageIcon, LayoutPanelLeft, Palette, PanelRight, SlidersHorizontal, Sparkles, X } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 
 import { commerceTasks, type ConfigSide, type WorkbenchMode } from './shared'
+import type { WorkbenchView } from '../workbench'
 
 interface WorkbenchHeaderProps {
   mode: WorkbenchMode
   task: CommerceTaskType
+  view: WorkbenchView
   configSide: ConfigSide
-  onChangeMode: (mode: WorkbenchMode) => void
+  panelOpen: boolean
   onChangeTask: (task: CommerceTaskType) => void
   onChangeSide: (side: ConfigSide) => void
+  onTogglePanel: () => void
 }
 
 const taskIcons: Record<CommerceTaskType, typeof Box> = {
@@ -22,59 +26,69 @@ const taskIcons: Record<CommerceTaskType, typeof Box> = {
   'product-retouch': Palette,
 }
 
-export function WorkbenchHeader({ mode, task, configSide, onChangeMode, onChangeTask, onChangeSide }: WorkbenchHeaderProps) {
+/**
+ * 工作台顶栏：主菜单在左侧菜单里，这里只放「电商设计」的四个任务和右侧工具按钮。
+ */
+export function WorkbenchHeader({
+  mode, task, view, configSide, panelOpen, onChangeTask, onChangeSide, onTogglePanel,
+}: WorkbenchHeaderProps) {
+  const inCommerce = view === 'create' && mode === 'commerce'
+
   return (
-    <header className="workbench-header">
-      <div className="mobile-mode-switch" aria-label="生图模式">
-        <button
-          className={mode === 'general' ? 'active' : ''}
-          type="button"
-          aria-pressed={mode === 'general'}
-          onClick={() => onChangeMode('general')}
-        >通用</button>
-        <button
-          className={mode === 'commerce' ? 'active' : ''}
-          type="button"
-          aria-pressed={mode === 'commerce'}
-          onClick={() => onChangeMode('commerce')}
-        >商品</button>
-      </div>
-      {mode === 'commerce' ? (
-        <nav className="task-tabs" aria-label="商品生图任务">
+    <header className="workbench-nav">
+      {inCommerce ? (
+        <nav className="workbench-nav-sub" aria-label="电商设计任务">
           {commerceTasks.map(([taskId, meta]) => {
             const Icon = taskIcons[taskId]
             return (
               <button
                 key={taskId}
-                className={task === taskId ? 'active' : ''}
                 type="button"
+                title={meta.description}
                 aria-pressed={task === taskId}
+                className={task === taskId ? 'active' : ''}
                 onClick={() => onChangeTask(taskId)}
               >
-                <Icon size={16} />{meta.title}
+                <Icon size={15} aria-hidden="true" />{meta.title}
               </button>
             )
           })}
         </nav>
-      ) : <strong className="workbench-title"><WandSparkles size={17} />通用生图</strong>}
-      <div className="header-actions">
-        <div className="side-toggle" aria-label="生成配置位置">
-          <button
-            className={configSide === 'left' ? 'active' : ''}
-            type="button"
-            aria-label="配置显示在左侧"
-            aria-pressed={configSide === 'left'}
-            onClick={() => onChangeSide('left')}
-          ><LayoutPanelLeft size={17} /></button>
-          <button
-            className={configSide === 'right' ? 'active' : ''}
-            type="button"
-            aria-label="配置显示在右侧"
-            aria-pressed={configSide === 'right'}
-            onClick={() => onChangeSide('right')}
-          ><PanelRight size={17} /></button>
-        </div>
-        <Button asChild size="icon" variant="ghost"><Link href="/" aria-label="关闭工作台"><X size={20} /></Link></Button>
+      ) : (
+        <span className="workbench-nav-context">{view === 'inspire' ? '灵感提示词' : '通用生图'}</span>
+      )}
+
+      <div className="workbench-nav-actions">
+        {view === 'create' && (
+          <>
+            <button
+              type="button"
+              className="panel-toggle"
+              aria-expanded={panelOpen}
+              onClick={onTogglePanel}
+            >
+              <SlidersHorizontal size={16} aria-hidden="true" />
+              {panelOpen ? '收起设置' : '创作设置'}
+            </button>
+            <div className="side-toggle" aria-label="生成配置位置">
+              <button
+                className={configSide === 'left' ? 'active' : ''}
+                type="button"
+                aria-label="配置显示在左侧"
+                aria-pressed={configSide === 'left'}
+                onClick={() => onChangeSide('left')}
+              ><LayoutPanelLeft size={17} /></button>
+              <button
+                className={configSide === 'right' ? 'active' : ''}
+                type="button"
+                aria-label="配置显示在右侧"
+                aria-pressed={configSide === 'right'}
+                onClick={() => onChangeSide('right')}
+              ><PanelRight size={17} /></button>
+            </div>
+          </>
+        )}
+        <Link className="workbench-close" href="/" aria-label="退出工作台"><X size={18} /></Link>
       </div>
     </header>
   )

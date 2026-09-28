@@ -13,7 +13,11 @@ interface AuthenticatedImageProps {
 
 type LoadState = 'loading' | 'loaded' | 'failed'
 
-export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageProps) {
+/**
+ * 取受保护图片的对象 URL。
+ * 灯箱里的放大 / 裁剪需要拿到真实的图片地址与解码尺寸，因此把这段逻辑抽成 hook 复用。
+ */
+export function useProtectedImageUrl(path: string) {
   const [source, setSource] = useState('')
   const [state, setState] = useState<LoadState>('loading')
   const [retryToken, setRetryToken] = useState(0)
@@ -53,12 +57,18 @@ export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageP
     }
   }, [path, retryToken])
 
+  return { source, state, retry: () => setRetryToken((token) => token + 1) }
+}
+
+export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageProps) {
+  const { source, state, retry } = useProtectedImageUrl(path)
+
   if (state === 'failed') {
     return (
       <div className={`${className ?? ''} auth-image-failed`} role="alert" aria-label={`${alt}加载失败`}>
         <button
           type="button"
-          onClick={() => setRetryToken((token) => token + 1)}
+          onClick={retry}
           aria-label={`重试加载${alt}`}
           title="重新加载"
         >

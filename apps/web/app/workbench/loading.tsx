@@ -2,17 +2,15 @@ export default function WorkbenchLoading() {
   return (
     <div className="workbench-page">
       <div className="workbench-shell" aria-busy="true" aria-label="工作台加载中">
-        <div className="mode-rail" />
-        <div className="workbench-header">
-          <div className="workbench-title-loading" />
-          <div className="header-actions">
-            <div className="workbench-chip-loading" />
-            <div className="workbench-chip-loading" />
-          </div>
+        <div className="workbench-rail">
+          <div className="workbench-rail-brand"><div className="skeleton-line skeleton-line-narrow" /></div>
         </div>
-        <div className="configuration-panel">
+        <div className="workbench-nav">
+          <div className="workbench-nav-context"><div className="skeleton-line skeleton-line-narrow" /></div>
+        </div>
+        <div className="configuration-panel creator-sidebar">
           <div className="configuration-scroll">
-            {Array.from({ length: 3 }, (_, index) => (
+            {Array.from({ length: 4 }, (_, index) => (
               <div className="form-section form-section-loading" key={index}>
                 <div className="skeleton-line skeleton-line-wide" />
                 <div className="skeleton-line" />
@@ -21,12 +19,15 @@ export default function WorkbenchLoading() {
               </div>
             ))}
           </div>
+          <div className="configuration-footer generate-bar"><div className="skeleton-line" /></div>
         </div>
-        <div className="creation-canvas">
-          <div className="canvas-copy">
-            <div className="skeleton-line skeleton-line-narrow" />
+        <div className="creation-canvas result-workspace">
+          <div className="result-head">
+            <div className="result-head-copy"><div className="skeleton-line skeleton-line-narrow" /></div>
           </div>
-          <div className="canvas-preview-loading" />
+          <div className="result-body">
+            <div className="result-skeleton" />
+          </div>
         </div>
       </div>
     </div>

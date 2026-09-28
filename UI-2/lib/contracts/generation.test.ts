@@ -1,0 +1,68 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+  aspectRatioOptions,
+  aspectRatioSchema,
+  generalGenerationInputSchema,
+  productMainInputSchema,
+} from './generation'
+
+describe('generation input contracts', () => {
+  it('defaults general generation to one image', () => {
+    const result = generalGenerationInputSchema.parse({
+      mode: 'general',
+      prompt: '极简商品摄影',
+      referenceAssetIds: [],
+    })
+
+    expect(result.count).toBe(1)
+    expect(result.aspectRatio).toBe('1:1')
+  })
+
+  it('defaults product-main to no text without product metadata', () => {
+    const result = productMainInputSchema.parse({
+      mode: 'commerce',
+      taskType: 'product-main',
+      productAssetIds: ['asset-1'],
+    })
+
+    expect(result.taskType).toBe('product-main')
+    expect(result.outputLanguage).toBe('none')
+    expect('productName' in result).toBe(false)
+  })
+
+  it('accepts six references and sixteen images, but rejects larger requests', () => {
+    const input = { mode: 'general', prompt: '商品摄影', referenceAssetIds: Array(6).fill('asset-1'), count: 16 }
+    expect(generalGenerationInputSchema.safeParse(input).success).toBe(true)
+    expect(generalGenerationInputSchema.safeParse({ ...input, count: 17 }).success).toBe(false)
+    expect(generalGenerationInputSchema.safeParse({ ...input, referenceAssetIds: [...input.referenceAssetIds, 'asset-7'] }).success).toBe(false)
+  })
+
+  it('keeps an optional project association', () => {
+    const result = generalGenerationInputSchema.parse({
+      mode: 'general',
+      prompt: '极简商品摄影',
+      projectId: 'project-1',
+    })
+
+    expect(result.projectId).toBe('project-1')
+  })
+
+  it('exposes exactly the aspect ratios the backend accepts', () => {
+    expect(aspectRatioOptions).toEqual(aspectRatioSchema.options)
+    expect(aspectRatioOptions).not.toContain('4:5')
+    expect(aspectRatioOptions).toContain('3:4')
+  })
+  it('rejects custom module totals over sixteen images', () => {
+    const result = productMainInputSchema.safeParse({
+      mode: 'commerce',
+      taskType: 'product-main',
+      productAssetIds: ['asset-1'],
+      moduleMode: 'custom',
+      moduleCounts: { hero: 4, white: 4, selling: 4, scene: 4, detail: 1 },
+      count: 17,
+    })
+    expect(result.success).toBe(false)
+  })
+
+})

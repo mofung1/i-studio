@@ -2,11 +2,12 @@
 
 import { ArrowRight, Box, Images, Layers, Maximize, Send, Sparkles } from 'lucide-react'
 import Link from 'next/link'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 
 import { TopNavigation } from './top-navigation'
+import { countOptions, modelOptions, ratioOptions, resolutionOptions } from './workbench/shared'
 
 const commerceTools = [
   { task: 'product-main', title: '商品主图', description: '生成适配平台规范的商品主视觉', image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=900&q=85' },
@@ -15,25 +16,40 @@ const commerceTools = [
   { task: 'product-retouch', title: '产品精修', description: '修复和提升商品原图质量', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85' },
 ]
 
+/** 配置项的补充说明，帮助第一次使用的用户理解各档差异 */
+const modelHints: Record<string, string> = {
+  'gpt-image-2': '商品一致性与文字还原更稳',
+  'gemini-2.5-flash-image': '速度快，适合快速试稿',
+  'gemini-3.1-flash-image': '速度与质量均衡',
+  'gemini-3-pro-image': '细节与质感最好',
+}
+
 interface ComposerSelectProps {
   label: string
   value: string
   onChange: (value: string) => void
   icon: ReactNode
   options: ReadonlyArray<readonly [string, string]>
+  hints?: Record<string, string>
   className?: string
 }
 
-function ComposerSelect({ label, value, onChange, icon, options, className = '' }: ComposerSelectProps) {
+function ComposerSelect({ label, value, onChange, icon, options, hints, className = '' }: ComposerSelectProps) {
+  const current = options.find(([optionValue]) => optionValue === value)?.[1] ?? value
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={`composer-select ${className}`} aria-label={label}>
+      <SelectTrigger className={`hero-select ${className}`} aria-label={label}>
         {icon}
-        <SelectValue className="composer-select-value" />
+        <span className="hero-select-value">{current}</span>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="hero-select-content">
         {options.map(([optionValue, optionLabel]) => (
-          <SelectItem key={optionValue} value={optionValue}>{optionLabel}</SelectItem>
+          <SelectItem key={optionValue} value={optionValue}>
+            <span className="hero-option">
+              <span>{optionLabel}</span>
+              {hints?.[optionValue] && <small>{hints[optionValue]}</small>}
+            </span>
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>
@@ -41,36 +57,85 @@ function ComposerSelect({ label, value, onChange, icon, options, className = '' 
 }
 
 export function HomePage() {
+  const [promptText, setPromptText] = useState('柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
   const [model, setModel] = useState('gpt-image-2')
   const [ratio, setRatio] = useState('1:1')
   const [resolution, setResolution] = useState('2K')
   const [count, setCount] = useState('1')
+  const [docked, setDocked] = useState(false)
+  const composerRef = useRef<HTMLDivElement>(null)
+
+  // 首屏输入框滑到视口上方约 1/3 之后，在页面底部吸出一条同样的输入条
+  useEffect(() => {
+    const node = composerRef.current
+    if (!node) return
+    let frame = 0
+    const update = () => {
+      frame = 0
+      setDocked(node.getBoundingClientRect().bottom < window.innerHeight * 0.35)
+    }
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update)
+    }
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      if (frame) window.cancelAnimationFrame(frame)
+    }
+  }, [])
+
+  const hiddenFields = (
+    <>
+      <input type="hidden" name="mode" value="general" />
+      <input type="hidden" name="model" value={model} />
+      <input type="hidden" name="aspectRatio" value={ratio} />
+      <input type="hidden" name="resolution" value={resolution} />
+      <input type="hidden" name="count" value={count} />
+    </>
+  )
+
+  const configs = (
+    <div className="hero-configs">
+      <ComposerSelect label="生图模型" value={model} onChange={setModel} icon={<Sparkles size={14} aria-hidden="true" />} options={modelOptions} hints={modelHints} className="model" />
+      <ComposerSelect label="画面比例" value={ratio} onChange={setRatio} icon={<Maximize size={14} aria-hidden="true" />} options={ratioOptions} />
+      <ComposerSelect label="清晰度" value={resolution} onChange={setResolution} icon={<Images size={14} aria-hidden="true" />} options={resolutionOptions} />
+      <ComposerSelect label="生成数量" value={count} onChange={setCount} icon={<Images size={14} aria-hidden="true" />} options={countOptions} />
+    </div>
+  )
 
   return (
-    <div className="site-shell">
+    <div className={`site-shell ${docked ? 'has-dock' : ''}`}>
       <TopNavigation />
       <main>
         <section className="home-hero">
-          <span className="eyebrow"><Sparkles size={16} />通用生图</span>
-          <h1>描述你的想法，生成一张好图</h1>
-          <p>输入画面描述，可选参考图，再选择模型、比例和生成数量。</p>
-          <form className="prompt-composer" action="/workbench">
-            <input type="hidden" name="mode" value="general" />
-            <input type="hidden" name="model" value={model} />
-            <input type="hidden" name="aspectRatio" value={ratio} />
-            <input type="hidden" name="resolution" value={resolution} />
-            <input type="hidden" name="count" value={count} />
-            <textarea name="prompt" aria-label="创作描述" defaultValue="柔和晨光中的极简静物摄影，构图干净，材质细节清晰。" />
-            <div className="composer-footer">
-              <div className="composer-controls">
-                <ComposerSelect className="model-select" label="生图模型" value={model} onChange={setModel} icon={<Sparkles size={15} />} options={[['gpt-image-2', 'GPT Image 2'], ['gemini-2.5-flash-image', 'Gemini 2.5 Flash'], ['gemini-3.1-flash-image', 'Gemini 3.1 Flash'], ['gemini-3-pro-image', 'Gemini 3 Pro Image']]} />
-                <ComposerSelect label="画面比例" value={ratio} onChange={setRatio} icon={<Maximize size={15} />} options={[['1:1', '1:1'], ['3:4', '3:4'], ['4:3', '4:3'], ['9:16', '9:16'], ['16:9', '16:9']]} />
-                <ComposerSelect label="清晰度" value={resolution} onChange={setResolution} icon={<Images size={15} />} options={[['1K', '1K'], ['2K', '2K'], ['4K', '4K']]} />
-                <ComposerSelect label="生成数量" value={count} onChange={setCount} icon={<Images size={15} />} options={Array.from({ length: 16 }, (_, index) => [String(index + 1), `${index + 1} 张`] as const)} />
-              </div>
-              <button type="submit" aria-label="开始生成配置"><Send size={19} /></button>
+          <div className="home-hero-inner">
+            <h1>把想法，变成画面</h1>
+
+            <div className="hero-composer-wrap" ref={composerRef}>
+              <form className="hero-composer" action="/workbench" method="get">
+                {hiddenFields}
+                <label className="hero-composer-input">
+                  <span className="sr-only">画面描述</span>
+                  <textarea
+                    name="prompt"
+                    aria-label="画面描述"
+                    placeholder="例如：一支绿色保温杯放在森林岩石上，清晨阳光从树叶之间洒下来，高级户外产品摄影。"
+                    value={promptText}
+                    onChange={(event) => setPromptText(event.target.value)}
+                  />
+                </label>
+                <div className="hero-composer-bar">
+                  {configs}
+                  <button type="submit" className="hero-composer-send" aria-label="进入工作台生成">
+                    <Send size={18} aria-hidden="true" />
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
+          </div>
         </section>
 
         <section className="content-section">
@@ -87,12 +152,31 @@ export function HomePage() {
             {commerceTools.map((tool) => (
               <Link key={tool.task} className="commerce-card" href={`/workbench?mode=commerce&task=${tool.task}`}>
                 <div><h3>{tool.title}</h3><p>{tool.description}</p><span className="tool-arrow"><ArrowRight size={18} /></span></div>
-                <img src={tool.image} alt={`${tool.title}示例`} />
+                <img src={tool.image} alt={`${tool.title}示例`} loading="lazy" />
               </Link>
             ))}
           </div>
         </section>
       </main>
+
+      {docked && (
+        <form className="dock-composer" action="/workbench" method="get" aria-label="快速开始生成">
+          {hiddenFields}
+          <input
+            className="dock-composer-input"
+            type="text"
+            name="prompt"
+            aria-label="画面描述"
+            placeholder="描述你想生成的画面…"
+            value={promptText}
+            onChange={(event) => setPromptText(event.target.value)}
+          />
+          {configs}
+          <button type="submit" className="hero-composer-send" aria-label="进入工作台生成">
+            <Send size={17} aria-hidden="true" />
+          </button>
+        </form>
+      )}
     </div>
   )
 }
