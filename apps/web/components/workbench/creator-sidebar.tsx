@@ -20,10 +20,8 @@ import {
   detailModules,
   optionLabel,
   productMainModules,
-  promptQuickTags,
   referenceLimit,
   modelOptions,
-  togglePromptTag,
   type GeneralStyle,
   type ModuleMode,
   type ReferenceStrength,
@@ -231,8 +229,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               placeholder="例如：一支绿色保温杯放在森林岩石上，清晨阳光从树叶之间洒下来，高级户外产品摄影。"
               enhance={(value) => (promptEnhanceEnabled ? runEnhance('prompt', value) : buildEnhancedPrompt(value, style))}
               enhanceDisabledReason={!prompt.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
-              quickTags={promptQuickTags}
-              onToggleTag={(tag) => onSetPrompt(togglePromptTag(prompt, tag))}
               helper={enhanceHelper}
             />
           ) : (

@@ -1,6 +1,16 @@
-import { redirect } from 'next/navigation'
+import { InspirationGallery } from '@/components/inspiration-gallery'
+import { TopNavigation } from '@/components/top-navigation'
 
-/** 灵感瀑布流已经并入工作台的「灵感」菜单页，老链接继续可用。 */
-export default function Page() {
-  redirect('/workbench?view=inspire')
+/** 灵感瀑布流：独立页面，不再放在工作台里。 */
+export default function InspirePage() {
+  return (
+    <div className="site-shell">
+      <TopNavigation />
+      <main className="content-page">
+        <div className="library-content">
+          <InspirationGallery />
+        </div>
+      </main>
+    </div>
+  )
 }

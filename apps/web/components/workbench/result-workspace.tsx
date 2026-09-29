@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  Check, ChevronLeft, ChevronRight, Download, History, Image as ImageIcon, Loader2, RefreshCw, RotateCcw, Sparkles,
+  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, History, Image as ImageIcon, Loader2, RefreshCw, RotateCcw, Sparkles,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -226,6 +226,20 @@ export function ResultWorkspace({
               <img src={referenceImage} alt={`${title}设计参考图`} loading="lazy" />
               <figcaption><ImageIcon size={13} aria-hidden="true" />设计参考图，非生成结果</figcaption>
             </figure>
+          </div>
+        )}
+
+        {/* 历史查看态但这条记录没有产出图片（例如生成失败）：给出原因，而不是留白 */}
+        {isHistoryView && !hasResults && !isGenerating && (
+          <div className="result-empty">
+            <span className="result-empty-icon"><AlertTriangle size={22} aria-hidden="true" /></span>
+            <h2>{historyTask?.status === 'failed' ? '这条记录生成失败' : '这条记录还没有生成结果'}</h2>
+            <p>
+              {historyTask?.status === 'failed'
+                ? '失败原因如下，可以回到当前任务调整后重新生成。'
+                : '任务可能还在进行中，稍后刷新历史记录再看。'}
+            </p>
+            {historyTask?.errorMessage && <FailureNotice message={historyTask.errorMessage} />}
           </div>
         )}
 

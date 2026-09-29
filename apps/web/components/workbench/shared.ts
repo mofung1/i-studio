@@ -56,9 +56,6 @@ export const ratioOptions = [['1:1', '1:1 方图'], ['3:4', '3:4 竖图'], ['4:3
 export const resolutionOptions = [['1K', '1K'], ['2K', '2K'], ['4K', '4K']] as const
 export const countOptions = Array.from({ length: 16 }, (_, index) => [String(index + 1), `${index + 1} 张`] as const)
 
-/** 通用生图的快捷标签：点击写入描述，再点一次移除，不会覆盖用户已经写好的内容 */
-export const promptQuickTags = ['产品摄影', '自然光', '高级感', '电商白底', '生活方式', '极简', '户外'] as const
-
 export function optionLabel(options: readonly (readonly [string, string])[], value: string) {
   return options.find(([optionValue]) => optionValue === value)?.[1] ?? value
 }
@@ -69,35 +66,6 @@ export function referenceLimit(mode: WorkbenchMode, task: CommerceTaskType) {
   if (task === 'product-retouch') return 1
   if (task === 'viral-recreate') return 3
   return 6
-}
-
-/**
- * 快捷标签按「，」独立成段：命中时只删掉整段，没命中时追加到句尾，
- * 用户自己写的内容始终原样保留。
- */
-function promptTagSegments(prompt: string) {
-  const trimmed = prompt.trim()
-  return trimmed ? trimmed.split(/[，,]\s*/).filter(Boolean) : []
-}
-
-function normalizeTagSegment(segment: string) {
-  return segment.trim().replace(/[。.；;\s]+$/, '')
-}
-
-/** 只有标签独立成段时才算「已选中」，避免描述里恰好出现同名词就误亮 */
-export function hasPromptTag(prompt: string, tag: string) {
-  return promptTagSegments(prompt).some((segment) => normalizeTagSegment(segment) === tag)
-}
-
-export function togglePromptTag(prompt: string, tag: string) {
-  const segments = promptTagSegments(prompt)
-  const index = segments.findIndex((segment) => normalizeTagSegment(segment) === tag)
-  if (index >= 0) return segments.filter((_, segmentIndex) => segmentIndex !== index).join('，')
-  if (segments.length === 0) return tag
-  // 追加时把句号留在最后，避免出现「清晰。，产品摄影」这样的双重标点
-  const trailing = prompt.match(/[。.]+$/)?.[0] ?? ''
-  const head = prompt.trim().replace(/[。.]$/, '')
-  return `${head}，${tag}${trailing}`
 }
 
 /**
