@@ -14,19 +14,19 @@ const (
 	maxPromptTextRunes = 2000
 )
 
-const promptRewriteSystemPrompt = `你是电商与商业摄影方向的提示词工程师。你的任务是把用户的口语描述（以及可能上传的参考图）改写成一条可直接用于文生图模型的提示词。
+const promptRewriteSystemPrompt = `你是文生图提示词工程师。你的任务是把用户的口语描述（以及可能上传的参考图）改写成一条可直接用于文生图模型的提示词。
 
 要求：
 1. 结构顺序固定为：主体与场景 → 构图与视角 → 光线 → 材质与质感 → 风格与氛围 → 输出约束。
 2. 保留用户原文中的关键元素、品牌信息与主体特征；不得替换主体，不得新增用户没有提到的产品或文字。
-3. 如果用户提供了图片，以图片内容为准补充主体特征（形状、颜色、材质、包装文字），不要臆造图片里没有的元素。
+3. 如果用户提供了图片，以图片内容为准补充主体特征（形状、颜色、材质、画面中的文字），不要臆造图片里没有的元素。
 4. 不写解释、不写标题、不使用 Markdown、不加引号、不使用列表符号。
 5. 使用与用户输入相同的语言；中文输入输出中文。
-6. 结合下方给出的画面比例、分辨率与期望风格，让描述与输出规格保持一致。
+6. 结合下方给出的期望风格，让描述与该用途保持一致。
 7. 长度控制在 1000 字以内；在保证信息完整的前提下尽量精炼。
 8. 只输出改写后的提示词本身。`
 
-const requirementSystemPrompt = `你是跨境电商视觉策划，同时也是文生图提示词工程师。请结合用户提供的文字、商品图片，以及当前任务类型、目标平台、画面比例、文字语言等参数，直接输出一段完整、可以拿去生成商品图的提示词。
+const requirementSystemPrompt = `你是跨境电商视觉策划，同时也是文生图提示词工程师。请结合用户提供的文字、商品图片，以及当前任务类型、目标平台、模块组合、文字语言等参数，直接输出一段完整、可以拿去生成商品图的提示词。
 
 要求：
 1. 输出一段连续的文字：不要分行、不要写字段名或标题、不要使用 Markdown、不要加引号、不要用列表符号。
@@ -41,6 +41,27 @@ const requirementSystemPrompt = `你是跨境电商视觉策划，同时也是�
 10. 使用与用户输入相同的语言；中文输入输出中文。
 11. 长度控制在 1000 字以内；在保证信息完整的前提下尽量精炼。
 12. 只输出这段提示词本身。`
+
+// promptTaskGuidance 按任务类型追加一段说明：不同板块要表达的重点不同，
+// 否则详情页很容易拿到一段与自身无关的主图式提示词。
+var promptTaskGuidance = map[string]string{
+	"product-main":    "本次任务是商品主图：画面要一眼看清商品本体与核心卖点，主体完整、背景干净、留白合理。",
+	"detail-page":     "本次任务是电商详情页素材，会按模块成套产出（例如首屏主视觉、核心卖点图、场景应用图、产品细节图、规格参数图等）。请围绕商品本身与卖点展开，覆盖这些模块共同需要的商品信息：外观与包装、材质质感、使用场景、可展示的细节；不要只写成单张主图式的画面。",
+	"viral-recreate":  "本次任务是爆款复刻：商品本体以用户上传的原图为准，可以借鉴参考图的视觉结构与氛围，不要照搬参考图中的其他商品。",
+	"product-retouch": "本次任务是产品精修：以商品原图的真实外观为基准，只做质感、清晰度、背景与色彩上的提升，不改变商品形状、颜色与包装信息。",
+}
+
+// promptSystem 选择系统提示词，并按任务类型补上对应板块的表达重点。
+func promptSystem(target, taskType string) string {
+	base := promptRewriteSystemPrompt
+	if target == "requirements" {
+		base = requirementSystemPrompt
+	}
+	if guidance := promptTaskGuidance[strings.TrimSpace(taskType)]; guidance != "" {
+		return base + "\n\n" + guidance
+	}
+	return base
+}
 
 // promptEnhance 处理「AI 优化提示词 / AI 帮写」：文本或图片至少有一个才受理。
 func (s *server) promptEnhance(w http.ResponseWriter, r *http.Request) {
@@ -80,11 +101,8 @@ func (s *server) promptEnhance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	system := promptRewriteSystemPrompt
+	system := promptSystem(target, r.FormValue("taskType"))
 	userText := buildPromptUserText(target, text, r)
-	if target == "requirements" {
-		system = requirementSystemPrompt
-	}
 
 	rewritten, err := s.promptClient.complete(r.Context(), system, userText, images, 800)
 	if err != nil {
@@ -199,9 +217,8 @@ func buildPromptUserText(target, text string, r *http.Request) string {
 
 	writeContextLine(&builder, "任务类型", labeledValue(promptTaskTypeLabels, r.FormValue("taskType")))
 	writeContextLine(&builder, "目标平台", labeledValue(promptPlatformLabels, r.FormValue("platform")))
+	writeContextLine(&builder, "模块组合", moduleContextText(r))
 	writeContextLine(&builder, "期望风格", labeledValue(promptStyleLabels, r.FormValue("style")))
-	writeContextLine(&builder, "画面比例", strings.TrimSpace(r.FormValue("aspectRatio")))
-	writeContextLine(&builder, "分辨率", strings.TrimSpace(r.FormValue("resolution")))
 	writeContextLine(&builder, "文字语言", labeledValue(promptLanguageLabels, r.FormValue("outputLanguage")))
 	writeContextLine(&builder, "复刻程度", labeledValue(promptRecreateLabels, r.FormValue("recreateStrength")))
 
@@ -228,6 +245,42 @@ func writeContextLine(builder *strings.Builder, label, value string) {
 		return
 	}
 	builder.WriteString(label + "：" + value + "\n")
+}
+
+const (
+	maxContextModules     = 16
+	maxContextModuleRunes = 32
+)
+
+// moduleContextText 把前端选择的模块拼成中文说明，例如「自定义模块：首屏主视觉×1、核心卖点图×2」。
+// 比例、分辨率这类输出规格不参与提示词生成，这里只带真正影响内容的业务上下文。
+func moduleContextText(r *http.Request) string {
+	mode := strings.TrimSpace(r.FormValue("moduleMode"))
+	items := r.MultipartForm.Value["modules"]
+	labels := make([]string, 0, len(items))
+	for _, item := range items {
+		if len(labels) >= maxContextModules {
+			break
+		}
+		label := strings.TrimSpace(item)
+		if label == "" {
+			continue
+		}
+		if runes := []rune(label); len(runes) > maxContextModuleRunes {
+			label = string(runes[:maxContextModuleRunes])
+		}
+		labels = append(labels, label)
+	}
+	if len(labels) == 0 {
+		if mode == "smart" {
+			return "由 AI 依据商品与平台自动组合模块"
+		}
+		return ""
+	}
+	if mode == "custom" {
+		return "自定义模块：" + strings.Join(labels, "、")
+	}
+	return strings.Join(labels, "、")
 }
 
 type promptImageError string

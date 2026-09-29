@@ -125,9 +125,11 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
       ? moduleMode === 'custom' ? moduleTotal : 1
       : 1
 
-  const requirementsPlaceholder = task === 'product-main' || task === 'detail-page'
+  const requirementsPlaceholder = task === 'product-main'
     ? '建议输入：产品名称，核心卖点，目标人群，主图风格，平台规范等'
-    : '选填，例如：去除背景杂物、增强产品光泽、修复划痕、提升整体清晰度等'
+    : task === 'detail-page'
+      ? '选填，例如：想在详情页强调的卖点、目标人群、使用场景、需要展示的细节等'
+      : '选填，例如：去除背景杂物、增强产品光泽、修复划痕、提升整体清晰度等'
 
   // 重新生成前的二次确认内容：只摊开真实会用到的配置
   const configRows: ReadonlyArray<RegenerateRow> = mode === 'general'
