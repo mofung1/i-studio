@@ -2476,6 +2476,49 @@ img {
 }
 
 
+/* 顶栏里的轻量动作按钮（历史查看态的「回到当前任务」） */
+.meta-action {
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  color: var(--foreground-2);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+
+.meta-action:hover {
+  color: var(--foreground);
+  background: var(--surface);
+  border-color: var(--line-hover);
+}
+
+
+.meta-action.is-primary {
+  color: var(--background);
+  background: var(--primary);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+
+.meta-action.is-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+
+.meta-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
 .result-body {
   min-height: 0;
   flex: 1;
@@ -2633,6 +2676,17 @@ img {
 }
 
 
+/* 历史查看态：去掉右侧操作栏，图片占满整行 */
+.result-result.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+
+.result-result.is-single .result-hero-image {
+  max-height: min(70vh, 720px);
+}
+
+
 .result-stage {
   min-width: 0;
   display: grid;
@@ -2649,10 +2703,75 @@ img {
 }
 
 
+.result-hero-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: zoom-in;
+}
+
+
 .result-hero-image {
   width: 100%;
   max-height: min(62vh, 620px);
   object-fit: contain;
+}
+
+
+/* 多图时左右切换 */
+.result-hero-nav {
+  position: absolute;
+  top: 50%;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(23, 23, 23, 0.14);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background 150ms ease, opacity 150ms ease;
+}
+
+
+.result-hero-nav:hover:not(:disabled) {
+  background: #ffffff;
+}
+
+
+.result-hero-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+
+.result-hero-nav.is-prev {
+  left: 12px;
+}
+
+
+.result-hero-nav.is-next {
+  right: 12px;
+}
+
+
+.result-hero-counter {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  padding: 4px 10px;
+  color: var(--background);
+  background: rgba(23, 23, 23, 0.66);
+  border-radius: 999px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
 }
 
 
@@ -5082,6 +5201,7 @@ img {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 
@@ -5114,44 +5234,14 @@ img {
 
 
 .history-load-config {
+  color: var(--foreground-2);
+}
+
+
+.history-record-actions .history-regenerate {
   margin-left: auto;
-  color: var(--foreground-2);
-}
-
-
-.result-history-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-
-.result-history-actions button {
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 11px;
-  color: var(--foreground-2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 150ms ease, border-color 150ms ease;
-}
-
-
-.result-history-actions button:hover:not(:disabled) {
   color: var(--foreground);
-  border-color: var(--line-hover);
-}
-
-
-.result-history-actions button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  font-weight: 600;
 }
 
 
@@ -5437,6 +5527,7 @@ img {
 
 
 .confirm-dialog-list > div {
+  min-width: 0;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -5453,6 +5544,7 @@ img {
 
 .confirm-dialog-list dd {
   min-width: 0;
+  flex: 1 1 auto;
   margin: 0;
   overflow: hidden;
   color: var(--foreground);
@@ -5461,6 +5553,64 @@ img {
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+
+/* 自由文本行（画面描述 / 主图需求）：单独一块，超长时 4 行截断并可展开。
+   选择器要压过 `.confirm-dialog-list > div` 的一行式 flex 排版 */
+.confirm-dialog-list > .confirm-dialog-block {
+  display: grid;
+  gap: 6px;
+  align-items: start;
+}
+
+
+.confirm-dialog-block dt {
+  color: var(--foreground-3);
+  font-size: 11px;
+}
+
+
+/* 选择器压过 `.confirm-dialog-list dd` 的单行省略号，否则 4 行截断不会生效 */
+.confirm-dialog-list .confirm-dialog-text {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+
+.confirm-dialog-list .confirm-dialog-text.is-expanded {
+  max-height: 168px;
+  overflow-y: auto;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+
+.confirm-dialog-toggle {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: var(--foreground-2);
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+
+.confirm-dialog-toggle:hover {
+  color: var(--foreground);
 }
 
 

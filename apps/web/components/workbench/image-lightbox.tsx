@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Crop, Download, Loader2, Maximize, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Crop, Download, Loader2, Maximize, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -11,6 +11,11 @@ interface ImageLightboxProps {
   alt: string
   /** 下载与裁剪产物使用的文件名前缀 */
   filename: string
+  /** 同一次生成有多张时，可在查看器内左右切换 */
+  hasPrev?: boolean
+  hasNext?: boolean
+  onPrev?: () => void
+  onNext?: () => void
   onClose: () => void
 }
 
@@ -45,7 +50,7 @@ function saveBlob(blob: Blob, filename: string) {
  * 结果图查看器：查看态支持放大 / 缩小 / 拖动平移；裁剪态支持框选后导出到本地。
  * 裁剪完全在浏览器内完成，不写回服务端，也不产生新的生成费用。
  */
-export function ImageLightbox({ path, alt, filename, onClose }: ImageLightboxProps) {
+export function ImageLightbox({ path, alt, filename, hasPrev, hasNext, onPrev, onNext, onClose }: ImageLightboxProps) {
   const { source, state, retry } = useProtectedImageUrl(path)
   const [mode, setMode] = useState<'view' | 'crop'>('view')
   const [zoom, setZoom] = useState(1)
@@ -92,13 +97,18 @@ export function ImageLightbox({ path, alt, filename, onClose }: ImageLightboxPro
   // Esc 关闭灯箱；裁剪态第一次按 Esc 先退出裁剪
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
-      if (mode === 'crop') exitCrop()
-      else onClose()
+      if (event.key === 'Escape') {
+        if (mode === 'crop') exitCrop()
+        else onClose()
+        return
+      }
+      if (mode !== 'view') return
+      if (event.key === 'ArrowLeft' && hasPrev) onPrev?.()
+      if (event.key === 'ArrowRight' && hasNext) onNext?.()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [exitCrop, mode, onClose])
+  }, [exitCrop, hasNext, hasPrev, mode, onClose, onNext, onPrev])
 
   // 窗口尺寸变化时重新测量，保证裁剪框始终贴合图片
   useEffect(() => {
@@ -249,6 +259,12 @@ export function ImageLightbox({ path, alt, filename, onClose }: ImageLightboxPro
           <div className="lightbox-tools">
             {mode === 'view' ? (
               <>
+                {onPrev && (
+                  <button type="button" aria-label="上一张" title="上一张（←）" disabled={!hasPrev} onClick={onPrev}><ChevronLeft size={16} /></button>
+                )}
+                {onNext && (
+                  <button type="button" aria-label="下一张" title="下一张（→）" disabled={!hasNext} onClick={onNext}><ChevronRight size={16} /></button>
+                )}
                 <button type="button" aria-label="缩小" title="缩小" disabled={zoom <= 1} onClick={() => stepZoom(-1)}><ZoomOut size={16} /></button>
                 <span className="lightbox-zoom">{Math.round(zoom * 100)}%</span>
                 <button type="button" aria-label="放大" title="放大" disabled={zoom >= 6} onClick={() => stepZoom(1)}><ZoomIn size={16} /></button>

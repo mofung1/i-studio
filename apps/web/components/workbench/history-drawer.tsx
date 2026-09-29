@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, Check, Download, History, Loader2, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
+import { AlertTriangle, Check, Download, History, Loader2, RefreshCw, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { AuthenticatedImage } from '@/components/authenticated-image'
@@ -21,8 +21,9 @@ interface HistoryDrawerProps {
   onClose: () => void
   onSelect: (task: HistoryTask) => void
   onDownload: (path: string, filename: string) => void
-  onUseAsReference: (path: string) => void
+  onUseAsReference: (path: string, source: { mode: WorkbenchMode; taskType: CommerceTaskType }) => void
   onLoadConfig: (task: HistoryTask) => void
+  onRegenerate: (task: HistoryTask) => void
 }
 
 function formatTime(value: string) {
@@ -45,6 +46,7 @@ const statusLabels: Record<string, string> = {
 export function HistoryDrawer({
   open, mode, task, selectedId, loadingConfigId, refreshKey,
   onClose, onSelect, onDownload, onUseAsReference, onLoadConfig,
+  onRegenerate,
 }: HistoryDrawerProps) {
   const [scope, setScope] = useState<'type' | 'all'>('type')
   const { tasks, isLoading, error, reload } = useTaskHistory({
@@ -133,13 +135,16 @@ export function HistoryDrawer({
                     >
                       <Download size={13} />
                     </button>
-                    <button
-                      type="button"
-                      title="把第一张用作参考图"
-                      aria-label="把这条记录的第一张图片用作参考图"
-                      disabled={!cover}
-                      onClick={() => cover && onUseAsReference(cover)}
-                    >
+                <button
+                  type="button"
+                  title="把第一张用作参考图"
+                  aria-label="把这条记录的第一张图片用作参考图"
+                  disabled={!cover}
+                  onClick={() => cover && onUseAsReference(cover, {
+                    mode: item.input.mode === 'commerce' ? 'commerce' : 'general',
+                    taskType: (item.input.taskType as CommerceTaskType) ?? 'product-main',
+                  })}
+                >
                       <RotateCcw size={13} />
                     </button>
                     <button
@@ -154,6 +159,17 @@ export function HistoryDrawer({
                         ? <Loader2 size={13} className="animate-spin" />
                         : <SlidersHorizontal size={13} />}
                       载入配置
+                    </button>
+                    <button
+                      type="button"
+                      className="history-regenerate"
+                      title="用该记录配置重新生成图片"
+                      aria-label="用这条记录的配置重新生成"
+                      disabled={loadingConfigId === item.id}
+                      onClick={() => onRegenerate(item)}
+                    >
+                      <RefreshCw size={13} />
+                      重新生成
                     </button>
                   </div>
                 </li>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
@@ -9,10 +9,11 @@ import { apiBaseUrl, getAccessToken } from '@/lib/api'
 
 import { InspirationGallery } from './inspiration-gallery'
 import { CreatorSidebar } from './workbench/creator-sidebar'
+import { RegenerateDialog, shouldSkipRegenerateConfirm, type RegenerateRow } from './workbench/regenerate-dialog'
 import { ResultWorkspace } from './workbench/result-workspace'
 import { WorkbenchHeader } from './workbench/workbench-header'
 import { WorkbenchRail } from './workbench/workbench-rail'
-import { useGenerationTask } from './workbench/use-generation-task'
+import { useGenerationTask, type GenerationNotice } from './workbench/use-generation-task'
 import type { HistoryTask } from './workbench/use-task-history'
 import {
   detailModules,
@@ -74,6 +75,9 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
   const [loadingConfigId, setLoadingConfigId] = useState<string | null>(null)
   // 提交那一刻的产出张数：生成过程中再改参数，加载占位不会跟着变
   const [submittedCount, setSubmittedCount] = useState<number | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  // 切换生图类型会重置结果作用域并顺带清空提示，这里把提示延后到切换完成后再显示
+  const pendingNoticeRef = useRef<GenerationNotice | null>(null)
 
   const {
     generationTask, resultHistory, activeResultIndex, activeResult,
@@ -99,6 +103,14 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
       .catch(() => setAiEnabled(false))
   }, [])
 
+  useEffect(() => {
+    if (!pendingNoticeRef.current) return
+    setNotice(pendingNoticeRef.current)
+    pendingNoticeRef.current = null
+    // 依赖 mode/task：类型切换完成后才把提示补上
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, task])
+
   const currentTask = taskMeta[task]
   const title = mode === 'general' ? '通用生图' : currentTask.title
   const moduleTotal = Object.values(moduleCounts).reduce((total, value) => total + value, 0)
@@ -114,19 +126,20 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
     : '选填，例如：去除背景杂物、增强产品光泽、修复划痕、提升整体清晰度等'
 
   // 重新生成前的二次确认内容：只摊开真实会用到的配置
-  const configRows: ReadonlyArray<readonly [string, string]> = mode === 'general'
+  const configRows: ReadonlyArray<RegenerateRow> = mode === 'general'
     ? [
-        ['画面描述', prompt.trim() ? `${prompt.trim().slice(0, 36)}${prompt.trim().length > 36 ? '…' : ''}` : '（未填写）'],
-        ['创作风格', optionLabel(styleOptions, style)],
-        ['参考图', referenceFiles.length > 0 ? `${referenceFiles.length} 张` : '无'],
-        ['模型 / 比例 / 清晰度', `${optionLabel(modelOptions, model)} · ${aspectRatio} · ${resolution}`],
+        { label: '画面描述', value: prompt.trim() || '（未填写）', multiline: true },
+        { label: '创作风格', value: optionLabel(styleOptions, style) },
+        { label: '参考图', value: referenceFiles.length > 0 ? `${referenceFiles.length} 张` : '无' },
+        { label: '模型 / 比例 / 清晰度', value: `${optionLabel(modelOptions, model)} · ${aspectRatio} · ${resolution}` },
       ]
     : [
-        ['任务类型', currentTask.title],
-        ['商品素材', `${productFiles.length} 张`],
-        ...(task === 'viral-recreate' ? [['参考爆款图', `${referenceFiles.length} 张`] as const] : []),
-        ['目标平台', optionLabel(platformOptions, platform)],
-        ['模型 / 比例 / 清晰度', `${optionLabel(modelOptions, model)} · ${aspectRatio} · ${resolution}`],
+        { label: '任务类型', value: currentTask.title },
+        { label: '商品素材', value: `${productFiles.length} 张` },
+        ...(task === 'viral-recreate' ? [{ label: '参考爆款图', value: `${referenceFiles.length} 张` }] : []),
+        ...(requirements.trim() ? [{ label: task === 'product-main' ? '主图需求' : task === 'detail-page' ? '详情图需求' : '补充要求', value: requirements.trim(), multiline: true }] : []),
+        { label: '目标平台', value: optionLabel(platformOptions, platform) },
+        { label: '模型 / 比例 / 清晰度', value: `${optionLabel(modelOptions, model)} · ${aspectRatio} · ${resolution}` },
       ]
 
   function changeMode(nextMode: WorkbenchMode) {
@@ -154,20 +167,62 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
     if (nextView === 'inspire') router.replace('/workbench?view=inspire')
   }
 
+  /** 把一张结果图取回成可以直接放进素材区的文件 */
+  async function fetchImageFile(path: string, name: string) {
+    const url = path.startsWith('/') ? `${apiBaseUrl}${path}` : path
+    const token = getAccessToken()
+    const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
+    if (!response.ok) throw new Error('图片读取失败，请稍后重试')
+    const blob = await response.blob()
+    const type = blob.type || 'image/png'
+    const extension = type.includes('jpeg') ? 'jpg' : type.includes('webp') ? 'webp' : 'png'
+    return new File([blob], `${name}.${extension}`, { type })
+  }
+
   /** 历史任务里存的是 assetId，需要按 id 取回内容才能还原成可编辑的素材 */
   async function fetchAssetFiles(assetIds: string[]) {
     if (assetIds.length === 0) return []
-    const token = getAccessToken()
-    return Promise.all(assetIds.map(async (assetId, index) => {
-      const response = await fetch(`${apiBaseUrl}/v1/assets/${assetId}/content`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      })
-      if (!response.ok) throw new Error('历史素材读取失败，无法载入该记录的图片')
-      const blob = await response.blob()
-      const type = blob.type || 'image/png'
-      const extension = type.includes('jpeg') ? 'jpg' : type.includes('webp') ? 'webp' : 'png'
-      return new File([blob], `history-${index + 1}.${extension}`, { type })
-    }))
+    return Promise.all(assetIds.map((assetId, index) => fetchImageFile(`/v1/assets/${assetId}/content`, `history-${index + 1}`)))
+  }
+
+  /**
+   * 把结果图作为参考图继续迭代：
+   * 与当前工具同类型时直接填入素材区；不同类型时先切到对应的生图配置页再填入。
+   */
+  async function useImageAsReference(path: string, source: { mode: WorkbenchMode; taskType: CommerceTaskType }) {
+    const targetMode = source.mode === 'commerce' ? 'commerce' : 'general'
+    const targetTask = (['product-main', 'detail-page', 'viral-recreate', 'product-retouch'] as CommerceTaskType[])
+      .includes(source.taskType) ? source.taskType : 'product-main'
+    setNotice(null)
+    try {
+      const file = await fetchImageFile(path, 'ref-result')
+      const slot: 'product' | 'reference' = targetMode === 'general' || targetTask === 'viral-recreate' ? 'reference' : 'product'
+      const single = targetTask === 'viral-recreate' || targetTask === 'product-retouch'
+      if (slot === 'reference') {
+        setReferenceFiles((previous) => (single ? [file] : [...previous, file].slice(0, 6)))
+      } else {
+        setProductFiles((previous) => (single ? [file] : [...previous, file].slice(0, 6)))
+      }
+
+      const sameScope = targetMode === mode && (targetMode === 'general' || targetTask === task)
+      if (!sameScope) {
+        setMode(targetMode)
+        setTask(targetTask)
+        setView('create')
+        setHistoryTask(null)
+        setHistoryOpen(false)
+        router.replace(targetMode === 'general' ? '/workbench?mode=general' : `/workbench?mode=commerce&task=${targetTask}`)
+      }
+      const message = sameScope
+        ? '已作为参考图填入左侧素材区'
+        : `已切到${targetMode === 'general' ? '通用生图' : taskMeta[targetTask].title}，图片已填入素材区`
+      if (sameScope) setNotice({ kind: 'success', message })
+      else pendingNoticeRef.current = { kind: 'success', message }
+      // 参考图已填入左侧，滚动到素材区让用户确认
+      document.querySelector('.configuration-scroll')?.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (error) {
+      setNotice({ kind: 'error', message: error instanceof Error ? error.message : '图片读取失败，请稍后重试' })
+    }
   }
 
   /** 载入一条历史记录的配置，继续在当前工作台里编辑 */
@@ -208,12 +263,34 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
       setHistoryTask(null)
       setHistoryOpen(false)
       router.replace(nextMode === 'general' ? '/workbench?mode=general' : `/workbench?mode=commerce&task=${nextTask}`)
-      setNotice({ kind: 'success', message: '已载入历史记录的配置，可继续调整后生成' })
+      const message = '已载入历史记录的配置，可继续调整后生成'
+      if (nextMode === mode && (nextMode === 'general' || nextTask === task)) setNotice({ kind: 'success', message })
+      else pendingNoticeRef.current = { kind: 'success', message }
     } catch (error) {
       setNotice({ kind: 'error', message: error instanceof Error ? error.message : '载入配置失败' })
     } finally {
       setLoadingConfigId(null)
     }
+  }
+
+  /** 用一条历史记录自己的配置再生成一次：先回填配置，再走二次确认 */
+  async function regenerateFromHistory(historyTaskToLoad: HistoryTask) {
+    await loadHistoryConfig(historyTaskToLoad)
+    if (shouldSkipRegenerateConfirm()) {
+      createGenerationTask()
+      return
+    }
+    // 与上一批 state 更新同一批提交，弹窗里展示的就是刚载入的配置
+    setConfirmOpen(true)
+  }
+
+  /** 重新生成前先确认：每次生成都会调用 AI 服务并产生费用 */
+  function requestRegenerate() {
+    if (shouldSkipRegenerateConfirm()) {
+      createGenerationTask()
+      return
+    }
+    setConfirmOpen(true)
   }
 
   function buildPayload(productAssetIds: string[], referenceAssetIds: string[]): unknown {
@@ -380,7 +457,6 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
               isGenerating={isGenerating}
               isSubmitting={isSubmitting}
               aiEnabled={aiEnabled}
-              configRows={configRows}
               historyOpen={historyOpen}
               historyTask={historyTask}
               loadingHistoryConfigId={loadingConfigId}
@@ -391,13 +467,25 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
               }}
               onExitHistoryView={() => setHistoryTask(null)}
               onLoadHistoryConfig={(record) => void loadHistoryConfig(record)}
+              onRegenerateFromHistory={(record) => void regenerateFromHistory(record)}
+              onUseImageAsReference={(path, source) => void useImageAsReference(path, source)}
+              isRegeneratingHistory={loadingConfigId !== null}
               onSetActiveResultIndex={setActiveResultIndex}
-              onSetReferenceFiles={setReferenceFiles}
-              onRegenerate={createGenerationTask}
+              onRegenerate={requestRegenerate}
             />
           </>
         )}
       </section>
+
+      {confirmOpen && (
+        <RegenerateDialog
+          title={title}
+          rows={configRows}
+          expectedCount={expectedCount}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={() => { setConfirmOpen(false); createGenerationTask() }}
+        />
+      )}
     </main>
   )
 }

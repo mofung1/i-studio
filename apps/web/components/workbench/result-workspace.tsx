@@ -1,23 +1,27 @@
 'use client'
 
 import {
-  AlertTriangle, Check, Download, History, Image as ImageIcon, Loader2, Maximize2, RotateCcw, SlidersHorizontal, Sparkles,
+  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, History, Image as ImageIcon, Loader2, RotateCcw, Sparkles,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
-import { apiBaseUrl, getAccessToken } from '@/lib/api'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 
 import { GenerationHistory } from './generation-history'
 import { HistoryDrawer } from './history-drawer'
 import { ImageLightbox } from './image-lightbox'
-import { RegenerateDialog, shouldSkipRegenerateConfirm } from './regenerate-dialog'
 import { ResultActions } from './result-actions'
 import { generalCanvasImage, moduleLabel, taskMeta, type WorkbenchMode } from './shared'
 import { taskModeLabel, type HistoryTask } from './use-task-history'
 import { generationStatusLabels, type InlineGenerationTask } from './use-generation-task'
+
+/** 图片来源：决定「用作参考图」跳到哪个生图配置页 */
+export interface ImageSource {
+  mode: WorkbenchMode
+  taskType: CommerceTaskType
+}
 
 interface ResultWorkspaceProps {
   mode: WorkbenchMode
@@ -34,18 +38,19 @@ interface ResultWorkspaceProps {
   isGenerating: boolean
   isSubmitting: boolean
   aiEnabled: boolean | null
-  /** 二次确认弹窗里展示的当前配置 */
-  configRows: ReadonlyArray<readonly [string, string]>
   /** 历史记录抽屉 */
   historyOpen: boolean
   historyTask: HistoryTask | null
   loadingHistoryConfigId: string | null
+  isRegeneratingHistory: boolean
   onToggleHistory: () => void
   onSelectHistory: (task: HistoryTask) => void
   onExitHistoryView: () => void
   onLoadHistoryConfig: (task: HistoryTask) => void
+  onRegenerateFromHistory: (task: HistoryTask) => void
+  onUseImageAsReference: (path: string, source: ImageSource) => void
   onSetActiveResultIndex: (updater: (index: number) => number) => void
-  onSetReferenceFiles: (updater: (files: File[]) => File[]) => void
+  /** 重新生成（是否二次确认由父级决定） */
   onRegenerate: () => void
 }
 
@@ -55,10 +60,10 @@ const MAX_SKELETONS = 8
 export function ResultWorkspace({
   mode, task, aspectRatio, resolution, expectedCount, generatingCount,
   resultHistory, activeResultIndex, activeResult, generationTask,
-  isGenerating, isSubmitting, aiEnabled, configRows,
-  historyOpen, historyTask, loadingHistoryConfigId,
-  onToggleHistory, onSelectHistory, onExitHistoryView, onLoadHistoryConfig,
-  onSetActiveResultIndex, onSetReferenceFiles, onRegenerate,
+  isGenerating, isSubmitting, aiEnabled,
+  historyOpen, historyTask, loadingHistoryConfigId, isRegeneratingHistory,
+  onToggleHistory, onSelectHistory, onExitHistoryView, onLoadHistoryConfig, onRegenerateFromHistory,
+  onUseImageAsReference, onSetActiveResultIndex, onRegenerate,
 }: ResultWorkspaceProps) {
   const currentTask = taskMeta[task]
   const title = mode === 'general' ? '通用生图' : currentTask.title
@@ -68,19 +73,26 @@ export function ResultWorkspace({
   // 从「最近生成」里指定了具体某张图时，切版本后要落在这张图上而不是第一张
   const pendingImageRef = useRef<number | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [referenceError, setReferenceError] = useState('')
-  const [confirmOpen, setConfirmOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
   const isHistoryView = Boolean(historyTask)
-  const sessionImages = activeResult?.resultImages ?? []
-  const images = isHistoryView ? (historyTask?.resultImages ?? []) : sessionImages
+  const images = isHistoryView ? (historyTask?.resultImages ?? []) : (activeResult?.resultImages ?? [])
   const safeIndex = Math.min(activeImageIndex, Math.max(images.length - 1, 0))
   const heroImage = images[safeIndex] ?? ''
   const hasResults = images.length > 0
   const failureMessage = generationTask && !isGenerating && generationTask.status !== 'succeeded'
     ? generationTask.errorMessage || '供应商未返回错误详情，请重试。'
     : ''
+
+  // 结果图所属的生图类型：当前任务就是当前工具，历史记录取记录自己的类型
+  const imageSource: ImageSource = isHistoryView && historyTask
+    ? {
+        mode: historyTask.input.mode === 'commerce' ? 'commerce' : 'general',
+        taskType: (historyTask.input.taskType as CommerceTaskType) ?? 'product-main',
+      }
+    : { mode, taskType: task }
+  const referenceTarget = imageSource.mode === 'general' ? '通用生图' : taskMeta[imageSource.taskType]?.title ?? '电商设计'
+  const referenceTitle = `用作「${referenceTarget}」的参考图`
 
   useEffect(() => {
     setActiveImageIndex(pendingImageRef.current ?? 0)
@@ -93,45 +105,48 @@ export function ResultWorkspace({
     if (!isGenerating && generationTask) setRefreshKey((value) => value + 1)
   }, [generationTask?.id, generationTask?.status, isGenerating])
 
-  async function useAsReference(path: string) {
-    setReferenceError('')
-    try {
-      const url = path.startsWith('/') ? `${apiBaseUrl}${path}` : path
-      const token = getAccessToken()
-      const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
-      if (!response.ok) throw new Error('图片读取失败，请稍后重试')
-      const blob = await response.blob()
-      const filename = `ref-${path.split('/').pop() ?? 'image.png'}`
-      const file = new File([blob], filename, { type: blob.type || 'image/png' })
-      onSetReferenceFiles((previous) => [...previous, file].slice(0, 6))
-      // 参考图已填入左侧，滚动到素材区让用户确认
-      document.querySelector('.configuration-scroll')?.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch (error) {
-      setReferenceError(error instanceof Error ? error.message : '图片读取失败，请稍后重试')
-    }
-  }
-
   function downloadCurrent() {
     if (!heroImage) return
     const prefix = isHistoryView ? historyTask?.id.slice(0, 8) : activeResult?.id.slice(0, 8)
     void downloadProtectedAsset(heroImage, `istudio-${prefix ?? 'result'}-${safeIndex + 1}.png`)
   }
 
-  function requestRegenerate() {
-    if (shouldSkipRegenerateConfirm()) {
-      onRegenerate()
-      return
-    }
-    setConfirmOpen(true)
+  function step(direction: -1 | 1) {
+    const next = safeIndex + direction
+    if (next < 0 || next >= images.length) return
+    setActiveImageIndex(next)
   }
 
   return (
     <section className="creation-canvas result-workspace">
       <header className="result-head">
         <div className="result-meta">
-          <span className="meta-chip">{expectedCount > 0 ? `${expectedCount} 张` : '—'}</span>
-          <span className="meta-chip">{aspectRatio}</span>
-          <span className="meta-chip">{resolution}</span>
+          {isHistoryView && historyTask ? (
+            <>
+              <span className="meta-chip">
+                历史记录 · {taskModeLabel(historyTask.input)} · {images.length} 张
+              </span>
+              <button
+                type="button"
+                className="meta-action is-primary"
+                title="用该记录配置重新生成图片"
+                disabled={isRegeneratingHistory}
+                onClick={() => onRegenerateFromHistory(historyTask)}
+              >
+                {isRegeneratingHistory
+                  ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+                  : <RotateCcw size={14} aria-hidden="true" />}
+                重新生成
+              </button>
+              <button type="button" className="meta-action" onClick={onExitHistoryView}>回到当前任务</button>
+            </>
+          ) : (
+            <>
+              <span className="meta-chip">{expectedCount > 0 ? `${expectedCount} 张` : '—'}</span>
+              <span className="meta-chip">{aspectRatio}</span>
+              <span className="meta-chip">{resolution}</span>
+            </>
+          )}
           <button
             type="button"
             className={`history-trigger ${historyOpen ? 'is-active' : ''}`}
@@ -176,23 +191,57 @@ export function ResultWorkspace({
         )}
 
         {heroImage !== '' && (!isGenerating || isHistoryView) && (
-          <div className="result-result">
+          <div className={isHistoryView ? 'result-result is-single' : 'result-result'}>
             <div className="result-stage">
               <div className="result-hero">
-                <AuthenticatedImage path={heroImage} alt={`AI 生成结果 ${safeIndex + 1}`} className="result-hero-image" />
+                <button
+                  type="button"
+                  className="result-hero-open"
+                  aria-label={`放大查看第 ${safeIndex + 1} 张`}
+                  title="点击查看大图"
+                  onClick={() => setLightboxOpen(true)}
+                >
+                  <AuthenticatedImage path={heroImage} alt={`AI 生成结果 ${safeIndex + 1}`} className="result-hero-image" />
+                </button>
+
+                {images.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      className="result-hero-nav is-prev"
+                      aria-label="上一张"
+                      disabled={safeIndex === 0}
+                      onClick={() => step(-1)}
+                    ><ChevronLeft size={20} /></button>
+                    <button
+                      type="button"
+                      className="result-hero-nav is-next"
+                      aria-label="下一张"
+                      disabled={safeIndex === images.length - 1}
+                      onClick={() => step(1)}
+                    ><ChevronRight size={20} /></button>
+                  </>
+                )}
+
                 {moduleLabel(task, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '') && (
                   <span className="module-badge">
                     {moduleLabel(task, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '')}
                   </span>
                 )}
+                {images.length > 1 && (
+                  <span className="result-hero-counter">{safeIndex + 1} / {images.length}</span>
+                )}
+
                 <div className="result-hero-actions">
-                  <button type="button" title="放大 / 裁剪" aria-label="放大查看并裁剪这张图片" onClick={() => setLightboxOpen(true)}>
-                    <Maximize2 size={16} />
-                  </button>
                   <button type="button" title="下载" aria-label="下载这张图片" onClick={downloadCurrent}>
                     <Download size={16} />
                   </button>
-                  <button type="button" title="用作参考图继续迭代" aria-label="把这张图片用作参考图" onClick={() => void useAsReference(heroImage)}>
+                  <button
+                    type="button"
+                    title={referenceTitle}
+                    aria-label={referenceTitle}
+                    onClick={() => onUseImageAsReference(heroImage, imageSource)}
+                  >
                     <RotateCcw size={16} />
                   </button>
                 </div>
@@ -217,52 +266,32 @@ export function ResultWorkspace({
               )}
             </div>
 
+            {!isHistoryView && (
             <div className="result-side">
               <div className="result-side-head">
                 <span className="success-label">
                   <Check size={13} aria-hidden="true" />
-                  {isHistoryView ? '历史记录' : activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'}
+                  {activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'}
                 </span>
                 <span>
-                  {isHistoryView && historyTask
-                    ? `${taskModeLabel(historyTask.input)} · ${images.length} 张`
-                    : `第 ${activeResultIndex + 1} / ${resultHistory.length} 次 · ${images.length} 张`}
+                  第 {activeResultIndex + 1} / {resultHistory.length} 次 · {images.length} 张
                 </span>
               </div>
-              {isHistoryView && historyTask && (
-                <div className="result-history-actions">
-                  <button
-                    type="button"
-                    disabled={loadingHistoryConfigId === historyTask.id}
-                    onClick={() => onLoadHistoryConfig(historyTask)}
-                  >
-                    {loadingHistoryConfigId === historyTask.id
-                      ? <Loader2 size={14} className="animate-spin" aria-hidden="true" />
-                      : <SlidersHorizontal size={14} aria-hidden="true" />}
-                    载入配置继续编辑
-                  </button>
-                  <button type="button" onClick={onExitHistoryView}>回到当前任务</button>
-                </div>
-              )}
-              {failureMessage && !isHistoryView && (
+              {failureMessage && (
                 <p className="result-side-error" role="alert">
                   <AlertTriangle size={15} aria-hidden="true" />
                   {failureMessage}
                 </p>
               )}
-              {referenceError && <p className="result-side-error" role="alert">{referenceError}</p>}
-              <p className="result-side-note">
-                {isHistoryView
-                  ? '可下载或用作参考图。'
-                  : '结果已保存到任务记录。'}
-              </p>
+              <p className="result-side-note">结果已保存到任务记录。</p>
               <ResultActions
                 isBusy={isSubmitting || isGenerating}
                 onDownload={downloadCurrent}
-                onRegenerate={requestRegenerate}
+                onRegenerate={onRegenerate}
                 onEdit={() => setLightboxOpen(true)}
               />
             </div>
+            )}
           </div>
         )}
       </div>
@@ -282,7 +311,7 @@ export function ResultWorkspace({
             onSetActiveResultIndex(() => resultIndex)
           }}
           onDownload={(path, filename) => void downloadProtectedAsset(path, filename)}
-          onUseAsReference={(path) => void useAsReference(path)}
+          onUseAsReference={(path) => onUseImageAsReference(path, { mode, taskType: task })}
         />
       )}
 
@@ -296,8 +325,9 @@ export function ResultWorkspace({
         onClose={onToggleHistory}
         onSelect={onSelectHistory}
         onDownload={(path, filename) => void downloadProtectedAsset(path, filename)}
-        onUseAsReference={(path) => void useAsReference(path)}
+        onUseAsReference={onUseImageAsReference}
         onLoadConfig={onLoadHistoryConfig}
+        onRegenerate={onRegenerateFromHistory}
       />
 
       {lightboxOpen && heroImage && (
@@ -305,17 +335,11 @@ export function ResultWorkspace({
           path={heroImage}
           alt={`${title}生成结果 ${safeIndex + 1}`}
           filename={`istudio-${(isHistoryView ? historyTask?.id : activeResult?.id)?.slice(0, 8) ?? 'result'}-${safeIndex + 1}`}
+          hasPrev={images.length > 1 && safeIndex > 0}
+          hasNext={images.length > 1 && safeIndex < images.length - 1}
+          onPrev={() => step(-1)}
+          onNext={() => step(1)}
           onClose={() => setLightboxOpen(false)}
-        />
-      )}
-
-      {confirmOpen && (
-        <RegenerateDialog
-          title={title}
-          rows={configRows}
-          expectedCount={expectedCount}
-          onCancel={() => setConfirmOpen(false)}
-          onConfirm={() => { setConfirmOpen(false); onRegenerate() }}
         />
       )}
     </section>
