@@ -2409,11 +2409,14 @@ img {
   display: flex;
   align-items: flex-start;
   gap: 6px;
+  min-width: 0;
   margin: 0 0 3px;
   padding: 9px 10px;
   border-radius: 7px;
   font-size: 11px;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 
@@ -2536,6 +2539,9 @@ img {
   padding-bottom: 14px;
   scrollbar-color: var(--line-hover) transparent;
   scrollbar-width: thin;
+  /* 结果图尺寸按这块面板的真实高度计算，避免主图把缩略图挤出可视区 */
+  container-type: size;
+  container-name: result-pane;
 }
 
 
@@ -2581,7 +2587,8 @@ img {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  max-width: 440px;
+  width: min(520px, 100%);
+  max-width: 100%;
   margin: 14px 0 0;
   padding: 11px 13px;
   color: var(--danger);
@@ -2594,9 +2601,47 @@ img {
 }
 
 
-.result-empty-error span {
+/* 失败提示：原因与原始错误详情分开，长文本一律可换行，不再撑破容器 */
+.failure-body {
+  min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: 6px;
+}
+
+
+.failure-summary {
+  margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+
+.failure-summary strong {
+  margin-right: 4px;
+}
+
+
+.failure-details summary {
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+
+.failure-details pre {
+  max-height: 168px;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 
@@ -2685,8 +2730,8 @@ img {
 
 
 .result-inline-error {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 7px;
   margin: 0 0 12px;
   padding: 9px 12px;
@@ -2695,6 +2740,7 @@ img {
   border: 1px solid var(--danger-line);
   border-radius: 10px;
   font-size: 12px;
+  line-height: 1.5;
 }
 
 
@@ -2702,8 +2748,18 @@ img {
   min-width: 0;
   display: grid;
   gap: 10px;
-  /* 结果图的最大边长：主图画框、生成占位、结果图共用，小屏下一起收敛 */
+  /* 结果图的最大边长：主图画框、生成占位、结果图共用。
+     优先跟随结果面板高度（cqh），旧浏览器回退到视口高度。 */
   --hero-max: min(68vh, 680px);
+  --hero-max: min(680px, calc(100cqh - 30px));
+}
+
+
+/* 下方还有缩略图时，给缩略图留出空间，保证一屏内能同时看到主图和缩略图 */
+.result-stage.has-strip {
+  --hero-max: min(68vh, 680px);
+  /* 预留：缩略图 74 + 切换行 30 + 行间距 20 + 底部内边距 14，再留一点余量 */
+  --hero-max: min(680px, calc(100cqh - 144px));
 }
 
 
@@ -2774,58 +2830,48 @@ img {
 }
 
 
-/* 多图时左右切换 */
-.result-hero-nav {
-  position: absolute;
-  top: 50%;
-  width: 38px;
-  height: 38px;
+/* 多图时左右切换：放在图片下方，不压住画面 */
+.result-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+
+.result-pager button {
   display: grid;
   place-items: center;
+  width: 30px;
+  height: 30px;
   padding: 0;
   color: var(--foreground);
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(23, 23, 23, 0.08);
-  border-radius: 50%;
-  box-shadow: 0 4px 14px rgba(23, 23, 23, 0.14);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
   cursor: pointer;
-  transform: translateY(-50%);
-  transition: background 150ms ease, opacity 150ms ease;
+  transition: background 150ms ease, border-color 150ms ease, opacity 150ms ease;
 }
 
 
-.result-hero-nav:hover:not(:disabled) {
-  background: #ffffff;
+.result-pager button:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
 }
 
 
-.result-hero-nav:disabled {
-  opacity: 0.35;
+.result-pager button:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 
-.result-hero-nav.is-prev {
-  left: 12px;
-}
-
-
-.result-hero-nav.is-next {
-  right: 12px;
-}
-
-
-.result-hero-counter {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  padding: 4px 10px;
-  color: var(--background);
-  background: rgba(23, 23, 23, 0.66);
-  border-radius: 999px;
-  font-size: 11px;
+.result-pager-count {
+  min-width: 44px;
+  color: var(--muted);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
-  transform: translateX(-50%);
+  text-align: center;
 }
 
 
@@ -3313,6 +3359,14 @@ img {
 
   .result-body {
     overflow: visible;
+    /* 窄屏下结果区不滚动、整页滚动，取消尺寸容器避免高度塌陷 */
+    container-type: normal;
+  }
+
+  /* 窄屏保持按视口高度取图，不预留缩略图空间（整页滚动） */
+  .result-stage,
+  .result-stage.has-strip {
+    --hero-max: min(68vh, 680px);
   }
 
   .result-result {
@@ -3485,10 +3539,6 @@ img {
   .config-right .creation-canvas {
     min-height: 500px;
     padding: 14px 12px 92px;
-  }
-
-  .result-stage {
-    --hero-max: 60vh;
   }
 
   .configuration-footer {

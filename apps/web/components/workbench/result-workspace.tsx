@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, History, Image as ImageIcon, Loader2, RefreshCw, RotateCcw, Sparkles,
+  Check, ChevronLeft, ChevronRight, Download, History, Image as ImageIcon, Loader2, RefreshCw, RotateCcw, Sparkles,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -10,6 +10,7 @@ import { AuthenticatedImage, downloadProtectedAsset, useProtectedImageUrl } from
 import type { CommerceTaskType } from '@/lib/contracts'
 
 import { GenerationHistory } from './generation-history'
+import { FailureNotice } from './failure-notice'
 import { HistoryDrawer } from './history-drawer'
 import { ImageLightbox } from './image-lightbox'
 import { generalCanvasImage, moduleLabel, taskMeta, type WorkbenchMode } from './shared'
@@ -192,7 +193,7 @@ export function ResultWorkspace({
       <div className="result-body">
         {isGenerating && !isHistoryView && (
           <div className="result-generating">
-            <div className="result-stage" aria-hidden="true">
+            <div className={`result-stage${generatingImages > 1 ? ' has-strip' : ''}`} aria-hidden="true">
               {/* 占位尺寸与生成后的主图一致：同比例、同最大高度 */}
               <div
                 className="result-hero-skeleton"
@@ -217,10 +218,7 @@ export function ResultWorkspace({
             <h2>生成你的第一张图片</h2>
             <p>{mode === 'general' ? '上传参考图片或描述你的想法。' : '上传商品原图并补充需求即可开始。'}</p>
             {failureMessage && (
-              <p className="result-empty-error" role="alert">
-                <AlertTriangle size={15} aria-hidden="true" />
-                <span><strong>生成失败</strong>{failureMessage}</span>
-              </p>
+              <FailureNotice message={failureMessage} />
             )}
             <figure className="result-reference">
               <img src={referenceImage} alt={`${title}设计参考图`} loading="lazy" />
@@ -230,14 +228,12 @@ export function ResultWorkspace({
         )}
 
         {failureMessage && hasResults && !isHistoryView && !isGenerating && (
-          <p className="result-inline-error" role="alert">
-            <AlertTriangle size={14} aria-hidden="true" />{failureMessage}
-          </p>
+          <FailureNotice message={failureMessage} compact />
         )}
 
         {heroImage !== '' && (!isGenerating || isHistoryView) && (
           <div className="result-result">
-            <div className="result-stage">
+            <div className={`result-stage${images.length > 1 ? ' has-strip' : ''}`}>
               {/* 图片就绪前先按当前比例撑出与结果一致的画框，避免生成完成时塌陷或跳动 */}
               <div
                 className="result-hero"
@@ -270,32 +266,10 @@ export function ResultWorkspace({
                   </div>
                 )}
 
-                {images.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      className="result-hero-nav is-prev"
-                      aria-label="上一张"
-                      disabled={safeIndex === 0}
-                      onClick={() => step(-1)}
-                    ><ChevronLeft size={20} /></button>
-                    <button
-                      type="button"
-                      className="result-hero-nav is-next"
-                      aria-label="下一张"
-                      disabled={safeIndex === images.length - 1}
-                      onClick={() => step(1)}
-                    ><ChevronRight size={20} /></button>
-                  </>
-                )}
-
                 {moduleLabel(task, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '') && (
                   <span className="module-badge">
                     {moduleLabel(task, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '')}
                   </span>
-                )}
-                {images.length > 1 && (
-                  <span className="result-hero-counter">{safeIndex + 1} / {images.length}</span>
                 )}
 
                 {heroReady && (
@@ -314,6 +288,25 @@ export function ResultWorkspace({
                   </div>
                 )}
               </div>
+
+              {/* 切换按钮放在图片下方，不遮挡画面 */}
+              {images.length > 1 && (
+                <div className="result-pager">
+                  <button
+                    type="button"
+                    aria-label="上一张"
+                    disabled={safeIndex === 0}
+                    onClick={() => step(-1)}
+                  ><ChevronLeft size={16} /></button>
+                  <span className="result-pager-count">{safeIndex + 1} / {images.length}</span>
+                  <button
+                    type="button"
+                    aria-label="下一张"
+                    disabled={safeIndex === images.length - 1}
+                    onClick={() => step(1)}
+                  ><ChevronRight size={16} /></button>
+                </div>
+              )}
 
               {images.length > 1 && (
                 <ol className="result-strip" aria-label="本次生成的图片">
@@ -336,26 +329,27 @@ export function ResultWorkspace({
 
           </div>
         )}
-      </div>
 
-      {!isHistoryView && (
-        <GenerationHistory
-          items={resultHistory}
-          activeIndex={activeResultIndex}
-          activeImageIndex={safeIndex}
-          onSelect={(resultIndex, imageIndex) => {
-            pendingImageRef.current = imageIndex
-            if (resultIndex === activeResultIndex) {
-              setActiveImageIndex(imageIndex)
-              pendingImageRef.current = null
-              return
-            }
-            onSetActiveResultIndex(() => resultIndex)
-          }}
-          onDownload={(path, filename) => void downloadProtectedAsset(path, filename)}
-          onUseAsReference={(path) => onUseImageAsReference(path, { mode, taskType: task })}
-        />
-      )}
+        {/* 生成过程中不显示「最近生成」；放在滚动区内，不占用主图高度 */}
+        {!isHistoryView && !isGenerating && (
+          <GenerationHistory
+            items={resultHistory}
+            activeIndex={activeResultIndex}
+            activeImageIndex={safeIndex}
+            onSelect={(resultIndex, imageIndex) => {
+              pendingImageRef.current = imageIndex
+              if (resultIndex === activeResultIndex) {
+                setActiveImageIndex(imageIndex)
+                pendingImageRef.current = null
+                return
+              }
+              onSetActiveResultIndex(() => resultIndex)
+            }}
+            onDownload={(path, filename) => void downloadProtectedAsset(path, filename)}
+            onUseAsReference={(path) => onUseImageAsReference(path, { mode, taskType: task })}
+          />
+        )}
+      </div>
 
       <HistoryDrawer
         open={historyOpen}

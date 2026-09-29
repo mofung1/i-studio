@@ -121,11 +121,13 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
 
   // 主图 / 详情页是按模块成套产出的，把用户选中的模块（含张数）交给 AI，
   // 否则详情页只能拿到一段与详情页无关的通用商品图描述。
+  // modules 传可读的「中文名×张数」，moduleKeys 并行传「key×张数」，
+  // 由服务端补上该模块的表达要点（与真正出图时的 moduleHint 同源）。
   const usesModules = !isGeneral && (task === 'product-main' || task === 'detail-page')
   const selectedModules = usesModules
     ? (task === 'detail-page' ? detailModules : productMainModules)
         .filter(([key]) => (moduleCounts[key] ?? 0) > 0)
-        .map(([key, label]) => `${label}×${moduleCounts[key]}`)
+        .map(([key, label]) => ({ key, label, count: moduleCounts[key] }))
     : []
 
   const advancedSummary = [
@@ -163,7 +165,8 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         platform: isGeneral ? undefined : platform,
         style,
         moduleMode: usesModules ? moduleMode : undefined,
-        modules: usesModules ? selectedModules : undefined,
+        modules: usesModules ? selectedModules.map(({ label, count }) => `${label}×${count}`) : undefined,
+        moduleKeys: usesModules ? selectedModules.map(({ key, count }) => `${key}×${count}`) : undefined,
         outputLanguage: isGeneral ? undefined : outputLanguage,
         recreateStrength: task === 'viral-recreate' ? recreateStrength : undefined,
         enhancements: task === 'product-retouch' ? enhancements : undefined,

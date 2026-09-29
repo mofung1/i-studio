@@ -406,6 +406,19 @@ var moduleHints = map[string]string{
 	"promotion":   "结尾促销图，营造促成购买的促销氛围",
 }
 
+// moduleLabel 取模块的中文名（moduleHints 的第一段），用于错误信息等面向用户的位置，
+// 避免把内部 key（如 selling）直接暴露给用户。
+func moduleLabel(key string) string {
+	hint := strings.TrimSpace(moduleHints[strings.TrimSpace(key)])
+	if hint == "" {
+		return key
+	}
+	if index := strings.Index(hint, "，"); index >= 0 {
+		return hint[:index]
+	}
+	return hint
+}
+
 // allowedModules 按任务类型限定 moduleCounts 可使用的模块 key。
 var allowedModules = map[string]map[string]struct{}{
 	"product-main": stringSet("hero", "white", "selling", "scene", "detail"),
