@@ -182,6 +182,8 @@ func TestBuildPromptUserTextDropsOutputSpecsAndKeepsModules(t *testing.T) {
 		{"moduleMode", "custom"},
 		{"modules", "首屏主视觉×1"},
 		{"modules", "核心卖点图×2"},
+		{"moduleKeys", "hero×1"},
+		{"moduleKeys", "selling×2"},
 		{"aspectRatio", "3:4"},
 		{"resolution", "4K"},
 	})
@@ -195,9 +197,48 @@ func TestBuildPromptUserTextDropsOutputSpecsAndKeepsModules(t *testing.T) {
 			t.Fatalf("输出规格 %q 不应出现在提示词上下文：%q", unwanted, text)
 		}
 	}
-	for _, wanted := range []string{"电商详情页素材", "天猫", "自定义模块：首屏主视觉×1、核心卖点图×2"} {
+	for _, wanted := range []string{
+		"电商详情页素材",
+		"天猫",
+		"自定义模块：首屏主视觉×1（突出商品主体与品牌调性",
+		"核心卖点图×2（围绕核心卖点构图，画面有清晰的信息层次）",
+	} {
 		if !strings.Contains(text, wanted) {
 			t.Fatalf("提示词上下文缺少 %q：%q", wanted, text)
+		}
+	}
+}
+
+// 前端只传可读模块名（老后端/降级）时也要能正常出上下文；未知 key 不加要点。
+func TestBuildPromptUserTextModuleFallbacks(t *testing.T) {
+	request := newPromptRequestWithFields(t, "token", "写详情页", 0, [][2]string{
+		{"taskType", "detail-page"},
+		{"moduleMode", "custom"},
+		{"modules", "规格参数图"},
+		{"modules", "自定义模块图×3"},
+		{"moduleKeys", "unknown-key×3"},
+		{"modules", "  "},
+	})
+	if err := request.ParseMultipartForm(maxPromptBodySize); err != nil {
+		t.Fatalf("parse multipart: %v", err)
+	}
+	text := buildPromptUserText("requirements", "写详情页", request)
+	for _, wanted := range []string{"规格参数图", "自定义模块图×3"} {
+		if !strings.Contains(text, wanted) {
+			t.Fatalf("提示词上下文缺少 %q：%q", wanted, text)
+		}
+	}
+	if strings.Contains(text, "unknown-key") || strings.Contains(text, "  、") {
+		t.Fatalf("空模块项与未知 key 不应进入上下文：%q", text)
+	}
+}
+
+// 详情页的系统提示词必须带上「按模块逐个落实」和「信息型模块不编造参数」的约束。
+func TestRequirementSystemPromptCoversModules(t *testing.T) {
+	system := promptSystem("requirements", "detail-page")
+	for _, wanted := range []string{"按模块逐个落实", "信息型模块", "同一套素材"} {
+		if !strings.Contains(system, wanted) {
+			t.Fatalf("系统提示词缺少 %q", wanted)
 		}
 	}
 }

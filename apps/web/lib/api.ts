@@ -47,7 +47,10 @@ export interface PromptEnhanceInput {
     style?: string
     /** 模块模式与已选模块（仅电商主图 / 详情页），用于让 AI 知道这组图要表达什么 */
     moduleMode?: string
+    /** 可读模块名（模块名×张数），服务端不认识也能正常展示 */
     modules?: string[]
+    /** 与 modules 一一对应的模块 key（key×张数），服务端据此补上模块表达要点 */
+    moduleKeys?: string[]
     outputLanguage?: string
     recreateStrength?: string
     enhancements?: string[]
@@ -69,6 +72,7 @@ export async function enhancePrompt({ target, text, files = [], context }: Promp
   if (context?.style) body.append('style', context.style)
   if (context?.moduleMode) body.append('moduleMode', context.moduleMode)
   for (const item of context?.modules ?? []) body.append('modules', item)
+  for (const item of context?.moduleKeys ?? []) body.append('moduleKeys', item)
   if (context?.outputLanguage) body.append('outputLanguage', context.outputLanguage)
   if (context?.recreateStrength) body.append('recreateStrength', context.recreateStrength)
   for (const item of context?.enhancements ?? []) body.append('enhancements', item)

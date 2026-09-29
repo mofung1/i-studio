@@ -265,7 +265,7 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 				q.server.updateTaskStatus(id, "waiting_provider")
 				batchImages, err = q.waitForImages(id, remote.ID)
 				if err != nil {
-					return images, attribution, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", module, batch, err)
+					return images, attribution, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", moduleLabel(module), batch, err)
 				}
 			}
 			if len(batchImages) > size {

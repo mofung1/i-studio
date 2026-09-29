@@ -32,21 +32,26 @@ const requirementSystemPrompt = `你是跨境电商视觉策划，同时也是�
 1. 输出一段连续的文字：不要分行、不要写字段名或标题、不要使用 Markdown、不要加引号、不要用列表符号。
 2. 内容顺序自然融入：商品主体与外包装特征 → 场景与环境 → 构图与视角 → 光线 → 材质与质感 → 风格与氛围 → 输出约束。
 3. 图片里能直接看到的信息（外形、颜色、材质、包装文字与图案、原场景）优先采用；用户写的文字优先于推断。
-4. 包装上原有的文字与 logo 必须保留并写清，不要改写、也不要杜撰新的文案。
+4. 包装上原有的文字与 logo 必须保留并写清，不要改写、也不要杜撰新的文案；看不清或不确定的文字不要猜写，改为「保持包装原有文字与版式不变」。
 5. 图片和文字都没有提到的软信息（目标人群、使用场景、氛围、道具搭配、构图方式）可按品类常识合理推断，并写成明确方案。
 6. 结合目标平台的常见商品图习惯安排构图、留白与背景，让画面符合该平台的主流审美（不要编造平台硬性规范）。
 7. 画面文字严格遵从「文字语言」参数；若要求不新增文字，则只保留商品原有包装文字。
 8. 若给出了复刻程度或精修项，请把它们落实成具体的画面表述。
 9. 严禁编造硬性事实：容量、功率、成分含量、认证与编号、销量、价格、品牌历史、获奖信息一律不写。
 10. 使用与用户输入相同的语言；中文输入输出中文。
-11. 长度控制在 1000 字以内；在保证信息完整的前提下尽量精炼。
-12. 只输出这段提示词本身。`
+11. 若给出了「模块组合」，必须按模块逐个落实：模块名称、顺序与数量与用户选择一致，不得遗漏，也不得新增用户没有选择的模块；每个模块一句话写清拍什么、机位与构图、画面里要出现的信息或元素。
+12. 每个模块产出的都是一张独立成片：不要拼贴多方案、过程稿、样张板或多格画布。
+13. 规格参数、尺码对照、品质认证、常见问题、安装指引这类信息型模块，只描述版式与信息层级（标题区、内容块、图示方向、留白），不要编造具体参数、尺寸、认证编号或联系方式。
+14. 整组图保持一致的色温、光线、机位语言与背景逻辑，让它看起来是同一套素材。
+15. 材质与光影必须具体（材质关键词 + 布光方式），不要只写「高清」「高级」这类空词；画面文案克制，只保留商品原有包装文字和必要的 1-2 句卖点。
+16. 长度控制在 1000 字以内；在保证信息完整的前提下尽量精炼；模块较多时每个模块用一句话概括。
+17. 只输出这段提示词本身。`
 
 // promptTaskGuidance 按任务类型追加一段说明：不同板块要表达的重点不同，
 // 否则详情页很容易拿到一段与自身无关的主图式提示词。
 var promptTaskGuidance = map[string]string{
 	"product-main":    "本次任务是商品主图：画面要一眼看清商品本体与核心卖点，主体完整、背景干净、留白合理。",
-	"detail-page":     "本次任务是电商详情页素材，会按模块成套产出（例如首屏主视觉、核心卖点图、场景应用图、产品细节图、规格参数图等）。请围绕商品本身与卖点展开，覆盖这些模块共同需要的商品信息：外观与包装、材质质感、使用场景、可展示的细节；不要只写成单张主图式的画面。",
+	"detail-page":     "本次任务是电商详情页素材，会按用户选择的模块成套产出。请按模块名称、顺序与数量逐个落实，每个模块写清拍什么、机位与构图、画面里出现的信息或元素；整组保持统一的色温、光线与机位语言，看起来像同一套详情素材，不要只写成一张主图式的画面。",
 	"viral-recreate":  "本次任务是爆款复刻：商品本体以用户上传的原图为准，可以借鉴参考图的视觉结构与氛围，不要照搬参考图中的其他商品。",
 	"product-retouch": "本次任务是产品精修：以商品原图的真实外观为基准，只做质感、清晰度、背景与色彩上的提升，不改变商品形状、颜色与包装信息。",
 }
@@ -250,37 +255,81 @@ func writeContextLine(builder *strings.Builder, label, value string) {
 const (
 	maxContextModules     = 16
 	maxContextModuleRunes = 32
+	maxContextCountRunes  = 8
 )
 
-// moduleContextText 把前端选择的模块拼成中文说明，例如「自定义模块：首屏主视觉×1、核心卖点图×2」。
-// 比例、分辨率这类输出规格不参与提示词生成，这里只带真正影响内容的业务上下文。
+// moduleContextText 把前端选择的模块拼成中文说明，例如
+// 「自定义模块：首屏主视觉×1（突出商品主体与品牌调性，构图干净居中）、核心卖点图×2（围绕核心卖点构图…）」。
+// modules 是「中文名×数量」（后端不认识也能正常显示），moduleKeys 是并行的「key×数量」，
+// 用来补上与生成时同源的模块表达要点，让模型知道每个模块各自要表达什么。
+// 比例、分辨率这类输出规格不参与提示词生成。
 func moduleContextText(r *http.Request) string {
 	mode := strings.TrimSpace(r.FormValue("moduleMode"))
-	items := r.MultipartForm.Value["modules"]
-	labels := make([]string, 0, len(items))
-	for _, item := range items {
-		if len(labels) >= maxContextModules {
+	labels := r.MultipartForm.Value["modules"]
+	keys := r.MultipartForm.Value["moduleKeys"]
+	entries := make([]string, 0, len(labels))
+	for index, item := range labels {
+		if len(entries) >= maxContextModules {
 			break
 		}
-		label := strings.TrimSpace(item)
+		label, count := splitNameCount(item)
 		if label == "" {
 			continue
 		}
-		if runes := []rune(label); len(runes) > maxContextModuleRunes {
-			label = string(runes[:maxContextModuleRunes])
+		entry := label
+		if count != "" {
+			entry += "×" + count
 		}
-		labels = append(labels, label)
+		if index < len(keys) {
+			if key, _ := splitNameCount(keys[index]); key != "" {
+				if intent := moduleIntent(key); intent != "" {
+					entry += "（" + intent + "）"
+				}
+			}
+		}
+		entries = append(entries, entry)
 	}
-	if len(labels) == 0 {
+	if len(entries) == 0 {
 		if mode == "smart" {
 			return "由 AI 依据商品与平台自动组合模块"
 		}
 		return ""
 	}
 	if mode == "custom" {
-		return "自定义模块：" + strings.Join(labels, "、")
+		return "自定义模块：" + strings.Join(entries, "、")
 	}
-	return strings.Join(labels, "、")
+	return strings.Join(entries, "、")
+}
+
+// splitNameCount 解析「名称×数量」，没有数量时只返回名称。
+func splitNameCount(item string) (name, count string) {
+	parts := strings.SplitN(strings.TrimSpace(item), "×", 2)
+	name = clipRunes(parts[0], maxContextModuleRunes)
+	if len(parts) == 2 {
+		count = clipRunes(parts[1], maxContextCountRunes)
+	}
+	return name, count
+}
+
+// moduleIntent 取模块的表达要点（去掉开头的模块名，只保留要表达的内容），
+// 与生成阶段注入的 moduleHint 同源，保证「AI 帮写」和真正出图的目标一致。
+func moduleIntent(key string) string {
+	hint := strings.TrimSpace(moduleHints[strings.TrimSpace(key)])
+	if hint == "" {
+		return ""
+	}
+	if index := strings.Index(hint, "，"); index >= 0 {
+		return strings.TrimSpace(hint[index+len("，"):])
+	}
+	return hint
+}
+
+func clipRunes(value string, limit int) string {
+	trimmed := strings.TrimSpace(value)
+	if runes := []rune(trimmed); len(runes) > limit {
+		return string(runes[:limit])
+	}
+	return trimmed
 }
 
 type promptImageError string

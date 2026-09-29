@@ -363,6 +363,9 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
     }
 
     setSubmittedCount(expectedCount)
+    // 从历史查看态发起生成：退出历史查看，右侧回到本次生成的进度
+    setHistoryTask(null)
+    setHistoryOpen(false)
     void submit({
       productFiles,
       referenceFiles,
