@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, ArrowUpRight, ChevronLeft, ChevronRight, Clock3, Download, Image as ImageIcon, Loader2, Maximize2, Trash2, X } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Clock3, Download, Image as ImageIcon, Loader2, Maximize2, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -227,7 +227,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
         <section className="library-active" aria-label="进行中的任务">
           <h2><Clock3 size={16} />进行中的任务</h2>
           <div className="library-active-list">{activeTasks.map((task) =>
-            <Link href={`/tasks/${task.id}`} key={task.id}><span>{taskTitle(task)}</span><strong>{statusLabels[task.status]}</strong></Link>)}</div>
+            <div className="library-active-item" key={task.id}><span>{taskTitle(task)}</span><strong>{statusLabels[task.status]}</strong></div>)}</div>
         </section>
       )}
 
@@ -295,6 +295,8 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
             {tasks.map((task) => {
               const count = task.resultImages?.length ?? 0
               const status = statusLabels[task.status] ?? task.status
+              const isFailed = task.status === 'failed'
+              const isActive = activeStatuses.has(task.status)
               const badgeClass = task.status === 'failed' ? ' is-failed' : activeStatuses.has(task.status) ? ' is-active' : ''
               return (
                 <article key={task.id} className="library-card">
@@ -306,27 +308,29 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
                         ))}
                       </span>
                     </button>
-                  ) : (
+                  ) : isFailed ? (
                     <button type="button" className="library-media is-empty" aria-label={`查看 ${taskTitle(task)} 的失败信息`} onClick={() => setInfoTask(task)}>
                       <AlertTriangle size={18} aria-hidden="true" />
                       <span>{status}</span>
                     </button>
+                  ) : (
+                    // 排队中 / 生成中：只显示状态，没有可打开的内容
+                    <div className="library-media is-empty" role="status">
+                      <Loader2 size={18} className={isActive ? 'animate-spin' : undefined} aria-hidden="true" />
+                      <span>{status}</span>
+                    </div>
                   )}
                   {count > 0 && <span className={`library-badge${badgeClass}`}>{status}</span>}
                   <div className="library-media-actions">
-                    {count > 0 ? (
-                      <>
-                        <Link href={`/tasks/${task.id}`} title="打开任务" aria-label={`打开任务 ${taskTitle(task)}`}>
-                          <ArrowUpRight size={14} />
-                        </Link>
-                        <button type="button" title="下载第一张" aria-label="下载这条记录的第一张图片" onClick={() => {
-                          const first = task.resultImages?.[0]
-                          if (first) void downloadProtectedAsset(first, `istudio-${task.id.slice(0, 8)}-1.png`).catch(() => setError('下载失败'))
-                        }}>
-                          <Download size={14} />
-                        </button>
-                      </>
-                    ) : (
+                    {count > 0 && (
+                      <button type="button" title="下载第一张" aria-label="下载这条记录的第一张图片" onClick={() => {
+                        const first = task.resultImages?.[0]
+                        if (first) void downloadProtectedAsset(first, `istudio-${task.id.slice(0, 8)}-1.png`).catch(() => setError('下载失败'))
+                      }}>
+                        <Download size={14} />
+                      </button>
+                    )}
+                    {count === 0 && isFailed && (
                       <button type="button" title="查看失败原因" aria-label={`查看 ${taskTitle(task)} 的失败原因`} onClick={() => setInfoTask(task)}>
                         <AlertTriangle size={14} />
                       </button>
@@ -335,8 +339,8 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
                       {deletingKey === task.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     </button>
                   </div>
-                    <div className="library-card-meta">
-                      <strong><Link href={`/tasks/${task.id}`}>{taskTitle(task)}</Link></strong>
+                  <div className="library-card-meta">
+                    <strong>{taskTitle(task)}</strong>
                       <span>
                         {taskTypeLabel(task) !== taskTitle(task) && `${taskTypeLabel(task)} · `}
                         {count} 张 · {formatWhen(task.createdAt)}
@@ -378,7 +382,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
             <span className="library-lightbox-counter">{selectedImage.index + 1} / {selectedImage.task.resultImages?.length ?? 0}</span>
           </>
         )}
-        <div><span>{taskTitle(selectedImage.task)}</span><Link href={`/tasks/${selectedImage.task.id}`}>查看来源任务</Link><button type="button" onClick={() => void downloadProtectedAsset(selectedImage.path, `istudio-${selectedImage.task.id.slice(0, 8)}-${selectedImage.index + 1}.png`).catch(() => setError('下载失败'))}><Download size={15} />下载</button></div>
+        <div><span>{taskTitle(selectedImage.task)}</span><button type="button" onClick={() => void downloadProtectedAsset(selectedImage.path, `istudio-${selectedImage.task.id.slice(0, 8)}-${selectedImage.index + 1}.png`).catch(() => setError('下载失败'))}><Download size={15} />下载</button></div>
       </div>
     </div>}
     </main>
