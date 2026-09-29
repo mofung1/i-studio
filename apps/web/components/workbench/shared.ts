@@ -59,9 +59,6 @@ export const countOptions = Array.from({ length: 16 }, (_, index) => [String(ind
 /** 通用生图的快捷标签：点击写入描述，再点一次移除，不会覆盖用户已经写好的内容 */
 export const promptQuickTags = ['产品摄影', '自然光', '高级感', '电商白底', '生活方式', '极简', '户外'] as const
 
-/** 电商需求的结构化字段，用于提示用户该写什么（不虚构任何商品信息） */
-export const requirementFields = ['产品', '核心卖点', '目标人群', '视觉风格', '构图要求'] as const
-
 export function optionLabel(options: readonly (readonly [string, string])[], value: string) {
   return options.find(([optionValue]) => optionValue === value)?.[1] ?? value
 }
@@ -101,20 +98,6 @@ export function togglePromptTag(prompt: string, tag: string) {
   const trailing = prompt.match(/[。.]+$/)?.[0] ?? ''
   const head = prompt.trim().replace(/[。.]$/, '')
   return `${head}，${tag}${trailing}`
-}
-
-/** 需求字段快捷插入：只补齐缺失的字段名，保留用户已经写好的内容 */
-export function appendRequirementField(requirements: string, field: string) {
-  const trimmed = requirements.trim()
-  if (trimmed.includes(`${field}：`)) return trimmed
-  return trimmed ? `${trimmed}\n${field}：` : `${field}：`
-}
-
-/** AI 帮写：把需求整理成「产品 / 卖点 / 人群 / 风格 / 构图」骨架，缺哪补哪 */
-export function buildRequirementDraft(requirements: string) {
-  const skeleton = requirementFields.reduce((draft, field) => appendRequirementField(draft, field), requirements).trim()
-  if (!requirements.trim()) return `请围绕以下要点生成清晰统一的电商图片方案。\n${skeleton}`
-  return skeleton
 }
 
 /**

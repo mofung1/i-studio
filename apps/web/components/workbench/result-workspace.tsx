@@ -1,18 +1,17 @@
 'use client'
 
 import {
-  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, History, Image as ImageIcon, Loader2, RotateCcw, Sparkles,
+  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, History, Image as ImageIcon, Loader2, RefreshCw, RotateCcw, Sparkles,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
+import { AuthenticatedImage, downloadProtectedAsset, useProtectedImageUrl } from '@/components/authenticated-image'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 
 import { GenerationHistory } from './generation-history'
 import { HistoryDrawer } from './history-drawer'
 import { ImageLightbox } from './image-lightbox'
-import { ResultActions } from './result-actions'
 import { generalCanvasImage, moduleLabel, taskMeta, type WorkbenchMode } from './shared'
 import { taskModeLabel, type HistoryTask } from './use-task-history'
 import { generationStatusLabels, type InlineGenerationTask } from './use-generation-task'
@@ -80,6 +79,17 @@ export function ResultWorkspace({
   const safeIndex = Math.min(activeImageIndex, Math.max(images.length - 1, 0))
   const heroImage = images[safeIndex] ?? ''
   const hasResults = images.length > 0
+  // 主图走缓存：同一组结果内左右切换时保留上一张直到新图就绪，不会闪白；
+  // 换组（新的一次生成 / 另一条历史记录）则重新显示占位，避免显示过期画面。
+  const heroGroup = isHistoryView ? historyTask?.id ?? 'history' : activeResult?.id ?? 'current'
+  const { source: heroSource, state: heroState, retry: retryHero } = useProtectedImageUrl(heroImage, heroGroup)
+  const heroReady = heroState === 'loaded' && heroSource !== ''
+  const heroFailed = heroState === 'failed'
+  // 加载占位按当前比例铺开，尺寸与生成后的图片一致
+  const [ratioWidth, ratioHeight] = aspectRatio.split(':').map(Number)
+  const heroRatio = ratioWidth && ratioHeight ? ratioWidth / ratioHeight : 1
+  const heroRatioCss = ratioWidth && ratioHeight ? `${ratioWidth} / ${ratioHeight}` : '1 / 1'
+  const generatingImages = Math.min(Math.max(generatingCount ?? expectedCount, 1), MAX_SKELETONS)
   const failureMessage = generationTask && !isGenerating && generationTask.status !== 'succeeded'
     ? generationTask.errorMessage || '供应商未返回错误详情，请重试。'
     : ''
@@ -142,9 +152,30 @@ export function ResultWorkspace({
             </>
           ) : (
             <>
+              {hasResults && !isGenerating && (
+                <span className="meta-chip is-status">
+                  <Check size={12} aria-hidden="true" />
+                  {activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'} · 第 {activeResultIndex + 1}/{resultHistory.length} 次 · {images.length} 张
+                </span>
+              )}
+              {isGenerating && (
+                <span className="meta-chip is-status">
+                  <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                  {generationStatusLabels[generationTask?.status ?? ''] ?? '任务处理中'}
+                </span>
+              )}
               <span className="meta-chip">{expectedCount > 0 ? `${expectedCount} 张` : '—'}</span>
               <span className="meta-chip">{aspectRatio}</span>
               <span className="meta-chip">{resolution}</span>
+              <button
+                type="button"
+                className="meta-action is-primary"
+                title="用当前左侧配置再生成一次"
+                disabled={isSubmitting || isGenerating}
+                onClick={onRegenerate}
+              >
+                <RotateCcw size={14} aria-hidden="true" />重新生成
+              </button>
             </>
           )}
           <button
@@ -161,13 +192,21 @@ export function ResultWorkspace({
       <div className="result-body">
         {isGenerating && !isHistoryView && (
           <div className="result-generating">
-            <div className="result-generating-head">
-              <Loader2 size={17} className="animate-spin" aria-hidden="true" />
-              <strong>{generationStatusLabels[generationTask?.status ?? ''] ?? '任务处理中'}</strong>
-              <span>结果返回后会自动显示在这里。</span>
-            </div>
-            <div className="result-skeletons" aria-hidden="true">
-              {Array.from({ length: Math.min(Math.max(generatingCount ?? expectedCount, 1), MAX_SKELETONS) }, (_, index) => <span key={index} />)}
+            <div className="result-stage" aria-hidden="true">
+              {/* 占位尺寸与生成后的主图一致：同比例、同最大高度 */}
+              <div
+                className="result-hero-skeleton"
+                style={{ aspectRatio: heroRatioCss, maxWidth: `calc(var(--hero-max) * ${heroRatio})` }}
+              >
+                <span className="skeleton-shimmer" />
+              </div>
+              {generatingImages > 1 && (
+                <div className="result-strip-skeleton">
+                  {Array.from({ length: generatingImages }, (_, index) => (
+                    <span key={index}><span className="skeleton-shimmer" /></span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -190,19 +229,46 @@ export function ResultWorkspace({
           </div>
         )}
 
+        {failureMessage && hasResults && !isHistoryView && !isGenerating && (
+          <p className="result-inline-error" role="alert">
+            <AlertTriangle size={14} aria-hidden="true" />{failureMessage}
+          </p>
+        )}
+
         {heroImage !== '' && (!isGenerating || isHistoryView) && (
-          <div className={isHistoryView ? 'result-result is-single' : 'result-result'}>
+          <div className="result-result">
             <div className="result-stage">
-              <div className="result-hero">
-                <button
-                  type="button"
-                  className="result-hero-open"
-                  aria-label={`放大查看第 ${safeIndex + 1} 张`}
-                  title="点击查看大图"
-                  onClick={() => setLightboxOpen(true)}
-                >
-                  <AuthenticatedImage path={heroImage} alt={`AI 生成结果 ${safeIndex + 1}`} className="result-hero-image" />
-                </button>
+              {/* 图片就绪前先按当前比例撑出与结果一致的画框，避免生成完成时塌陷或跳动 */}
+              <div
+                className="result-hero"
+                style={heroReady ? undefined : {
+                  width: `min(100%, calc(var(--hero-max) * ${heroRatio}))`,
+                  aspectRatio: heroRatioCss,
+                }}
+              >
+                {heroReady ? (
+                  <button
+                    type="button"
+                    className="result-hero-open"
+                    aria-label={`放大查看第 ${safeIndex + 1} 张`}
+                    title="点击查看大图"
+                    onClick={() => setLightboxOpen(true)}
+                  >
+                    <img className="result-hero-image" src={heroSource} alt={`AI 生成结果 ${safeIndex + 1}`} />
+                  </button>
+                ) : (
+                  <div
+                    className={`result-hero-pending${heroFailed ? ' is-failed' : ''}`}
+                    role={heroFailed ? 'alert' : 'status'}
+                    aria-label={heroFailed ? '结果图加载失败' : '结果图加载中'}
+                  >
+                    {heroFailed && (
+                      <button type="button" onClick={retryHero} title="重新加载" aria-label="重新加载结果图">
+                        <RefreshCw size={16} />
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {images.length > 1 && (
                   <>
@@ -232,19 +298,21 @@ export function ResultWorkspace({
                   <span className="result-hero-counter">{safeIndex + 1} / {images.length}</span>
                 )}
 
-                <div className="result-hero-actions">
-                  <button type="button" title="下载" aria-label="下载这张图片" onClick={downloadCurrent}>
-                    <Download size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    title={referenceTitle}
-                    aria-label={referenceTitle}
-                    onClick={() => onUseImageAsReference(heroImage, imageSource)}
-                  >
-                    <RotateCcw size={16} />
-                  </button>
-                </div>
+                {heroReady && (
+                  <div className="result-hero-actions">
+                    <button type="button" title="下载" aria-label="下载这张图片" onClick={downloadCurrent}>
+                      <Download size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      title={referenceTitle}
+                      aria-label={referenceTitle}
+                      onClick={() => onUseImageAsReference(heroImage, imageSource)}
+                    >
+                      <RotateCcw size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {images.length > 1 && (
@@ -266,32 +334,6 @@ export function ResultWorkspace({
               )}
             </div>
 
-            {!isHistoryView && (
-            <div className="result-side">
-              <div className="result-side-head">
-                <span className="success-label">
-                  <Check size={13} aria-hidden="true" />
-                  {activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'}
-                </span>
-                <span>
-                  第 {activeResultIndex + 1} / {resultHistory.length} 次 · {images.length} 张
-                </span>
-              </div>
-              {failureMessage && (
-                <p className="result-side-error" role="alert">
-                  <AlertTriangle size={15} aria-hidden="true" />
-                  {failureMessage}
-                </p>
-              )}
-              <p className="result-side-note">结果已保存到任务记录。</p>
-              <ResultActions
-                isBusy={isSubmitting || isGenerating}
-                onDownload={downloadCurrent}
-                onRegenerate={onRegenerate}
-                onEdit={() => setLightboxOpen(true)}
-              />
-            </div>
-            )}
           </div>
         )}
       </div>

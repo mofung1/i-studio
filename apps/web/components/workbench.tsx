@@ -69,6 +69,7 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
   const [recreateStrength, setRecreateStrength] = useState<'style' | 'high'>('style')
   const [enhancements, setEnhancements] = useState<string[]>([])
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
+  const [promptEnhanceEnabled, setPromptEnhanceEnabled] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyTask, setHistoryTask] = useState<HistoryTask | null>(null)
@@ -99,7 +100,10 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
   useEffect(() => {
     fetch(`${apiBaseUrl}/v1/generation/capabilities`)
       .then((response) => response.json())
-      .then((data: { aiEnabled?: boolean }) => setAiEnabled(Boolean(data.aiEnabled)))
+      .then((data: { aiEnabled?: boolean; promptEnhanceEnabled?: boolean }) => {
+        setAiEnabled(Boolean(data.aiEnabled))
+        setPromptEnhanceEnabled(Boolean(data.promptEnhanceEnabled))
+      })
       .catch(() => setAiEnabled(false))
   }, [])
 
@@ -421,6 +425,7 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
               resolution={resolution}
               expectedCount={expectedCount}
               aiEnabled={aiEnabled}
+              promptEnhanceEnabled={promptEnhanceEnabled}
               notice={notice}
               isSubmitting={isSubmitting}
               isGenerating={isGenerating}

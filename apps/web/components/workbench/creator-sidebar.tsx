@@ -6,6 +6,9 @@ import type { GenerationModel } from '@/lib/contracts'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 
+import { enhancePrompt } from '@/lib/api'
+import { downscaleImageFiles } from '@/lib/image-file'
+
 import { AdvancedSettings } from './advanced-settings'
 import { BasicSettings } from './basic-settings'
 import { GenerateBar } from './generate-bar'
@@ -14,12 +17,9 @@ import { PromptEditor } from './prompt-editor'
 import { ReferenceUploader } from './reference-uploader'
 import {
   buildEnhancedPrompt,
-  buildRequirementDraft,
   optionLabel,
   promptQuickTags,
   referenceLimit,
-  requirementFields,
-  appendRequirementField,
   modelOptions,
   togglePromptTag,
   type GeneralStyle,
@@ -52,6 +52,8 @@ interface CreatorSidebarProps {
   resolution: string
   expectedCount: number
   aiEnabled: boolean | null
+  /** 后端是否配置了 DeepSeek 文本模型 */
+  promptEnhanceEnabled: boolean
   notice: GenerationNotice | null
   isSubmitting: boolean
   isGenerating: boolean
@@ -94,7 +96,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
     platform, outputLanguage, style, referenceStrength,
     moduleMode, moduleCounts, recreateStrength, enhancements,
     count, model, aspectRatio, resolution, expectedCount,
-    aiEnabled, notice, isSubmitting, isGenerating,
+    aiEnabled, promptEnhanceEnabled, notice, isSubmitting, isGenerating,
     onSetProductFiles, onSetReferenceFiles, onSetPrompt, onSetRequirements,
     onSetPlatform, onSetOutputLanguage, onSetStyle, onSetReferenceStrength,
     onSetModuleMode, onSetModuleCounts, onSetRecreateStrength, onSetEnhancements,
@@ -122,6 +124,42 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   ].join(' · ')
 
   const requirementsLabel = task === 'product-main' ? '主图需求' : task === 'detail-page' ? '详情图需求' : '补充要求'
+
+  // AI 改写的输入：图片或文字至少有一个（图片按目标类型取对应的素材）
+  const enhanceImages = isGeneral
+    ? referenceFiles
+    : task === 'viral-recreate' ? [...productFiles, ...referenceFiles] : productFiles
+  // 不向用户暴露用了哪个模型；只有未接入 AI 时才说明当前是本地规则
+  const enhanceHelper = promptEnhanceEnabled ? undefined : '暂用本地规则整理'
+  // 空输入时点按钮给出的具体指引（比“请先上传图片或输入文字”更好照做）
+  const enhanceBlockedReason = isGeneral
+    ? '请先上传参考图片，或输入画面描述'
+    : task === 'viral-recreate'
+      ? '请先上传商品原图与爆款参考图，或输入补充要求'
+      : task === 'product-retouch'
+        ? '请先上传商品原图，或输入补充要求'
+        : '请先上传商品原图，或输入主图需求'
+
+  /** 走 DeepSeek 改写；未配置或失败时由 PromptEditor 展示错误与重试 */
+  async function runEnhance(target: 'prompt' | 'requirements', text: string) {
+    const files = await downscaleImageFiles(enhanceImages.slice(0, 4))
+    const result = await enhancePrompt({
+      target,
+      text,
+      files,
+      context: {
+        taskType: isGeneral ? undefined : task,
+        platform,
+        style,
+        aspectRatio,
+        resolution,
+        outputLanguage: isGeneral ? undefined : outputLanguage,
+        recreateStrength: task === 'viral-recreate' ? recreateStrength : undefined,
+        enhancements: task === 'product-retouch' ? enhancements : undefined,
+      },
+    })
+    return result.text
+  }
 
   return (
     <aside className="configuration-panel creator-sidebar" aria-label="创作设置">
@@ -177,10 +215,11 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               onChange={onSetPrompt}
               ariaLabel="画面描述"
               placeholder="例如：一支绿色保温杯放在森林岩石上，清晨阳光从树叶之间洒下来，高级户外产品摄影。"
-              enhance={(value) => buildEnhancedPrompt(value, style)}
+              enhance={(value) => (promptEnhanceEnabled ? runEnhance('prompt', value) : buildEnhancedPrompt(value, style))}
+              enhanceDisabledReason={!prompt.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
               quickTags={promptQuickTags}
               onToggleTag={(tag) => onSetPrompt(togglePromptTag(prompt, tag))}
-              helper="本地结构化整理（未接入模型）"
+              helper={enhanceHelper}
             />
           ) : (
             <PromptEditor
@@ -188,10 +227,10 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               onChange={onSetRequirements}
               ariaLabel={requirementsLabel}
               placeholder={requirementsPlaceholder}
-              enhance={buildRequirementDraft}
+              enhance={(value) => (promptEnhanceEnabled ? runEnhance('requirements', value) : buildEnhancedPrompt(value, style))}
               enhanceLabel="AI 帮写"
-              fieldHints={requirementFields}
-              onInsertField={(field) => onSetRequirements(appendRequirementField(requirements, field))}
+              enhanceDisabledReason={!requirements.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
+              helper={enhanceHelper}
             />
           )}
         </fieldset>

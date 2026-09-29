@@ -62,15 +62,16 @@ type assetRecord struct {
 	Width, Height                                           int
 }
 type server struct {
-	mu          sync.RWMutex
-	users       map[string]user
-	tasks       map[string]task
-	secret      []byte
-	db          *sql.DB
-	storageRoot string
-	storage     objectStorage
-	queue       *taskQueue
-	provider    imageProvider
+	mu           sync.RWMutex
+	users        map[string]user
+	tasks        map[string]task
+	secret       []byte
+	db           *sql.DB
+	storageRoot  string
+	storage      objectStorage
+	queue        *taskQueue
+	provider     imageProvider
+	promptClient promptCompleter
 }
 
 func main() {
@@ -94,6 +95,10 @@ func main() {
 	if os.Getenv("BANANA_ROUTER_API_KEY") != "" && !strings.EqualFold(env("AI_PROVIDER_ENABLED", "true"), "false") {
 		s.provider = newBananaRouterProvider()
 	}
+	// 文本改写走 DeepSeek，与生图供应商相互独立，key 只放在服务端
+	if os.Getenv("DEEPSEEK_API_KEY") != "" {
+		s.promptClient = newDeepSeekClient()
+	}
 	s.queue = newTaskQueue(s)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/health", s.health)
@@ -104,6 +109,7 @@ func main() {
 	mux.HandleFunc("/v1/generation/validate", s.validate)
 	mux.HandleFunc("/v1/generation/tasks", s.tasksHandler)
 	mux.HandleFunc("/v1/generation/tasks/", s.taskByID)
+	mux.HandleFunc("/v1/prompts/enhance", s.promptEnhance)
 	mux.HandleFunc("/v1/projects", s.projects)
 	mux.HandleFunc("/v1/assets", s.assets)
 	mux.HandleFunc("/v1/assets/", s.assetContent)
@@ -210,7 +216,17 @@ func (s *server) capabilities(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	s.json(w, 200, map[string]any{"aiEnabled": s.provider != nil, "provider": "bananarouter", "models": []string{"gpt-image-2", "gemini-2.5-flash-image", "gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview"}})
+	payload := map[string]any{
+		"aiEnabled": s.provider != nil,
+		"provider":  "bananarouter",
+		"models":    []string{"gpt-image-2", "gemini-2.5-flash-image", "gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview"},
+		// 提示词优化 / AI 帮写使用的是 DeepSeek 文本模型
+		"promptEnhanceEnabled": s.promptClient != nil,
+	}
+	if s.promptClient != nil {
+		payload["promptModel"] = s.promptClient.modelName()
+	}
+	s.json(w, 200, payload)
 }
 func (s *server) validate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
