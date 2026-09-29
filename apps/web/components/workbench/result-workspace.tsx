@@ -48,6 +48,8 @@ interface ResultWorkspaceProps {
   onExitHistoryView: () => void
   onLoadHistoryConfig: (task: HistoryTask) => void
   onRegenerateFromHistory: (task: HistoryTask) => void
+  /** 删除一条历史记录 */
+  onDeleteHistoryTask: (task: HistoryTask) => Promise<void>
   onUseImageAsReference: (path: string, source: ImageSource) => void
   onSetActiveResultIndex: (updater: (index: number) => number) => void
   /** 重新生成（是否二次确认由父级决定） */
@@ -63,7 +65,7 @@ export function ResultWorkspace({
   isGenerating, isSubmitting, aiEnabled,
   historyOpen, historyTask, loadingHistoryConfigId, isRegeneratingHistory,
   onToggleHistory, onSelectHistory, onExitHistoryView, onLoadHistoryConfig, onRegenerateFromHistory,
-  onUseImageAsReference, onSetActiveResultIndex, onRegenerate,
+  onDeleteHistoryTask, onUseImageAsReference, onSetActiveResultIndex, onRegenerate,
 }: ResultWorkspaceProps) {
   const currentTask = taskMeta[task]
   const title = mode === 'general' ? '通用生图' : currentTask.title
@@ -364,6 +366,7 @@ export function ResultWorkspace({
         onUseAsReference={onUseImageAsReference}
         onLoadConfig={onLoadHistoryConfig}
         onRegenerate={onRegenerateFromHistory}
+        onDelete={onDeleteHistoryTask}
       />
 
       {lightboxOpen && heroImage && (

@@ -252,7 +252,7 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 		taskType := strings.TrimSpace(r.URL.Query().Get("taskType"))
 		// 可选过滤：工作台按当前生图类型查看历史记录时使用，不传则保持原有行为
 		limit := clampInt(parseQueryInt(r.URL.Query().Get("limit"), 50), 1, 200)
-		query := "SELECT t.id,t.status,t.created_at,t.input,t.result_images,t.result_modules FROM generation_tasks t WHERE t.user_id=$1"
+		query := "SELECT t.id,t.status,t.created_at,t.input,t.result_images,t.result_modules,t.error_message FROM generation_tasks t WHERE t.user_id=$1"
 		args := []any{userID}
 		if projectID != "" {
 			if !s.userOwnsProject(userID, projectID) {
@@ -284,10 +284,12 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 			var input []byte
 			var resultRaw []byte
 			var modulesRaw []byte
-			if rows.Scan(&t.ID, &t.Status, &t.CreatedAt, &input, &resultRaw, &modulesRaw) == nil {
+			var errorMessage sql.NullString
+			if rows.Scan(&t.ID, &t.Status, &t.CreatedAt, &input, &resultRaw, &modulesRaw, &errorMessage) == nil {
 				_ = json.Unmarshal(input, &t.Input)
 				_ = json.Unmarshal(resultRaw, &t.ResultImages)
 				_ = json.Unmarshal(modulesRaw, &t.ResultModules)
+				t.ErrorMessage = errorMessage.String
 				list = append(list, t)
 			}
 		}
@@ -367,6 +369,10 @@ func (s *server) taskByID(w http.ResponseWriter, r *http.Request) {
 		s.retryTask(w, r, strings.TrimSuffix(path, "/retry"))
 		return
 	}
+	if r.Method == http.MethodDelete {
+		s.deleteTask(w, r, path)
+		return
+	}
 	if r.Method != http.MethodGet {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
@@ -398,6 +404,46 @@ func (s *server) taskByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.json(w, 200, map[string]any{"task": t, "aiEnabled": s.provider != nil})
+}
+
+// deleteTask 删除一条生成任务记录（含它生成的结果图片），历史记录与资产库共用。
+func (s *server) deleteTask(w http.ResponseWriter, r *http.Request, id string) {
+	userID, ok := s.authenticatedUserID(r)
+	if !ok {
+		s.error(w, http.StatusUnauthorized, "AUTH_REQUIRED", "请先登录")
+		return
+	}
+	if id == "" {
+		s.error(w, http.StatusBadRequest, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
+		return
+	}
+	if s.db != nil {
+		keys, err := deleteTaskRecords(s.db, userID, id)
+		if err == sql.ErrNoRows {
+			s.error(w, http.StatusNotFound, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
+			return
+		}
+		if err != nil {
+			s.error(w, http.StatusInternalServerError, "TASK_STORAGE_ERROR", "删除失败，请稍后重试")
+			return
+		}
+		for _, key := range keys {
+			if s.storage != nil {
+				_ = s.storage.Delete(key)
+			}
+		}
+		s.json(w, http.StatusOK, map[string]any{"deleted": id, "assets": len(keys)})
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.tasks[id]
+	if !ok || t.UserID != userID {
+		s.error(w, http.StatusNotFound, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
+		return
+	}
+	delete(s.tasks, id)
+	s.json(w, http.StatusOK, map[string]any{"deleted": id})
 }
 
 func (s *server) retryTask(w http.ResponseWriter, r *http.Request, id string) {
@@ -500,6 +546,10 @@ func (s *server) updateTaskResult(id, status string, images []string, modules []
 }
 
 func (s *server) assetContent(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodDelete {
+		s.deleteAsset(w, r, assetIDFromPath(r.URL.Path))
+		return
+	}
 	if r.Method != http.MethodGet {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
@@ -529,6 +579,41 @@ func (s *server) assetContent(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", mimepkg.FormatMediaType("inline", map[string]string{"filename": name}))
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	_, _ = io.Copy(w, file)
+}
+
+// assetIDFromPath 从 /v1/assets/{id} 或 /v1/assets/{id}/content 取资产 id。
+func assetIDFromPath(path string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(path, "/v1/assets/"), "/content")
+}
+
+// deleteAsset 删除一张资产（资产库里的单张图片），并把它从任务结果里移除。
+func (s *server) deleteAsset(w http.ResponseWriter, r *http.Request, id string) {
+	userID, ok := s.authenticatedUserID(r)
+	if !ok {
+		s.error(w, http.StatusUnauthorized, "AUTH_REQUIRED", "请先登录")
+		return
+	}
+	if id == "" {
+		s.error(w, http.StatusBadRequest, "ASSET_NOT_FOUND", "资产不存在")
+		return
+	}
+	if s.db == nil {
+		s.error(w, http.StatusServiceUnavailable, "DATABASE_REQUIRED", "删除资产需要数据库服务")
+		return
+	}
+	key, err := deleteAssetRecord(s.db, userID, id)
+	if err == sql.ErrNoRows {
+		s.error(w, http.StatusNotFound, "ASSET_NOT_FOUND", "资产不存在")
+		return
+	}
+	if err != nil {
+		s.error(w, http.StatusInternalServerError, "ASSET_STORAGE_ERROR", "删除失败，请稍后重试")
+		return
+	}
+	if key != "" && s.storage != nil {
+		_ = s.storage.Delete(key)
+	}
+	s.json(w, http.StatusOK, map[string]any{"deleted": id})
 }
 
 func (s *server) projects(w http.ResponseWriter, r *http.Request) {

@@ -184,7 +184,7 @@ img {
 .auth-card > .auth-notice { margin: 0; color: var(--danger); font-size: 13px; }
 
 
-.task-detail-page { min-height: 100vh; padding: 32px; background: var(--surface-subtle); }
+.task-detail-page { min-height: 100vh; padding: 32px; background: var(--surface); }
 
 
 .task-detail-card { width: min(760px, 100%); margin: 42px auto; padding: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
@@ -208,9 +208,19 @@ img {
 
 .task-results .empty-state { min-height: 180px; display: grid; place-items: center; background: var(--surface-subtle); border-radius: 8px; padding: 20px; text-align: center; }
 
-.result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 
-.result-grid img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 10px; background: var(--surface-subtle); }
+.result-grid img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 10px; background: var(--surface-subtle); }
+
+/* 结果图点击放大 */
+.result-grid article > button.result-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: zoom-in;
+}
 
 
 .content-page { min-height: 100vh; padding: 38px max(24px, 5vw); background: var(--surface-2); }
@@ -223,15 +233,15 @@ img {
 
 .asset-head { display: flex; align-items: center; justify-content: space-between; }
 
-.asset-grid, .task-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
-
-.task-grid { grid-template-columns: repeat(3, 1fr); }
+/* 资产库网格：定义在媒体查询之前，窄屏由后面的断点收敛列数 */
+.library-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 
 .asset-item, .task-item { padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; }
 
 .task-item { min-height: 94px; display: flex; flex-direction: column; justify-content: space-between; padding: 16px; }
 
-.asset-placeholder { aspect-ratio: 1; display: grid; place-items: center; margin-bottom: 8px; color: var(--foreground-3); background: var(--surface-2); border-radius: 8px; font-size: 12px }
+/* 生成图片卡片：4:5 画框铺满，任意分辨率都不会把卡片撑变形，也不会显得很小 */
+.asset-placeholder { aspect-ratio: 4 / 5; display: grid; place-items: center; margin-bottom: 8px; color: var(--foreground-3); background: var(--surface-2); border-radius: 8px; font-size: 12px; overflow: hidden }
 
 .asset-item span, .task-item span { color: var(--muted); font-size: 12px; }
 
@@ -3160,8 +3170,7 @@ img {
   }
 
   /* 平板竖屏：5 列过挤，收到 3 列 */
-  .task-grid,
-  .asset-grid {
+  .library-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
@@ -3437,8 +3446,7 @@ img {
     padding: 20px 14px;
   }
 
-  .task-grid,
-  .asset-grid {
+  .library-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -3557,8 +3565,7 @@ img {
     font-size: 16px;
   }
 
-  .task-grid,
-  .asset-grid {
+  .library-grid {
     grid-template-columns: 1fr;
   }
 
@@ -3572,6 +3579,8 @@ img {
 .asset-item img.asset-placeholder {
   width: 100%;
   display: block;
+  aspect-ratio: 4 / 5;
+  height: auto;
   object-fit: cover;
 }
 
@@ -3649,6 +3658,239 @@ img {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+}
+
+/* 资产库顶部：视图切换 */
+.library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.library-head .library-views {
+  margin-bottom: 0;
+}
+
+.library-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+
+.library-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-hover);
+  box-shadow: 0 12px 26px rgba(23, 23, 23, 0.08);
+}
+
+
+.library-card.is-skeleton {
+  pointer-events: none;
+}
+
+
+.library-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: zoom-in;
+}
+
+
+.library-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+
+.library-media.is-empty {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  align-content: center;
+  color: var(--foreground-3);
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+
+/* 一张图直接铺满，多张图用 1 大 2 小的拼图，画框比例与单图一致 */
+.library-collage {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  background: var(--surface-2);
+}
+
+
+.library-collage.is-single {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+
+.library-collage > img:first-child {
+  grid-row: span 2;
+}
+
+
+.library-collage > .auth-image-loading,
+.library-collage > .auth-image-failed {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
+}
+
+
+.library-collage.is-single > img:first-child {
+  grid-row: auto;
+}
+
+
+.library-badge {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 18px;
+  padding: 3px 9px;
+  color: var(--foreground-2);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: 999px;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+
+.library-badge.is-active {
+  color: var(--background);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+
+.library-badge.is-failed {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+
+/* 卡片操作：悬停或键盘聚焦时出现，不占正文空间 */
+.library-media-actions {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+
+.library-card:hover .library-media-actions,
+.library-card:focus-within .library-media-actions {
+  opacity: 1;
+}
+
+
+.library-media-actions button,
+.library-media-actions a {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: 9px;
+  box-shadow: 0 4px 12px rgba(23, 23, 23, 0.14);
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+
+.library-media-actions button:hover:not(:disabled),
+.library-media-actions a:hover {
+  border-color: var(--line-strong);
+}
+
+
+.library-media-actions .is-danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+
+.library-media-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+
+.library-card-meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+
+.library-card-meta strong,
+.library-card-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.library-card-meta strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
+.library-card-meta strong a {
+  color: inherit;
+  text-decoration: none;
+}
+
+
+.library-card-meta strong a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+
+.library-card-meta span {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 
@@ -3753,9 +3995,75 @@ img {
 .library-task-item {
   min-width: 0;
   gap: 8px;
+  position: relative;
+}
+
+.library-task-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 资产库删除按钮（单张图片 / 整条记录） */
+.library-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+
+.library-task-item > .library-delete {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 0 7px;
+}
+
+
+.library-delete:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+
+.library-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .library-task-thumbs { height: 90px; display: flex; align-items: center; justify-content: center; gap: 3px; overflow: hidden; color: var(--foreground-3); background: var(--surface-2); border-radius: 8px }
+
+/* 缩略图可直接点击放大：去掉 button 默认样式 */
+.library-task-thumbs.is-clickable {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  cursor: zoom-in;
+}
+
+.library-task-title {
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.library-task-title:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 
 .library-task-thumbs > img,
@@ -3877,6 +4185,48 @@ img {
   border: 0;
   font-size: 12px;
   cursor: pointer;
+}
+
+/* 预览里的左右切换：覆盖关闭按钮的默认定位 */
+.library-lightbox-content > button.library-lightbox-nav {
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(23, 23, 23, 0.6);
+  transform: translateY(-50%);
+  transition: background 150ms ease, opacity 150ms ease;
+}
+
+.library-lightbox-content > button.library-lightbox-nav.is-prev {
+  right: auto;
+  left: 8px;
+}
+
+.library-lightbox-content > button.library-lightbox-nav.is-next {
+  right: 8px;
+}
+
+.library-lightbox-content > button.library-lightbox-nav:hover:not(:disabled) {
+  background: rgba(23, 23, 23, 0.88);
+}
+
+.library-lightbox-content > button.library-lightbox-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.library-lightbox-counter {
+  position: absolute;
+  left: 50%;
+  bottom: 54px;
+  padding: 3px 10px;
+  color: var(--background);
+  background: rgba(23, 23, 23, 0.6);
+  border-radius: 999px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
 }
 
 
@@ -4177,9 +4527,9 @@ img {
 
 /* ===== 首页 & 资产库 UI 美化 ===== */
 
-/* 资产库：柔和背景 + 顶部微渐变，增加层次 */
+/* 资产库：白底，卡片靠边框与轻微阴影分层 */
 .content-page {
-  background: var(--surface-subtle);
+  background: var(--surface);
 }
 
 /* 新建任务按钮 */
@@ -5295,6 +5645,53 @@ img {
 }
 
 
+/* 失败记录：一句话原因 + 可展开的原始报错 */
+.history-record-error {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-line);
+  border-radius: 9px;
+  font-size: 11px;
+}
+
+
+.history-record-error summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+
+.history-record-error pre {
+  max-height: 150px;
+  margin: 2px 0 0;
+  padding: 7px 9px;
+  overflow: auto;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+
+.history-record-actions .history-delete:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+
 /* 图片查看器：放大 / 缩小 / 平移 / 裁剪 */
 .lightbox-panel {
   width: min(1120px, 100%);
@@ -5515,6 +5912,13 @@ img {
   place-items: center;
   padding: 20px;
   background: rgba(17, 17, 17, 0.4);
+  animation: backdrop-in 140ms ease-out;
+}
+
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 
@@ -5526,7 +5930,15 @@ img {
   background: var(--surface);
   border-radius: 16px;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32);
-  animation: dock-in 180ms ease;
+  /* 弹窗自己一套动画：只做透明度 + 轻微上移，避免复用底部输入条的 dock-in
+     （那个动画带 translate(-50%)，会让居中的弹窗先偏左再跳回中间） */
+  animation: dialog-in 160ms ease-out;
+}
+
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
 }
 
 
@@ -5724,6 +6136,40 @@ img {
 .confirm-dialog-primary:hover {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
+}
+
+
+/* 删除这类不可恢复的操作：危险色主按钮 + 一句后果提醒 */
+.confirm-dialog-primary.is-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+
+.confirm-dialog-primary.is-danger:hover:not(:disabled) {
+  background: #73281f;
+  border-color: #73281f;
+}
+
+
+.confirm-dialog-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+
+.confirm-dialog-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 9px 11px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-line);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 

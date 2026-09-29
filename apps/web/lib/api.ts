@@ -62,6 +62,28 @@ export interface PromptEnhanceResult {
   model?: string
 }
 
+/** 删除一条生成记录（连同它生成的结果图片）。 */
+export async function deleteGenerationTask(taskId: string) {
+  const token = getAccessToken()
+  const response = await fetch(`${apiBaseUrl}/v1/generation/tasks/${taskId}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+  if (response.status === 401) throw new Error('登录状态已失效，请重新登录')
+  if (!response.ok) throw new Error(await readApiError(response, '删除失败，请稍后重试'))
+}
+
+/** 删除资产库里的一张生成图片；contentPath 形如 /v1/assets/{id}/content。 */
+export async function deleteGeneratedAsset(contentPath: string) {
+  const token = getAccessToken()
+  const response = await fetch(`${apiBaseUrl}${contentPath.replace(/\/content$/, '')}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+  if (response.status === 401) throw new Error('登录状态已失效，请重新登录')
+  if (!response.ok) throw new Error(await readApiError(response, '删除失败，请稍后重试'))
+}
+
 /** AI 优化提示词 / AI 帮写：走后端代理调用 DeepSeek，前端不接触密钥。 */
 export async function enhancePrompt({ target, text, files = [], context }: PromptEnhanceInput): Promise<PromptEnhanceResult> {
   const body = new FormData()

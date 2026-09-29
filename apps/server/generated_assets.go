@@ -51,7 +51,7 @@ func (s *server) persistGeneratedImages(taskID string, urls []string) ([]string,
 		}
 		hash := sha256.Sum256(data)
 		filename := fmt.Sprintf("generated-%s-%02d%s", taskID[:8], index+1, ext)
-		if _, err := s.db.Exec("INSERT INTO assets (id,user_id,project_id,filename,storage_key,mime,size_bytes,width,height,hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)", assetID, userID, projectID, filename, key, mime, len(data), width, height, hex.EncodeToString(hash[:])); err != nil {
+		if _, err := s.db.Exec("INSERT INTO assets (id,user_id,project_id,task_id,filename,storage_key,mime,size_bytes,width,height,hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)", assetID, userID, projectID, taskID, filename, key, mime, len(data), width, height, hex.EncodeToString(hash[:])); err != nil {
 			return paths, err
 		}
 		paths = append(paths, "/v1/assets/"+assetID+"/content")
