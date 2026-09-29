@@ -127,6 +127,34 @@ img {
   background: var(--surface);
 }
 
+/* 首页：背景铺满整个视口（含导航区），默认插画 + 用户自定义图都用 cover 铺满 */
+.home-shell {
+  background-color: #fcfbf9;
+  background-image: url('/home-bg.jpg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+
+/* 首页导航悬浮在背景之上：透明 + 顶部渐变遮罩保证文字可读 */
+.home-shell .top-navigation {
+  background: transparent;
+}
+
+
+.home-shell .top-navigation::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 148px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.6) 46%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
 
 .auth-page {
   min-height: 100vh;
@@ -215,35 +243,9 @@ img {
 
 
 .brand-mark {
-  position: relative;
-  width: 30px;
-  height: 30px;
-  overflow: hidden;
-  background: var(--primary);
-  border-radius: 7px;
-}
-
-
-.brand-mark i:first-child {
-  position: absolute;
-  width: 13px;
-  height: 13px;
-  left: 8px;
-  top: 6px;
-  border: 3px solid white;
-  border-radius: 50%;
-}
-
-
-.brand-mark i:last-child {
-  position: absolute;
-  width: 14px;
-  height: 3px;
-  left: 12px;
-  top: 19px;
-  background: var(--surface);
-  border-radius: 4px;
-  transform: rotate(-31deg);
+  display: block;
+  flex: 0 0 auto;
+  color: var(--primary);
 }
 
 
@@ -302,17 +304,18 @@ img {
 }
 
 
-/* 首页：一屏生图入口，纯白底，把视觉重心留给输入框 */
+/* 首页：一屏生图入口，背景整屏铺满，视觉重心留给输入框 */
 .home-hero {
   position: relative;
   width: 100%;
-  min-height: calc(100dvh - 72px);
+  /* 导航悬浮在背景之上，高度按导航占位扣除，保证输入框在可视区里居中 */
+  min-height: calc(100dvh - 64px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 52px 16px 76px;
   overflow: hidden;
-  background: var(--background);
+  background: transparent;
 }
 
 
@@ -322,6 +325,270 @@ img {
   width: min(880px, 100%);
   text-align: center;
 }
+
+/* ---------------------------------------------------------------------------
+   首页 slogan：打字机入场（clip-path 逐字揭开 + 光标闪烁），
+   之后每 7s 一次很淡的光扫；聚焦输入框时淡下去给输入让位。
+   --------------------------------------------------------------------------- */
+.home-slogan {
+  position: relative;
+  display: inline-block;
+  margin: 0 0 30px;
+  color: var(--foreground);
+  /* 作为输入框上方的标题：随窗口小幅度缩放，最大 34px */
+  font-size: clamp(26px, 2.4vw, 34px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  transition: opacity 260ms ease;
+}
+
+
+.home-slogan.is-dim {
+  opacity: 0.45;
+}
+
+
+.home-slogan-text,
+.home-slogan-sheen {
+  display: block;
+}
+
+
+/* 初始完全裁掉右侧，7 步逐字揭开（7 个字） */
+.home-slogan-text {
+  clip-path: inset(0 100% 0 0);
+  /* 打字节奏约 220ms/字，比之前慢一倍 */
+  animation: slogan-type 1540ms steps(7, end) 300ms forwards;
+}
+
+
+.home-slogan-caret {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  left: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--foreground);
+  opacity: 0;
+  animation:
+    slogan-caret-move 1540ms steps(7, end) 300ms forwards,
+    slogan-caret-blink 1000ms steps(1, end) 300ms infinite,
+    slogan-caret-out 320ms ease 2.04s forwards;
+}
+
+
+/* 光扫：白色高光裁在字形里，从左到右扫过一次，其余时间静止 */
+.home-slogan-sheen {
+  position: absolute;
+  inset: 0;
+  color: transparent;
+  background-image: linear-gradient(100deg, rgba(255, 255, 255, 0) 42%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0) 58%);
+  background-size: 240% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: slogan-sheen 7s ease-in-out 2.3s infinite;
+  pointer-events: none;
+}
+
+
+@keyframes slogan-type {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+
+@keyframes slogan-caret-move {
+  from { left: 0; }
+  to { left: 100%; }
+}
+
+
+@keyframes slogan-caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+
+@keyframes slogan-caret-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+
+@keyframes slogan-sheen {
+  0% { background-position: 200% 0; opacity: 0; }
+  4% { opacity: 1; }
+  18% { background-position: -120% 0; opacity: 1; }
+  26% { opacity: 0; }
+  100% { background-position: -120% 0; opacity: 0; }
+}
+
+
+/* 系统开启「减弱动态效果」时直接静态展示 */
+@media (prefers-reduced-motion: reduce) {
+  .home-slogan-text {
+    clip-path: none;
+    animation: none;
+  }
+
+  .home-slogan-caret,
+  .home-slogan-sheen {
+    display: none;
+  }
+}
+
+
+
+/* 首页背景设置：默认内置插画，也支持换成自己的图（只存本机） */
+.hero-background {
+  position: absolute;
+  z-index: 2;
+  right: 22px;
+  bottom: 20px;
+}
+
+
+.hero-background-trigger {
+  position: relative;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  color: var(--foreground-2);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+
+.hero-background-trigger:hover {
+  color: var(--foreground);
+  background: #ffffff;
+  border-color: var(--line-hover);
+}
+
+
+.hero-background-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+
+.hero-background-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: 244px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(23, 23, 23, 0.16);
+  text-align: left;
+  animation: dialog-in 160ms ease-out;
+}
+
+
+.hero-background-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+
+.hero-background-head strong {
+  font-size: 13px;
+}
+
+
+.hero-background-head button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+
+.hero-background-head button:hover {
+  color: var(--foreground);
+  background: var(--surface-subtle);
+}
+
+
+.hero-background-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+
+.hero-background-option:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--surface-subtle);
+  border-color: var(--line-hover);
+}
+
+
+.hero-background-option:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+
+.hero-background-option > svg:last-child {
+  margin-left: auto;
+  color: var(--foreground);
+}
+
+
+.hero-background-option input[type='file'] {
+  display: none;
+}
+
+
+.hero-background-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+.hero-background-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 
 
 .eyebrow {
@@ -333,16 +600,9 @@ img {
   font-weight: 600;
 }
 
-.home-hero h1 { margin: 0; font-size: clamp(30px, 4.6vw, 46px); line-height: 1.14; letter-spacing: -0.02em; font-weight: 700 }
-
-
-.section-heading p {
-  color: var(--muted);
-}
-
 /* 首页大输入框：视觉主场，配置项在框内一排，点开即弹配置面板 */
 .hero-composer-wrap {
-  margin-top: 36px;
+  margin-top: 0;
   text-align: left;
 }
 
@@ -352,10 +612,11 @@ img {
   display: flex;
   flex-direction: column;
   padding: 22px 22px 16px;
-  background: rgba(255, 255, 255, 0.95);
+  /* 背景图可能是任意照片，输入框用不透明白底，保证文字始终可读 */
+  background: #ffffff;
   border: 1px solid rgba(23, 23, 23, 0.08);
   border-radius: 22px;
-  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.03), 0 22px 60px rgba(23, 23, 23, 0.08);
+  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.04), 0 22px 60px rgba(23, 23, 23, 0.12);
   transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
@@ -482,51 +743,6 @@ img {
 }
 
 
-/* 首屏输入框滚出视口后，底部吸出一条随时可提交的输入条 */
-.dock-composer {
-  position: fixed;
-  z-index: 40;
-  left: 50%;
-  bottom: 18px;
-  width: min(880px, calc(100% - 28px));
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px 10px 18px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(23, 23, 23, 0.08);
-  border-radius: 16px;
-  box-shadow: 0 18px 44px rgba(23, 23, 23, 0.14);
-  transform: translateX(-50%);
-  animation: dock-in 200ms ease;
-}
-
-
-.dock-composer-input {
-  min-width: 120px;
-  flex: 1;
-  height: 38px;
-  padding: 0 2px;
-  color: var(--foreground);
-  background: transparent;
-  border: 0;
-  outline: 0;
-  font-size: 14px;
-}
-
-
-.dock-composer .hero-composer-send {
-  width: 38px;
-  height: 38px;
-}
-
-
-.site-shell.has-dock {
-  padding-bottom: 96px;
-}
-
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -537,48 +753,6 @@ img {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
-}
-
-
-@keyframes dock-in {
-  from { opacity: 0; transform: translate(-50%, 12px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
-
-
-.content-section {
-  width: min(1140px, calc(100% - 40px));
-  margin: 0 auto;
-  padding: 42px 0;
-}
-
-
-.section-heading {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.section-heading > svg { flex: 0 0 auto; padding: 8px; box-sizing: content-box; background: var(--primary-soft); border-radius: 10px; color: var(--foreground) }
-
-
-.section-heading h2 {
-  margin: 2px 0 4px;
-  font-size: 21px;
-}
-
-
-.section-heading p {
-  margin: 0;
-  font-size: 13px;
-}
-
-
-.commerce-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
 }
 
 
@@ -1018,78 +1192,6 @@ img {
   border: 1px solid var(--border);
   border-radius: 12px;
   font-size: 13px;
-}
-
-
-.commerce-card { position: relative; min-width: 0; height: 184px; display: grid; grid-template-columns: 56% 44%; overflow: hidden; background: var(--surface-2); border: 1px solid transparent; border-radius: 14px; box-shadow: 0 1px 2px rgba(23, 23, 23, 0.04); transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease }
-
-.commerce-card:hover { border-color: var(--line-strong); transform: translateY(-3px); box-shadow: 0 14px 32px rgba(23, 23, 23, 0.1) }
-
-
-.commerce-card > div {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  padding: 25px 4px 18px 19px;
-  background: var(--surface-subtle);
-}
-
-
-.commerce-card > div::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: 0 -38px 0 auto;
-  width: 66px;
-  background: inherit;
-  transform: skewX(-9deg);
-}
-
-
-.commerce-card h3 {
-  margin: 0;
-  font-size: 17px;
-}
-
-
-.commerce-card p {
-  margin: 8px 0;
-  color: var(--foreground-3);
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-
-.tool-arrow {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  margin-top: auto;
-  border-radius: 7px;
-  transition: color 180ms ease, background 180ms ease, transform 180ms ease;
-}
-
-
-.commerce-card:hover .tool-arrow {
-  color: var(--background);
-  background: var(--primary);
-  transform: translateX(3px);
-}
-
-
-.commerce-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scale(1.02);
-  transition: transform 340ms ease;
-}
-
-
-.commerce-card:hover img {
-  transform: scale(1.075);
 }
 
 .workbench-page {
@@ -3089,9 +3191,6 @@ img {
 .module-badge { position: absolute; top: 10px; left: 10px; padding: 4px 8px; color: var(--foreground-2); background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(23, 23, 23, 0.06); border-radius: 5px; font-size: 11px; box-shadow: 0 2px 6px rgba(23, 23, 23, 0.1); }
 
 @media (max-width: 1040px) {
-  .commerce-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 
   .inspire-grid {
     columns: 2;
@@ -3190,13 +3289,6 @@ img {
   .home-hero {
     min-height: auto;
     padding: 44px 16px 60px;
-  }
-
-  .home-hero h1 {
-    font-size: 32px;
-  }
-  .commerce-grid {
-    grid-template-columns: 1fr 1fr;
   }
 
   .workbench-page {
@@ -3399,10 +3491,6 @@ img {
     padding: 36px 14px 56px;
   }
 
-  .home-hero h1 {
-    font-size: 27px;
-  }
-
   .hero-composer {
     min-height: 200px;
     padding: 16px 16px 12px;
@@ -3434,34 +3522,6 @@ img {
     max-width: 110px;
   }
 
-  .dock-composer {
-    bottom: 10px;
-    width: calc(100% - 20px);
-    flex-wrap: wrap;
-    padding: 10px 12px;
-  }
-
-  .dock-composer-input {
-    order: -1;
-    width: 100%;
-    flex: 1 0 100%;
-  }
-
-  .dock-composer .hero-configs {
-    flex: 1;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-  }
-
-  .content-section {
-    width: calc(100% - 28px);
-    padding: 28px 0;
-  }
-
-  .commerce-grid {
-    grid-template-columns: 1fr;
-  }
-
   .two-columns,
   .settings-grid {
     grid-template-columns: 1fr;
@@ -3479,14 +3539,6 @@ img {
 
   .form-notice {
     grid-column: 1;
-  }
-
-  .full-set-banner {
-    padding: 16px;
-  }
-
-  .full-set-banner h3 {
-    font-size: 16px;
   }
 
   .library-grid {
@@ -3990,13 +4042,6 @@ img {
 }
 
 
-.section-heading .section-more {
-  margin: 7px 0 0 auto;
-  color: var(--foreground);
-  font-size: 13px;
-}
-
-
 /* Result history navigation */
 .result-history-nav {
   display: flex;
@@ -4113,34 +4158,6 @@ img {
 }
 
 
-.full-set-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-  padding: 20px 24px;
-  background: var(--surface-subtle);
-  border: 1px solid var(--line-strong);
-  border-radius: 12px;
-  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
-}
-
-
-.full-set-banner:hover {
-  transform: translateY(-2px);
-  border-color: var(--line-strong);
-  box-shadow: 0 10px 28px rgba(23, 23, 23, 0.09);
-}
-
-
-.full-set-banner-left {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-
 .full-set-badge {
   display: inline-flex;
   align-items: center;
@@ -4152,20 +4169,6 @@ img {
   border-radius: 5px;
   font-size: 11px;
   font-weight: 600;
-}
-
-
-.full-set-banner h3 {
-  margin: 0;
-  font-size: 18px;
-  color: var(--foreground);
-}
-
-
-.full-set-banner p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
 }
 
 
@@ -4182,21 +4185,7 @@ img {
 }
 
 
-.full-set-banner:hover .full-set-arrow {
-  color: var(--background);
-  background: var(--foreground);
-  transform: translateX(3px);
-}
-
-
 @media (max-width: 520px) {
-  .full-set-banner {
-    padding: 16px;
-  }
-
-  .full-set-banner h3 {
-    font-size: 16px;
-  }
 }
 
 
@@ -5526,8 +5515,8 @@ img {
   background: var(--surface);
   border-radius: 16px;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32);
-  /* 弹窗自己一套动画：只做透明度 + 轻微上移，避免复用底部输入条的 dock-in
-     （那个动画带 translate(-50%)，会让居中的弹窗先偏左再跳回中间） */
+  /* 弹窗自己一套动画：只做透明度 + 轻微上移。
+     之前复用底部输入条的 dock-in（带 translate(-50%)），会让居中的弹窗先偏左再跳回中间 */
   animation: dialog-in 160ms ease-out;
 }
 
