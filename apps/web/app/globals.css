@@ -2466,6 +2466,7 @@ img {
   height: 26px;
   display: inline-flex;
   align-items: center;
+  gap: 5px;
   padding: 0 10px;
   color: var(--foreground-2);
   background: var(--surface-subtle);
@@ -2473,6 +2474,15 @@ img {
   border-radius: 999px;
   font-size: 11px;
   white-space: nowrap;
+}
+
+
+/* 结果状态徽标：生成完成 / 生成中 */
+.meta-chip.is-status {
+  color: var(--foreground);
+  background: var(--surface);
+  border-color: var(--line-strong);
+  font-weight: 600;
 }
 
 
@@ -2624,66 +2634,67 @@ img {
 }
 
 
-.result-generating-head {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex-wrap: wrap;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-
-.result-generating-head strong {
-  color: var(--foreground);
-  font-size: 14px;
-}
-
-
-.result-skeletons,
-.result-skeleton {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 12px;
-}
-
-
-.result-skeleton {
-  height: 320px;
-  grid-template-columns: 1fr;
-}
-
-
-.result-skeletons > span,
-.result-skeleton {
-  background: linear-gradient(90deg, var(--surface-subtle) 25%, var(--skeleton) 37%, var(--surface-subtle) 63%);
-  background-size: 400% 100%;
-  border-radius: 12px;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
-}
-
-
-.result-skeletons > span {
-  aspect-ratio: 1;
-}
-
-
+/* 结果区只保留图片舞台：操作收进顶部工具行，图片占满整行 */
 .result-result {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(232px, 292px);
-  gap: 18px;
-  align-items: start;
+  display: block;
 }
 
 
-/* 历史查看态：去掉右侧操作栏，图片占满整行 */
-.result-result.is-single {
-  grid-template-columns: minmax(0, 1fr);
+/* 生成中的占位：与结果主图同比例、同最大高度 */
+.result-hero-skeleton {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 14px;
 }
 
 
-.result-result.is-single .result-hero-image {
-  max-height: min(70vh, 720px);
+.result-hero-skeleton .skeleton-shimmer,
+.result-strip-skeleton .skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 20%, rgba(255, 255, 255, 0.75) 45%, transparent 70%);
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}
+
+
+.result-strip-skeleton {
+  display: flex;
+  gap: 8px;
+}
+
+
+.result-strip-skeleton > span {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  overflow: hidden;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+
+@keyframes skeleton-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+
+.result-inline-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-line);
+  border-radius: 10px;
+  font-size: 12px;
 }
 
 
@@ -2691,11 +2702,16 @@ img {
   min-width: 0;
   display: grid;
   gap: 10px;
+  /* 结果图的最大边长：主图画框、生成占位、结果图共用，小屏下一起收敛 */
+  --hero-max: min(68vh, 680px);
 }
 
 
 .result-hero {
   position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
   overflow: hidden;
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -2705,7 +2721,7 @@ img {
 
 .result-hero-open {
   display: block;
-  width: 100%;
+  max-width: 100%;
   padding: 0;
   background: transparent;
   border: 0;
@@ -2714,9 +2730,47 @@ img {
 
 
 .result-hero-image {
-  width: 100%;
-  max-height: min(62vh, 620px);
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: var(--hero-max);
   object-fit: contain;
+}
+
+
+/* 主图就绪前的画框：尺寸与结果图一致，生成完成时不会塌陷或跳动 */
+.result-hero-pending {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface-subtle);
+}
+
+
+.result-hero-pending.is-failed {
+  color: var(--muted);
+}
+
+
+.result-hero-pending > button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+
+.result-hero-pending > button:hover {
+  background: var(--primary-soft);
+  border-color: var(--line-strong);
 }
 
 
@@ -2858,101 +2912,6 @@ img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-
-.result-side {
-  min-width: 0;
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  background: var(--surface-subtle);
-  border: 1px solid rgba(23, 23, 23, 0.06);
-  border-radius: 14px;
-}
-
-
-.result-side-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-
-.result-side-note {
-  margin: 0;
-  color: var(--foreground-3);
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-
-.result-side-error {
-  display: flex;
-  gap: 7px;
-  margin: 0;
-  padding: 9px 10px;
-  color: var(--danger);
-  background: var(--danger-soft);
-  border: 1px solid var(--danger-line);
-  border-radius: 9px;
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-
-.result-actions {
-  display: grid;
-  gap: 8px;
-}
-
-
-.result-actions button {
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease;
-}
-
-
-.result-action-primary {
-  color: var(--background);
-  background: var(--primary);
-  border: 1px solid var(--primary);
-}
-
-
-.result-action-primary:hover:not(:disabled) {
-  background: var(--primary-hover);
-}
-
-
-.result-action {
-  color: var(--foreground-2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-
-.result-action:hover:not(:disabled) {
-  color: var(--foreground);
-  background: var(--surface-subtle);
-  border-color: var(--line-hover);
-}
-
-
-.result-actions button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 
@@ -3137,9 +3096,6 @@ img {
   color: var(--foreground-3);
   font-size: 11px;
 }
-
-
-.success-label { display: inline-flex; align-items: center; gap: 5px; color: var(--foreground); font-size: 12px; font-weight: 600; }
 
 
 .module-badge { position: absolute; top: 10px; left: 10px; padding: 4px 8px; color: var(--foreground-2); background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(23, 23, 23, 0.06); border-radius: 5px; font-size: 11px; box-shadow: 0 2px 6px rgba(23, 23, 23, 0.1); }
@@ -3531,8 +3487,8 @@ img {
     padding: 14px 12px 92px;
   }
 
-  .result-hero-image {
-    max-height: 60vh;
+  .result-stage {
+    --hero-max: 60vh;
   }
 
   .configuration-footer {
@@ -3570,10 +3526,8 @@ img {
 }
 
 /* 受保护图片：加载骨架与失败占位（失败时不再静默消失） */
-.result-hero > .auth-image-loading,
 .library-task-thumbs > .auth-image-loading,
 .result-grid article > .auth-image-loading,
-.result-hero > .auth-image-failed,
 .library-task-thumbs > .auth-image-failed,
 .result-grid article > .auth-image-failed {
   width: 100%;
@@ -3581,11 +3535,6 @@ img {
   min-height: 120px;
 }
 
-
-.result-hero > .auth-image-loading,
-.result-hero > .auth-image-failed {
-  min-height: 320px;
-}
 
 .auth-image-loading {
   display: grid;
@@ -4467,6 +4416,52 @@ img {
 }
 
 
+.prompt-editor-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+.prompt-undo {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+
+.prompt-undo:hover {
+  color: var(--foreground);
+  border-color: var(--line-hover);
+}
+
+
+.prompt-note.is-error {
+  color: var(--danger);
+}
+
+
+.prompt-retry {
+  margin-left: 2px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+
 .prompt-count {
   color: var(--foreground-3);
   font-size: 11px;
@@ -4510,8 +4505,21 @@ img {
 }
 
 
-.prompt-tags,
-.prompt-fields {
+/* 条件不满足时保留可点击（点了会说明原因），只做弱化外观 */
+.prompt-enhance.is-blocked {
+  color: var(--foreground-3);
+  border-color: var(--border);
+  background: var(--surface-subtle);
+}
+
+
+.prompt-enhance.is-blocked:hover {
+  color: var(--foreground);
+  border-color: var(--line-hover);
+}
+
+
+.prompt-tags {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -4519,14 +4527,7 @@ img {
 }
 
 
-.prompt-fields-label {
-  color: var(--foreground-3);
-  font-size: 11px;
-}
-
-
-.prompt-tags button,
-.prompt-fields button {
+.prompt-tags button {
   height: 28px;
   display: inline-flex;
   align-items: center;
@@ -4541,8 +4542,7 @@ img {
 }
 
 
-.prompt-tags button:hover,
-.prompt-fields button:hover {
+.prompt-tags button:hover {
   color: var(--foreground);
   background: var(--surface-subtle);
   border-color: var(--line-strong);

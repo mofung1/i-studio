@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 
 import { apiBaseUrl, getAccessToken } from '@/lib/api'
@@ -13,51 +13,127 @@ interface AuthenticatedImageProps {
 
 type LoadState = 'loading' | 'loaded' | 'failed'
 
+interface CacheEntry {
+  url: string
+  blob: Blob
+}
+
+/**
+ * 受保护图片的进程内缓存。
+ * 同一次生成的多张图会被缩略图条、主图、历史抽屉等多个组件同时请求，
+ * 缓存 + 单飞（inflight 去重）能让「点下一张」直接命中已有图片，不再重新 fetch，
+ * 也就不会出现"旧图先消失、新图再出现"的闪白。
+ */
+const CACHE_LIMIT = 120
+const imageCache = new Map<string, CacheEntry>()
+const inflight = new Map<string, Promise<CacheEntry>>()
+
+function remember(path: string, entry: CacheEntry) {
+  imageCache.set(path, entry)
+  if (imageCache.size <= CACHE_LIMIT) return
+  // 超出上限时按插入顺序淘汰最旧的一批
+  const overflow = imageCache.size - CACHE_LIMIT
+  let index = 0
+  for (const [key, value] of imageCache) {
+    if (index >= overflow) break
+    imageCache.delete(key)
+    URL.revokeObjectURL(value.url)
+    index += 1
+  }
+}
+
+/** 取受保护图片（带缓存与请求去重）；失败时抛出，由调用方决定展示什么 */
+export async function loadProtectedImage(path: string): Promise<CacheEntry> {
+  if (!path.startsWith('/')) return { url: path, blob: new Blob() }
+  const cached = imageCache.get(path)
+  if (cached) return cached
+  const pending = inflight.get(path)
+  if (pending) return pending
+
+  const request = (async () => {
+    const response = await fetch(`${apiBaseUrl}${path}`, {
+      headers: { Authorization: `Bearer ${getAccessToken()}` },
+    })
+    if (!response.ok) throw new Error('图片加载失败')
+    const blob = await response.blob()
+    const entry: CacheEntry = { url: URL.createObjectURL(blob), blob }
+    remember(path, entry)
+    return entry
+  })()
+  inflight.set(path, request)
+  try {
+    return await request
+  } finally {
+    inflight.delete(path)
+  }
+}
+
 /**
  * 取受保护图片的对象 URL。
- * 灯箱里的放大 / 裁剪需要拿到真实的图片地址与解码尺寸，因此把这段逻辑抽成 hook 复用。
+ * 切换 path 时会保留上一张已经加载好的图，直到新图就绪再替换，
+ * 所以连续浏览多张结果图不会闪白、也不会出现容器尺寸跳变。
+ *
+ * resetKey 用于区分「一组结果」：同一次生成的多张图属于同一组，
+ * 组内切换保留上一张；换组（新的一次生成、另一条历史记录）则不保留，
+ * 避免新图未到达时先显示上一组已经过期的画面。
  */
-export function useProtectedImageUrl(path: string) {
-  const [source, setSource] = useState('')
-  const [state, setState] = useState<LoadState>('loading')
+export function useProtectedImageUrl(path: string, resetKey?: string) {
+  const cached = path.startsWith('/') ? imageCache.get(path) : { url: path, blob: new Blob() }
+  const [source, setSource] = useState(cached?.url ?? '')
+  const [state, setState] = useState<LoadState>(cached ? 'loaded' : path.startsWith('/') ? 'loading' : 'loaded')
   const [retryToken, setRetryToken] = useState(0)
+  const hasSource = useRef(Boolean(cached?.url || !path.startsWith('/')))
+  const activeGroup = useRef(resetKey)
 
   useEffect(() => {
+    let active = true
+
+    if (resetKey !== undefined && activeGroup.current !== resetKey) {
+      activeGroup.current = resetKey
+      hasSource.current = false
+      setSource('')
+      setState('loading')
+    }
+
     if (!path.startsWith('/')) {
+      hasSource.current = true
       setSource(path)
       setState('loaded')
       return
     }
 
-    const controller = new AbortController()
-    let objectUrl = ''
-    setState('loading')
-    fetch(`${apiBaseUrl}${path}`, {
-      headers: { Authorization: `Bearer ${getAccessToken()}` },
-      signal: controller.signal,
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error('图片加载失败')
-        return response.blob()
-      })
-      .then((blob) => {
-        objectUrl = URL.createObjectURL(blob)
-        setSource(objectUrl)
+    const hit = retryToken === 0 ? imageCache.get(path) : undefined
+    if (hit) {
+      hasSource.current = true
+      setSource(hit.url)
+      setState('loaded')
+      return
+    }
+    // 关键：不清空 source，让上一张图继续显示，避免中间出现空白帧
+    if (!hasSource.current) setState('loading')
+
+    loadProtectedImage(path)
+      .then((entry) => {
+        if (!active) return
+        hasSource.current = true
+        setSource(entry.url)
         setState('loaded')
       })
-      .catch((error) => {
-        // 组件卸载或主动中止时保持安静，不向用户暴露失败态
-        if (error.name === 'AbortError') return
-        setState('failed')
+      .catch(() => {
+        if (active) setState('failed')
       })
 
     return () => {
-      controller.abort()
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
+      active = false
     }
-  }, [path, retryToken])
+  }, [path, resetKey, retryToken])
 
-  return { source, state, retry: () => setRetryToken((token) => token + 1) }
+  const retry = () => {
+    if (path.startsWith('/')) imageCache.delete(path)
+    setRetryToken((token) => token + 1)
+  }
+
+  return { source, state, retry }
 }
 
 export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageProps) {
@@ -85,12 +161,19 @@ export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageP
 }
 
 export async function downloadProtectedAsset(path: string, filename: string) {
-  const url = path.startsWith('/') ? `${apiBaseUrl}${path}` : path
-  const response = await fetch(url, {
-    headers: path.startsWith('/') ? { Authorization: `Bearer ${getAccessToken()}` } : undefined,
-  })
-  if (!response.ok) throw new Error('下载失败')
-  const objectUrl = URL.createObjectURL(await response.blob())
+  let blob: Blob
+  const cached = path.startsWith('/') ? imageCache.get(path) : undefined
+  if (cached) {
+    // 命中缓存就不再重复下载一次
+    blob = cached.blob
+  } else if (path.startsWith('/')) {
+    blob = (await loadProtectedImage(path)).blob
+  } else {
+    const response = await fetch(path)
+    if (!response.ok) throw new Error('下载失败')
+    blob = await response.blob()
+  }
+  const objectUrl = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = objectUrl
   anchor.download = filename

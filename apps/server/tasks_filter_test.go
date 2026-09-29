@@ -11,10 +11,10 @@ func newTaskListServer(t *testing.T) (*server, string) {
 	t.Helper()
 	s := &server{secret: []byte("test-secret")}
 	s.tasks = map[string]task{
-		"general-1": {ID: "general-1", UserID: "user-1", Status: "succeeded", CreatedAt: "2026-09-01T00:00:00Z", Input: map[string]any{"mode": "general"}},
+		"general-1":  {ID: "general-1", UserID: "user-1", Status: "succeeded", CreatedAt: "2026-09-01T00:00:00Z", Input: map[string]any{"mode": "general"}},
 		"commerce-1": {ID: "commerce-1", UserID: "user-1", Status: "succeeded", CreatedAt: "2026-09-02T00:00:00Z", Input: map[string]any{"mode": "commerce", "taskType": "product-main"}},
-		"detail-1":  {ID: "detail-1", UserID: "user-1", Status: "succeeded", CreatedAt: "2026-09-03T00:00:00Z", Input: map[string]any{"mode": "commerce", "taskType": "detail-page"}},
-		"other-1":   {ID: "other-1", UserID: "user-2", Status: "succeeded", CreatedAt: "2026-09-04T00:00:00Z", Input: map[string]any{"mode": "general"}},
+		"detail-1":   {ID: "detail-1", UserID: "user-1", Status: "succeeded", CreatedAt: "2026-09-03T00:00:00Z", Input: map[string]any{"mode": "commerce", "taskType": "detail-page"}},
+		"other-1":    {ID: "other-1", UserID: "user-2", Status: "succeeded", CreatedAt: "2026-09-04T00:00:00Z", Input: map[string]any{"mode": "general"}},
 	}
 	return s, s.token(user{ID: "user-1", Username: "demo"})
 }

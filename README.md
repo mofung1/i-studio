@@ -17,6 +17,17 @@ UI-4         Studio Calm 版前端（简约大气、雾蓝与薄荷色点缀，�
 
 ## 本地开发
 
+### 前后端一键启动（dev.sh）
+
+```bash
+./dev.sh              # 前端 http://127.0.0.1:3000 + API http://127.0.0.1:4000
+./dev.sh --infra      # 顺带用 Docker 起 postgres / redis（数据持久化）
+./dev.sh --web-port 3100 --api-port 4100   # 自定义端口（会自动放行 CORS 来源）
+./dev.sh --no-install # 跳过 pnpm install
+```
+
+脚本会做的事：检查 `go`/`node`/`pnpm` 与端口占用、提示 `.env` 里缺失的密钥、探测 Postgres/Redis 是否可达（连不上会说明会降级成内存存储 / 进程内队列）、编译后端二进制后与 Next dev 一起启动，日志分别带 `[api]` / `[web]` 前缀；按 `Ctrl+C` 同时停掉两端并释放端口。
+
 ### Docker 一键启动（推荐）
 
 ```bash
