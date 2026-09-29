@@ -4,8 +4,16 @@ import { Check, Images, ImagePlus, Maximize, RotateCcw, Send, Sparkles, X } from
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
-import { clearStoredHomeBackground, readStoredHomeBackground, storeHomeBackground } from '@/lib/home-background'
+import {
+  clearStoredHomeBackground,
+  readStoredHomeBackground,
+  readStoredHomeTheme,
+  storeHomeBackground,
+  storeHomeTheme,
+  type HomeTheme,
+} from '@/lib/home-background'
 
+import { HeroParticles } from './hero-particles'
 import { TopNavigation } from './top-navigation'
 import { countOptions, modelOptions, ratioOptions, resolutionOptions } from './workbench/shared'
 
@@ -60,13 +68,27 @@ export function HomePage() {
   const [backgroundOpen, setBackgroundOpen] = useState(false)
   const [backgroundError, setBackgroundError] = useState('')
   const [backgroundBusy, setBackgroundBusy] = useState(false)
+  const [theme, setTheme] = useState<HomeTheme>('light')
   // 用户开始输入时，slogan 淡下去给输入让位
   const [sloganDim, setSloganDim] = useState(false)
   const backgroundRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setBackground(readStoredHomeBackground())
+    setTheme(readStoredHomeTheme())
   }, [])
+
+  // 主题只在首页生效：挂载时加在 <html> 上（让下拉菜单这类 portal 也能跟着变），离开时移除
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.toggle('theme-dark', theme === 'dark')
+    return () => root.classList.remove('theme-dark')
+  }, [theme])
+
+  function changeTheme(next: HomeTheme) {
+    setTheme(next)
+    storeHomeTheme(next)
+  }
 
   // 点空白处 / Esc 关闭背景设置面板
   useEffect(() => {
@@ -129,12 +151,17 @@ export function HomePage() {
   return (
     <div
       className="site-shell home-shell"
-      /* 背景铺满整屏（含导航区）：用户设过就用它，否则用 CSS 里的默认插画 */
-      style={background ? { backgroundImage: `url(${background})` } : undefined}
     >
+      {/* 背景层：默认内置插画，换过就用用户本机那张；深色主题下自动压一层暗色蒙版 */}
+      <div
+        className="home-backdrop"
+        aria-hidden="true"
+        style={background ? { backgroundImage: `url(${background})` } : undefined}
+      />
       <TopNavigation />
       <main>
         <section className="home-hero">
+          <HeroParticles className="home-particles" tone={theme} />
           <div className="home-hero-inner">
             {/* Slogan：打字机入场 + 之后低频的光扫（方案 C） */}
             <p className={`home-slogan${sloganDim ? ' is-dim' : ''}`}>
@@ -187,6 +214,10 @@ export function HomePage() {
                   <strong>首页背景</strong>
                   <button type="button" aria-label="关闭" title="关闭" onClick={() => setBackgroundOpen(false)}><X size={15} /></button>
                 </header>
+                <div className="hero-background-theme" role="group" aria-label="首页主题">
+                  <button type="button" aria-pressed={theme === 'light'} className={theme === 'light' ? 'is-active' : ''} onClick={() => changeTheme('light')}>浅色</button>
+                  <button type="button" aria-pressed={theme === 'dark'} className={theme === 'dark' ? 'is-active' : ''} onClick={() => changeTheme('dark')}>深色</button>
+                </div>
                 <label className={`hero-background-option${backgroundBusy ? ' is-busy' : ''}`}>
                   <ImagePlus size={15} aria-hidden="true" />
                   {backgroundBusy ? '正在处理…' : '选择本地图片'}
