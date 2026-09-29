@@ -75,7 +75,7 @@ export function TopNavigation() {
       <nav id="primary-navigation" aria-label="主导航" data-open={navOpen}>
         <Link href="/workbench?mode=general" onClick={() => setNavOpen(false)}>通用生图</Link>
         <Link href="/workbench?mode=commerce&task=product-main" onClick={() => setNavOpen(false)}>电商设计</Link>
-        <Link href="/workbench?view=inspire" onClick={() => setNavOpen(false)}>灵感</Link>
+        <Link href="/inspire" onClick={() => setNavOpen(false)}>灵感</Link>
         <Link href="/assets" onClick={() => setNavOpen(false)}>资产库</Link>
       </nav>
       <div className="nav-actions">

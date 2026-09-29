@@ -7,7 +7,6 @@ import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
 
 import { apiBaseUrl, deleteGenerationTask, getAccessToken } from '@/lib/api'
 
-import { InspirationGallery } from './inspiration-gallery'
 import { CreatorSidebar } from './workbench/creator-sidebar'
 import { RegenerateDialog, shouldSkipRegenerateConfirm, type RegenerateRow } from './workbench/regenerate-dialog'
 import { ResultWorkspace } from './workbench/result-workspace'
@@ -30,12 +29,9 @@ import {
   type WorkbenchMode,
 } from './workbench/shared'
 
-export type WorkbenchView = 'create' | 'inspire'
-
 interface WorkbenchProps {
   initialMode: WorkbenchMode
   initialTask: CommerceTaskType
-  initialView: WorkbenchView
   initialPrompt?: string
   initialModel?: string
   initialAspectRatio?: string
@@ -43,14 +39,13 @@ interface WorkbenchProps {
   initialCount?: string
 }
 
-export function Workbench({ initialMode, initialView, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount }: WorkbenchProps) {
+export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount }: WorkbenchProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
-  const [view, setView] = useState<WorkbenchView>(initialView)
   const [configSide, setConfigSide] = useState<ConfigSide>('left')
   const [prompt, setPrompt] = useState(initialPrompt ?? '柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
   const [requirements, setRequirements] = useState('')
@@ -150,7 +145,6 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
 
   function changeMode(nextMode: WorkbenchMode) {
     setMode(nextMode)
-    setView('create')
     setPanelOpen(false)
     setNotice(null)
     router.replace(nextMode === 'general' ? '/workbench?mode=general' : `/workbench?mode=commerce&task=${task}`)
@@ -159,18 +153,9 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
   function changeTask(nextTask: CommerceTaskType) {
     setTask(nextTask)
     setMode('commerce')
-    setView('create')
     setPanelOpen(false)
     setNotice(null)
     router.replace(`/workbench?mode=commerce&task=${nextTask}`)
-  }
-
-  function changeView(nextView: WorkbenchView) {
-    setView(nextView)
-    setPanelOpen(false)
-    setNotice(null)
-    setHistoryOpen(false)
-    if (nextView === 'inspire') router.replace('/workbench?view=inspire')
   }
 
   /** 把一张结果图取回成可以直接放进素材区的文件 */
@@ -214,8 +199,7 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
       if (!sameScope) {
         setMode(targetMode)
         setTask(targetTask)
-        setView('create')
-        setHistoryTask(null)
+            setHistoryTask(null)
         setHistoryOpen(false)
         router.replace(targetMode === 'general' ? '/workbench?mode=general' : `/workbench?mode=commerce&task=${targetTask}`)
       }
@@ -249,8 +233,7 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
 
       setMode(nextMode)
       setTask(nextTask)
-      setView('create')
-      setPrompt(input.prompt ?? '')
+        setPrompt(input.prompt ?? '')
       setRequirements(input.requirements ?? '')
       setPlatform(input.platform ?? 'smart')
       setOutputLanguage(input.outputLanguage ?? 'none')
@@ -398,35 +381,21 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
 
   return (
     <main className="workbench-page">
-      <section className={`workbench-shell config-${configSide} view-${view} ${panelOpen ? 'panel-open' : ''}`}>
+      <section className={`workbench-shell config-${configSide} ${panelOpen ? 'panel-open' : ''}`}>
         <WorkbenchRail
           mode={mode}
-          view={view}
           onChangeMode={changeMode}
-          onChangeView={changeView}
         />
         <WorkbenchHeader
           mode={mode}
           task={task}
-          view={view}
           configSide={configSide}
           panelOpen={panelOpen}
           onChangeTask={changeTask}
           onChangeSide={setConfigSide}
           onTogglePanel={() => setPanelOpen((open) => !open)}
         />
-        {view === 'inspire' ? (
-          <section className="workbench-inspire" aria-label="灵感提示词">
-            <InspirationGallery
-              onUsePrompt={(nextPrompt) => {
-                setPrompt(nextPrompt)
-                changeMode('general')
-              }}
-            />
-          </section>
-        ) : (
-          <>
-            <CreatorSidebar
+        <CreatorSidebar
               mode={mode}
               task={task}
               title={title}
@@ -502,9 +471,7 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
               isRegeneratingHistory={loadingConfigId !== null}
               onSetActiveResultIndex={setActiveResultIndex}
               onRegenerate={requestRegenerate}
-            />
-          </>
-        )}
+        />
       </section>
 
       {confirmOpen && (

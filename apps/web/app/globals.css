@@ -4556,44 +4556,9 @@ img {
 
 .prompt-enhance.is-blocked:hover {
   color: var(--foreground);
-  border-color: var(--line-hover);
-}
-
-
-.prompt-tags {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-
-.prompt-tags button {
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 10px;
-  color: var(--foreground-3);
+  /* 覆盖上方 hover 的黑色底：否则条件不满足时会是黑底 + 深色字，看起来整块全黑 */
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
-}
-
-
-.prompt-tags button:hover {
-  color: var(--foreground);
-  background: var(--surface-subtle);
-  border-color: var(--line-strong);
-}
-
-
-.prompt-tags button.selected {
-  color: var(--background);
-  background: var(--primary);
-  border-color: var(--primary);
+  border-color: var(--line-hover);
 }
 
 
@@ -4858,21 +4823,11 @@ img {
 
 
 /* ---------------------------------------------------------------------------
-   工作台 v2：灵感菜单页、历史记录抽屉、图片查看器（缩放 / 裁剪）、二次确认
+   工作台 v2：历史记录抽屉、图片查看器（缩放 / 裁剪）、二次确认
    --------------------------------------------------------------------------- */
-.workbench-inspire {
-  grid-column: 2 / 4;
-  grid-row: 2;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 20px 24px 30px;
-  scrollbar-color: var(--line-hover) transparent;
-  scrollbar-width: thin;
-}
-
-
 .inspire-gallery {
   width: min(1180px, 100%);
+  margin: 0 auto;
   margin: 0 auto;
 }
 
@@ -5815,13 +5770,6 @@ img {
 
 
 @media (max-width: 780px) {
-  .workbench-inspire {
-    grid-column: 1;
-    grid-row: 2;
-    padding: 16px 14px 28px;
-    overflow: visible;
-  }
-
   .inspire-gallery-head {
     display: grid;
     gap: 12px;

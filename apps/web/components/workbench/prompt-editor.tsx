@@ -3,8 +3,6 @@
 import { AlertTriangle, Check, Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 
-import { hasPromptTag } from './shared'
-
 interface PromptEditorProps {
   value: string
   onChange: (value: string) => void
@@ -15,14 +13,11 @@ interface PromptEditorProps {
   enhanceLabel?: string
   /** 不满足条件时（例如既没有图片也没有文字）给出禁用原因 */
   enhanceDisabledReason?: string
-  /** 快捷标签：点击写入 / 取消 */
-  quickTags?: readonly string[]
-  onToggleTag?: (tag: string) => void
   helper?: string
   maxLength?: number
 }
 
-/** 提示词输入：比普通字段更醒目，带自增高、字数、AI 优化/帮写与快捷标签。 */
+/** 提示词输入：比普通字段更醒目，带自增高、字数、AI 优化/帮写与状态提示。 */
 export function PromptEditor({
   value,
   onChange,
@@ -31,8 +26,6 @@ export function PromptEditor({
   enhance,
   enhanceLabel = 'AI 优化提示词',
   enhanceDisabledReason,
-  quickTags,
-  onToggleTag,
   helper,
   maxLength = 10000,
 }: PromptEditorProps) {
@@ -136,25 +129,6 @@ export function PromptEditor({
           )}
         </div>
       </div>
-
-      {quickTags && quickTags.length > 0 && onToggleTag && (
-        <div className="prompt-tags" role="group" aria-label="快捷标签">
-          {quickTags.map((tag) => {
-            const active = hasPromptTag(value, tag)
-            return (
-              <button
-                key={tag}
-                type="button"
-                aria-pressed={active}
-                className={active ? 'selected' : ''}
-                onClick={() => onToggleTag(tag)}
-              >
-                {tag}
-              </button>
-            )
-          })}
-        </div>
-      )}
 
       {(error || (blockedHint && enhanceDisabledReason)) ? (
         <p className="prompt-note is-error" role="alert">
