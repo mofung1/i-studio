@@ -101,6 +101,58 @@ func dbFindTask(db *sql.DB, id, userID string) (task, bool, error) {
 	return t, true, nil
 }
 
+// sqlQueryer 让删除逻辑既能跑在连接池上，也能跑在事务里（测试用事务回滚，不污染数据）。
+type sqlQueryer interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
+// deleteTaskRecords 删除一条生成任务；返回该任务生成图片对应的存储 key（由调用方删除文件）。
+// 任务本身不保留，结果图对应的资产记录一并清理，避免资产库留下孤儿数据。
+func deleteTaskRecords(q sqlQueryer, userID, taskID string) ([]string, error) {
+	rows, err := q.Query("SELECT storage_key FROM assets WHERE user_id=$1 AND task_id=$2", userID, taskID)
+	if err != nil {
+		return nil, err
+	}
+	keys := []string{}
+	for rows.Next() {
+		var key string
+		if rows.Scan(&key) == nil && key != "" {
+			keys = append(keys, key)
+		}
+	}
+	rows.Close()
+
+	result, err := q.Exec("DELETE FROM generation_tasks WHERE id=$1 AND user_id=$2", taskID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if affected, err := result.RowsAffected(); err == nil && affected == 0 {
+		return nil, sql.ErrNoRows
+	}
+	if _, err := q.Exec("DELETE FROM assets WHERE user_id=$1 AND task_id=$2", userID, taskID); err != nil {
+		return nil, err
+	}
+	return keys, nil
+}
+
+// deleteAssetRecord 删除一张资产，并从所属任务的结果里移除它，避免历史记录出现打不开的缩略图。
+func deleteAssetRecord(q sqlQueryer, userID, assetID string) (string, error) {
+	var key string
+	if err := q.QueryRow("SELECT storage_key FROM assets WHERE id=$1 AND user_id=$2", assetID, userID).Scan(&key); err != nil {
+		return "", err
+	}
+	if _, err := q.Exec("DELETE FROM assets WHERE id=$1 AND user_id=$2", assetID, userID); err != nil {
+		return "", err
+	}
+	path := "/v1/assets/" + assetID + "/content"
+	if _, err := q.Exec("UPDATE generation_tasks SET result_images = result_images - $1 WHERE user_id=$2 AND result_images ? $1", path, userID); err != nil {
+		return key, err
+	}
+	return key, nil
+}
+
 func openDatabase() (*sql.DB, error) {
 	url := os.Getenv("DATABASE_URL")
 	if url == "" {
@@ -125,8 +177,8 @@ func migrateDatabase(db *sql.DB) error {
 	}
 	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
-CREATE TABLE IF NOT EXISTS assets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL, filename TEXT NOT NULL, storage_key TEXT NOT NULL UNIQUE, mime TEXT NOT NULL, size_bytes BIGINT NOT NULL, width INT NOT NULL DEFAULT 0, height INT NOT NULL DEFAULT 0, hash TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now());
-ALTER TABLE assets ADD COLUMN IF NOT EXISTS width INT NOT NULL DEFAULT 0; ALTER TABLE assets ADD COLUMN IF NOT EXISTS height INT NOT NULL DEFAULT 0; ALTER TABLE assets ADD COLUMN IF NOT EXISTS hash TEXT NOT NULL DEFAULT '';
+CREATE TABLE IF NOT EXISTS assets (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL, task_id TEXT NULL, filename TEXT NOT NULL, storage_key TEXT NOT NULL UNIQUE, mime TEXT NOT NULL, size_bytes BIGINT NOT NULL, width INT NOT NULL DEFAULT 0, height INT NOT NULL DEFAULT 0, hash TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS width INT NOT NULL DEFAULT 0; ALTER TABLE assets ADD COLUMN IF NOT EXISTS height INT NOT NULL DEFAULT 0; ALTER TABLE assets ADD COLUMN IF NOT EXISTS hash TEXT NOT NULL DEFAULT ''; ALTER TABLE assets ADD COLUMN IF NOT EXISTS task_id TEXT NULL;
 CREATE TABLE IF NOT EXISTS generation_tasks (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL, status TEXT NOT NULL, input JSONB NOT NULL, result_images JSONB NOT NULL DEFAULT '[]'::jsonb, result_modules JSONB NOT NULL DEFAULT '[]'::jsonb, error_message TEXT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS inspiration_prompts (id TEXT PRIMARY KEY, title TEXT NOT NULL, category TEXT NOT NULL, prompt TEXT NOT NULL, source TEXT NOT NULL DEFAULT '', image_key TEXT NOT NULL DEFAULT '', image_width INT NOT NULL DEFAULT 0, image_height INT NOT NULL DEFAULT 0, enabled BOOLEAN NOT NULL DEFAULT true, sort_order INT NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT now());`)
 	if err != nil {

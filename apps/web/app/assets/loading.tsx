@@ -13,10 +13,10 @@ export default function AssetsLoading() {
             </div>
             <div className="skeleton-line skeleton-line-wide" />
           </div>
-          <div className="asset-grid">
+          <div className="library-grid">
             {Array.from({ length: 10 }, (_, index) => (
-              <div className="asset-item asset-item-loading" key={index}>
-                <div className="asset-placeholder" />
+              <div className="library-card is-skeleton" key={index}>
+                <span className="library-media" />
                 <div className="skeleton-line" />
                 <div className="skeleton-line skeleton-line-narrow" />
               </div>

@@ -1,11 +1,13 @@
 'use client'
 
-import { AlertTriangle, Check, Download, History, Loader2, RefreshCw, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
+import { AlertTriangle, Check, Download, History, Loader2, RefreshCw, RotateCcw, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 
 import { AuthenticatedImage } from '@/components/authenticated-image'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 import type { CommerceTaskType } from '@/lib/contracts'
+import { splitFailureMessage } from '@/lib/failure-message'
 
 import { taskModeLabel, taskTitle, useTaskHistory, type HistoryTask } from './use-task-history'
 import { type WorkbenchMode } from './shared'
@@ -24,6 +26,8 @@ interface HistoryDrawerProps {
   onUseAsReference: (path: string, source: { mode: WorkbenchMode; taskType: CommerceTaskType }) => void
   onLoadConfig: (task: HistoryTask) => void
   onRegenerate: (task: HistoryTask) => void
+  /** 删除一条历史记录（连同它生成的结果图片） */
+  onDelete: (task: HistoryTask) => Promise<void>
 }
 
 function formatTime(value: string) {
@@ -46,9 +50,11 @@ const statusLabels: Record<string, string> = {
 export function HistoryDrawer({
   open, mode, task, selectedId, loadingConfigId, refreshKey,
   onClose, onSelect, onDownload, onUseAsReference, onLoadConfig,
-  onRegenerate,
+  onRegenerate, onDelete,
 }: HistoryDrawerProps) {
   const [scope, setScope] = useState<'type' | 'all'>('type')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmTarget, setConfirmTarget] = useState<HistoryTask | null>(null)
   const { tasks, isLoading, error, reload } = useTaskHistory({
     mode: scope === 'type' ? mode : undefined,
     taskType: task,
@@ -58,6 +64,19 @@ export function HistoryDrawer({
   })
 
   const typeLabel = mode === 'general' ? '通用生图' : '当前工具'
+
+  async function confirmDelete() {
+    const item = confirmTarget
+    if (!item) return
+    setDeletingId(item.id)
+    try {
+      await onDelete(item)
+      setConfirmTarget(null)
+      reload()
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <>
@@ -125,6 +144,15 @@ export function HistoryDrawer({
                       <small>{formatTime(item.createdAt)} · {images.length} 张</small>
                     </span>
                   </button>
+                  {item.errorMessage && (
+                    <details className="history-record-error">
+                      <summary>
+                        <AlertTriangle size={12} aria-hidden="true" />
+                        {splitFailureMessage(item.errorMessage).summary}
+                      </summary>
+                      <pre>{splitFailureMessage(item.errorMessage).detail || item.errorMessage}</pre>
+                    </details>
+                  )}
                   <div className="history-record-actions">
                     <button
                       type="button"
@@ -171,6 +199,19 @@ export function HistoryDrawer({
                       <RefreshCw size={13} />
                       重新生成
                     </button>
+                    <button
+                      type="button"
+                      className="history-delete"
+                      title="删除这条记录"
+                      aria-label="删除这条记录"
+                      disabled={deletingId === item.id}
+                      onClick={() => setConfirmTarget(item)}
+                    >
+                      {deletingId === item.id
+                        ? <Loader2 size={13} className="animate-spin" />
+                        : <Trash2 size={13} />}
+                      删除
+                    </button>
                   </div>
                 </li>
               )
@@ -182,6 +223,18 @@ export function HistoryDrawer({
           )}
         </div>
       </aside>
+
+      {confirmTarget && (
+        <ConfirmDialog
+          title="删除这条记录？"
+          description={`${taskTitle(confirmTarget.input)} · ${formatTime(confirmTarget.createdAt)}`}
+          detail="记录与它生成的图片会一起删除，删除后不可恢复。"
+          confirmLabel="删除"
+          busy={deletingId === confirmTarget.id}
+          onCancel={() => setConfirmTarget(null)}
+          onConfirm={() => void confirmDelete()}
+        />
+      )}
     </>
   )
 }

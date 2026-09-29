@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
 
-import { apiBaseUrl, getAccessToken } from '@/lib/api'
+import { apiBaseUrl, deleteGenerationTask, getAccessToken } from '@/lib/api'
 
 import { InspirationGallery } from './inspiration-gallery'
 import { CreatorSidebar } from './workbench/creator-sidebar'
@@ -290,6 +290,25 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
     setConfirmOpen(true)
   }
 
+  /** 删除一条历史记录（连同它生成的结果图片） */
+  async function deleteHistoryTask(record: HistoryTask) {
+    setNotice(null)
+    try {
+      await deleteGenerationTask(record.id)
+      if (historyTask?.id === record.id) {
+        setHistoryTask(null)
+        setHistoryOpen(false)
+      }
+      setNotice({ kind: 'success', message: '已删除这条记录' })
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        message: error instanceof Error ? error.message : '删除失败，请稍后重试',
+      })
+      throw error
+    }
+  }
+
   /** 重新生成前先确认：每次生成都会调用 AI 服务并产生费用 */
   function requestRegenerate() {
     if (shouldSkipRegenerateConfirm()) {
@@ -478,6 +497,7 @@ export function Workbench({ initialMode, initialView, initialPrompt, initialTask
               onExitHistoryView={() => setHistoryTask(null)}
               onLoadHistoryConfig={(record) => void loadHistoryConfig(record)}
               onRegenerateFromHistory={(record) => void regenerateFromHistory(record)}
+              onDeleteHistoryTask={deleteHistoryTask}
               onUseImageAsReference={(path, source) => void useImageAsReference(path, source)}
               isRegeneratingHistory={loadingConfigId !== null}
               onSetActiveResultIndex={setActiveResultIndex}

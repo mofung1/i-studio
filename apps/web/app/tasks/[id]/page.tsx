@@ -1,11 +1,13 @@
 'use client'
 
-import { AlertCircle, ArrowLeft, Download, RefreshCw, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
+import { FailureNotice } from '@/components/workbench/failure-notice'
+import { ImageLightbox } from '@/components/workbench/image-lightbox'
 import { moduleLabel } from '@/components/workbench/shared'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 
@@ -35,6 +37,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
   const [task, setTask] = useState<GenerationTask | null>(null)
   const [error, setError] = useState('')
   const [isRetrying, setIsRetrying] = useState(false)
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
 
   useEffect(() => {
     let timer = 0
@@ -94,15 +97,27 @@ export default function TaskDetailPage({ params }: { params: Promise<{ id: strin
       <h1>任务详情</h1>
       {error ? <p className="auth-notice">{error}</p> : task ? <>
         <div className="task-status"><strong>{statusLabels[task.status] ?? task.status}</strong><span>{new Date(task.createdAt).toLocaleString()}</span></div>
-        {task.errorMessage && task.status === 'failed' && <p className="task-failure-reason" role="alert"><AlertCircle size={15} />失败原因：{task.errorMessage}</p>}
+        {task.errorMessage && task.status === 'failed' && <FailureNotice message={task.errorMessage} />}
         <section className="task-results">
           <h2>生成结果</h2>
-          {task.resultImages?.length ? <div className="result-grid">{task.resultImages.map((path, index) => { const label = moduleLabel(String(task.input.taskType ?? ''), task.resultModules?.[index] ?? ''); return <article key={path}><AuthenticatedImage path={path} alt={`生成结果 ${index + 1}`} />{label && <span className="module-badge">{label}</span>}<button type="button" onClick={() => void downloadProtectedAsset(path, `istudio-${id.slice(0, 8)}-${index + 1}.png`)}><Download size={15} />下载</button></article> })}</div> : task.errorMessage ? <div className="empty-state">{task.errorMessage}</div> : task.status === 'failed' ? <div className="empty-state">生成失败，但供应商未返回错误详情。请重试或查看 API 日志。</div> : <div className="empty-state">生成完成后，图片将在这里显示。</div>}
+          {task.resultImages?.length ? <div className="result-grid">{task.resultImages.map((path, index) => { const label = moduleLabel(String(task.input.taskType ?? ''), task.resultModules?.[index] ?? ''); return <article key={path}><button type="button" className="result-open" aria-label={`放大查看第 ${index + 1} 张`} title="点击放大查看" onClick={() => setPreviewIndex(index)}><AuthenticatedImage path={path} alt={`生成结果 ${index + 1}`} /></button>{label && <span className="module-badge">{label}</span>}<button type="button" onClick={() => void downloadProtectedAsset(path, `istudio-${id.slice(0, 8)}-${index + 1}.png`)}><Download size={15} />下载</button></article> })}</div> : task.status === 'failed' ? <div className="empty-state">本次任务没有产出图片，失败原因见上方提示。</div> : <div className="empty-state">生成完成后，图片将在这里显示。</div>}
         </section>
         <details><summary>查看生成参数</summary><pre>{JSON.stringify(task.input, null, 2)}</pre></details>
         {task.status === 'failed' && <button className="task-retry-button" type="button" disabled={isRetrying} onClick={() => void retryTask()}><RotateCcw size={16} />{isRetrying ? '正在重试…' : '使用原参数重新生成'}</button>}
         {!terminalStatuses.has(task.status) && <p className="integration-note"><RefreshCw size={16} />任务处理中，页面每 5 秒自动更新。</p>}
       </> : <p>加载中...</p>}
     </div>
+    {task?.resultImages?.length && previewIndex !== null && task.resultImages[previewIndex] ? (
+      <ImageLightbox
+        path={task.resultImages[previewIndex]}
+        alt={`生成结果 ${previewIndex + 1}`}
+        filename={`istudio-${id.slice(0, 8)}-${previewIndex + 1}`}
+        hasPrev={previewIndex > 0}
+        hasNext={previewIndex < task.resultImages.length - 1}
+        onPrev={() => setPreviewIndex((current) => Math.max(0, (current ?? 1) - 1))}
+        onNext={() => setPreviewIndex((current) => Math.min(task.resultImages!.length - 1, (current ?? -1) + 1))}
+        onClose={() => setPreviewIndex(null)}
+      />
+    ) : null}
   </main>
 }
