@@ -167,18 +167,24 @@ export function ResultWorkspace({
                   {generationStatusLabels[generationTask?.status ?? ''] ?? '任务处理中'}
                 </span>
               )}
-              <span className="meta-chip">{expectedCount > 0 ? `${expectedCount} 张` : '—'}</span>
-              <span className="meta-chip">{aspectRatio}</span>
-              <span className="meta-chip">{resolution}</span>
-              <button
-                type="button"
-                className="meta-action is-primary"
-                title="用当前左侧配置再生成一次"
-                disabled={isSubmitting || isGenerating}
-                onClick={onRegenerate}
-              >
-                <RotateCcw size={14} aria-hidden="true" />重新生成
-              </button>
+              {/* 还没有任何结果时不显示「N 张 / 比例 / 分辨率」和「重新生成」：
+                  此时没有可重新生成的对象，直接引导用户用左侧的生成按钮 */}
+              {(hasResults || isGenerating) && (
+                <>
+                  <span className="meta-chip">{expectedCount > 0 ? `${expectedCount} 张` : '—'}</span>
+                  <span className="meta-chip">{aspectRatio}</span>
+                  <span className="meta-chip">{resolution}</span>
+                  <button
+                    type="button"
+                    className="meta-action is-primary"
+                    title="用当前左侧配置再生成一次"
+                    disabled={isSubmitting || isGenerating}
+                    onClick={onRegenerate}
+                  >
+                    <RotateCcw size={14} aria-hidden="true" />重新生成
+                  </button>
+                </>
+              )}
             </>
           )}
           <button

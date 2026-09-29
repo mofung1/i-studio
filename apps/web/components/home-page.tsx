@@ -1,20 +1,13 @@
 'use client'
 
-import { ArrowRight, Box, Images, Layers, Maximize, Send, Sparkles } from 'lucide-react'
-import Link from 'next/link'
+import { Check, Images, ImagePlus, Maximize, RotateCcw, Send, Sparkles, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
+import { clearStoredHomeBackground, readStoredHomeBackground, storeHomeBackground } from '@/lib/home-background'
 
 import { TopNavigation } from './top-navigation'
 import { countOptions, modelOptions, ratioOptions, resolutionOptions } from './workbench/shared'
-
-const commerceTools = [
-  { task: 'product-main', title: '商品主图', description: '生成适配平台规范的商品主视觉', image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=900&q=85' },
-  { task: 'detail-page', title: '详情页', description: '围绕商品信息生成详情页素材', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=85' },
-  { task: 'viral-recreate', title: '爆款复刻', description: '参考爆款视觉重构商品画面', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85' },
-  { task: 'product-retouch', title: '产品精修', description: '修复和提升商品原图质量', image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=85' },
-]
 
 /** 配置项的补充说明，帮助第一次使用的用户理解各档差异 */
 const modelHints: Record<string, string> = {
@@ -62,30 +55,57 @@ export function HomePage() {
   const [ratio, setRatio] = useState('1:1')
   const [resolution, setResolution] = useState('2K')
   const [count, setCount] = useState('1')
-  const [docked, setDocked] = useState(false)
-  const composerRef = useRef<HTMLDivElement>(null)
+  // 背景图：空字符串表示用内置默认插画；用户自选的图只存在本机
+  const [background, setBackground] = useState('')
+  const [backgroundOpen, setBackgroundOpen] = useState(false)
+  const [backgroundError, setBackgroundError] = useState('')
+  const [backgroundBusy, setBackgroundBusy] = useState(false)
+  // 用户开始输入时，slogan 淡下去给输入让位
+  const [sloganDim, setSloganDim] = useState(false)
+  const backgroundRef = useRef<HTMLDivElement>(null)
 
-  // 首屏输入框滑到视口上方约 1/3 之后，在页面底部吸出一条同样的输入条
   useEffect(() => {
-    const node = composerRef.current
-    if (!node) return
-    let frame = 0
-    const update = () => {
-      frame = 0
-      setDocked(node.getBoundingClientRect().bottom < window.innerHeight * 0.35)
-    }
-    const onScroll = () => {
-      if (!frame) frame = window.requestAnimationFrame(update)
-    }
-    update()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
-      if (frame) window.cancelAnimationFrame(frame)
-    }
+    setBackground(readStoredHomeBackground())
   }, [])
+
+  // 点空白处 / Esc 关闭背景设置面板
+  useEffect(() => {
+    if (!backgroundOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (!backgroundRef.current?.contains(event.target as Node)) setBackgroundOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setBackgroundOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [backgroundOpen])
+
+  async function pickBackground(file: File | undefined) {
+    if (!file) return
+    setBackgroundBusy(true)
+    setBackgroundError('')
+    try {
+      const dataUrl = await storeHomeBackground(file)
+      setBackground(dataUrl)
+      setBackgroundOpen(false)
+    } catch (reason) {
+      setBackgroundError(reason instanceof Error ? reason.message : '背景图设置失败，请重试')
+    } finally {
+      setBackgroundBusy(false)
+    }
+  }
+
+  function resetBackground() {
+    clearStoredHomeBackground()
+    setBackground('')
+    setBackgroundError('')
+    setBackgroundOpen(false)
+  }
 
   const hiddenFields = (
     <>
@@ -107,14 +127,22 @@ export function HomePage() {
   )
 
   return (
-    <div className={`site-shell ${docked ? 'has-dock' : ''}`}>
+    <div
+      className="site-shell home-shell"
+      /* 背景铺满整屏（含导航区）：用户设过就用它，否则用 CSS 里的默认插画 */
+      style={background ? { backgroundImage: `url(${background})` } : undefined}
+    >
       <TopNavigation />
       <main>
         <section className="home-hero">
           <div className="home-hero-inner">
-            <h1>把想法，变成画面</h1>
-
-            <div className="hero-composer-wrap" ref={composerRef}>
+            {/* Slogan：打字机入场 + 之后低频的光扫（方案 C） */}
+            <p className={`home-slogan${sloganDim ? ' is-dim' : ''}`}>
+              <span className="home-slogan-text">让创意拥有视觉</span>
+              <span className="home-slogan-caret" aria-hidden="true" />
+              <span className="home-slogan-sheen" aria-hidden="true">让创意拥有视觉</span>
+            </p>
+            <div className="hero-composer-wrap">
               <form className="hero-composer" action="/workbench" method="get">
                 {hiddenFields}
                 <label className="hero-composer-input">
@@ -125,6 +153,8 @@ export function HomePage() {
                     placeholder="例如：一支绿色保温杯放在森林岩石上，清晨阳光从树叶之间洒下来，高级户外产品摄影。"
                     value={promptText}
                     onChange={(event) => setPromptText(event.target.value)}
+                    onFocus={() => setSloganDim(true)}
+                    onBlur={() => setSloganDim(false)}
                   />
                 </label>
                 <div className="hero-composer-bar">
@@ -136,47 +166,57 @@ export function HomePage() {
               </form>
             </div>
           </div>
-        </section>
 
-        <section className="content-section">
-          <div className="section-heading"><Box size={20} /><div><h2>电商创作工具</h2><p>选择创作目标，加载对应的商品图参数。</p></div></div>
-          <Link className="full-set-banner" href="/workbench?mode=commerce&task=product-main">
-            <div className="full-set-banner-left">
-              <span className="full-set-badge"><Layers size={13} />一键全套</span>
-              <h3>上传商品图，生成完整上架素材</h3>
-              <p>商品主图 · 详情页 · 爆款复刻 · 产品精修，一站式完成商品视觉</p>
-            </div>
-            <span className="full-set-arrow"><ArrowRight size={20} /></span>
-          </Link>
-          <div className="commerce-grid">
-            {commerceTools.map((tool) => (
-              <Link key={tool.task} className="commerce-card" href={`/workbench?mode=commerce&task=${tool.task}`}>
-                <div><h3>{tool.title}</h3><p>{tool.description}</p><span className="tool-arrow"><ArrowRight size={18} /></span></div>
-                <img src={tool.image} alt={`${tool.title}示例`} loading="lazy" />
-              </Link>
-            ))}
+          {/* 背景图设置：默认内置插画，也可以换成自己的图（只存在本机浏览器） */}
+          <div className="hero-background" ref={backgroundRef}>
+            <button
+              type="button"
+              className="hero-background-trigger"
+              aria-expanded={backgroundOpen}
+              aria-haspopup="dialog"
+              onClick={() => { setBackgroundOpen((open) => !open); setBackgroundError('') }}
+            >
+              <ImagePlus size={15} aria-hidden="true" />
+              背景
+              {background && <span className="hero-background-dot" aria-hidden="true" />}
+            </button>
+
+            {backgroundOpen && (
+              <div className="hero-background-panel" role="dialog" aria-label="首页背景设置">
+                <header className="hero-background-head">
+                  <strong>首页背景</strong>
+                  <button type="button" aria-label="关闭" title="关闭" onClick={() => setBackgroundOpen(false)}><X size={15} /></button>
+                </header>
+                <label className={`hero-background-option${backgroundBusy ? ' is-busy' : ''}`}>
+                  <ImagePlus size={15} aria-hidden="true" />
+                  {backgroundBusy ? '正在处理…' : '选择本地图片'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={backgroundBusy}
+                    onChange={(event) => {
+                      void pickBackground(event.target.files?.[0])
+                      event.target.value = ''
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="hero-background-option"
+                  onClick={resetBackground}
+                  disabled={!background}
+                >
+                  <RotateCcw size={15} aria-hidden="true" />
+                  恢复默认背景
+                  {!background && <Check size={14} aria-hidden="true" />}
+                </button>
+                <p className="hero-background-hint">图片只保存在本机浏览器，不会上传到服务器。</p>
+                {backgroundError && <p className="hero-background-error" role="alert">{backgroundError}</p>}
+              </div>
+            )}
           </div>
         </section>
       </main>
-
-      {docked && (
-        <form className="dock-composer" action="/workbench" method="get" aria-label="快速开始生成">
-          {hiddenFields}
-          <input
-            className="dock-composer-input"
-            type="text"
-            name="prompt"
-            aria-label="画面描述"
-            placeholder="描述你想生成的画面…"
-            value={promptText}
-            onChange={(event) => setPromptText(event.target.value)}
-          />
-          {configs}
-          <button type="submit" className="hero-composer-send" aria-label="进入工作台生成">
-            <Send size={17} aria-hidden="true" />
-          </button>
-        </form>
-      )}
     </div>
   )
 }
