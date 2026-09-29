@@ -17,7 +17,9 @@ import { PromptEditor } from './prompt-editor'
 import { ReferenceUploader } from './reference-uploader'
 import {
   buildEnhancedPrompt,
+  detailModules,
   optionLabel,
+  productMainModules,
   promptQuickTags,
   referenceLimit,
   modelOptions,
@@ -117,6 +119,15 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
       ? moduleMode === 'custom' ? (moduleTotal > 0 ? `${moduleTotal} 张` : '未选模块') : '智能生成'
       : '1 张'
 
+  // 主图 / 详情页是按模块成套产出的，把用户选中的模块（含张数）交给 AI，
+  // 否则详情页只能拿到一段与详情页无关的通用商品图描述。
+  const usesModules = !isGeneral && (task === 'product-main' || task === 'detail-page')
+  const selectedModules = usesModules
+    ? (task === 'detail-page' ? detailModules : productMainModules)
+        .filter(([key]) => (moduleCounts[key] ?? 0) > 0)
+        .map(([key, label]) => `${label}×${moduleCounts[key]}`)
+    : []
+
   const advancedSummary = [
     `${resolution}`,
     isGeneral ? `${count} 张` : outputSummary,
@@ -138,7 +149,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
       ? '请先上传商品原图与爆款参考图，或输入补充要求'
       : task === 'product-retouch'
         ? '请先上传商品原图，或输入补充要求'
-        : '请先上传商品原图，或输入主图需求'
+        : `请先上传商品原图，或输入${requirementsLabel}`
 
   /** 走 DeepSeek 改写；未配置或失败时由 PromptEditor 展示错误与重试 */
   async function runEnhance(target: 'prompt' | 'requirements', text: string) {
@@ -149,10 +160,10 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
       files,
       context: {
         taskType: isGeneral ? undefined : task,
-        platform,
+        platform: isGeneral ? undefined : platform,
         style,
-        aspectRatio,
-        resolution,
+        moduleMode: usesModules ? moduleMode : undefined,
+        modules: usesModules ? selectedModules : undefined,
         outputLanguage: isGeneral ? undefined : outputLanguage,
         recreateStrength: task === 'viral-recreate' ? recreateStrength : undefined,
         enhancements: task === 'product-retouch' ? enhancements : undefined,

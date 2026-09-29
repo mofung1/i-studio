@@ -45,8 +45,9 @@ export interface PromptEnhanceInput {
     taskType?: string
     platform?: string
     style?: string
-    aspectRatio?: string
-    resolution?: string
+    /** 模块模式与已选模块（仅电商主图 / 详情页），用于让 AI 知道这组图要表达什么 */
+    moduleMode?: string
+    modules?: string[]
     outputLanguage?: string
     recreateStrength?: string
     enhancements?: string[]
@@ -66,8 +67,8 @@ export async function enhancePrompt({ target, text, files = [], context }: Promp
   if (context?.taskType) body.append('taskType', context.taskType)
   if (context?.platform) body.append('platform', context.platform)
   if (context?.style) body.append('style', context.style)
-  if (context?.aspectRatio) body.append('aspectRatio', context.aspectRatio)
-  if (context?.resolution) body.append('resolution', context.resolution)
+  if (context?.moduleMode) body.append('moduleMode', context.moduleMode)
+  for (const item of context?.modules ?? []) body.append('modules', item)
   if (context?.outputLanguage) body.append('outputLanguage', context.outputLanguage)
   if (context?.recreateStrength) body.append('recreateStrength', context.recreateStrength)
   for (const item of context?.enhancements ?? []) body.append('enhancements', item)
