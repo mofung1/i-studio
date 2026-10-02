@@ -139,7 +139,8 @@ img {
   position: absolute;
   z-index: 0;
   inset: 0;
-  background-image: url('/home-bg.jpg');
+  /* 默认没有背景图，只有主题底色；用户上传的图通过内联样式叠上来 */
+  background-image: var(--home-bg, none);
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
@@ -151,7 +152,7 @@ img {
 }
 
 
-.theme-dark .home-backdrop::after {
+.theme-dark .home-backdrop.has-image::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -201,15 +202,14 @@ img {
 
 .theme-dark .home-slogan {
   color: #f7f8f9;
-  text-shadow: 0 0 30px rgba(214, 255, 120, 0.35), 0 0 12px rgba(255, 255, 255, 0.25);
 }
 
 
 .theme-dark .hero-composer {
-  background: rgba(19, 23, 30, 0.76);
+  /* 没有背景图时不需要毛玻璃，直接用干净的不透明深色卡片 */
+  background: #151922;
   border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 26px 70px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(14px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
 
@@ -566,144 +566,26 @@ img {
 
 .home-hero-inner {
   position: relative;
-  z-index: 1;
+  z-index: 4;
   width: min(880px, 100%);
   text-align: center;
 }
 
-/* 粒子层：铺满 hero，位于背景图之上、内容之下 */
-.home-particles {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-
-/* ---------------------------------------------------------------------------
-   首页 slogan：打字机入场（clip-path 逐字揭开 + 光标闪烁），
-   之后每 7s 一次很淡的光扫；聚焦输入框时淡下去给输入让位。
-   --------------------------------------------------------------------------- */
+/* 首页 slogan：静态一行，保持安静 */
 .home-slogan {
-  position: relative;
-  display: inline-block;
-  margin: 0 0 30px;
+  margin: 0 0 26px;
   color: var(--foreground);
-  /* 作为输入框上方的标题：随窗口小幅度缩放，最大 34px */
-  font-size: clamp(26px, 2.4vw, 34px);
+  font-size: clamp(24px, 2.2vw, 32px);
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.4;
-  /* 浅底上不做霓虹，只给一层很淡的暖光 */
-  text-shadow: 0 0 26px rgba(242, 201, 76, 0.32), 0 0 10px rgba(255, 255, 255, 0.85);
-  transition: opacity 260ms ease;
 }
-
-
-.home-slogan.is-dim {
-  opacity: 0.45;
-}
-
-
-.home-slogan-text,
-.home-slogan-sheen {
-  display: block;
-}
-
-
-/* 初始完全裁掉右侧，7 步逐字揭开（7 个字） */
-.home-slogan-text {
-  clip-path: inset(0 100% 0 0);
-  /* 打字节奏约 220ms/字，比之前慢一倍 */
-  animation: slogan-type 1540ms steps(7, end) 300ms forwards;
-}
-
-
-.home-slogan-caret {
-  position: absolute;
-  top: 12%;
-  bottom: 12%;
-  left: 0;
-  width: 3px;
-  border-radius: 3px;
-  background: var(--foreground);
-  opacity: 0;
-  animation:
-    slogan-caret-move 1540ms steps(7, end) 300ms forwards,
-    slogan-caret-blink 1000ms steps(1, end) 300ms infinite,
-    slogan-caret-out 320ms ease 2.04s forwards;
-}
-
-
-/* 光扫：白色高光裁在字形里，从左到右扫过一次，其余时间静止 */
-.home-slogan-sheen {
-  position: absolute;
-  inset: 0;
-  color: transparent;
-  background-image: linear-gradient(100deg, rgba(255, 255, 255, 0) 42%, rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0) 58%);
-  background-size: 240% 100%;
-  background-repeat: no-repeat;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: slogan-sheen 7s ease-in-out 2.3s infinite;
-  pointer-events: none;
-}
-
-
-@keyframes slogan-type {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-
-
-@keyframes slogan-caret-move {
-  from { left: 0; }
-  to { left: 100%; }
-}
-
-
-@keyframes slogan-caret-blink {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-
-
-@keyframes slogan-caret-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-
-@keyframes slogan-sheen {
-  0% { background-position: 200% 0; opacity: 0; }
-  4% { opacity: 1; }
-  18% { background-position: -120% 0; opacity: 1; }
-  26% { opacity: 0; }
-  100% { background-position: -120% 0; opacity: 0; }
-}
-
-
-/* 系统开启「减弱动态效果」时直接静态展示 */
-@media (prefers-reduced-motion: reduce) {
-  .home-slogan-text {
-    clip-path: none;
-    animation: none;
-  }
-
-  .home-slogan-caret,
-  .home-slogan-sheen {
-    display: none;
-  }
-}
-
 
 
 /* 首页背景设置：默认内置插画，也支持换成自己的图（只存本机） */
 .hero-background {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   right: 22px;
   bottom: 20px;
 }
@@ -846,7 +728,6 @@ img {
   font-size: 11px;
   line-height: 1.5;
 }
-
 
 
 .eyebrow {
@@ -4616,6 +4497,127 @@ img {
 .skeleton-line + .skeleton-line {
   margin-top: 10px;
 }
+
+/* ---------------------------------------------------------------------------
+   工作台骨架屏：与真实布局共用 rail / nav / panel / canvas 结构类
+   --------------------------------------------------------------------------- */
+.ws-block {
+  display: block;
+  background: linear-gradient(90deg, var(--surface-subtle) 25%, var(--skeleton) 37%, var(--surface-subtle) 63%);
+  background-size: 400% 100%;
+  border-radius: 10px;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+
+.ws-brand {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+}
+
+
+.ws-rail-item {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+
+.ws-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
+
+.ws-label {
+  width: 46px;
+  height: 9px;
+  border-radius: 5px;
+}
+
+
+.ws-nav-title {
+  width: 128px;
+  height: 12px;
+}
+
+
+.ws-chip {
+  width: 78px;
+  height: 26px;
+  border-radius: 8px;
+}
+
+
+.ws-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+
+.ws-card {
+  display: grid;
+  gap: 12px;
+}
+
+
+.ws-upload {
+  height: 128px;
+  border-radius: 12px;
+}
+
+
+.ws-block-lg {
+  height: 116px;
+}
+
+
+.ws-block-sm {
+  height: 42px;
+}
+
+
+.ws-button {
+  height: 44px;
+  border-radius: 12px;
+}
+
+
+.ws-canvas {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 24px;
+}
+
+
+.ws-canvas-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+
+.ws-canvas-title {
+  width: 180px;
+  height: 16px;
+  border-radius: 8px;
+}
+
+
+.ws-reference {
+  width: min(320px, 100%);
+  height: 188px;
+  margin-top: 8px;
+  border-radius: 12px;
+}
+
 
 .skeleton-line-wide { width: 60%; }
 .skeleton-line-narrow { width: 35%; }

@@ -13,7 +13,6 @@ import {
   type HomeTheme,
 } from '@/lib/home-background'
 
-import { HeroParticles } from './hero-particles'
 import { TopNavigation } from './top-navigation'
 import { countOptions, modelOptions, ratioOptions, resolutionOptions } from './workbench/shared'
 
@@ -57,6 +56,13 @@ function ComposerSelect({ label, value, onChange, icon, options, hints, classNam
   )
 }
 
+// 背景写在 <html> 的 --home-bg 上：首屏脚本与 React 共用同一个变量，切换时不会闪
+function applyHomeBackgroundVar(dataUrl: string) {
+  const root = document.documentElement
+  if (dataUrl) root.style.setProperty('--home-bg', `url("${dataUrl}")`)
+  else root.style.removeProperty('--home-bg')
+}
+
 export function HomePage() {
   const [promptText, setPromptText] = useState('柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
   const [model, setModel] = useState('gpt-image-2')
@@ -69,12 +75,12 @@ export function HomePage() {
   const [backgroundError, setBackgroundError] = useState('')
   const [backgroundBusy, setBackgroundBusy] = useState(false)
   const [theme, setTheme] = useState<HomeTheme>('light')
-  // 用户开始输入时，slogan 淡下去给输入让位
-  const [sloganDim, setSloganDim] = useState(false)
   const backgroundRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setBackground(readStoredHomeBackground())
+    const stored = readStoredHomeBackground()
+    setBackground(stored)
+    applyHomeBackgroundVar(stored)
     setTheme(readStoredHomeTheme())
   }, [])
 
@@ -113,6 +119,7 @@ export function HomePage() {
     setBackgroundError('')
     try {
       const dataUrl = await storeHomeBackground(file)
+      applyHomeBackgroundVar(dataUrl)
       setBackground(dataUrl)
       setBackgroundOpen(false)
     } catch (reason) {
@@ -124,6 +131,7 @@ export function HomePage() {
 
   function resetBackground() {
     clearStoredHomeBackground()
+    applyHomeBackgroundVar('')
     setBackground('')
     setBackgroundError('')
     setBackgroundOpen(false)
@@ -153,22 +161,12 @@ export function HomePage() {
       className="site-shell home-shell"
     >
       {/* 背景层：默认内置插画，换过就用用户本机那张；深色主题下自动压一层暗色蒙版 */}
-      <div
-        className="home-backdrop"
-        aria-hidden="true"
-        style={background ? { backgroundImage: `url(${background})` } : undefined}
-      />
+      <div className={`home-backdrop${background ? ' has-image' : ''}`} aria-hidden="true" />
       <TopNavigation />
       <main>
         <section className="home-hero">
-          <HeroParticles className="home-particles" tone={theme} />
           <div className="home-hero-inner">
-            {/* Slogan：打字机入场 + 之后低频的光扫（方案 C） */}
-            <p className={`home-slogan${sloganDim ? ' is-dim' : ''}`}>
-              <span className="home-slogan-text">让创意拥有视觉</span>
-              <span className="home-slogan-caret" aria-hidden="true" />
-              <span className="home-slogan-sheen" aria-hidden="true">让创意拥有视觉</span>
-            </p>
+            <p className="home-slogan">让创意拥有视觉</p>
             <div className="hero-composer-wrap">
               <form className="hero-composer" action="/workbench" method="get">
                 {hiddenFields}
@@ -180,8 +178,6 @@ export function HomePage() {
                     placeholder="例如：一支绿色保温杯放在森林岩石上，清晨阳光从树叶之间洒下来，高级户外产品摄影。"
                     value={promptText}
                     onChange={(event) => setPromptText(event.target.value)}
-                    onFocus={() => setSloganDim(true)}
-                    onBlur={() => setSloganDim(false)}
                   />
                 </label>
                 <div className="hero-composer-bar">
@@ -238,7 +234,7 @@ export function HomePage() {
                   disabled={!background}
                 >
                   <RotateCcw size={15} aria-hidden="true" />
-                  恢复默认背景
+                  清除背景图
                   {!background && <Check size={14} aria-hidden="true" />}
                 </button>
                 <p className="hero-background-hint">图片只保存在本机浏览器，不会上传到服务器。</p>

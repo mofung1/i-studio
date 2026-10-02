@@ -1,4 +1,5 @@
 import { Workbench } from '@/components/workbench'
+import { WorkbenchSkeleton } from '@/components/workbench/workbench-skeleton'
 import type { CommerceTaskType } from '@/lib/contracts'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
@@ -19,7 +20,7 @@ export default async function WorkbenchPage({ searchParams }: WorkbenchPageProps
     : 'product-main'
 
   return (
-    <Suspense fallback={<main className="workbench-page" aria-label="工作台加载中" />}>
+    <Suspense fallback={<WorkbenchSkeleton />}>
       <Workbench
         initialMode={initialMode}
         initialPrompt={params.prompt}
