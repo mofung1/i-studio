@@ -4,13 +4,12 @@ import type { ReactNode } from 'react'
 import './globals.css'
 
 /**
- * 首屏绘制前就把首页的主题与背景应用上：
- * 否则 React 挂载后才切深色 / 贴背景图，会先闪一下浅色或空背景。
+ * 首屏绘制前就把首页的背景图应用上：
+ * 否则 React 挂载后才贴背景图，会先闪一下空背景。
  */
 const homeAppearanceScript = `(function(){try{
 if(location.pathname!=='/')return;
 var root=document.documentElement;
-if(localStorage.getItem('istudio-home-theme')==='dark')root.classList.add('theme-dark');
 var bg=localStorage.getItem('istudio-home-background');
 if(bg&&bg.indexOf('data:image/')===0)root.style.setProperty('--home-bg','url("'+bg+'")');
 }catch(e){}})();`

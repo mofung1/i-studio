@@ -127,260 +127,6 @@ img {
   background: var(--surface);
 }
 
-/* 首页：背景铺满整个视口（含导航区），默认插画 + 用户自定义图都用 cover 铺满 */
-.home-shell {
-  position: relative;
-  background-color: #fcfbf9;
-}
-
-
-/* 背景单独一层：深色主题下可以用蒙版压暗，而不动用户那张图 */
-.home-backdrop {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  /* 默认没有背景图，只有主题底色；用户上传的图通过内联样式叠上来 */
-  background-image: var(--home-bg, none);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
-}
-
-
-.theme-dark .home-shell {
-  background-color: #0d1016;
-}
-
-
-.theme-dark .home-backdrop.has-image::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(9, 11, 16, 0.88) 0%, rgba(9, 11, 16, 0.72) 46%, rgba(9, 11, 16, 0.92) 100%);
-}
-
-
-/* —— 深色主题：导航、输入框、slogan、背景面板 —— */
-.theme-dark .top-navigation {
-  color: #f5f6f7;
-}
-
-
-/* 权重压过浅色那条 `.home-shell .top-navigation::before` */
-.theme-dark .home-shell .top-navigation::before {
-  background: linear-gradient(180deg, rgba(13, 16, 22, 0.92) 0%, rgba(13, 16, 22, 0.62) 46%, rgba(13, 16, 22, 0) 100%);
-}
-
-
-.theme-dark .brand-mark {
-  color: #f5f6f7;
-}
-
-
-.theme-dark .top-navigation nav a {
-  color: rgba(245, 246, 247, 0.74);
-}
-
-
-.theme-dark .top-navigation nav a:hover {
-  color: #ffffff;
-}
-
-
-.theme-dark .login-button {
-  color: #f5f6f7;
-  background: transparent;
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
-
-.theme-dark .login-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.45);
-}
-
-
-.theme-dark .home-slogan {
-  color: #f7f8f9;
-}
-
-
-.theme-dark .hero-composer {
-  /* 没有背景图时不需要毛玻璃，直接用干净的不透明深色卡片 */
-  background: #151922;
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 20px 50px rgba(0, 0, 0, 0.45);
-}
-
-
-.theme-dark .hero-composer textarea {
-  color: #f3f5f7;
-}
-
-
-.theme-dark .hero-composer textarea::placeholder {
-  color: rgba(243, 245, 247, 0.42);
-}
-
-
-.theme-dark .prompt-count {
-  color: rgba(243, 245, 247, 0.5);
-}
-
-
-.theme-dark .hero-select.select-trigger {
-  color: rgba(243, 245, 247, 0.86);
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-
-.theme-dark .hero-select.select-trigger:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-
-.theme-dark .hero-composer-send {
-  color: #12151b;
-  background: #f2f4f6;
-}
-
-
-.theme-dark .hero-composer-send:hover {
-  background: #ffffff;
-}
-
-
-/* 下拉菜单是 portal，靠 html 上的主题类跟着一起变 */
-.theme-dark .select-content {
-  color: #f3f5f7;
-  background: #14181f;
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-}
-
-
-.theme-dark .select-item {
-  color: rgba(243, 245, 247, 0.86);
-}
-
-
-.theme-dark .select-item[data-highlighted] {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-
-.theme-dark .hero-option small {
-  color: rgba(243, 245, 247, 0.5);
-}
-
-
-.theme-dark .hero-background-trigger {
-  color: rgba(243, 245, 247, 0.82);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-
-.theme-dark .hero-background-trigger:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.24);
-}
-
-
-.theme-dark .hero-background-dot {
-  background: #d6ff78;
-}
-
-
-.theme-dark .hero-background-panel {
-  color: #f3f5f7;
-  background: #14181f;
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.6);
-}
-
-
-.theme-dark .hero-background-option {
-  color: rgba(243, 245, 247, 0.86);
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-
-.theme-dark .hero-background-option:hover:not(:disabled) {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.11);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-
-.theme-dark .hero-background-head button {
-  color: rgba(243, 245, 247, 0.7);
-}
-
-
-.theme-dark .hero-background-head button:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-
-.theme-dark .hero-background-hint {
-  color: rgba(243, 245, 247, 0.5);
-}
-
-
-/* 面板里的浅色 / 深色切换 */
-.hero-background-theme {
-  display: inline-flex;
-  gap: 3px;
-  padding: 3px;
-  background: var(--surface-subtle);
-  border-radius: 9px;
-}
-
-
-.hero-background-theme button {
-  flex: 1;
-  height: 28px;
-  padding: 0 12px;
-  color: var(--foreground-2);
-  background: transparent;
-  border: 0;
-  border-radius: 7px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 150ms ease, background 150ms ease, box-shadow 150ms ease;
-}
-
-
-.hero-background-theme button.is-active {
-  color: var(--foreground);
-  background: var(--surface);
-  box-shadow: 0 1px 4px rgba(23, 23, 23, 0.12);
-}
-
-
-.theme-dark .hero-background-theme {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-
-.theme-dark .hero-background-theme button {
-  color: rgba(243, 245, 247, 0.72);
-}
-
-
-.theme-dark .hero-background-theme button.is-active {
-  color: #12151b;
-  background: #f2f4f6;
-  box-shadow: none;
-}
-
 
 /* 首页导航悬浮在背景之上：透明 + 顶部渐变遮罩保证文字可读 */
 .home-shell .top-navigation {
@@ -549,17 +295,64 @@ img {
 }
 
 
-/* 首页：一屏生图入口，背景整屏铺满，视觉重心留给输入框 */
+/* ═══════════════════════════════════════════════════════
+   首页：Vercel-style Radical Minimalism
+   纯白底、黑色大字、极致留白、输入框是唯一焦点
+   ═══════════════════════════════════════════════════════ */
+
+.home-shell {
+  position: relative;
+  background-color: #ffffff;
+}
+
+
+.home-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-image: var(--home-bg, none);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+
+.home-backdrop.has-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+
+/* ── 导航适配 ── */
+.home-shell .top-navigation {
+  background: transparent;
+}
+
+
+.home-shell .top-navigation::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 120px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 60%, transparent 100%);
+  pointer-events: none;
+}
+
+
+/* ── Hero ── */
 .home-hero {
   position: relative;
   width: 100%;
-  /* 导航悬浮在背景之上，高度按导航占位扣除，保证输入框在可视区里居中 */
   min-height: calc(100dvh - 64px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 52px 16px 76px;
-  overflow: hidden;
+  padding: 80px 24px 120px;
   background: transparent;
 }
 
@@ -567,52 +360,354 @@ img {
 .home-hero-inner {
   position: relative;
   z-index: 4;
-  width: min(880px, 100%);
+  width: min(760px, 100%);
   text-align: center;
 }
 
-/* 首页 slogan：静态一行，保持安静 */
+
+/* Slogan：巨大、克制、自信 */
 .home-slogan {
-  margin: 0 0 26px;
-  color: var(--foreground);
-  font-size: clamp(24px, 2.2vw, 32px);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.4;
+  margin: 0 0 40px;
+  color: #000000;
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
 }
 
 
-/* 首页背景设置：默认内置插画，也支持换成自己的图（只存本机） */
+/* ── 输入框：唯一视觉焦点 ── */
+.hero-composer-wrap {
+  margin-top: 0;
+  text-align: left;
+}
+
+
+.hero-composer {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+
+.hero-composer-input {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 20px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-composer-input:focus-within {
+  border-color: #000000;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.06);
+}
+
+.hero-composer textarea {
+  width: 100%;
+  min-height: 132px;
+  max-height: 320px;
+  resize: none;
+  color: #000000;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font-size: 17px;
+  line-height: 1.6;
+  padding: 22px 24px 6px;
+  overflow-y: auto;
+  transition: min-height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.hero-composer textarea::placeholder {
+  color: #b0b0b0;
+}
+
+/* 底部操作栏：左侧配置胶囊，右侧发送 */
+.hero-composer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 12px 14px;
+  z-index: 2;
+}
+
+
+.hero-composer-send {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: #000000;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+
+.hero-composer-send:hover {
+  opacity: 0.8;
+}
+
+
+.hero-composer-send:active {
+  transform: scale(0.94);
+}
+
+
+/* ── 配置项：输入框内的圆角胶囊触发器 ── */
+.hero-configs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0;
+  justify-content: flex-start;
+}
+
+
+.hero-select.select-trigger {
+  width: auto;
+  height: 40px;
+  margin-top: 0;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  color: #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e5e5;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.hero-select.select-trigger:hover {
+  border-color: #cccccc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+
+.hero-select.select-trigger[data-state='open'] {
+  border-color: #000000;
+}
+
+
+.hero-select-value {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* 参数面板触发器 */
+.hero-param {
+  position: relative;
+}
+
+
+.hero-param-trigger {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  color: #1a1a1a;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+.hero-param-trigger:hover {
+  border-color: #cccccc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+
+.hero-param-trigger[aria-expanded='true'] {
+  border-color: #000000;
+}
+
+
+.hero-param-caret {
+  color: #999999;
+  transition: transform 0.2s ease;
+}
+
+
+.hero-param-trigger[aria-expanded='true'] .hero-param-caret {
+  transform: rotate(180deg);
+}
+
+
+/* 参数面板 */
+.hero-param-panel {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  bottom: calc(100% + 12px);
+  width: min(360px, calc(100vw - 40px));
+  display: grid;
+  gap: 20px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px solid #ececec;
+  border-radius: 18px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+  text-align: left;
+  animation: dialog-in 160ms ease-out;
+}
+
+
+.hero-param-title {
+  margin: 0 0 12px;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
+/* 比例网格 */
+.ratio-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+
+.ratio-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0 10px;
+  color: #666666;
+  background: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+
+.ratio-item:hover {
+  background: #f7f7f7;
+}
+
+
+.ratio-item.is-active {
+  color: #000000;
+  background: #f0f0f0;
+  font-weight: 600;
+}
+
+
+.ratio-icon {
+  display: block;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+}
+
+
+/* 分段按钮组 */
+.seg-group {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: #f2f2f2;
+  border-radius: 12px;
+}
+
+
+.seg-item {
+  flex: 1 1 0;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  color: #666666;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+
+.seg-item:hover {
+  color: #1a1a1a;
+}
+
+
+.seg-item.is-active {
+  color: #000000;
+  background: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+
+.hero-option {
+  display: grid;
+  gap: 2px;
+}
+
+
+.hero-option small {
+  color: #999999;
+  font-size: 11px;
+}
+
+
+/* ── 背景设置 ── */
 .hero-background {
   position: absolute;
   z-index: 5;
-  right: 22px;
-  bottom: 20px;
+  right: 24px;
+  bottom: 24px;
 }
 
 
 .hero-background-trigger {
-  position: relative;
   height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   padding: 0 12px;
-  color: var(--foreground-2);
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(23, 23, 23, 0.08);
-  border-radius: 10px;
+  color: #999999;
+  background: transparent;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
   font-size: 12px;
   cursor: pointer;
-  backdrop-filter: blur(6px);
-  transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+  transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 
 .hero-background-trigger:hover {
-  color: var(--foreground);
-  background: #ffffff;
-  border-color: var(--line-hover);
+  color: #000000;
+  border-color: #cccccc;
 }
 
 
@@ -620,7 +715,7 @@ img {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--primary);
+  background: #000000;
 }
 
 
@@ -631,13 +726,13 @@ img {
   width: 244px;
   display: grid;
   gap: 8px;
-  padding: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 18px 42px rgba(23, 23, 23, 0.16);
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
   text-align: left;
-  animation: dialog-in 160ms ease-out;
+  animation: dialog-in 150ms ease-out;
 }
 
 
@@ -651,6 +746,7 @@ img {
 
 .hero-background-head strong {
   font-size: 13px;
+  color: #000000;
 }
 
 
@@ -660,17 +756,17 @@ img {
   display: grid;
   place-items: center;
   padding: 0;
-  color: var(--muted);
+  color: #999999;
   background: transparent;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
 
 .hero-background-head button:hover {
-  color: var(--foreground);
-  background: var(--surface-subtle);
+  color: #000000;
+  background: #f5f5f5;
 }
 
 
@@ -680,32 +776,31 @@ img {
   gap: 8px;
   height: 36px;
   padding: 0 10px;
-  color: var(--foreground-2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  color: #444444;
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
   font-size: 12.5px;
   cursor: pointer;
-  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 
 .hero-background-option:hover:not(:disabled) {
-  color: var(--foreground);
-  background: var(--surface-subtle);
-  border-color: var(--line-hover);
+  color: #000000;
+  background: #f0f0f0;
+  border-color: #cccccc;
 }
 
 
 .hero-background-option:disabled {
   cursor: default;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 
 .hero-background-option > svg:last-child {
   margin-left: auto;
-  color: var(--foreground);
 }
 
 
@@ -716,7 +811,7 @@ img {
 
 .hero-background-hint {
   margin: 0;
-  color: var(--muted);
+  color: #999999;
   font-size: 11px;
   line-height: 1.5;
 }
@@ -737,148 +832,6 @@ img {
   color: var(--foreground-2);
   font-size: 13px;
   font-weight: 600;
-}
-
-/* 首页大输入框：视觉主场，配置项在框内一排，点开即弹配置面板 */
-.hero-composer-wrap {
-  margin-top: 0;
-  text-align: left;
-}
-
-
-.hero-composer {
-  min-height: 244px;
-  display: flex;
-  flex-direction: column;
-  padding: 22px 22px 16px;
-  /* 背景图可能是任意照片，输入框用不透明白底，保证文字始终可读 */
-  background: #ffffff;
-  border: 1px solid rgba(23, 23, 23, 0.08);
-  border-radius: 22px;
-  box-shadow: 0 1px 2px rgba(23, 23, 23, 0.04), 0 22px 60px rgba(23, 23, 23, 0.12);
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
-}
-
-
-.hero-composer:focus-within {
-  border-color: var(--line-strong);
-  box-shadow: 0 0 0 4px var(--focus-soft), 0 26px 64px rgba(23, 23, 23, 0.1);
-  transform: translateY(-1px);
-}
-
-
-.hero-composer-input {
-  display: block;
-  flex: 1;
-}
-
-
-.hero-composer textarea {
-  width: 100%;
-  min-height: 120px;
-  resize: none;
-  color: var(--foreground);
-  background: transparent;
-  border: 0;
-  outline: 0;
-  font-size: 16px;
-  line-height: 1.75;
-}
-
-
-.hero-composer textarea::placeholder {
-  color: var(--placeholder);
-}
-
-
-.hero-composer-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-
-.hero-configs {
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-
-.hero-select.select-trigger {
-  width: auto;
-  height: 34px;
-  margin-top: 0;
-  justify-content: flex-start;
-  gap: 6px;
-  padding: 0 12px;
-  color: var(--foreground-2);
-  background: var(--surface-2);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  font-size: 12px;
-}
-
-
-.hero-select.select-trigger:hover {
-  color: var(--foreground);
-  background: var(--surface-subtle);
-  border-color: var(--border);
-}
-
-
-.hero-select.select-trigger[data-state='open'] {
-  color: var(--foreground);
-  background: var(--surface);
-  border-color: var(--line-strong);
-  box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.09);
-}
-
-
-.hero-select-value {
-  max-width: 148px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
-.hero-option {
-  display: grid;
-  gap: 2px;
-}
-
-
-.hero-option small {
-  color: var(--foreground-3);
-  font-size: 11px;
-}
-
-
-.hero-composer-send {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  margin-left: auto;
-  color: var(--background);
-  background: var(--primary);
-  border: 0;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(23, 23, 23, 0.16);
-  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
-}
-
-
-.hero-composer-send:hover {
-  background: var(--primary-hover);
-  box-shadow: 0 8px 20px rgba(23, 23, 23, 0.2);
-  transform: translateY(-1px);
 }
 
 
@@ -3427,7 +3380,12 @@ img {
 
   .home-hero {
     min-height: auto;
-    padding: 44px 16px 60px;
+    padding: 48px 20px 80px;
+  }
+
+  .home-slogan {
+    margin-bottom: 32px;
+    font-size: clamp(28px, 5vw, 40px);
   }
 
   .workbench-page {
@@ -3627,38 +3585,49 @@ img {
 
   .home-hero {
     min-height: auto;
-    padding: 36px 14px 56px;
+    padding: 40px 16px 72px;
   }
 
-  .hero-composer {
-    min-height: 200px;
-    padding: 16px 16px 12px;
-    border-radius: 18px;
+  .home-slogan {
+    margin-bottom: 28px;
+    font-size: clamp(26px, 6vw, 36px);
   }
 
   .hero-composer textarea {
-    min-height: 104px;
+    min-height: 80px;
+    max-height: 200px;
     font-size: 15px;
+    padding: 14px 16px 2px;
+    line-height: 1.6;
   }
 
   .hero-composer-bar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 8px;
+    padding: 6px 8px 8px 10px;
+  }
+
+  .hero-composer-send {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
   }
 
   .hero-configs {
-    gap: 5px;
+    gap: 8px;
   }
 
-  .hero-select.select-trigger {
-    height: 32px;
-    padding: 0 10px;
+  .hero-select.select-trigger,
+  .hero-param-trigger {
+    height: 36px;
+    padding: 0 13px;
+    font-size: 13px;
   }
 
   .hero-select-value {
-    max-width: 110px;
+    max-width: 130px;
+  }
+
+  .ratio-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .two-columns,

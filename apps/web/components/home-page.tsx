@@ -1,20 +1,17 @@
 'use client'
 
-import { Check, Images, ImagePlus, Maximize, RotateCcw, Send, Sparkles, X } from 'lucide-react'
+import { Check, ChevronDown, Images, ImagePlus, Maximize, RotateCcw, Send, Sparkles, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import {
   clearStoredHomeBackground,
   readStoredHomeBackground,
-  readStoredHomeTheme,
   storeHomeBackground,
-  storeHomeTheme,
-  type HomeTheme,
 } from '@/lib/home-background'
 
 import { TopNavigation } from './top-navigation'
-import { countOptions, modelOptions, ratioOptions, resolutionOptions } from './workbench/shared'
+import { generalCountOptions, modelOptions, ratioOptions, resolutionOptions } from './workbench/shared'
 
 /** 配置项的补充说明，帮助第一次使用的用户理解各档差异 */
 const modelHints: Record<string, string> = {
@@ -56,6 +53,17 @@ function ComposerSelect({ label, value, onChange, icon, options, hints, classNam
   )
 }
 
+/** 比例图标：按宽高比画出一个小圆角矩形，直观示意画面形状 */
+function RatioIcon({ ratio }: { ratio: string }) {
+  const parts = ratio.split(':').map(Number)
+  const w = parts[0] ?? 1
+  const h = parts[1] ?? 1
+  const max = 22
+  const width = w >= h ? max : max * (w / h)
+  const height = h >= w ? max : max * (h / w)
+  return <span className="ratio-icon" style={{ width, height }} aria-hidden="true" />
+}
+
 // 背景写在 <html> 的 --home-bg 上：首屏脚本与 React 共用同一个变量，切换时不会闪
 function applyHomeBackgroundVar(dataUrl: string) {
   const root = document.documentElement
@@ -74,27 +82,15 @@ export function HomePage() {
   const [backgroundOpen, setBackgroundOpen] = useState(false)
   const [backgroundError, setBackgroundError] = useState('')
   const [backgroundBusy, setBackgroundBusy] = useState(false)
-  const [theme, setTheme] = useState<HomeTheme>('light')
+  const [configOpen, setConfigOpen] = useState(false)
   const backgroundRef = useRef<HTMLDivElement>(null)
+  const configRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const stored = readStoredHomeBackground()
     setBackground(stored)
     applyHomeBackgroundVar(stored)
-    setTheme(readStoredHomeTheme())
   }, [])
-
-  // 主题只在首页生效：挂载时加在 <html> 上（让下拉菜单这类 portal 也能跟着变），离开时移除
-  useEffect(() => {
-    const root = document.documentElement
-    root.classList.toggle('theme-dark', theme === 'dark')
-    return () => root.classList.remove('theme-dark')
-  }, [theme])
-
-  function changeTheme(next: HomeTheme) {
-    setTheme(next)
-    storeHomeTheme(next)
-  }
 
   // 点空白处 / Esc 关闭背景设置面板
   useEffect(() => {
@@ -112,6 +108,23 @@ export function HomePage() {
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [backgroundOpen])
+
+  // 点空白处 / Esc 关闭参数面板
+  useEffect(() => {
+    if (!configOpen) return
+    const onPointerDown = (event: MouseEvent) => {
+      if (!configRef.current?.contains(event.target as Node)) setConfigOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setConfigOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [configOpen])
 
   async function pickBackground(file: File | undefined) {
     if (!file) return
@@ -149,10 +162,72 @@ export function HomePage() {
 
   const configs = (
     <div className="hero-configs">
-      <ComposerSelect label="生图模型" value={model} onChange={setModel} icon={<Sparkles size={14} aria-hidden="true" />} options={modelOptions} hints={modelHints} className="model" />
-      <ComposerSelect label="画面比例" value={ratio} onChange={setRatio} icon={<Maximize size={14} aria-hidden="true" />} options={ratioOptions} />
-      <ComposerSelect label="清晰度" value={resolution} onChange={setResolution} icon={<Images size={14} aria-hidden="true" />} options={resolutionOptions} />
-      <ComposerSelect label="生成数量" value={count} onChange={setCount} icon={<Images size={14} aria-hidden="true" />} options={countOptions} />
+      <ComposerSelect label="生图模型" value={model} onChange={setModel} icon={null} options={modelOptions} hints={modelHints} className="model" />
+      <div className="hero-param" ref={configRef}>
+        <button
+          type="button"
+          className="hero-param-trigger"
+          aria-expanded={configOpen}
+          aria-haspopup="dialog"
+          onClick={() => setConfigOpen((open) => !open)}
+        >
+          {ratio} · {resolution} · {count} 张
+          <ChevronDown size={14} aria-hidden="true" className="hero-param-caret" />
+        </button>
+        {configOpen && (
+          <div className="hero-param-panel" role="dialog" aria-label="画面参数">
+            <div className="hero-param-section">
+              <p className="hero-param-title">比例</p>
+              <div className="ratio-grid">
+                {ratioOptions.map(([value]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`ratio-item${ratio === value ? ' is-active' : ''}`}
+                    aria-pressed={ratio === value}
+                    onClick={() => setRatio(value)}
+                  >
+                    <RatioIcon ratio={value} />
+                    <span>{value}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="hero-param-section">
+              <p className="hero-param-title">清晰度</p>
+              <div className="seg-group">
+                {resolutionOptions.map(([value]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`seg-item${resolution === value ? ' is-active' : ''}`}
+                    aria-pressed={resolution === value}
+                    onClick={() => setResolution(value)}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="hero-param-section">
+              <p className="hero-param-title">生成张数</p>
+              <div className="seg-group">
+                {generalCountOptions.map(([value]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`seg-item${count === value ? ' is-active' : ''}`}
+                    aria-pressed={count === value}
+                    onClick={() => setCount(value)}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 
@@ -160,7 +235,7 @@ export function HomePage() {
     <div
       className="site-shell home-shell"
     >
-      {/* 背景层：默认内置插画，换过就用用户本机那张；深色主题下自动压一层暗色蒙版 */}
+      {/* 背景层：默认内置插画，用户换过就用本机那张 */}
       <div className={`home-backdrop${background ? ' has-image' : ''}`} aria-hidden="true" />
       <TopNavigation />
       <main>
@@ -170,21 +245,21 @@ export function HomePage() {
             <div className="hero-composer-wrap">
               <form className="hero-composer" action="/workbench" method="get">
                 {hiddenFields}
-                <label className="hero-composer-input">
-                  <span className="sr-only">画面描述</span>
+                <div className="hero-composer-input">
+                  <label className="sr-only">画面描述</label>
                   <textarea
                     name="prompt"
                     aria-label="画面描述"
-                    placeholder="例如：一支绿色保温杯放在森林岩石上，清晨阳光从树叶之间洒下来，高级户外产品摄影。"
+                    placeholder="描述画面，AI 为你生成..."
                     value={promptText}
                     onChange={(event) => setPromptText(event.target.value)}
                   />
-                </label>
-                <div className="hero-composer-bar">
-                  {configs}
-                  <button type="submit" className="hero-composer-send" aria-label="进入工作台生成">
-                    <Send size={18} aria-hidden="true" />
-                  </button>
+                  <div className="hero-composer-bar">
+                    {configs}
+                    <button type="submit" className="hero-composer-send" aria-label="进入工作台生成">
+                      <Send size={16} aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -210,10 +285,6 @@ export function HomePage() {
                   <strong>首页背景</strong>
                   <button type="button" aria-label="关闭" title="关闭" onClick={() => setBackgroundOpen(false)}><X size={15} /></button>
                 </header>
-                <div className="hero-background-theme" role="group" aria-label="首页主题">
-                  <button type="button" aria-pressed={theme === 'light'} className={theme === 'light' ? 'is-active' : ''} onClick={() => changeTheme('light')}>浅色</button>
-                  <button type="button" aria-pressed={theme === 'dark'} className={theme === 'dark' ? 'is-active' : ''} onClick={() => changeTheme('dark')}>深色</button>
-                </div>
                 <label className={`hero-background-option${backgroundBusy ? ' is-busy' : ''}`}>
                   <ImagePlus size={15} aria-hidden="true" />
                   {backgroundBusy ? '正在处理…' : '选择本地图片'}
