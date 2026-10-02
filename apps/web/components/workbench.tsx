@@ -16,6 +16,7 @@ import { useGenerationTask, type GenerationNotice } from './workbench/use-genera
 import type { HistoryTask } from './workbench/use-task-history'
 import {
   detailModules,
+  generalMaxCount,
   modelOptions,
   optionLabel,
   platformOptions,
@@ -54,7 +55,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [requirements, setRequirements] = useState('')
   const [productFiles, setProductFiles] = useState<File[]>([])
   const [referenceFiles, setReferenceFiles] = useState<File[]>([])
-  const [count, setCount] = useState(() => Math.min(16, Math.max(1, Number(initialCount) || 1)))
+  const [count, setCount] = useState(() => Math.min(generalMaxCount, Math.max(1, Number(initialCount) || 1)))
   const [model, setModel] = useState<GenerationModel>((initialModel as GenerationModel) ?? 'gpt-image-2')
   const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? '1:1')
   const [resolution, setResolution] = useState(initialResolution ?? '2K')
@@ -250,7 +251,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       setModuleCounts(input.moduleCounts ?? {})
       setRecreateStrength(input.recreateStrength === 'high' ? 'high' : 'style')
       setEnhancements(input.enhancements ?? [])
-      setCount(Math.min(16, Math.max(1, Number(input.count) || 1)))
+      setCount(Math.min(generalMaxCount, Math.max(1, Number(input.count) || 1)))
       setModel((input.model as GenerationModel) ?? 'gpt-image-2')
       setAspectRatio(input.aspectRatio ?? '1:1')
       setResolution(input.resolution ?? '2K')
