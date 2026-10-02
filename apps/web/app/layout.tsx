@@ -10,6 +10,7 @@ import './globals.css'
 const homeAppearanceScript = `(function(){try{
 if(location.pathname!=='/')return;
 var root=document.documentElement;
+root.setAttribute('data-home-theme',localStorage.getItem('istudio-home-theme')==='light'?'light':'dark');
 var bg=localStorage.getItem('istudio-home-background');
 if(bg&&bg.indexOf('data:image/')===0)root.style.setProperty('--home-bg','url("'+bg+'")');
 }catch(e){}})();`
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="zh-CN" data-scroll-behavior="smooth">
+    <html lang="zh-CN" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: homeAppearanceScript }} />
         <script dangerouslySetInnerHTML={{ __html: workbenchConfigSideScript }} />

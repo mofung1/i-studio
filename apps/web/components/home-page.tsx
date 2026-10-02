@@ -1,13 +1,16 @@
 'use client'
 
-import { Check, ChevronDown, Images, ImagePlus, Maximize, RotateCcw, Send, Sparkles, X } from 'lucide-react'
+import { Check, ChevronDown, Images, ImagePlus, Maximize, Moon, RotateCcw, Send, Sparkles, Sun, X } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import {
   clearStoredHomeBackground,
   readStoredHomeBackground,
+  readStoredHomeTheme,
   storeHomeBackground,
+  storeHomeTheme,
+  type HomeTheme,
 } from '@/lib/home-background'
 
 import { TopNavigation } from './top-navigation'
@@ -71,8 +74,13 @@ function applyHomeBackgroundVar(dataUrl: string) {
   else root.style.removeProperty('--home-bg')
 }
 
+// 配色模式写在 <html> 的 data-home-theme 上：CSS 变量令牌切换浅色/深色 hero
+function applyHomeTheme(theme: HomeTheme) {
+  document.documentElement.setAttribute('data-home-theme', theme)
+}
+
 export function HomePage() {
-  const [promptText, setPromptText] = useState('柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
+  const [promptText, setPromptText] = useState('')
   const [model, setModel] = useState('gpt-image-2')
   const [ratio, setRatio] = useState('1:1')
   const [resolution, setResolution] = useState('2K')
@@ -83,6 +91,8 @@ export function HomePage() {
   const [backgroundError, setBackgroundError] = useState('')
   const [backgroundBusy, setBackgroundBusy] = useState(false)
   const [configOpen, setConfigOpen] = useState(false)
+  // 首页配色：默认深色；浅色/深色只影响首页 hero，不改全局主题
+  const [homeTheme, setHomeTheme] = useState<HomeTheme>('dark')
   const backgroundRef = useRef<HTMLDivElement>(null)
   const configRef = useRef<HTMLDivElement>(null)
 
@@ -90,7 +100,16 @@ export function HomePage() {
     const stored = readStoredHomeBackground()
     setBackground(stored)
     applyHomeBackgroundVar(stored)
+    const theme = readStoredHomeTheme()
+    setHomeTheme(theme)
+    applyHomeTheme(theme)
   }, [])
+
+  function chooseHomeTheme(next: HomeTheme) {
+    setHomeTheme(next)
+    storeHomeTheme(next)
+    applyHomeTheme(next)
+  }
 
   // 点空白处 / Esc 关闭背景设置面板
   useEffect(() => {
@@ -236,7 +255,7 @@ export function HomePage() {
       className="site-shell home-shell"
     >
       {/* 背景层：默认内置插画，用户换过就用本机那张 */}
-      <div className={`home-backdrop${background ? ' has-image' : ''}`} aria-hidden="true" />
+      <div className="home-backdrop" aria-hidden="true" />
       <TopNavigation />
       <main>
         <section className="home-hero">
@@ -265,7 +284,7 @@ export function HomePage() {
             </div>
           </div>
 
-          {/* 背景图设置：默认内置插画，也可以换成自己的图（只存在本机浏览器） */}
+          {/* 背景图设置：默认内置插画，也可以换成自己的图（只存在本机浏览器）；配色模式也在这里切换 */}
           <div className="hero-background" ref={backgroundRef}>
             <button
               type="button"
@@ -285,30 +304,56 @@ export function HomePage() {
                   <strong>首页背景</strong>
                   <button type="button" aria-label="关闭" title="关闭" onClick={() => setBackgroundOpen(false)}><X size={15} /></button>
                 </header>
-                <label className={`hero-background-option${backgroundBusy ? ' is-busy' : ''}`}>
-                  <ImagePlus size={15} aria-hidden="true" />
-                  {backgroundBusy ? '正在处理…' : '选择本地图片'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={backgroundBusy}
-                    onChange={(event) => {
-                      void pickBackground(event.target.files?.[0])
-                      event.target.value = ''
-                    }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="hero-background-option"
-                  onClick={resetBackground}
-                  disabled={!background}
-                >
-                  <RotateCcw size={15} aria-hidden="true" />
-                  清除背景图
-                  {!background && <Check size={14} aria-hidden="true" />}
-                </button>
-                <p className="hero-background-hint">图片只保存在本机浏览器，不会上传到服务器。</p>
+                <div className="hero-background-section">
+                  <p className="hero-background-title">配色</p>
+                  <div className="hero-bg-theme" role="group" aria-label="首页配色">
+                    <button
+                      type="button"
+                      className={`hero-bg-theme-item${homeTheme === 'light' ? ' is-active' : ''}`}
+                      aria-pressed={homeTheme === 'light'}
+                      onClick={() => chooseHomeTheme('light')}
+                    >
+                      <Sun size={14} aria-hidden="true" />
+                      浅色
+                    </button>
+                    <button
+                      type="button"
+                      className={`hero-bg-theme-item${homeTheme === 'dark' ? ' is-active' : ''}`}
+                      aria-pressed={homeTheme === 'dark'}
+                      onClick={() => chooseHomeTheme('dark')}
+                    >
+                      <Moon size={14} aria-hidden="true" />
+                      深色
+                    </button>
+                  </div>
+                </div>
+                <div className="hero-background-section">
+                  <p className="hero-background-title">背景图</p>
+                  <label className={`hero-background-option${backgroundBusy ? ' is-busy' : ''}`}>
+                    <ImagePlus size={15} aria-hidden="true" />
+                    {backgroundBusy ? '正在处理…' : '选择本地图片'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={backgroundBusy}
+                      onChange={(event) => {
+                        void pickBackground(event.target.files?.[0])
+                        event.target.value = ''
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="hero-background-option"
+                    onClick={resetBackground}
+                    disabled={!background}
+                  >
+                    <RotateCcw size={15} aria-hidden="true" />
+                    清除背景图
+                    {!background && <Check size={14} aria-hidden="true" />}
+                  </button>
+                </div>
+                <p className="hero-background-hint">配色与图片只保存在本机浏览器，不会上传到服务器。</p>
                 {backgroundError && <p className="hero-background-error" role="alert">{backgroundError}</p>}
               </div>
             )}

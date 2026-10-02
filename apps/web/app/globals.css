@@ -70,6 +70,93 @@
 }
 
 
+/* ═══ 首页 hero 主题令牌：默认深色，html[data-home-theme='light'] 覆盖为浅色 ═══ */
+:root {
+  --hero-fg: #ffffff;
+  --hero-fg-muted: rgba(255, 255, 255, 0.72);
+  --hero-nav-veil: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.18) 60%, transparent 100%);
+  --hero-nav-line: rgba(255, 255, 255, 0.4);
+  --hero-veil: #05060a;
+  --hero-default-bg: url('/backgrounds/space.png');
+  --hero-card-bg: #12151c;
+  --hero-card-border: rgba(255, 255, 255, 0.14);
+  --hero-card-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  --hero-focus-border: rgba(255, 255, 255, 0.42);
+  --hero-focus-ring: 0 0 0 4px rgba(255, 255, 255, 0.08);
+  --hero-input-fg: #ffffff;
+  --hero-placeholder: rgba(255, 255, 255, 0.42);
+  --hero-pill-bg: rgba(255, 255, 255, 0.05);
+  --hero-pill-border: rgba(255, 255, 255, 0.16);
+  --hero-pill-fg: #ffffff;
+  --hero-pill-hover-border: rgba(255, 255, 255, 0.34);
+  --hero-pill-open-border: rgba(255, 255, 255, 0.5);
+  --hero-caret: rgba(255, 255, 255, 0.5);
+  --hero-send-bg: #ffffff;
+  --hero-send-fg: #05060a;
+  --hero-panel-bg: #12151c;
+  --hero-panel-border: rgba(255, 255, 255, 0.14);
+  --hero-panel-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --hero-title-fg: rgba(255, 255, 255, 0.85);
+  --hero-subtle-fg: rgba(255, 255, 255, 0.45);
+  --hero-item-bg: rgba(255, 255, 255, 0.03);
+  --hero-item-fg: rgba(255, 255, 255, 0.72);
+  --hero-item-hover-bg: rgba(255, 255, 255, 0.08);
+  --hero-item-active-bg: rgba(255, 255, 255, 0.16);
+  --hero-item-active-fg: #ffffff;
+  --hero-seg-track: rgba(255, 255, 255, 0.06);
+  --hero-seg-fg: rgba(255, 255, 255, 0.6);
+  --hero-chip-active-bg: #ffffff;
+  --hero-chip-active-fg: #05060a;
+  --hero-option-fg: #444444;
+  --hero-option-bg: #fafafa;
+  --hero-option-border: #e5e5e5;
+  --hero-slogan-shadow: 0 2px 30px rgba(0, 0, 0, 0.5);
+}
+
+
+html[data-home-theme='light'] {
+  --hero-fg: #0b0b0b;
+  --hero-fg-muted: rgba(0, 0, 0, 0.6);
+  --hero-nav-veil: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 60%, transparent 100%);
+  --hero-nav-line: rgba(0, 0, 0, 0.18);
+  --hero-veil: #ffffff;
+  --hero-default-bg: url('/backgrounds/light.png');
+  --hero-card-bg: #ffffff;
+  --hero-card-border: #e5e5e5;
+  --hero-card-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  --hero-focus-border: #000000;
+  --hero-focus-ring: 0 0 0 4px rgba(0, 0, 0, 0.06);
+  --hero-input-fg: #000000;
+  --hero-placeholder: #b0b0b0;
+  --hero-pill-bg: #ffffff;
+  --hero-pill-border: #e5e5e5;
+  --hero-pill-fg: #1a1a1a;
+  --hero-pill-hover-border: #cccccc;
+  --hero-pill-open-border: #000000;
+  --hero-caret: #999999;
+  --hero-send-bg: #000000;
+  --hero-send-fg: #ffffff;
+  --hero-panel-bg: #ffffff;
+  --hero-panel-border: #ececec;
+  --hero-panel-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+  --hero-title-fg: #1a1a1a;
+  --hero-subtle-fg: #999999;
+  --hero-item-bg: transparent;
+  --hero-item-fg: #666666;
+  --hero-item-hover-bg: #f7f7f7;
+  --hero-item-active-bg: #f0f0f0;
+  --hero-item-active-fg: #000000;
+  --hero-seg-track: #f2f2f2;
+  --hero-seg-fg: #666666;
+  --hero-chip-active-bg: #ffffff;
+  --hero-chip-active-fg: #000000;
+  --hero-option-fg: #444444;
+  --hero-option-bg: #fafafa;
+  --hero-option-border: #e5e5e5;
+  --hero-slogan-shadow: none;
+}
+
+
 html {
   scroll-behavior: smooth;
 }
@@ -310,18 +397,20 @@ img {
   position: absolute;
   z-index: 0;
   inset: 0;
-  background-image: var(--home-bg, none);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
+  overflow: hidden;
+  background: var(--hero-veil);
 }
 
 
-.home-backdrop.has-image::after {
+/* 内置默认背景：深色=太空插画，浅色=柔光渐变；用户换过则用本机那张（无虚化） */
+.home-backdrop::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.88);
+  background-image: var(--home-bg, var(--hero-default-bg));
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
 }
 
 
@@ -339,8 +428,56 @@ img {
   right: 0;
   left: 0;
   height: 120px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 60%, transparent 100%);
+  background: var(--hero-nav-veil);
   pointer-events: none;
+}
+
+
+/* ── 首页导航文字/按钮：随主题令牌切换 ── */
+.home-shell .brand,
+.home-shell .brand-mark {
+  color: var(--hero-fg);
+}
+
+
+.home-shell .top-navigation nav a {
+  color: var(--hero-fg-muted);
+}
+
+
+.home-shell .top-navigation nav a:hover {
+  color: var(--hero-fg);
+}
+
+
+.home-shell .login-button {
+  color: var(--hero-fg);
+  border-color: var(--hero-nav-line);
+}
+
+
+.home-shell .nav-toggle {
+  color: var(--hero-fg);
+  border-color: var(--hero-nav-line);
+}
+
+
+.home-shell .avatar-button {
+  color: var(--hero-send-fg);
+  background: var(--hero-send-bg);
+}
+
+
+.home-shell .hero-background-trigger {
+  color: var(--hero-fg-muted);
+  background: var(--hero-pill-bg);
+  border-color: var(--hero-pill-border);
+}
+
+
+.home-shell .hero-background-trigger:hover {
+  color: var(--hero-fg);
+  border-color: var(--hero-pill-hover-border);
 }
 
 
@@ -368,11 +505,12 @@ img {
 /* Slogan：巨大、克制、自信 */
 .home-slogan {
   margin: 0 0 40px;
-  color: #000000;
+  color: var(--hero-fg);
   font-size: clamp(36px, 5vw, 56px);
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.1;
+  text-shadow: var(--hero-slogan-shadow);
 }
 
 
@@ -677,6 +815,264 @@ img {
 .hero-option small {
   color: #999999;
   font-size: 11px;
+}
+
+
+/* ═══ 输入框：颜色全部走 hero 令牌，随浅色/深色切换 ═══ */
+.hero-composer-input {
+  background: var(--hero-card-bg);
+  border-color: var(--hero-card-border);
+  box-shadow: var(--hero-card-shadow);
+}
+
+
+.hero-composer-input:focus-within {
+  border-color: var(--hero-focus-border);
+  box-shadow: var(--hero-card-shadow), var(--hero-focus-ring);
+}
+
+
+.hero-composer textarea {
+  color: var(--hero-input-fg);
+}
+
+
+.hero-composer textarea::placeholder {
+  color: var(--hero-placeholder);
+}
+
+
+.hero-composer-send {
+  color: var(--hero-send-fg);
+  background: var(--hero-send-bg);
+}
+
+
+.hero-composer-send:hover {
+  opacity: 0.85;
+}
+
+
+/* 胶囊触发器（模型 / 参数） */
+.hero-select.select-trigger,
+.hero-param-trigger {
+  color: var(--hero-pill-fg);
+  background: var(--hero-pill-bg);
+  border-color: var(--hero-pill-border);
+  box-shadow: none;
+}
+
+
+.hero-select.select-trigger:hover,
+.hero-param-trigger:hover {
+  border-color: var(--hero-pill-hover-border);
+  box-shadow: none;
+}
+
+
+.hero-select.select-trigger[data-state='open'],
+.hero-param-trigger[aria-expanded='true'] {
+  border-color: var(--hero-pill-open-border);
+}
+
+
+.hero-param-caret {
+  color: var(--hero-caret);
+}
+
+
+/* 参数面板 */
+.hero-param-panel {
+  background: var(--hero-panel-bg);
+  border-color: var(--hero-panel-border);
+  box-shadow: var(--hero-panel-shadow);
+}
+
+
+.hero-param-title {
+  color: var(--hero-title-fg);
+}
+
+
+.hero-param-panel .hero-option small {
+  color: var(--hero-subtle-fg);
+}
+
+
+.hero-param-panel .ratio-item {
+  color: var(--hero-item-fg);
+  background: var(--hero-item-bg);
+}
+
+
+.hero-param-panel .ratio-item:hover {
+  background: var(--hero-item-hover-bg);
+}
+
+
+.hero-param-panel .ratio-item.is-active {
+  color: var(--hero-item-active-fg);
+  background: var(--hero-item-active-bg);
+}
+
+
+.hero-param-panel .seg-group {
+  background: var(--hero-seg-track);
+}
+
+
+.hero-param-panel .seg-item {
+  color: var(--hero-seg-fg);
+}
+
+
+.hero-param-panel .seg-item:hover {
+  color: var(--hero-fg);
+}
+
+
+.hero-param-panel .seg-item.is-active {
+  color: var(--hero-chip-active-fg);
+  background: var(--hero-chip-active-bg);
+  box-shadow: none;
+}
+
+
+/* 模型下拉：Radix 传送门挂到 body，用唯一类名 .hero-select-content 限定。
+   叠加 .select-content 提高优先级，否则会被下方通用 .select-content 的浅色底覆盖 */
+.select-content.hero-select-content {
+  color: var(--hero-title-fg);
+  background: var(--hero-panel-bg);
+  border-color: var(--hero-panel-border);
+  box-shadow: var(--hero-panel-shadow);
+}
+
+
+.hero-select-content .select-item[data-highlighted] {
+  color: var(--hero-fg);
+  background: var(--hero-item-hover-bg);
+}
+
+
+.hero-select-content .select-item-indicator {
+  color: var(--hero-fg);
+}
+
+
+.hero-select-content .hero-option small {
+  color: var(--hero-subtle-fg);
+}
+
+
+/* 背景设置面板：随主题切换。用 .home-shell 前缀提升优先级，覆盖下方基础样式的写死浅色值 */
+.home-shell .hero-background-trigger {
+  color: var(--hero-fg-muted);
+  border-color: var(--hero-pill-border);
+}
+
+
+.home-shell .hero-background-trigger:hover {
+  color: var(--hero-fg);
+  border-color: var(--hero-pill-hover-border);
+}
+
+
+.home-shell .hero-background-dot {
+  background: var(--hero-fg);
+}
+
+
+.home-shell .hero-background-panel {
+  background: var(--hero-panel-bg);
+  border-color: var(--hero-panel-border);
+  box-shadow: var(--hero-panel-shadow);
+}
+
+
+.home-shell .hero-background-head strong {
+  color: var(--hero-title-fg);
+}
+
+
+.home-shell .hero-background-head button {
+  color: var(--hero-subtle-fg);
+}
+
+
+.home-shell .hero-background-head button:hover {
+  color: var(--hero-fg);
+  background: var(--hero-item-hover-bg);
+}
+
+
+.home-shell .hero-background-option {
+  color: var(--hero-fg-muted);
+  background: var(--hero-pill-bg);
+  border-color: var(--hero-pill-border);
+}
+
+
+.home-shell .hero-background-option:hover:not(:disabled) {
+  color: var(--hero-fg);
+  background: var(--hero-item-hover-bg);
+  border-color: var(--hero-pill-hover-border);
+}
+
+
+.home-shell .hero-background-hint {
+  color: var(--hero-subtle-fg);
+}
+
+
+/* 面板分区：配色 / 背景图 */
+.hero-background-section {
+  display: grid;
+  gap: 6px;
+}
+
+
+.hero-background-title {
+  margin: 0;
+  color: var(--hero-subtle-fg);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+.hero-bg-theme {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  background: var(--hero-seg-track);
+  border-radius: 8px;
+}
+
+
+.hero-bg-theme-item {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--hero-seg-fg);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+
+.hero-bg-theme-item:hover {
+  color: var(--hero-fg);
+}
+
+
+.hero-bg-theme-item.is-active {
+  color: var(--hero-chip-active-fg);
+  background: var(--hero-chip-active-bg);
 }
 
 
