@@ -115,7 +115,11 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
   const currentTask = taskMeta[task]
   const title = mode === 'general' ? '通用生图' : currentTask.title
-  const moduleTotal = Object.values(moduleCounts).reduce((total, value) => total + value, 0)
+  // 主图与详情页共用 hero/selling/scene/detail 这些 key，各自又有独有 key。
+  // 切换任务时不清 moduleCounts，所以先按当前任务的模块过滤，避免别的任务的残留计数混进总数与 16 上限。
+  const currentModuleKeys = task === 'product-main' ? productMainModules.map(([value]) => value) : detailModules.map(([value]) => value)
+  const activeModuleCounts = Object.fromEntries(Object.entries(moduleCounts).filter(([key]) => currentModuleKeys.some((moduleKey) => moduleKey === key)))
+  const moduleTotal = Object.values(activeModuleCounts).reduce((total, value) => total + value, 0)
   // 与提交给后端的 count 保持一致；自定义模块按实际勾选的张数算，没选就是 0
   const expectedCount = mode === 'general'
     ? count
@@ -305,10 +309,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   }
 
   function buildPayload(productAssetIds: string[], referenceAssetIds: string[]): unknown {
-    const moduleKeys = task === 'product-main' ? productMainModules.map(([value]) => value) : detailModules.map(([value]) => value)
-    const normalizedModuleCounts = Object.fromEntries(Object.entries(moduleCounts).filter(([key]) => moduleKeys.some((moduleKey) => moduleKey === key)))
     const commerceCount = task === 'product-main' || task === 'detail-page'
-      ? moduleMode === 'custom' ? Math.max(1, Object.values(normalizedModuleCounts).reduce((total, value) => total + value, 0)) : 1
+      ? moduleMode === 'custom' ? Math.max(1, moduleTotal) : 1
       : 1
     const imageSettings = { model, aspectRatio, resolution, count: mode === 'general' ? count : commerceCount }
 
@@ -332,7 +334,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       ...imageSettings,
     }
 
-    if (task === 'product-main' || task === 'detail-page') return { ...common, requirements, outputLanguage, moduleMode, moduleCounts: normalizedModuleCounts }
+    if (task === 'product-main' || task === 'detail-page') return { ...common, requirements, outputLanguage, moduleMode, moduleCounts: activeModuleCounts }
     if (task === 'viral-recreate') return { ...common, referenceAssetIds, recreateStrength, requirements, outputLanguage }
     return { ...common, enhancements, requirements }
   }
@@ -412,7 +414,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               style={style}
               referenceStrength={referenceStrength}
               moduleMode={moduleMode}
-              moduleCounts={moduleCounts}
+              moduleCounts={activeModuleCounts}
               recreateStrength={recreateStrength}
               enhancements={enhancements}
               count={count}
@@ -434,7 +436,11 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               onSetStyle={setStyle}
               onSetReferenceStrength={setReferenceStrength}
               onSetModuleMode={setModuleMode}
-              onSetModuleCounts={setModuleCounts}
+              onSetModuleCounts={(nextCounts) => setModuleCounts((prev) => {
+                // nextCounts 只含当前任务的模块：保留另一任务已选的模块，再覆盖当前任务的部分
+                const otherTasks = Object.fromEntries(Object.entries(prev).filter(([key]) => !currentModuleKeys.some((moduleKey) => moduleKey === key)))
+                return { ...otherTasks, ...nextCounts }
+              })}
               onSetRecreateStrength={setRecreateStrength}
               onSetEnhancements={setEnhancements}
               onSetCount={setCount}

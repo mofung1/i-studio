@@ -6,30 +6,8 @@ import { downscaleImageFile } from './image-file'
  * （localStorage 的 data URL），不会上传到服务器，也不占后端存储。
  */
 const STORAGE_KEY = 'istudio-home-background'
-const THEME_KEY = 'istudio-home-theme'
 const MAX_EDGE = 1920
 const QUALITY = 0.86
-
-export type HomeTheme = 'light' | 'dark'
-
-/** 首页主题（浅色 / 深色），同样只存本机 */
-export function readStoredHomeTheme(): HomeTheme {
-  if (typeof window === 'undefined') return 'light'
-  try {
-    return window.localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'
-  } catch {
-    return 'light'
-  }
-}
-
-export function storeHomeTheme(theme: HomeTheme) {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(THEME_KEY, theme)
-  } catch {
-    // 忽略：存不下也不影响本次使用
-  }
-}
 
 /** 读取用户设置的背景图；没有设置或已损坏时返回空字符串（前端回退到默认插画） */
 export function readStoredHomeBackground(): string {

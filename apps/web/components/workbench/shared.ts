@@ -56,6 +56,9 @@ export const ratioOptions = [['1:1', '1:1 方图'], ['3:4', '3:4 竖图'], ['4:3
 export const resolutionOptions = [['1K', '1K'], ['2K', '2K'], ['4K', '4K']] as const
 export const countOptions = Array.from({ length: 16 }, (_, index) => [String(index + 1), `${index + 1} 张`] as const)
 
+/** 通用生图一次最多 4 张；电商模式走模块组合，上限仍是 16 */
+export const generalCountOptions = countOptions.slice(0, 4)
+
 export function optionLabel(options: readonly (readonly [string, string])[], value: string) {
   return options.find(([optionValue]) => optionValue === value)?.[1] ?? value
 }

@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { GenerationModel } from '@/lib/contracts'
 
 import {
-  countOptions,
   detailModules,
+  generalCountOptions,
   languageOptions,
   modelOptions,
   productMainModules,
@@ -93,7 +93,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
                 <Select value={String(count)} onValueChange={(value) => onSetCount(Number(value))}>
                   <SelectTrigger aria-label="生成数量"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {countOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                    {generalCountOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </label>
