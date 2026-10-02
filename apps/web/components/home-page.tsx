@@ -260,7 +260,7 @@ export function HomePage() {
       <main>
         <section className="home-hero">
           <div className="home-hero-inner">
-            <p className="home-slogan">让创意拥有视觉</p>
+            <p className="home-slogan"><span className="home-slogan-accent">让创意拥有视觉</span></p>
             <div className="hero-composer-wrap">
               <form className="hero-composer" action="/workbench" method="get">
                 {hiddenFields}
