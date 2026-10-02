@@ -2,7 +2,7 @@ import { downscaleImageFile } from './image-file'
 
 /**
  * 首页背景图设置：
- * 默认用内置插画（public/home-bg.jpg），用户自选的背景只压缩后存在本机浏览器
+ * 默认没有背景图（只有主题底色），用户自选的背景只压缩后存在本机浏览器
  * （localStorage 的 data URL），不会上传到服务器，也不占后端存储。
  */
 const STORAGE_KEY = 'istudio-home-background'

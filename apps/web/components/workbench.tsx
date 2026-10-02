@@ -46,7 +46,10 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
-  const [configSide, setConfigSide] = useState<ConfigSide>('left')
+  const [configSide, setConfigSide] = useState<ConfigSide>(() => {
+    if (typeof document === 'undefined') return 'left'
+    return (document.documentElement.getAttribute('data-wb-side') === 'right' ? 'right' : 'left') as ConfigSide
+  })
   const [prompt, setPrompt] = useState(initialPrompt ?? '柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
   const [requirements, setRequirements] = useState('')
   const [productFiles, setProductFiles] = useState<File[]>([])
