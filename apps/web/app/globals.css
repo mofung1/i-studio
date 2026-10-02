@@ -514,6 +514,33 @@ img {
 }
 
 
+/* slogan 前半段用彩色渐变（后半段保持主题前景色）；渐变字去掉投影，避免深色光晕透出 */
+.home-slogan-accent {
+  background-image: linear-gradient(100deg, #ff4d6d 0%, #ff9a3d 20%, #ffd23d 38%, #3ddc84 56%, #3da9ff 76%, #a15cff 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  animation: home-slogan-flow 8s linear infinite;
+}
+
+
+@keyframes home-slogan-flow {
+  to {
+    background-position: 200% 0;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .home-slogan-accent {
+    animation: none;
+  }
+}
+
+
 /* ── 输入框：唯一视觉焦点 ── */
 .hero-composer-wrap {
   margin-top: 0;
