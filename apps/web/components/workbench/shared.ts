@@ -58,6 +58,7 @@ export const countOptions = Array.from({ length: 16 }, (_, index) => [String(ind
 
 /** 通用生图一次最多 4 张；电商模式走模块组合，上限仍是 16 */
 export const generalCountOptions = countOptions.slice(0, 4)
+export const generalMaxCount = generalCountOptions.length
 
 export function optionLabel(options: readonly (readonly [string, string])[], value: string) {
   return options.find(([optionValue]) => optionValue === value)?.[1] ?? value
