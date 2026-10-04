@@ -541,6 +541,138 @@ img {
 }
 
 
+/* ══ 首页新方案 /home-v2：模仿 Duolingo「Super」活动页第一屏（深色星空 + 贴纸风 3D 主视觉浮在白云上，白底大标题 + 单个按钮）══ */
+.hv2 {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+
+.hv2-sky {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 32px 24px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(180deg, #14143a 0%, #221f5e 62%, #2b2568 100%);
+}
+
+
+.hv2-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+
+.hv2-brand strong {
+  font-weight: 800;
+}
+
+
+.hv2-art-wrap {
+  position: relative;
+  z-index: 2;
+  margin-top: 6px;
+  width: min(400px, 70vw);
+}
+
+
+.hv2-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.35));
+  animation: hv2-float 6s ease-in-out infinite;
+}
+
+
+@keyframes hv2-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+
+.hv2-cloud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  z-index: 1;
+  width: 100%;
+  height: 130px;
+}
+
+
+.hv2-body {
+  position: relative;
+  z-index: 3;
+  flex: 1 1 auto;
+  margin-top: -28px;
+  padding: 6px 24px 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+
+.hv2-title {
+  margin: 0 0 14px;
+  color: #4b4b52;
+  font-size: clamp(30px, 6vw, 52px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+
+.hv2-sub {
+  margin: 0 0 34px;
+  max-width: 560px;
+  color: #7a7a82;
+  font-size: clamp(15px, 2.4vw, 19px);
+  line-height: 1.6;
+}
+
+
+.hv2-cta {
+  width: min(520px, 100%);
+  padding: 18px 28px;
+  color: #ffffff;
+  background: #4a6cf7;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 6px 0 #3550d0;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+}
+
+
+.hv2-cta:hover {
+  background: #5a7bff;
+}
+
+
+.hv2-cta:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #3550d0;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .hv2-art {
+    animation: none;
+  }
+}
+
+
 /* ── 输入框：唯一视觉焦点 ── */
 .hero-composer-wrap {
   margin-top: 0;
