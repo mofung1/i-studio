@@ -8,7 +8,7 @@ export const generationModelSchema = z.enum([
   'gemini-3.1-flash-image',
   'gemini-3-pro-image',
 ])
-export const generationCountSchema = z.number().int().min(1).max(16).default(1)
+export const generationCountSchema = z.number().int('生成数量必须为整数').min(1, '生成数量至少为 1 张').max(16, '一次最多生成 16 张').default(1)
 export const platformSchema = z.enum([
   'smart',
   'taobao',
@@ -28,12 +28,12 @@ const imageSettingsSchema = z.object({
   aspectRatio: aspectRatioSchema.default('1:1'),
   resolution: resolutionSchema.default('2K'),
   count: generationCountSchema,
-  projectId: z.string().trim().min(1).optional(),
+  projectId: z.string().trim().min(1, '项目 ID 不能为空').optional(),
 })
 
-const productAssetsSchema = z.array(z.string().min(1)).min(1).max(6)
-const referenceAssetsSchema = z.array(z.string().min(1)).max(6).default([])
-const moduleCountsSchema = z.record(z.string(), z.number().int().min(1).max(4)).superRefine((counts, ctx) => {
+const productAssetsSchema = z.array(z.string().min(1)).min(1, '请至少上传 1 张商品原图').max(6, '商品原图最多上传 6 张')
+const referenceAssetsSchema = z.array(z.string().min(1)).max(6, '参考图最多上传 6 张').default([])
+const moduleCountsSchema = z.record(z.string(), z.number().int('每个模块的张数必须为整数').min(1, '每个模块至少生成 1 张').max(4, '每个模块最多生成 4 张')).superRefine((counts, ctx) => {
   const total = Object.values(counts).reduce((sum, value) => sum + value, 0)
   if (total > 16) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: '自定义模块最多生成 16 张图片' })
@@ -42,9 +42,9 @@ const moduleCountsSchema = z.record(z.string(), z.number().int().min(1).max(4)).
 
 export const generalGenerationInputSchema = imageSettingsSchema.extend({
   mode: z.literal('general'),
-  prompt: z.string().trim().min(1).max(10000),
+  prompt: z.string().trim().min(1, '请先输入提示词').max(10000, '提示词过长，请精简到 10000 字以内'),
   referenceAssetIds: referenceAssetsSchema,
-  style: z.enum(['unspecified', 'studio', 'minimal', 'fresh', 'technology', 'guochao']).default('unspecified'),
+  style: z.enum(['unspecified', 'studio', 'minimal', 'fresh', 'technology', 'guochao', 'handdrawn']).default('unspecified'),
   referenceStrength: z.enum(['low', 'medium', 'high']).default('medium'),
 })
 
@@ -57,7 +57,7 @@ const commerceBaseSchema = imageSettingsSchema.extend({
 
 export const productMainInputSchema = commerceBaseSchema.extend({
   taskType: z.literal('product-main'),
-  requirements: z.string().trim().max(2000).default(''),
+  requirements: z.string().trim().max(2000, '需求描述过长，请精简到 2000 字以内').default(''),
   outputLanguage: outputLanguageSchema.default('none'),
   moduleMode: z.enum(['smart', 'custom']).default('smart'),
   moduleCounts: moduleCountsSchema,
@@ -65,7 +65,7 @@ export const productMainInputSchema = commerceBaseSchema.extend({
 
 export const detailPageInputSchema = commerceBaseSchema.extend({
   taskType: z.literal('detail-page'),
-  requirements: z.string().trim().max(2000).default(''),
+  requirements: z.string().trim().max(2000, '需求描述过长，请精简到 2000 字以内').default(''),
   outputLanguage: outputLanguageSchema.default('none'),
   moduleMode: z.enum(['smart', 'custom']).default('smart'),
   moduleCounts: moduleCountsSchema,
@@ -73,16 +73,16 @@ export const detailPageInputSchema = commerceBaseSchema.extend({
 
 export const viralRecreateInputSchema = commerceBaseSchema.extend({
   taskType: z.literal('viral-recreate'),
-  referenceAssetIds: z.array(z.string().min(1)).length(1),
+  referenceAssetIds: z.array(z.string().min(1)).length(1, '爆款复刻需要上传 1 张参考爆款图'),
   recreateStrength: z.enum(['style', 'high']).default('style'),
-  requirements: z.string().trim().max(1000).default(''),
+  requirements: z.string().trim().max(1000, '需求描述过长，请精简到 1000 字以内').default(''),
   outputLanguage: outputLanguageSchema.default('none'),
 })
 
 export const productRetouchInputSchema = commerceBaseSchema.extend({
   taskType: z.literal('product-retouch'),
   enhancements: z.array(z.enum(['gloss', 'repair', 'clarity', 'color', 'perspective', 'background'])).default([]),
-  requirements: z.string().trim().max(1000).default(''),
+  requirements: z.string().trim().max(1000, '需求描述过长，请精简到 1000 字以内').default(''),
 })
 
 export const commerceGenerationInputSchema = z.discriminatedUnion('taskType', [
