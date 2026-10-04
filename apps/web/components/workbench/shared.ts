@@ -2,7 +2,7 @@ import type { CommerceTaskType } from '@/lib/contracts'
 
 export type WorkbenchMode = 'general' | 'commerce'
 export type ConfigSide = 'left' | 'right'
-export type GeneralStyle = 'unspecified' | 'studio' | 'minimal' | 'fresh' | 'technology' | 'guochao'
+export type GeneralStyle = 'unspecified' | 'studio' | 'minimal' | 'fresh' | 'technology' | 'guochao' | 'handdrawn'
 export type ReferenceStrength = 'low' | 'medium' | 'high'
 export type ModuleMode = 'smart' | 'custom'
 
@@ -50,7 +50,7 @@ export const languageOptions = [['none', '不新增文字（保留包装文字�
 export const retouchOptions = [['gloss', '增强产品光泽'], ['repair', '修复划痕瑕疵'], ['clarity', '提升整体清晰度'], ['color', '色彩校正'], ['perspective', '修正透视变形'], ['background', '背景净化']] as const
 
 /** 基础参数下拉统一复用下面这份数据，避免组件里各写一份 */
-export const styleOptions = [['unspecified', '不指定'], ['studio', '摄影棚'], ['minimal', '极简'], ['fresh', '清新'], ['technology', '科技'], ['guochao', '国潮']] as const
+export const styleOptions = [['unspecified', '不指定'], ['studio', '摄影棚'], ['minimal', '极简'], ['fresh', '清新'], ['technology', '科技'], ['guochao', '国潮'], ['handdrawn', '手绘插画']] as const
 export const modelOptions = [['gpt-image-2', 'GPT Image 2'], ['gemini-2.5-flash-image', 'Gemini 2.5 Flash'], ['gemini-3.1-flash-image', 'Gemini 3.1 Flash'], ['gemini-3-pro-image', 'Gemini 3 Pro Image']] as const
 export const ratioOptions = [['1:1', '1:1 方图'], ['3:4', '3:4 竖图'], ['4:3', '4:3 横图'], ['9:16', '9:16 竖屏'], ['16:9', '16:9 宽屏']] as const
 export const resolutionOptions = [['1K', '1K'], ['2K', '2K'], ['4K', '4K']] as const
