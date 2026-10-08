@@ -185,6 +185,10 @@ CREATE TABLE IF NOT EXISTS inspiration_prompts (id TEXT PRIMARY KEY, title TEXT 
 		return err
 	}
 	_, err = db.Exec(`ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS project_id TEXT NULL REFERENCES projects(id) ON DELETE SET NULL; ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS result_images JSONB NOT NULL DEFAULT '[]'::jsonb; ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS result_modules JSONB NOT NULL DEFAULT '[]'::jsonb; ALTER TABLE generation_tasks ADD COLUMN IF NOT EXISTS error_message TEXT NULL; ALTER TABLE inspiration_prompts ADD COLUMN IF NOT EXISTS image_width INT NOT NULL DEFAULT 0; ALTER TABLE inspiration_prompts ADD COLUMN IF NOT EXISTS image_height INT NOT NULL DEFAULT 0; ALTER TABLE inspiration_prompts ADD COLUMN IF NOT EXISTS enabled BOOLEAN NOT NULL DEFAULT true; ALTER TABLE inspiration_prompts ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 0;`)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(aiConfigurationMigration)
 	return err
 }
 

@@ -81,10 +81,7 @@ fi
 if [[ ! -f "$SERVER_DIR/.env" ]]; then
   warn "缺少 apps/server/.env（可 copy .env.example 后填写），后端将使用内置默认值"
 else
-  grep -qE '^DEEPSEEK_API_KEY=.+' "$SERVER_DIR/.env" \
-    || warn "DEEPSEEK_API_KEY 为空 → AI 优化提示词 / AI 帮写 会回退成「本地规则整理」"
-  grep -qE '^BANANA_ROUTER_API_KEY=.+' "$SERVER_DIR/.env" \
-    || warn "BANANA_ROUTER_API_KEY 为空 → 生图会被后端拦下（AI 服务未配置）"
+  info "AI 服务可在 Web 设置中配置；旧 AI 环境变量只用于首次迁移"
 fi
 
 if [[ ! -f "$WEB_DIR/.env.local" ]]; then

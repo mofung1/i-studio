@@ -534,6 +534,92 @@ img {
 }
 
 
+.ai-settings { max-width: 1120px; margin: 0 auto; padding: 48px 28px 88px; }
+.settings-heading, .endpoint-section-head, .settings-form-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.settings-heading { margin-bottom: 34px; }
+.settings-heading p { color: var(--foreground-3); font-size: 13px; margin: 0 0 9px; }
+.settings-heading h1 { font-size: 30px; line-height: 1.2; margin: 0; }
+.settings-heading a { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; padding: 0 12px; border: 1px solid var(--border); border-radius: 7px; color: var(--foreground-2); background: var(--surface); font-size: 13px; transition: border-color 140ms ease, background 140ms ease; }
+.settings-heading a:hover { border-color: var(--line-strong); background: var(--surface-subtle); }
+.ai-settings > p a { text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+.settings-tabs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-subtle); }
+.settings-tabs button { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border: 0; border-radius: 6px; color: var(--foreground-3); background: transparent; cursor: pointer; font-size: 13px; transition: color 140ms ease, background 140ms ease, box-shadow 140ms ease; }
+.settings-tabs button:hover:not([aria-selected=true]) { color: var(--foreground); background: rgba(255,255,255,.7); }
+.settings-tabs button[aria-selected=true] { color: var(--foreground); background: var(--surface); box-shadow: var(--shadow-sm); font-weight: 600; }
+.endpoint-section { padding: 30px 0 32px; border-bottom: 1px solid var(--border); }
+.endpoint-section-head { margin-bottom: 16px; }
+.endpoint-section h2, .prompt-settings h2, .endpoint-dialog h2 { margin: 0; font-size: 17px; line-height: 1.35; }
+.settings-command, .settings-primary, .endpoint-actions button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; background: var(--surface); cursor: pointer; font-size: 13px; transition: border-color 140ms ease, color 140ms ease, background 140ms ease; }
+.settings-command { color: var(--foreground-2); }
+.settings-primary { color: var(--surface); background: var(--primary); border-color: var(--primary); font-weight: 550; }
+.settings-primary:hover:not(:disabled) { background: var(--primary-hover); }
+.settings-command:hover, .endpoint-actions button:hover { border-color: var(--line-strong); color: var(--foreground); background: var(--surface-subtle); }
+.ai-settings button:disabled, .endpoint-dialog button:disabled { cursor: default; opacity: .5; }
+.endpoint-list { display: grid; gap: 10px; margin-top: 18px; }
+.endpoint-row { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 19px 20px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); transition: border-color 140ms ease, box-shadow 140ms ease; }
+.endpoint-row:hover { border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
+.endpoint-details { min-width: 0; }
+.endpoint-name { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.endpoint-name h3 { font-size: 15px; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
+.endpoint-name > span { min-height: 24px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--foreground-2); background: var(--surface-subtle); font-size: 11px; }
+.endpoint-details p { color: var(--foreground-2); margin: 8px 0 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.endpoint-details p span { margin-left: 12px; color: var(--foreground-3); }
+.endpoint-details .endpoint-url { color: var(--foreground-3); font-size: 12px; }
+.endpoint-details .endpoint-url span { display: inline-block; margin-left: 14px; font-variant-numeric: tabular-nums; }
+.endpoint-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; flex-shrink: 0; }
+.endpoint-actions button { min-height: 44px; }
+.settings-icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--border); border-radius: 6px; color: var(--foreground-2); background: var(--surface); cursor: pointer; transition: color 140ms ease, border-color 140ms ease, background 140ms ease; }
+.settings-icon:hover:not(:disabled) { color: var(--foreground); border-color: var(--line-strong); background: var(--surface-subtle); }
+.settings-switch, .settings-checks label { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; min-height: 44px; }
+.settings-switch { color: var(--foreground-2); font-size: 12px; }
+.settings-switch input, .settings-checks input { accent-color: var(--foreground); width: 16px; height: 16px; }
+.settings-empty, .settings-notice { padding: 18px 0; color: var(--foreground-3); font-size: 14px; }
+.settings-notice { margin: 14px 0 0; padding: 12px 14px; border-left: 2px solid var(--line-strong); background: var(--surface-subtle); }
+.settings-error { color: var(--danger) !important; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.connection-result { color: var(--foreground-2); }
+.settings-loading { display: flex; gap: 10px; align-items: center; padding: 40px 0; }
+.settings-spinner { animation: settings-spin 1s linear infinite; }
+@keyframes settings-spin { to { transform: rotate(360deg); } }
+.endpoint-dialog { position: fixed; inset: 0; width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 40px); margin: auto; padding: 26px; border: 1px solid var(--border); border-radius: 10px; color: var(--foreground); background: var(--surface); box-shadow: 0 24px 80px rgba(0,0,0,.2); overflow-x: hidden; overflow-y: auto; }
+.endpoint-dialog[open] { animation: endpoint-dialog-in 150ms ease-out; }
+.endpoint-dialog::backdrop { background: rgba(12,12,12,.38); backdrop-filter: blur(2px); }
+@keyframes endpoint-dialog-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+.endpoint-dialog .endpoint-section-head { margin-bottom: 18px; }
+.endpoint-dialog .settings-field, .prompt-settings .settings-field { display: grid; gap: 8px; margin: 18px 0; color: var(--foreground-2); font-size: 12px; font-weight: 550; }
+.endpoint-dialog .settings-field { margin: 14px 0; }
+.endpoint-dialog input:not([type=checkbox]), .endpoint-dialog select, .prompt-settings textarea { width: 100%; min-width: 0; min-height: 42px; padding: 10px 12px; color: var(--foreground); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; font-size: 14px; font-weight: 400; transition: border-color 140ms ease, box-shadow 140ms ease; }
+.endpoint-dialog input:not([type=checkbox]):focus, .endpoint-dialog select:focus, .prompt-settings textarea:focus { border-color: var(--foreground-2); outline: none; box-shadow: 0 0 0 3px var(--focus-soft); }
+.endpoint-form-grid { display: grid; grid-template-columns: minmax(0,1fr) 132px; gap: 16px; }
+.settings-checks { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 20px; }
+.settings-form-actions { justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border); }
+.prompt-settings { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 32px; padding: 28px 0; }
+.prompt-settings nav { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+.prompt-settings nav button { min-height: 40px; padding: 10px 12px; border: 0; color: var(--foreground-2); background: transparent; text-align: left; font-size: 13px; line-height: 1.5; border-radius: 6px; cursor: pointer; }
+.prompt-settings nav button:hover:not([aria-current=true]) { background: var(--surface-subtle); }
+.prompt-settings nav button[aria-current=true] { color: var(--foreground); background: var(--surface-subtle); font-weight: 600; }
+.prompt-settings textarea { line-height: 1.7; resize: vertical; min-height: 300px; }
+.prompt-default { font-size: 13px; color: var(--foreground-2); }
+.prompt-default summary { cursor: pointer; padding: 10px 0; }
+.prompt-default pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.7; max-height: 320px; overflow-y: auto; }
+@media (max-width: 700px) {
+ .ai-settings { padding: 24px 18px 48px; }
+ .settings-heading { align-items: flex-start; gap: 12px; }
+ .settings-heading h1 { font-size: 26px; }
+ .settings-heading a { min-height: 44px; gap: 4px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+ .settings-tabs button { min-height: 44px; padding: 0 11px; font-size: 12px; }
+ .endpoint-section { padding: 24px 0; }
+ .endpoint-row { align-items: flex-start; flex-direction: column; gap: 14px; padding: 16px; }
+ .endpoint-actions { width: 100%; justify-content: flex-end; }
+ .endpoint-dialog { width: calc(100% - 28px); max-height: calc(100dvh - 32px); padding: 20px; }
+ .prompt-settings { grid-template-columns: minmax(0,1fr); gap: 24px; }
+ .prompt-settings nav { flex-direction: row; flex-wrap: wrap; }
+ .endpoint-form-grid { grid-template-columns: minmax(0,1fr); gap: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .endpoint-dialog[open] { animation: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .home-slogan-accent {
     animation: none;

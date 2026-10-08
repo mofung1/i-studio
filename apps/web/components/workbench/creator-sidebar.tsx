@@ -52,8 +52,12 @@ interface CreatorSidebarProps {
   resolution: string
   expectedCount: number
   aiEnabled: boolean | null
-  /** 后端是否配置了 DeepSeek 文本模型 */
+  /** 后端是否配置了提示词模型 */
   promptEnhanceEnabled: boolean
+  promptVision: boolean
+  imageEndpoints: { id: string; name: string; model: string }[]
+  endpointId: string
+  onSetEndpoint: (id: string) => void
   notice: GenerationNotice | null
   isSubmitting: boolean
   isGenerating: boolean
@@ -141,7 +145,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
     ? referenceFiles
     : task === 'viral-recreate' ? [...productFiles, ...referenceFiles] : productFiles
   // 不向用户暴露用了哪个模型；只有未接入 AI 时才说明当前是本地规则
-  const enhanceHelper = promptEnhanceEnabled ? undefined : '暂用本地规则整理'
+  const enhanceHelper = !promptEnhanceEnabled ? '请先在设置中配置提示词 AI 服务' : !props.promptVision ? '当前提示词模型不支持图片识别，请先输入大概的生图内容，再提交给 AI 优化提示词。' : undefined
   // 空输入时点按钮给出的具体指引（比“请先上传图片或输入文字”更好照做）
   const enhanceBlockedReason = isGeneral
     ? '请先上传参考图片，或输入画面描述'
@@ -151,9 +155,11 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         ? '请先上传商品原图，或输入补充要求'
         : `请先上传商品原图，或输入${requirementsLabel}`
 
-  /** 走 DeepSeek 改写；未配置或失败时由 PromptEditor 展示错误与重试 */
+  /** 通过服务端协议客户端改写提示词。 */
   async function runEnhance(target: 'prompt' | 'requirements', text: string) {
-    const files = await downscaleImageFiles(enhanceImages.slice(0, 4))
+    if (!promptEnhanceEnabled) throw new Error('请先在设置中配置提示词 AI 服务')
+    if (!props.promptVision && !text.trim()) throw new Error('当前提示词模型不支持图片识别，请先输入大概的生图内容，再提交给 AI 优化提示词。')
+    const files = props.promptVision ? await downscaleImageFiles(enhanceImages.slice(0, 4)) : []
     const result = await enhancePrompt({
       target,
       text,
@@ -255,6 +261,9 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         />
 
         <AdvancedSettings
+          imageEndpoints={props.imageEndpoints}
+          endpointId={props.endpointId}
+          onSetEndpoint={props.onSetEndpoint}
           mode={mode}
           task={task}
           referenceStrength={referenceStrength}

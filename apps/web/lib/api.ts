@@ -84,7 +84,7 @@ export async function deleteGeneratedAsset(contentPath: string) {
   if (!response.ok) throw new Error(await readApiError(response, '删除失败，请稍后重试'))
 }
 
-/** AI 优化提示词 / AI 帮写：走后端代理调用 DeepSeek，前端不接触密钥。 */
+/** AI 优化提示词 / AI 帮写：由后端调用默认提示词 Endpoint。 */
 export async function enhancePrompt({ target, text, files = [], context }: PromptEnhanceInput): Promise<PromptEnhanceResult> {
   const body = new FormData()
   body.append('target', target)

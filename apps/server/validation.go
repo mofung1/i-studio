@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-var allowedModels = stringSet("gpt-image-2", "gemini-2.5-flash-image", "gemini-3.1-flash-image", "gemini-3-pro-image")
 var allowedRatios = stringSet("1:1", "3:4", "4:3", "9:16", "16:9")
 var allowedResolutions = stringSet("1K", "2K", "4K")
 var allowedPlatforms = stringSet("smart", "taobao", "1688", "tmall", "pinduoduo", "jd", "douyin", "amazon", "temu", "ebay")
@@ -15,8 +14,15 @@ var allowedRecreateStrengths = stringSet("style", "high")
 var allowedEnhancements = stringSet("gloss", "repair", "clarity", "color", "perspective", "background")
 
 func validateGenerationInput(input map[string]any) error {
-	if err := requireOneOf(input, "model", allowedModels, "gpt-image-2"); err != nil {
+	if input["model"] == nil {
+		input["model"] = "gpt-image-2"
+	} else if err := requireText(input, "model", 1, 200); err != nil {
 		return err
+	}
+	if input["endpointId"] != nil {
+		if err := requireText(input, "endpointId", 1, 100); err != nil {
+			return err
+		}
 	}
 	if err := requireOneOf(input, "aspectRatio", allowedRatios, "1:1"); err != nil {
 		return err

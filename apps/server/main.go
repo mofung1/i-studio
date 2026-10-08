@@ -72,6 +72,8 @@ type server struct {
 	queue        *taskQueue
 	provider     imageProvider
 	promptClient promptCompleter
+	ai           *aiConfigStore
+	aiAdminID    string
 }
 
 func main() {
@@ -84,21 +86,20 @@ func main() {
 		fmt.Printf("database unavailable, using memory store: %v\n", dbErr)
 	}
 	if err := migrateDatabase(db); err != nil {
-		fmt.Printf("database migration skipped: %v\n", err)
+		panic(fmt.Errorf("database migration failed: %w", err))
 	}
 	root := env("STORAGE_ROOT", "storage/uploads")
 	_ = os.MkdirAll(root, 0o755)
 	s := &server{users: map[string]user{}, tasks: map[string]task{}, secret: []byte(env("AUTH_JWT_SECRET", "istudio-dev-secret-change-me")), db: db, storageRoot: root, storage: newLocalStorage(root)}
+	s.ai = newAIConfigStore(s)
+	if err := s.ai.migrateLegacy(); err != nil {
+		panic(fmt.Errorf("AI configuration initialization failed: %w", err))
+	}
 	if err := cleanupLegacyGeneratedAssets(s.db, s.storage); err != nil {
 		fmt.Printf("legacy generated asset cleanup skipped: %v\n", err)
 	}
-	if os.Getenv("BANANA_ROUTER_API_KEY") != "" && !strings.EqualFold(env("AI_PROVIDER_ENABLED", "true"), "false") {
-		s.provider = newBananaRouterProvider()
-	}
-	// 文本改写走 DeepSeek，与生图供应商相互独立，key 只放在服务端
-	if os.Getenv("DEEPSEEK_API_KEY") != "" {
-		s.promptClient = newDeepSeekClient()
-	}
+	s.provider = &dynamicImageProvider{server: s}
+	s.promptClient = &dynamicPromptClient{server: s}
 	s.queue = newTaskQueue(s)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/health", s.health)
@@ -110,6 +111,9 @@ func main() {
 	mux.HandleFunc("/v1/generation/tasks", s.tasksHandler)
 	mux.HandleFunc("/v1/generation/tasks/", s.taskByID)
 	mux.HandleFunc("/v1/prompts/enhance", s.promptEnhance)
+	mux.HandleFunc("/v1/ai-endpoints", s.aiEndpoints)
+	mux.HandleFunc("/v1/ai-endpoints/", s.aiEndpointByID)
+	mux.HandleFunc("/v1/prompt-templates", s.promptTemplates)
 	mux.HandleFunc("/v1/projects", s.projects)
 	mux.HandleFunc("/v1/assets", s.assets)
 	mux.HandleFunc("/v1/assets/", s.assetContent)
@@ -123,7 +127,7 @@ func main() {
 		Handler:           cors(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      2 * time.Minute,
+		WriteTimeout:      11 * time.Minute,
 		IdleTimeout:       2 * time.Minute,
 	}
 	if err := httpServer.ListenAndServe(); err != nil {
@@ -136,7 +140,7 @@ func (s *server) health(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	s.json(w, http.StatusOK, map[string]any{"service": "istudio-server", "status": "ok", "database": dbStatus(s.db), "aiProviderConfigured": s.provider != nil, "timestamp": time.Now().UTC().Format(time.RFC3339)})
+	s.json(w, http.StatusOK, map[string]any{"service": "istudio-server", "status": "ok", "database": dbStatus(s.db), "aiProviderConfigured": s.ai != nil && s.ai.hasAny("image"), "timestamp": time.Now().UTC().Format(time.RFC3339)})
 }
 
 func (s *server) register(w http.ResponseWriter, r *http.Request) { s.auth(w, r, true) }
@@ -191,6 +195,9 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request, create bool) {
 			return
 		}
 		u = user{ID: randomID(), Username: name, PasswordHash: hashPassword(body.Password)}
+		if len(s.users) == 0 {
+			s.aiAdminID = u.ID
+		}
 		s.users[name] = u
 	} else if !exists || !checkPassword(body.Password, u.PasswordHash) {
 		s.error(w, 401, "INVALID_CREDENTIALS", "用户名或密码错误")
@@ -216,16 +223,19 @@ func (s *server) capabilities(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	payload := map[string]any{
-		"aiEnabled": s.provider != nil,
-		"provider":  "bananarouter",
-		"models":    []string{"gpt-image-2", "gemini-2.5-flash-image", "gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview"},
-		// 提示词优化 / AI 帮写使用的是 DeepSeek 文本模型
-		"promptEnhanceEnabled": s.promptClient != nil,
+	payload := map[string]any{"aiEnabled": s.ai != nil && s.ai.hasAny("image"), "promptEnhanceEnabled": s.ai != nil && s.ai.hasAny("prompt")}
+	if endpoint, err := s.ai.resolve("prompt", "", ""); err == nil {
+		payload["promptModel"] = endpoint.Model
+		payload["promptVision"] = endpoint.Capabilities["vision"]
 	}
-	if s.promptClient != nil {
-		payload["promptModel"] = s.promptClient.modelName()
+	images := []map[string]any{}
+	endpoints, _ := s.ai.list()
+	for _, e := range endpoints {
+		if e.Purpose == "image" && e.Enabled {
+			images = append(images, map[string]any{"id": e.ID, "name": e.Name, "model": e.Model, "protocol": e.Protocol, "isDefault": e.IsDefault})
+		}
 	}
+	payload["imageEndpoints"] = images
 	s.json(w, 200, payload)
 }
 func (s *server) validate(w http.ResponseWriter, r *http.Request) {
@@ -338,6 +348,15 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	if !decode(r, &input) || validateGenerationInput(input) != nil {
 		s.error(w, 400, "GENERATION_INPUT_INVALID", "生成参数不完整或格式不正确")
 		return
+	}
+	if s.ai != nil {
+		e, err := s.ai.resolve("image", stringValue(input["endpointId"], ""), stringValue(input["model"], ""))
+		if err != nil {
+			s.error(w, 503, "AI_ENDPOINT_UNAVAILABLE", err.Error())
+			return
+		}
+		input["endpointId"] = e.ID
+		input["model"] = e.Model
 	}
 	if err := s.validateInputOwnership(userID, input); err != nil {
 		s.error(w, http.StatusBadRequest, "GENERATION_ASSET_INVALID", err.Error())
@@ -967,7 +986,7 @@ func cors(next http.Handler) http.Handler {
 			w.Header().Set("Vary", "Origin")
 		}
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(204)
 			return

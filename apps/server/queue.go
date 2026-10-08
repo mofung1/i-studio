@@ -162,6 +162,14 @@ func (q *taskQueue) processTask(id string) {
 // generateBatches 返回图片列表与逐图模块归属（modules[i] 为 images[i] 所属模块 key，
 // 非模块化生成时为空切片）。两者按下标一一对应。
 func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, []string, error) {
+	if dynamic, ok := q.server.provider.(*dynamicImageProvider); ok {
+		client, err := dynamic.clientFor(input)
+		if err != nil {
+			return nil, nil, err
+		}
+		input["protocolClient"] = client
+		defer delete(input, "protocolClient")
+	}
 	if counts := customModuleCounts(input); len(counts) > 0 {
 		return q.generateModuleBatches(id, input, counts)
 	}
@@ -207,14 +215,14 @@ func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]st
 		input["count"] = size
 		input["taskId"] = fmt.Sprintf("%s-%d", id, batch)
 		q.server.updateTaskStatus(id, "processing")
-		remote, err := q.server.provider.Submit(context.Background(), input)
+		remote, err := q.imageClient(input).Submit(context.Background(), input)
 		if err != nil {
 			return images, fmt.Errorf("第 %d 批提交失败：%w", batch, err)
 		}
 		batchImages := remote.Images
 		if len(batchImages) == 0 {
 			q.server.updateTaskStatus(id, "waiting_provider")
-			batchImages, err = q.waitForImages(id, remote.ID)
+			batchImages, err = q.waitForImages(id, remote.ID, q.imageClient(input))
 			if err != nil {
 				return images, fmt.Errorf("第 %d 批生成失败：%w", batch, err)
 			}
@@ -256,14 +264,14 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 			input["taskId"] = fmt.Sprintf("%s-%s-%d", id, module, batch)
 			input["moduleHint"] = moduleHints[module]
 			q.server.updateTaskStatus(id, "processing")
-			remote, err := q.server.provider.Submit(context.Background(), input)
+			remote, err := q.imageClient(input).Submit(context.Background(), input)
 			if err != nil {
 				return images, attribution, fmt.Errorf("模块 %s 第 %d 批提交失败：%w", module, batch, err)
 			}
 			batchImages := remote.Images
 			if len(batchImages) == 0 {
 				q.server.updateTaskStatus(id, "waiting_provider")
-				batchImages, err = q.waitForImages(id, remote.ID)
+				batchImages, err = q.waitForImages(id, remote.ID, q.imageClient(input))
 				if err != nil {
 					return images, attribution, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", moduleLabel(module), batch, err)
 				}
@@ -284,11 +292,18 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 	return images, attribution, nil
 }
 
-func (q *taskQueue) waitForImages(id, remoteID string) ([]string, error) {
+func (q *taskQueue) imageClient(input map[string]any) imageProvider {
+	if client, ok := input["protocolClient"].(imageProvider); ok {
+		return client
+	}
+	return q.server.provider
+}
+
+func (q *taskQueue) waitForImages(id, remoteID string, client imageProvider) ([]string, error) {
 	lastPollError := ""
 	for attempt := 0; attempt < 24; attempt++ {
 		time.Sleep(5 * time.Second)
-		result, err := q.server.provider.Poll(context.Background(), remoteID)
+		result, err := client.Poll(context.Background(), remoteID)
 		if err != nil {
 			lastPollError = err.Error()
 			fmt.Printf("task %s provider poll failed: %v\n", id, err)

@@ -10,9 +10,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"strconv"
+	"net/url"
 	"strings"
-	"time"
 )
 
 type providerTask struct {
@@ -32,27 +31,25 @@ type providerPollResult struct {
 	Error  string
 }
 
-type bananaRouterProvider struct {
-	baseURL string
-	apiKey  string
-	client  *http.Client
+type imageProtocolTransport struct {
+	baseURL  string
+	apiKey   string
+	client   *http.Client
+	protocol string
+	model    string
+	standard bool
 }
 
-func newBananaRouterProvider() *bananaRouterProvider {
-	return &bananaRouterProvider{
-		baseURL: strings.TrimRight(env("BANANA_ROUTER_BASE_URL", "https://api.bananarouter.com"), "/"),
-		apiKey:  strings.TrimSpace(env("BANANA_ROUTER_API_KEY", "")),
-		client:  &http.Client{Timeout: providerTimeout()},
+func (p *imageProtocolTransport) Submit(ctx context.Context, input map[string]any) (providerTask, error) {
+	model := stringValue(input["model"], "gpt-image-2")
+	if p.model != "" {
+		model = p.model
 	}
-}
-
-func (p *bananaRouterProvider) Submit(ctx context.Context, input map[string]any) (providerTask, error) {
-	model := providerModelID(stringValue(input["model"], "gpt-image-2"))
 	prompt := promptForInput(input)
 	if prompt == "" {
 		return providerTask{}, fmt.Errorf("generation prompt is required")
 	}
-	if strings.HasPrefix(model, "gemini-") {
+	if p.protocol == "gemini_generate_content" {
 		return p.submitGemini(ctx, model, prompt, input)
 	}
 	if images := sourceImages(input); len(images) > 0 {
@@ -61,7 +58,7 @@ func (p *bananaRouterProvider) Submit(ctx context.Context, input map[string]any)
 	return p.submitOpenAIGeneration(ctx, model, prompt, input)
 }
 
-func (p *bananaRouterProvider) submitGemini(ctx context.Context, model, prompt string, input map[string]any) (providerTask, error) {
+func (p *imageProtocolTransport) submitGemini(ctx context.Context, model, prompt string, input map[string]any) (providerTask, error) {
 	parts := []map[string]any{{"text": prompt}}
 	for _, image := range sourceImages(input) {
 		parts = append(parts, map[string]any{"inlineData": map[string]string{"mimeType": image["mime"], "data": image["data"]}})
@@ -73,20 +70,24 @@ func (p *bananaRouterProvider) submitGemini(ctx context.Context, model, prompt s
 		generationConfig["imageConfig"].(map[string]any)["imageSize"] = size
 	}
 	body := map[string]any{"contents": []any{map[string]any{"role": "user", "parts": parts}}, "generationConfig": generationConfig}
-	return p.submitJSON(ctx, fmt.Sprintf("/v1beta/models/%s:generateContent", model), input, body, true)
+	return p.submitJSON(ctx, fmt.Sprintf("/v1beta/models/%s:generateContent", url.PathEscape(model)), input, body, true)
 }
 
-func (p *bananaRouterProvider) submitOpenAIGeneration(ctx context.Context, model, prompt string, input map[string]any) (providerTask, error) {
+func (p *imageProtocolTransport) submitOpenAIGeneration(ctx context.Context, model, prompt string, input map[string]any) (providerTask, error) {
 	body := map[string]any{
 		"model":  model,
 		"prompt": prompt,
 		"n":      1,
 		"size":   openAISize(stringValue(input["aspectRatio"], "1:1"), stringValue(input["resolution"], "1K")),
 	}
-	return p.submitJSON(ctx, "/v1/images/generations/async", input, body, false)
+	path := "/v1/images/generations/async"
+	if p.standard {
+		path = "/v1/images/generations"
+	}
+	return p.submitJSON(ctx, path, input, body, false)
 }
 
-func (p *bananaRouterProvider) submitOpenAIEdit(ctx context.Context, model, prompt string, input map[string]any, images []map[string]string) (providerTask, error) {
+func (p *imageProtocolTransport) submitOpenAIEdit(ctx context.Context, model, prompt string, input map[string]any, images []map[string]string) (providerTask, error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	for index, image := range images {
@@ -124,7 +125,11 @@ func (p *bananaRouterProvider) submitOpenAIEdit(ctx context.Context, model, prom
 	if err := writer.Close(); err != nil {
 		return providerTask{}, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/v1/images/edits/async", &body)
+	path := "/v1/images/edits/async"
+	if p.standard {
+		path = "/v1/images/edits"
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, joinProtocolURL(p.baseURL, path), &body)
 	if err != nil {
 		return providerTask{}, err
 	}
@@ -132,9 +137,9 @@ func (p *bananaRouterProvider) submitOpenAIEdit(ctx context.Context, model, prom
 	return p.sendProviderRequest(req, input, false)
 }
 
-func (p *bananaRouterProvider) submitJSON(ctx context.Context, path string, input map[string]any, body map[string]any, gemini bool) (providerTask, error) {
+func (p *imageProtocolTransport) submitJSON(ctx context.Context, path string, input map[string]any, body map[string]any, gemini bool) (providerTask, error) {
 	data, _ := json.Marshal(body)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+path, bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, joinProtocolURL(p.baseURL, path), bytes.NewReader(data))
 	if err != nil {
 		return providerTask{}, err
 	}
@@ -142,7 +147,7 @@ func (p *bananaRouterProvider) submitJSON(ctx context.Context, path string, inpu
 	return p.sendProviderRequest(req, input, gemini)
 }
 
-func (p *bananaRouterProvider) sendProviderRequest(req *http.Request, input map[string]any, gemini bool) (providerTask, error) {
+func (p *imageProtocolTransport) sendProviderRequest(req *http.Request, input map[string]any, gemini bool) (providerTask, error) {
 	req.Header.Set("Authorization", "Bearer "+p.apiKey)
 	if gemini {
 		req.Header.Set("x-goog-api-key", p.apiKey)
@@ -150,15 +155,15 @@ func (p *bananaRouterProvider) sendProviderRequest(req *http.Request, input map[
 	req.Header.Set("Idempotency-Key", stringValue(input["taskId"], randomID()))
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return providerTask{}, fmt.Errorf("provider request %s %s: %w", req.Method, req.URL.Path, err)
+		return providerTask{}, fmt.Errorf("AI request failed: %s", safeAIError(err, p.apiKey))
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 64<<20))
 	if err != nil {
 		return providerTask{}, fmt.Errorf("read provider response: %w", err)
 	}
 	if resp.StatusCode >= 300 {
-		return providerTask{}, fmt.Errorf("provider %s: %s", resp.Status, providerErrorMessage(data))
+		return providerTask{}, fmt.Errorf("AI endpoint %s: %s", resp.Status, safeAIError(fmt.Errorf("%s", providerErrorMessage(data)), p.apiKey))
 	}
 	var payload struct {
 		TaskID      string `json:"taskID"`
@@ -187,7 +192,7 @@ func (p *bananaRouterProvider) sendProviderRequest(req *http.Request, input map[
 		} `json:"error"`
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return providerTask{}, fmt.Errorf("decode provider response: %w; body=%s", err, responseSnippet(data))
+		return providerTask{}, fmt.Errorf("decode AI response: %w", err)
 	}
 	images := providerResponseImages(payload.Data, payload.Candidates)
 	if len(images) > 0 {
@@ -242,15 +247,15 @@ func providerResponseImages(data []struct {
 	return images
 }
 
-func (p *bananaRouterProvider) Poll(ctx context.Context, id string) (providerPollResult, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.baseURL+"/v1/async-tasks/"+id, nil)
+func (p *imageProtocolTransport) Poll(ctx context.Context, id string) (providerPollResult, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, joinProtocolURL(p.baseURL, "v1/async-tasks/"+id), nil)
 	if err != nil {
 		return providerPollResult{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+p.apiKey)
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return providerPollResult{}, fmt.Errorf("provider poll %s: %w", req.URL.Path, err)
+		return providerPollResult{}, fmt.Errorf("AI poll failed: %s", safeAIError(err, p.apiKey))
 	}
 	defer resp.Body.Close()
 	data, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
@@ -258,7 +263,7 @@ func (p *bananaRouterProvider) Poll(ctx context.Context, id string) (providerPol
 		return providerPollResult{}, fmt.Errorf("read provider poll response: %w", err)
 	}
 	if resp.StatusCode >= 300 {
-		return providerPollResult{}, fmt.Errorf("provider poll %s: %s", resp.Status, providerErrorMessage(data))
+		return providerPollResult{}, fmt.Errorf("AI poll %s: %s", resp.Status, safeAIError(fmt.Errorf("%s", providerErrorMessage(data)), p.apiKey))
 	}
 	var payload struct {
 		Status            string          `json:"status"`
@@ -273,7 +278,7 @@ func (p *bananaRouterProvider) Poll(ctx context.Context, id string) (providerPol
 		} `json:"resultImages"`
 	}
 	if err := json.Unmarshal(data, &payload); err != nil {
-		return providerPollResult{}, fmt.Errorf("decode provider poll response: %w; body=%s", err, responseSnippet(data))
+		return providerPollResult{}, fmt.Errorf("decode AI poll response: %w", err)
 	}
 	images := make([]string, 0, len(payload.ResultImages))
 	for _, image := range payload.ResultImages {
@@ -288,7 +293,7 @@ func (p *bananaRouterProvider) Poll(ctx context.Context, id string) (providerPol
 	if errorMessage == "" && strings.EqualFold(payload.Status, "failed") {
 		errorMessage = providerErrorMessage(data)
 	}
-	return providerPollResult{Status: strings.ToLower(payload.Status), Images: images, Error: errorMessage}, nil
+	return providerPollResult{Status: strings.ToLower(payload.Status), Images: images, Error: safeAIError(fmt.Errorf("%s", errorMessage), p.apiKey)}, nil
 }
 
 func providerErrorMessage(data []byte) string {
@@ -373,17 +378,6 @@ func openAISize(ratio, resolution string) string {
 		return "3840x2160"
 	default:
 		return "2880x2880"
-	}
-}
-
-func providerModelID(model string) string {
-	switch model {
-	case "gemini-3.1-flash-image":
-		return "gemini-3.1-flash-image-preview"
-	case "gemini-3-pro-image":
-		return "gemini-3-pro-image-preview"
-	default:
-		return model
 	}
 }
 
@@ -530,14 +524,6 @@ func intValue(v any, fallback int) int {
 		}
 	}
 	return fallback
-}
-
-func providerTimeout() time.Duration {
-	seconds, err := strconv.Atoi(strings.TrimSpace(env("BANANA_ROUTER_TIMEOUT_SECONDS", "300")))
-	if err != nil || seconds < 1 {
-		seconds = 300
-	}
-	return time.Duration(seconds) * time.Second
 }
 
 func firstNonEmpty(values ...string) string {

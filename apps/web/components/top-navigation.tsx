@@ -77,6 +77,7 @@ export function TopNavigation() {
         <Link href="/workbench?mode=commerce&task=product-main" onClick={() => setNavOpen(false)}>电商设计</Link>
         <Link href="/inspire" onClick={() => setNavOpen(false)}>灵感</Link>
         <Link href="/assets" onClick={() => setNavOpen(false)}>资产库</Link>
+        <Link href="/settings/ai" onClick={() => setNavOpen(false)}>设置</Link>
       </nav>
       <div className="nav-actions">
         {username ? <div className="account-menu" ref={accountRef}>
