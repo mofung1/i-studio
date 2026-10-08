@@ -21,6 +21,9 @@ import {
 import type { CommerceTaskType } from '@/lib/contracts'
 
 interface AdvancedSettingsProps {
+  imageEndpoints: { id: string; name: string; model: string }[]
+  endpointId: string
+  onSetEndpoint: (id: string) => void
   mode: WorkbenchMode
   task: CommerceTaskType
   referenceStrength: ReferenceStrength
@@ -236,10 +239,10 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
             </label>
             <label className="settings-field">
               <span>生图模型</span>
-              <Select value={model} onValueChange={(value) => onSetModel(value as GenerationModel)}>
+              <Select value={props.endpointId || undefined} onValueChange={props.onSetEndpoint}>
                 <SelectTrigger aria-label="生图模型"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {modelOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+                  {props.imageEndpoints.map(endpoint => <SelectItem key={endpoint.id} value={endpoint.id}>{endpoint.name} · {endpoint.model}</SelectItem>)}
                 </SelectContent>
               </Select>
             </label>

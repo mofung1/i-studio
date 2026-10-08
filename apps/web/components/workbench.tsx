@@ -69,6 +69,9 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [enhancements, setEnhancements] = useState<string[]>([])
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
   const [promptEnhanceEnabled, setPromptEnhanceEnabled] = useState(false)
+  const [promptVision, setPromptVision] = useState(false)
+  const [imageEndpoints, setImageEndpoints] = useState<{ id: string; name: string; model: string; isDefault: boolean }[]>([])
+  const [endpointId, setEndpointId] = useState('')
   const [panelOpen, setPanelOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyTask, setHistoryTask] = useState<HistoryTask | null>(null)
@@ -97,11 +100,16 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   }, [configSide])
 
   useEffect(() => {
-    fetch(`${apiBaseUrl}/v1/generation/capabilities`)
+    fetch(`${apiBaseUrl}/v1/generation/capabilities`, { headers: { Authorization: `Bearer ${getAccessToken()}` } })
       .then((response) => response.json())
-      .then((data: { aiEnabled?: boolean; promptEnhanceEnabled?: boolean }) => {
+      .then((data: { aiEnabled?: boolean; promptEnhanceEnabled?: boolean; promptVision?: boolean; imageEndpoints?: { id: string; name: string; model: string; isDefault: boolean }[] }) => {
         setAiEnabled(Boolean(data.aiEnabled))
         setPromptEnhanceEnabled(Boolean(data.promptEnhanceEnabled))
+        setPromptVision(Boolean(data.promptVision))
+        const endpoints = data.imageEndpoints ?? []
+        setImageEndpoints(endpoints)
+        const selected = endpoints.find(endpoint => endpoint.model === initialModel) ?? endpoints.find(endpoint => endpoint.isDefault) ?? endpoints[0]
+        if (selected) { setEndpointId(selected.id); setModel(selected.model) }
       })
       .catch(() => setAiEnabled(false))
   }, [])
@@ -252,7 +260,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       setRecreateStrength(input.recreateStrength === 'high' ? 'high' : 'style')
       setEnhancements(input.enhancements ?? [])
       setCount(Math.min(generalMaxCount, Math.max(1, Number(input.count) || 1)))
-      setModel((input.model as GenerationModel) ?? 'gpt-image-2')
+      const selectedEndpoint = imageEndpoints.find(endpoint => endpoint.id === input.endpointId) ?? imageEndpoints.find(endpoint => endpoint.model === input.model) ?? imageEndpoints.find(endpoint => endpoint.isDefault)
+      if (selectedEndpoint) { setModel(selectedEndpoint.model); setEndpointId(selectedEndpoint.id) }
       setAspectRatio(input.aspectRatio ?? '1:1')
       setResolution(input.resolution ?? '2K')
       setProductFiles(nextProductFiles)
@@ -313,7 +322,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     const commerceCount = task === 'product-main' || task === 'detail-page'
       ? moduleMode === 'custom' ? Math.max(1, moduleTotal) : 1
       : 1
-    const imageSettings = { model, aspectRatio, resolution, count: mode === 'general' ? count : commerceCount }
+    const imageSettings = { model, endpointId: endpointId || undefined, aspectRatio, resolution, count: mode === 'general' ? count : commerceCount }
 
     if (mode === 'general') {
       return {
@@ -425,6 +434,10 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               expectedCount={expectedCount}
               aiEnabled={aiEnabled}
               promptEnhanceEnabled={promptEnhanceEnabled}
+              promptVision={promptVision}
+              imageEndpoints={imageEndpoints}
+              endpointId={endpointId}
+              onSetEndpoint={(id) => { setEndpointId(id); const selected = imageEndpoints.find(endpoint => endpoint.id === id); if (selected) setModel(selected.model) }}
               notice={notice}
               isSubmitting={isSubmitting}
               isGenerating={isGenerating}

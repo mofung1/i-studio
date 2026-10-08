@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Image as ImageIcon, LayoutPanelLeft, Palette, PanelRight, SlidersHorizontal, Sparkles, X } from 'lucide-react'
+import { Box, Image as ImageIcon, LayoutPanelLeft, Palette, PanelRight, Settings, SlidersHorizontal, Sparkles, X } from 'lucide-react'
 import Link from 'next/link'
 
 import type { CommerceTaskType } from '@/lib/contracts'
@@ -57,6 +57,7 @@ export function WorkbenchHeader({
       )}
 
       <div className="workbench-nav-actions">
+        <Link className="workbench-close" href="/settings/ai" title="AI 服务设置" aria-label="AI 服务设置"><Settings size={18} /></Link>
         <button
           type="button"
           className="panel-toggle"

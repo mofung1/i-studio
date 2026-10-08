@@ -81,16 +81,18 @@ func (s *server) promptEnhance(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusUnauthorized, "AUTH_REQUIRED", "请先登录")
 		return
 	}
-	if s.promptClient == nil {
-		s.error(w, http.StatusServiceUnavailable, "PROMPT_AI_UNAVAILABLE", "AI 文本服务尚未配置，请在后端设置 DEEPSEEK_API_KEY")
+	if s.promptClient == nil || (s.ai != nil && !s.ai.hasAny("prompt")) {
+		s.error(w, http.StatusServiceUnavailable, "PROMPT_AI_UNAVAILABLE", "请先在设置中配置提示词 AI 服务")
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxPromptBodySize)
 	if err := r.ParseMultipartForm(maxPromptBodySize); err != nil {
 		s.error(w, http.StatusBadRequest, "PROMPT_INPUT_INVALID", "请求内容无法解析，请重试")
 		return
 	}
 
+	defer r.MultipartForm.RemoveAll()
 	target := strings.TrimSpace(r.FormValue("target"))
 	text := strings.TrimSpace(r.FormValue("text"))
 	if len([]rune(text)) > maxPromptTextRunes {
@@ -109,8 +111,22 @@ func (s *server) promptEnhance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	system := promptSystem(target, r.FormValue("taskType"))
-	userText := buildPromptUserText(target, text, r)
+	if s.ai != nil && len(images) > 0 {
+		e, err := s.ai.resolve("prompt", "", "")
+		if err != nil {
+			s.error(w, 503, "PROMPT_AI_UNAVAILABLE", err.Error())
+			return
+		}
+		if !e.Capabilities["vision"] {
+			s.error(w, 400, "PROMPT_VISION_UNSUPPORTED", "当前提示词模型不支持图片识别，请先输入大概的生图内容，再提交给 AI 优化提示词。")
+			return
+		}
+	}
+	system, userText, err := s.buildPrompt(target, text, r)
+	if err != nil {
+		s.error(w, 500, "PROMPT_STORAGE_ERROR", "提示词配置读取失败")
+		return
+	}
 
 	rewritten, err := s.promptClient.complete(r.Context(), system, userText, images, 800)
 	if err != nil {

@@ -20,6 +20,7 @@ export interface HistoryTaskInput {
   recreateStrength?: string
   enhancements?: string[]
   model?: string
+  endpointId?: string
   aspectRatio?: string
   resolution?: string
   count?: number

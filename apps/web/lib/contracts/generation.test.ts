@@ -6,6 +6,11 @@ import {
 } from './generation'
 
 describe('generation input contracts', () => {
+  it('accepts configured models and keeps the selected endpoint', () => {
+    const result = generalGenerationInputSchema.parse({ mode: 'general', prompt: '商品摄影', model: 'custom/future-image-model', endpointId: 'endpoint-1' })
+    expect(result.model).toBe('custom/future-image-model')
+    expect(result.endpointId).toBe('endpoint-1')
+  })
   it('defaults general generation to one image', () => {
     const result = generalGenerationInputSchema.parse({
       mode: 'general',

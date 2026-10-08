@@ -2,12 +2,7 @@ import { z } from 'zod'
 
 export const aspectRatioSchema = z.enum(['1:1', '3:4', '4:3', '9:16', '16:9'])
 export const resolutionSchema = z.enum(['1K', '2K', '4K'])
-export const generationModelSchema = z.enum([
-  'gpt-image-2',
-  'gemini-2.5-flash-image',
-  'gemini-3.1-flash-image',
-  'gemini-3-pro-image',
-])
+export const generationModelSchema = z.string().trim().min(1, '模型不能为空').max(200, '模型名称过长').default('gpt-image-2')
 export const generationCountSchema = z.number().int('生成数量必须为整数').min(1, '生成数量至少为 1 张').max(16, '一次最多生成 16 张').default(1)
 export const platformSchema = z.enum([
   'smart',
@@ -24,6 +19,7 @@ export const platformSchema = z.enum([
 export const outputLanguageSchema = z.enum(['none', 'zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'th', 'ms', 'id', 'ru'])
 
 const imageSettingsSchema = z.object({
+  endpointId: z.string().trim().min(1).optional(),
   model: generationModelSchema.default('gpt-image-2'),
   aspectRatio: aspectRatioSchema.default('1:1'),
   resolution: resolutionSchema.default('2K'),

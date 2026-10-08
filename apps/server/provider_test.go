@@ -25,7 +25,7 @@ func (function roundTripFunc) RoundTrip(request *http.Request) (*http.Response, 
 	return function(request)
 }
 
-func TestBananaRouterGeminiSubmit(t *testing.T) {
+func TestImageProtocolGeminiSubmit(t *testing.T) {
 	imageData := base64.StdEncoding.EncodeToString([]byte("image"))
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if !strings.HasSuffix(request.URL.Path, ":generateContent") {
@@ -54,7 +54,7 @@ func TestBananaRouterGeminiSubmit(t *testing.T) {
 		}, nil
 	})}
 
-	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client, protocol: "gemini_generate_content"}
 	result, err := provider.Submit(context.Background(), map[string]any{
 		"model": "gemini-3.1-flash-image", "prompt": "product photo", "count": 4,
 		"sourceImages": []map[string]string{{"mime": "image/png", "data": imageData}},
@@ -106,7 +106,7 @@ func TestPromptIgnoresUnknownEnhancements(t *testing.T) {
 	}
 }
 
-func TestBananaRouterOpenAIGenerationSubmit(t *testing.T) {
+func TestImageProtocolOpenAIGenerationSubmit(t *testing.T) {
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path != "/v1/images/generations/async" {
 			t.Fatalf("unexpected path %s", request.URL.Path)
@@ -133,7 +133,7 @@ func TestBananaRouterOpenAIGenerationSubmit(t *testing.T) {
 		return jsonResponse(request, `{"taskID":"generation-task","status":"pending"}`), nil
 	})}
 
-	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Submit(context.Background(), map[string]any{
 		"model": "gpt-image-2", "prompt": "product photo", "aspectRatio": "1:1", "resolution": "1K", "count": 4,
 	})
@@ -145,7 +145,7 @@ func TestBananaRouterOpenAIGenerationSubmit(t *testing.T) {
 	}
 }
 
-func TestBananaRouterOpenAIEditSubmit(t *testing.T) {
+func TestImageProtocolOpenAIEditSubmit(t *testing.T) {
 	sourceData := []byte("source-image")
 	secondSourceData := []byte("second-source-image")
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
@@ -184,7 +184,7 @@ func TestBananaRouterOpenAIEditSubmit(t *testing.T) {
 		return jsonResponse(request, `{"task_id":"edit-task","status":"queued"}`), nil
 	})}
 
-	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Submit(context.Background(), map[string]any{
 		"model": "gpt-image-2", "prompt": "edit product photo", "aspectRatio": "1:1", "resolution": "2K", "count": 4,
 		"sourceImages": []map[string]string{
@@ -200,14 +200,14 @@ func TestBananaRouterOpenAIEditSubmit(t *testing.T) {
 	}
 }
 
-func TestBananaRouterPoll(t *testing.T) {
+func TestImageProtocolPoll(t *testing.T) {
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path != "/v1/async-tasks/provider-task" {
 			t.Fatalf("unexpected path %s", request.URL.Path)
 		}
 		return jsonResponse(request, `{"status":"success","resultImages":[{"url":"https://images.example/result.png"}]}`), nil
 	})}
-	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Poll(context.Background(), "provider-task")
 	if err != nil {
 		t.Fatalf("Poll() error = %v", err)
@@ -217,7 +217,7 @@ func TestBananaRouterPoll(t *testing.T) {
 	}
 }
 
-func TestBananaRouterSubmitPreservesProviderError(t *testing.T) {
+func TestImageProtocolSubmitPreservesProviderError(t *testing.T) {
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusBadGateway,
@@ -226,18 +226,18 @@ func TestBananaRouterSubmitPreservesProviderError(t *testing.T) {
 			Request:    request,
 		}, nil
 	})}
-	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	_, err := provider.Submit(context.Background(), map[string]any{"model": "gpt-image-2", "prompt": "product photo"})
 	if err == nil || !strings.Contains(err.Error(), "upstream model unavailable") {
 		t.Fatalf("unexpected error %v", err)
 	}
 }
 
-func TestBananaRouterPollReadsNestedError(t *testing.T) {
+func TestImageProtocolPollReadsNestedError(t *testing.T) {
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		return jsonResponse(request, `{"status":"failed","error":{"message":"reference image rejected"}}`), nil
 	})}
-	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Poll(context.Background(), "provider-task")
 	if err != nil {
 		t.Fatalf("Poll() error = %v", err)
@@ -247,11 +247,11 @@ func TestBananaRouterPollReadsNestedError(t *testing.T) {
 	}
 }
 
-func TestBananaRouterPollReadsStringError(t *testing.T) {
+func TestImageProtocolPollReadsStringError(t *testing.T) {
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		return jsonResponse(request, `{"status":"failed","error":"model rejected image dimensions"}`), nil
 	})}
-	provider := &bananaRouterProvider{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Poll(context.Background(), "provider-task")
 	if err != nil {
 		t.Fatalf("Poll() error = %v", err)
