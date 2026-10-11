@@ -1833,3 +1833,178 @@ html[data-theme='dark'] .inspire-hero-search:focus-within { border-color: var(--
   max-height: min(36dvh, 280px);
   object-fit: contain;
 }
+
+/* The rail handle is centered on the sidebar edge, independent of the logo row. */
+.studio-shell,
+.workbench-shell {
+  transition: grid-template-columns 190ms ease-in-out;
+}
+.workbench-rail {
+  position: sticky;
+  overflow: visible;
+}
+.studio-rail-heading {
+  position: relative;
+  justify-content: flex-start;
+  min-height: 36px;
+  margin: 0 0 22px;
+}
+.studio-rail-heading .workbench-rail-brand {
+  padding: 0;
+}
+.studio-rail-toggle {
+  position: absolute;
+  top: 20px;
+  right: -15px;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  transform: none;
+  color: #98a2b3;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  box-shadow: none;
+  cursor: pointer;
+  transition: color 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out;
+}
+.studio-rail-toggle::before { display: none; }
+.studio-rail-toggle:is(:hover, :focus-visible) {
+  color: #475467;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+.studio-rail-toggle:focus-visible {
+  outline: 2px solid rgba(71, 84, 103, .55);
+  outline-offset: 2px;
+}
+.studio-rail-toggle-label {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  z-index: 60;
+  display: block;
+  padding: 6px 9px;
+  transform: translateX(-50%);
+  color: #344054;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(17, 19, 24, .06);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 150ms ease-out, visibility 150ms ease-out;
+}
+.studio-rail-toggle:is(:hover, :focus-visible) .studio-rail-toggle-label {
+  opacity: 1;
+  visibility: visible;
+}
+@media (min-width: 781px) {
+  html[data-studio-rail='collapsed'] .workbench-rail {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+  html[data-studio-rail='collapsed'] .studio-rail-heading {
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  html[data-studio-rail='collapsed'] .studio-rail-heading .workbench-rail-brand {
+    display: block;
+    flex: 0 0 24px;
+  }
+  html[data-studio-rail='collapsed'] .studio-rail-heading .workbench-rail-brand .brand svg {
+    width: 22px;
+    height: 22px;
+  }
+  html[data-studio-rail='collapsed'] .studio-rail-toggle {
+    top: 20px;
+    right: -15px;
+    width: 30px;
+    height: 30px;
+  }
+}
+@media (max-width: 780px) {
+  .studio-shell,
+  .workbench-shell { transition: none; }
+  .workbench-rail { position: relative; }
+  .studio-rail-toggle { display: none; }
+  .studio-rail-heading { align-items: center; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-shell,
+  .workbench-shell,
+  .studio-rail-toggle,
+  .studio-rail-toggle-label { transition-duration: .01ms; }
+}
+html[data-theme='dark'] .studio-rail-toggle { color: #98a2b3; }
+html[data-theme='dark'] .studio-rail-toggle:is(:hover, :focus-visible) {
+  color: #eaecf0;
+  background: #272a31;
+  border-color: #3b3f48;
+}
+html[data-theme='dark'] .studio-rail-toggle-label {
+  color: #eaecf0;
+  background: #202228;
+  border-color: #3b3f48;
+}
+
+/* Preserve scrolling while keeping browser scrollbar chrome out of the workspace. */
+*, *::before, *::after {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* Raise the open parameter sheet above the image canvas and adjacent controls. */
+.mode-general .configuration-panel,
+.mode-general.config-right .configuration-panel {
+  z-index: 60;
+  max-height: none;
+  overflow: visible;
+}
+.mode-general .compact-basic-settings.is-open { position: relative; z-index: 80; }
+.mode-general .basic-settings-popover { z-index: 100; }
+
+/* Keep the inspiration filter sheet flush to its layout slot with every corner clipped evenly. */
+.studio-shell .inspire-gallery-head {
+  align-self: start;
+  margin: 0;
+  border-radius: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* The expected output field occupies its own full-width row in commerce settings. */
+.workbench-shell.mode-commerce .commerce-output-field {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+.workbench-shell.mode-commerce .commerce-output-field .select-trigger {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.workbench-shell.mode-commerce .commerce-output-field .select-trigger [data-radix-select-value] {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Keep the edge handle vertically centered as the navigation list changes height. */
+.studio-rail-toggle,
+html[data-studio-rail='collapsed'] .studio-rail-toggle {
+  top: 50%;
+  transform: translateY(-50%);
+}

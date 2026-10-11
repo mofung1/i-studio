@@ -37,11 +37,11 @@ export function WorkbenchRail({ mode, section = mode ?? 'general', task, onChang
     <aside className="workbench-rail" aria-label="工作台导航">
       <div className="studio-rail-heading">
         <div className="workbench-rail-brand"><Brand /></div>
-        <button type="button" className="studio-rail-toggle" title={collapsed ? '展开菜单' : '收起菜单'} aria-label={collapsed ? '展开菜单' : '收起菜单'} aria-expanded={!collapsed} aria-controls="studio-navigation" onClick={toggleRail}>
-          {collapsed ? <ChevronRight size={17} aria-hidden="true" /> : <ChevronLeft size={17} aria-hidden="true" />}
-          <span className="studio-rail-toggle-label" aria-hidden="true">{collapsed ? '展开菜单' : '收起菜单'}</span>
-        </button>
       </div>
+      <button type="button" className="studio-rail-toggle" aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'} aria-expanded={!collapsed} aria-controls="studio-navigation" onClick={toggleRail}>
+        {collapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronLeft size={16} aria-hidden="true" />}
+        <span className="studio-rail-toggle-label" aria-hidden="true">{collapsed ? '展开侧边栏' : '收起侧边栏'}</span>
+      </button>
       <a className="studio-new" href="/workbench?mode=general" aria-label="新建创作" title="新建创作"><Plus size={18} /><span>新建创作</span></a>
       <nav id="studio-navigation" className="workbench-rail-nav" aria-label="主导航">
         {onChangeMode ? <button type="button" className={section === 'general' ? 'active' : ''} aria-label="AI 生图" title="AI 生图" aria-pressed={section === 'general'} onClick={() => onChangeMode('general')}><ImageIcon size={18} /><span>AI 生图</span></button>
