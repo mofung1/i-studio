@@ -1,6 +1,4 @@
-import { HomePage } from '@/components/home-page'
+import WorkbenchPage from './workbench/page'
 
-export default function Page() {
-  return <HomePage />
-}
-
+// 首页复用真实工作台，保留提示词与参数深链接的数据流。
+export default WorkbenchPage

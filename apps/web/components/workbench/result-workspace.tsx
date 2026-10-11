@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, History, Image as ImageIcon, Loader2, RefreshCw, RotateCcw, Sparkles,
+  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, Image as ImageIcon, Loader2, RefreshCw, RotateCcw,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -13,7 +13,7 @@ import { GenerationHistory } from './generation-history'
 import { FailureNotice } from './failure-notice'
 import { HistoryDrawer } from './history-drawer'
 import { ImageLightbox } from './image-lightbox'
-import { generalCanvasImage, moduleLabel, taskMeta, type WorkbenchMode } from './shared'
+import { moduleLabel, taskMeta, type WorkbenchMode } from './shared'
 import { taskModeLabel, type HistoryTask } from './use-task-history'
 import { generationStatusLabels, type InlineGenerationTask } from './use-generation-task'
 
@@ -69,7 +69,6 @@ export function ResultWorkspace({
 }: ResultWorkspaceProps) {
   const currentTask = taskMeta[task]
   const title = mode === 'general' ? '通用生图' : currentTask.title
-  const referenceImage = mode === 'general' ? generalCanvasImage : currentTask.image
 
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   // 从「最近生成」里指定了具体某张图时，切版本后要落在这张图上而不是第一张
@@ -187,14 +186,7 @@ export function ResultWorkspace({
               )}
             </>
           )}
-          <button
-            type="button"
-            className={`history-trigger ${historyOpen ? 'is-active' : ''}`}
-            aria-expanded={historyOpen}
-            onClick={onToggleHistory}
-          >
-            <History size={15} aria-hidden="true" />历史记录
-          </button>
+          {hasResults && <button type="button" className="studio-secondary" onClick={downloadCurrent}><Download size={15} />下载图片</button>}
         </div>
       </header>
 
@@ -222,16 +214,7 @@ export function ResultWorkspace({
 
         {!isGenerating && !hasResults && !isHistoryView && (
           <div className="result-empty">
-            <span className="result-empty-icon"><Sparkles size={22} aria-hidden="true" /></span>
-            <h2>生成你的第一张图片</h2>
-            <p>{mode === 'general' ? '上传参考图片或描述你的想法。' : '上传商品原图并补充需求即可开始。'}</p>
-            {failureMessage && (
-              <FailureNotice message={failureMessage} />
-            )}
-            <figure className="result-reference">
-              <img src={referenceImage} alt={`${title}设计参考图`} loading="lazy" />
-              <figcaption><ImageIcon size={13} aria-hidden="true" />设计参考图，非生成结果</figcaption>
-            </figure>
+            {failureMessage ? <FailureNotice message={failureMessage} /> : <img className="empty-creation-image" src="/empty-creation.svg" width={420} height={280} alt="暂无生成结果，黑白抽象画幅空态插画" draggable={false} />}
           </div>
         )}
 
@@ -255,6 +238,12 @@ export function ResultWorkspace({
 
         {heroImage !== '' && (!isGenerating || isHistoryView) && (
           <div className="result-result">
+            {imageSource.mode === 'general' ? <div className={`general-result-grid count-${images.length}`} aria-label="本次生成的图片">
+              {images.map((path, index) => <figure className="general-result-image" key={path}>
+                <button type="button" className="general-result-open" aria-label={`放大查看第 ${index + 1} 张`} onClick={() => { setActiveImageIndex(index); setLightboxOpen(true) }}><AuthenticatedImage path={path} alt={`AI 生成结果 ${index + 1}`} /></button>
+                <figcaption><span>第 {index + 1} 张</span><div><button type="button" aria-label={`下载第 ${index + 1} 张`} title="下载图片" onClick={() => void downloadProtectedAsset(path, `istudio-${heroGroup}-${index + 1}.png`)}><Download size={15} /></button><button type="button" aria-label={`第 ${index + 1} 张用作参考图`} title="用作参考图" onClick={() => onUseImageAsReference(path, imageSource)}><RotateCcw size={15} /></button></div></figcaption>
+              </figure>)}
+            </div> : (
             <div className={`result-stage${images.length > 1 ? ' has-strip' : ''}`}>
               {/* 图片就绪前先按当前比例撑出与结果一致的画框，避免生成完成时塌陷或跳动 */}
               <div
@@ -348,7 +337,8 @@ export function ResultWorkspace({
                 </ol>
               )}
             </div>
-
+            )}
+            <div className="canvas-image-footer"><span>当前图片 · {safeIndex + 1} / {images.length}</span><button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => onUseImageAsReference(heroImage, imageSource)}><ImageIcon size={15} />用作参考，继续创作</button></div>
           </div>
         )}
 

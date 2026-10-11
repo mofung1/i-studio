@@ -7,6 +7,7 @@ import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
 
 import { apiBaseUrl, deleteGenerationTask, getAccessToken } from '@/lib/api'
 
+import { InfoDialog } from './info-dialog'
 import { CreatorSidebar } from './workbench/creator-sidebar'
 import { RegenerateDialog, shouldSkipRegenerateConfirm, type RegenerateRow } from './workbench/regenerate-dialog'
 import { ResultWorkspace } from './workbench/result-workspace'
@@ -51,7 +52,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     if (typeof document === 'undefined') return 'left'
     return (document.documentElement.getAttribute('data-wb-side') === 'right' ? 'right' : 'left') as ConfigSide
   })
-  const [prompt, setPrompt] = useState(initialPrompt ?? '柔和晨光中的极简静物摄影，构图干净，材质细节清晰。')
+  const [prompt, setPrompt] = useState(initialPrompt ?? '')
   const [requirements, setRequirements] = useState('')
   const [productFiles, setProductFiles] = useState<File[]>([])
   const [referenceFiles, setReferenceFiles] = useState<File[]>([])
@@ -79,6 +80,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   // 提交那一刻的产出张数：生成过程中再改参数，加载占位不会跟着变
   const [submittedCount, setSubmittedCount] = useState<number | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   // 切换生图类型会重置结果作用域并顺带清空提示，这里把提示延后到切换完成后再显示
   const pendingNoticeRef = useRef<GenerationNotice | null>(null)
 
@@ -123,7 +125,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   }, [mode, task])
 
   const currentTask = taskMeta[task]
-  const title = mode === 'general' ? '通用生图' : currentTask.title
+  const title = mode === 'general' ? '图片' : currentTask.title
   // 主图与详情页共用 hero/selling/scene/detail 这些 key，各自又有独有 key。
   // 切换任务时不清 moduleCounts，所以先按当前任务的模块过滤，避免别的任务的残留计数混进总数与 16 上限。
   const currentModuleKeys = task === 'product-main' ? productMainModules.map(([value]) => value) : detailModules.map(([value]) => value)
@@ -220,7 +222,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         router.replace(targetMode === 'general' ? '/workbench?mode=general' : `/workbench?mode=commerce&task=${targetTask}`)
       }
       const message = sameScope
-        ? '已作为参考图填入左侧素材区'
+        ? '已作为参考图填入创作素材区'
         : `已切到${targetMode === 'general' ? '通用生图' : taskMeta[targetTask].title}，图片已填入素材区`
       if (sameScope) setNotice({ kind: 'success', message })
       else pendingNoticeRef.current = { kind: 'success', message }
@@ -396,19 +398,26 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
   return (
     <main className="workbench-page">
-      <section className={`workbench-shell config-${configSide} ${panelOpen ? 'panel-open' : ''}`}>
+      <section className={`workbench-shell mode-${mode} config-${configSide} ${panelOpen ? 'panel-open' : ''}`}>
         <WorkbenchRail
           mode={mode}
           onChangeMode={changeMode}
+          task={mode === 'commerce' ? task : undefined}
+          onChangeTask={changeTask}
         />
         <WorkbenchHeader
           mode={mode}
           task={task}
           configSide={configSide}
           panelOpen={panelOpen}
-          onChangeTask={changeTask}
+          historyOpen={historyOpen}
+          onShowDetails={() => setDetailsOpen(true)}
+          onToggleHistory={() => setHistoryOpen((open) => !open)}
           onChangeSide={setConfigSide}
-          onTogglePanel={() => setPanelOpen((open) => !open)}
+          onTogglePanel={() => {
+            setPanelOpen((open) => !open)
+            document.querySelector('.configuration-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
         />
         <CreatorSidebar
               mode={mode}
@@ -497,6 +506,9 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         />
       </section>
 
+      {detailsOpen && <InfoDialog title="当前创作参数" subtitle="提交生成时将使用这些设置" onClose={() => setDetailsOpen(false)}>
+        <dl className="studio-parameter-details">{configRows.map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}<div><dt>预计出图</dt><dd>{expectedCount} 张</dd></div></dl>
+      </InfoDialog>}
       {confirmOpen && (
         <RegenerateDialog
           title={title}

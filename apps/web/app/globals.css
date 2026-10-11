@@ -31,21 +31,22 @@
   /* Monochrome AI Workspace：UI 只用黑白灰，色彩全部来自商品图本身 */
   --background: #ffffff;
   --surface: #ffffff;
-  --surface-subtle: #f5f5f2;
-  --surface-2: #f1f1ee;
-  --primary-soft: #f1f1ef;
+  --surface-subtle: #f5f6f8;
+  --surface-2: #f2f3f5;
+  --primary-soft: #f0f1f3;
 
-  --foreground: #171717;
-  --foreground-2: #444440;
-  --foreground-3: #70706c;
-  --placeholder: #b7b9b4;
-  --muted: #737373;
-  --border: #e7e7e3;
-  --line-strong: #c8c8c4;
-  --line-hover: #d5d5d0;
-  --skeleton: #e8e8e4;
+  --foreground: #111318;
+  --foreground-2: #424650;
+  --foreground-3: #667085;
+  --placeholder: #858b96;
+  --muted: #667085;
+  --border: #e2e5eb;
+  --line-strong: #b7bdc7;
+  --line-hover: #d5d9e0;
+  --skeleton: #e8eaee;
 
-  --primary: #171717;
+  --primary-foreground: #ffffff;
+  --primary: #111111;
   --primary-hover: #000000;
 
   /* 错误反馈保留单一低饱和红，仅为语义提示，不作为主题色（规范例外，见 026 批次文档） */
@@ -56,12 +57,53 @@
   --focus: rgba(23, 23, 23, 0.22);
   --focus-soft: rgba(23, 23, 23, 0.08);
 
+  --border-soft: #eef0f3;
+  --control-bg: #f3f4f6;
+  --control-hover: #e9ecf0;
+  --text-ui: 14px;
+  --text-small: 13px;
+  --text-caption: 12px;
+
   --radius: 8px;
   --radius-lg: 12px;
 
   --shadow-sm: 0 1px 2px rgba(23, 23, 23, 0.04);
   --shadow-md: 0 10px 24px rgba(23, 23, 23, 0.08);
   --shadow-lg: 0 18px 48px rgba(23, 23, 23, 0.12);
+}
+
+
+html { color-scheme: light; scrollbar-gutter: stable; }
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #151618;
+  --surface: #1c1d20;
+  --surface-subtle: #121315;
+  --surface-2: #24262a;
+  --primary-soft: #2b2d32;
+  --foreground: #f1f2f4;
+  --foreground-2: #c7c9d0;
+  --foreground-3: #a2a7b2;
+  --placeholder: #9298a4;
+  --muted: #a2a7b2;
+  --border: #35383e;
+  --border-soft: #292c31;
+  --line-strong: #666c78;
+  --line-hover: #4c515b;
+  --skeleton: #2a2d32;
+  --control-bg: #282a2f;
+  --control-hover: #32353b;
+  --primary: #f0f1f3;
+  --primary-hover: #ffffff;
+  --primary-foreground: #151618;
+  --danger: #ffaaa0;
+  --danger-soft: #392421;
+  --danger-line: #6f3f39;
+  --focus: rgba(240, 241, 243, .3);
+  --focus-soft: rgba(240, 241, 243, .1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, .15);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, .28);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, .4);
 }
 
 

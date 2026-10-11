@@ -1,12 +1,14 @@
+import type { WorkbenchMode } from './shared'
+
 /**
  * 工作台骨架屏。
  * 结构复用真实工作台的布局类（rail / nav / configuration-panel / creation-canvas），
  * 这样加载完成时不会出现白屏或布局跳动。
  */
-export function WorkbenchSkeleton() {
+export function WorkbenchSkeleton({ mode = 'general' }: { mode?: WorkbenchMode }) {
   return (
     <main className="workbench-page">
-      <section className={`workbench-shell config-${typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-wb-side') || 'left') : 'left'}`} aria-busy="true" aria-label="工作台加载中">
+      <section className={`workbench-shell mode-${mode} config-${typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-wb-side') || 'left') : 'left'}`} aria-busy="true" aria-label="工作台加载中">
         <aside className="workbench-rail" aria-hidden="true">
           <div className="workbench-rail-brand"><span className="ws-block ws-brand" /></div>
           <nav className="workbench-rail-nav">
@@ -25,7 +27,7 @@ export function WorkbenchSkeleton() {
           <span className="skeleton-line ws-nav-title" />
           <div className="workbench-nav-actions">
             <span className="skeleton-line ws-chip" />
-            <span className="ws-block ws-close" />
+            <span className="ws-block ws-account" />
           </div>
         </header>
 

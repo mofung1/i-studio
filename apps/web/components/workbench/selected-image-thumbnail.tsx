@@ -37,12 +37,19 @@ export function SelectedImageThumbnail({
   const [isLoaded, setIsLoaded] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
   const replaceRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setIsLoaded(false)
     setPreview(previewUrlFor(file))
   }, [file])
+
+  useEffect(() => {
+    // 缓存的对象 URL 可能在监听 load 前已经就绪，避免排序后仍被骨架层遮住。
+    const image = imageRef.current
+    if (image?.complete && image.naturalWidth > 0) setIsLoaded(true)
+  }, [preview])
 
   useEffect(() => {
     if (!expanded) return
@@ -92,7 +99,7 @@ export function SelectedImageThumbnail({
         {preview ? (
           <button className="thumb-preview" type="button" aria-label={`放大查看${label}`} title="放大查看" onClick={() => setExpanded(true)}>
             {!isLoaded && <span className="thumb-skeleton" aria-hidden="true" />}
-            <img src={preview} alt={`${label}：${file.name}`} draggable={false} onLoad={() => setIsLoaded(true)} />
+            <img ref={imageRef} src={preview} alt={`${label}：${file.name}`} draggable={false} onLoad={() => setIsLoaded(true)} />
           </button>
         ) : <span className="thumb-skeleton" aria-hidden="true" />}
         <span className="thumb-label">{label}</span>

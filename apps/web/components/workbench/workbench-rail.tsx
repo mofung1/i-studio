@@ -1,41 +1,65 @@
 'use client'
 
-import { Package, WandSparkles } from 'lucide-react'
+import { Box, ChevronLeft, ChevronRight, Copy, Folder, Image as ImageIcon, Images, LayoutGrid, Plus, Settings, Sparkles, WandSparkles } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 import { Brand } from '@/components/brand'
+import type { CommerceTaskType } from '@/lib/contracts'
+import { commerceTasks, type WorkbenchMode } from './shared'
 
-import { type WorkbenchMode } from './shared'
+export type StudioSection = 'general' | 'commerce' | 'inspire' | 'history' | 'assets' | 'settings'
 
 interface WorkbenchRailProps {
-  mode: WorkbenchMode
-  onChangeMode: (mode: WorkbenchMode) => void
+  mode?: WorkbenchMode
+  section?: StudioSection
+  task?: CommerceTaskType
+  onChangeMode?: (mode: WorkbenchMode) => void
+  onChangeTask?: (task: CommerceTaskType) => void
 }
 
-/** 工作台左侧菜单：通用生图 / 电商设计 */
-export function WorkbenchRail({ mode, onChangeMode }: WorkbenchRailProps) {
+const taskIcons = { 'product-main': Box, 'detail-page': Images, 'viral-recreate': Copy, 'product-retouch': WandSparkles }
+
+export function WorkbenchRail({ mode, section = mode ?? 'general', task, onChangeMode, onChangeTask }: WorkbenchRailProps) {
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => {
+    try { setCollapsed(window.localStorage.getItem('istudio-rail-collapsed') === 'true') } catch { /* Storage may be unavailable. */ }
+  }, [])
+
+  function toggleRail() {
+    const next = !collapsed
+    setCollapsed(next)
+    document.documentElement.setAttribute('data-studio-rail', next ? 'collapsed' : 'expanded')
+    try { window.localStorage.setItem('istudio-rail-collapsed', String(next)) } catch { /* Collapse still works without persistence. */ }
+  }
+
   return (
-    <aside className="workbench-rail" aria-label="工作台菜单">
-      <div className="workbench-rail-brand"><Brand /></div>
-      <nav className="workbench-rail-nav">
-        <button
-          type="button"
-          aria-pressed={mode === 'general'}
-          className={mode === 'general' ? 'active' : ''}
-          onClick={() => onChangeMode('general')}
-        >
-          <WandSparkles size={20} aria-hidden="true" />
-          <span>通用生图</span>
+    <aside className="workbench-rail" aria-label="工作台导航">
+      <div className="studio-rail-heading">
+        <div className="workbench-rail-brand"><Brand /></div>
+        <button type="button" className="studio-rail-toggle" title={collapsed ? '展开菜单' : '收起菜单'} aria-label={collapsed ? '展开菜单' : '收起菜单'} aria-expanded={!collapsed} aria-controls="studio-navigation" onClick={toggleRail}>
+          {collapsed ? <ChevronRight size={17} aria-hidden="true" /> : <ChevronLeft size={17} aria-hidden="true" />}
+          <span className="studio-rail-toggle-label" aria-hidden="true">{collapsed ? '展开菜单' : '收起菜单'}</span>
         </button>
-        <button
-          type="button"
-          aria-pressed={mode === 'commerce'}
-          className={mode === 'commerce' ? 'active' : ''}
-          onClick={() => onChangeMode('commerce')}
-        >
-          <Package size={20} aria-hidden="true" />
-          <span>电商设计</span>
-        </button>
+      </div>
+      <a className="studio-new" href="/workbench?mode=general" aria-label="新建创作" title="新建创作"><Plus size={18} /><span>新建创作</span></a>
+      <nav id="studio-navigation" className="workbench-rail-nav" aria-label="主导航">
+        {onChangeMode ? <button type="button" className={section === 'general' ? 'active' : ''} aria-label="AI 生图" title="AI 生图" aria-pressed={section === 'general'} onClick={() => onChangeMode('general')}><ImageIcon size={18} /><span>AI 生图</span></button>
+          : <Link href="/workbench?mode=general" className={section === 'general' ? 'active' : ''} aria-label="AI 生图" title="AI 生图" aria-current={section === 'general' ? 'page' : undefined}><ImageIcon size={18} /><span>AI 生图</span></Link>}
+        <Link href="/commerce" className={section === 'commerce' ? 'active' : ''} aria-label="电商工具" title="电商工具" aria-current={section === 'commerce' && !task ? 'page' : undefined}><LayoutGrid size={18} /><span>电商工具</span></Link>
+        {section === 'commerce' && task && <div className="studio-task-nav" role="group" aria-label="电商任务">
+          {commerceTasks.map(([id, meta]) => {
+            const Icon = taskIcons[id]
+            const content = <><Icon size={15} aria-hidden="true" /><span>{meta.title}</span></>
+            return onChangeTask
+              ? <button type="button" key={id} aria-label={meta.title} title={meta.title} aria-pressed={task === id} onClick={() => onChangeTask(id)}>{content}</button>
+              : <Link key={id} href={`/workbench?mode=commerce&task=${id}`} aria-label={meta.title} title={meta.title} aria-current={task === id ? 'page' : undefined}>{content}</Link>
+          })}
+        </div>}
+        <Link href="/inspire" className={section === 'inspire' ? 'active' : ''} aria-label="灵感" title="灵感" aria-current={section === 'inspire' ? 'page' : undefined}><Sparkles size={18} /><span>灵感</span></Link>
+        <Link href="/assets" className={section === 'assets' || section === 'history' ? 'active' : ''} aria-label="我的资产" title="我的资产" aria-current={section === 'assets' || section === 'history' ? 'page' : undefined}><Folder size={18} /><span>我的资产</span></Link>
       </nav>
+      <div className="studio-rail-footer"><Link href="/settings/ai" aria-label="设置" title="设置" aria-current={section === 'settings' ? 'page' : undefined}><Settings size={18} /><span>设置</span></Link></div>
     </aside>
   )
 }

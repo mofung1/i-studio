@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Check, ChevronRight, LoaderCircle, Pencil, Plus, RotateCcw, Save, Settings2, Trash2, X, Zap } from 'lucide-react'
-import { TopNavigation } from '@/components/top-navigation'
+import { Check, LoaderCircle, Pencil, Plus, RotateCcw, Save, Settings2, Trash2, X, Zap } from 'lucide-react'
+import { StudioShell } from '@/components/studio-shell'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import { getAccessToken } from '@/lib/api'
 import { settingsRequest, type AIEndpoint, type AIProtocol, type EndpointInput, type EndpointPurpose, type PromptTemplate, type AIConnectionTest } from '@/lib/ai-settings'
 
@@ -93,10 +94,8 @@ export default function AISettingsPage() {
     if (success) setSaved(restoreDefault ? '已恢复默认提示词' : '提示词已保存')
   }
 
-  return <div className="site-shell">
-    <TopNavigation />
+  return <StudioShell section="settings" title="设置">
     <main className="ai-settings">
-      <div className="settings-heading"><div><p>工作空间 / 设置</p><h1>设置</h1></div><Link href="/workbench?mode=general">返回工作台 <ChevronRight size={16} /></Link></div>
       {!loggedIn ? <p>请先<Link href="/login">登录</Link>后管理 AI 配置。</p> : loading ? <div className="settings-loading" role="status"><LoaderCircle className="settings-spinner" size={20} />正在读取配置</div> : <>
         <div className="settings-tabs" role="tablist" aria-label="设置分类">
           <button id="services-tab" role="tab" aria-selected={view === 'services'} aria-controls="services-panel" onClick={() => setView('services')}><Settings2 size={16} />AI 服务</button>
@@ -139,7 +138,7 @@ export default function AISettingsPage() {
         <div className="endpoint-section-head"><h2>{editing.id ? '编辑服务' : '添加服务'}</h2><button type="button" className="settings-icon" title="关闭" aria-label="关闭编辑" disabled={!!busy} onClick={() => setEditing(null)}><X size={20} /></button></div>
         {message && <p className="settings-error" role="alert">{message}</p>}
         <label className="settings-field"><span>名称</span><input autoFocus required maxLength={120} value={editing.input.name} onChange={e => field({ name: e.target.value })} /></label>
-        <label className="settings-field"><span>协议</span><select value={editing.input.protocol} onChange={e => field({ protocol: e.target.value as AIProtocol })}>{(editing.input.purpose === 'prompt' ? ['openai_chat'] : ['openai_image', 'gemini_generate_content']).map(protocol => <option value={protocol} key={protocol}>{protocolLabels[protocol as AIProtocol]}</option>)}</select></label>
+        <label className="settings-field"><span>协议</span><Select value={editing.input.protocol} onValueChange={value => field({ protocol: value as AIProtocol })}><SelectTrigger className="settings-select" aria-label="协议"><SelectValue /></SelectTrigger><SelectContent className="endpoint-dialog-select-content">{(editing.input.purpose === 'prompt' ? ['openai_chat'] : ['openai_image', 'gemini_generate_content']).map(protocol => <SelectItem value={protocol} key={protocol}>{protocolLabels[protocol as AIProtocol]}</SelectItem>)}</SelectContent></Select></label>
         <label className="settings-field"><span>Base URL</span><input type="url" required value={editing.input.baseUrl} placeholder="https://api.example.com/v1" onChange={e => field({ baseUrl: e.target.value })} /></label>
         <label className="settings-field"><span>API Key</span><input ref={keyRef} type="password" autoComplete="new-password" required={!editing.id} value={editing.input.apiKey ?? ''} placeholder={editing.id ? '留空保留现有密钥' : ''} onChange={e => field({ apiKey: e.target.value })} /></label>
         <div className="endpoint-form-grid"><label className="settings-field"><span>Model</span><input required maxLength={200} value={editing.input.model} onChange={e => field({ model: e.target.value })} /></label><label className="settings-field"><span>Timeout / 秒</span><input type="number" min={1} max={600} required value={editing.input.timeoutSeconds} onChange={e => field({ timeoutSeconds: Number(e.target.value) })} /></label></div>
@@ -147,5 +146,5 @@ export default function AISettingsPage() {
         <div className="settings-form-actions"><button type="button" className="settings-command" disabled={!!busy} onClick={() => setEditing(null)}>取消</button><button type="submit" className="settings-primary" disabled={!!busy}><Save size={16} />{busy === 'save' ? '保存中' : '保存'}</button></div>
       </form>}
     </dialog>
-  </div>
+  </StudioShell>
 }
