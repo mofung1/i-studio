@@ -84,7 +84,7 @@ export function BasicSettings(props: BasicSettingsProps) {
       {mode === 'commerce' && task !== 'product-retouch' ? <div className="settings-field commerce-output-field">
         <span>预计出图</span>
         <Select value={outputLanguage} onValueChange={onSetOutputLanguage}>
-          <SelectTrigger aria-label="目标语言"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-label="目标语言" title={languageOptions.find(([value]) => value === outputLanguage)?.[1]}><SelectValue /></SelectTrigger>
           <SelectContent>{languageOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
         </Select>
         <span className="settings-value">{outputSummary}</span>
