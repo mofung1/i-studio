@@ -83,11 +83,13 @@ export function BasicSettings(props: BasicSettingsProps) {
       <label className="settings-field"><span>清晰度</span><Select value={resolution} onValueChange={onSetResolution}><SelectTrigger aria-label="清晰度"><SelectValue /></SelectTrigger><SelectContent>{resolutionOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
       {mode === 'commerce' && task !== 'product-retouch' ? <div className="settings-field commerce-output-field">
         <span>预计出图</span>
-        <Select value={outputLanguage} onValueChange={onSetOutputLanguage}>
-          <SelectTrigger aria-label="目标语言" title={languageOptions.find(([value]) => value === outputLanguage)?.[1]}><SelectValue /></SelectTrigger>
-          <SelectContent>{languageOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-        </Select>
-        <span className="settings-value">{outputSummary}</span>
+        <div className="commerce-output-controls">
+          <Select value={outputLanguage} onValueChange={onSetOutputLanguage}>
+            <SelectTrigger aria-label="目标语言" title={languageOptions.find(([value]) => value === outputLanguage)?.[1]}><SelectValue /></SelectTrigger>
+            <SelectContent>{languageOptions.map(([value, label]) => <SelectItem key={value} value={value} title={label}>{label}</SelectItem>)}</SelectContent>
+          </Select>
+          <span className="settings-value">{outputSummary}</span>
+        </div>
       </div> : <div className="settings-field"><span>预计出图</span><span className="settings-value">{outputSummary}</span></div>}
     </div>
   </fieldset>

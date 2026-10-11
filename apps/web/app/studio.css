@@ -1960,7 +1960,7 @@ html[data-theme='dark'] .studio-rail-toggle-label {
 
 /* Preserve scrolling while keeping browser scrollbar chrome out of the workspace. */
 *, *::before, *::after {
-  scrollbar-width: none;
+  scrollbar-width: none !important;
   -ms-overflow-style: none;
 }
 *::-webkit-scrollbar { display: none; width: 0; height: 0; }
@@ -1980,26 +1980,104 @@ html[data-theme='dark'] .studio-rail-toggle-label {
   align-self: start;
   margin: 0;
   border-radius: 16px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 /* The expected output field occupies its own full-width row in commerce settings. */
 .workbench-shell.mode-commerce .commerce-output-field {
   grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
   width: 100%;
+  min-width: 0;
+}
+.commerce-output-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 .workbench-shell.mode-commerce .commerce-output-field .select-trigger {
   flex: 1 1 0;
   min-width: 0;
 }
-.workbench-shell.mode-commerce .commerce-output-field .select-trigger [data-radix-select-value] {
+.workbench-shell.mode-commerce .commerce-output-field .select-trigger > span:first-child {
+  display: block;
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Fill the actual content slot instead of centering an old fixed-width gallery. */
+.studio-content > .studio-inspiration {
+  padding: 0;
+}
+.studio-inspiration > .inspire-gallery {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  gap: var(--layout-gap);
+}
+.studio-inspiration .inspire-gallery-head {
+  top: 0;
+  gap: 16px;
+  border-color: var(--border);
+}
+.studio-inspiration .inspire-hero-search { flex-shrink: 0; }
+.studio-inspiration .inspire-filter-section {
+  display: block;
+  min-height: 0;
+  overflow-y: auto;
+}
+html[data-theme='dark'] .studio-inspiration .inspire-gallery-head {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* The works column and prompt details retain a visible, neutral scrollbar. */
+.studio-inspiration .inspire-results,
+.inspiration-dialog-prompt {
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--muted) transparent;
+}
+.studio-inspiration .inspire-results::-webkit-scrollbar,
+.inspiration-dialog-prompt::-webkit-scrollbar {
+  display: block;
+  width: 7px;
+  height: 7px;
+}
+.studio-inspiration .inspire-results::-webkit-scrollbar-thumb,
+.inspiration-dialog-prompt::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--muted);
+}
+.inspiration-dialog-prompt {
+  max-height: 50dvh;
+  overflow-y: auto;
+}
+@media (min-width: 1001px) {
+  .studio-content > .studio-inspiration {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .studio-inspiration > .inspire-gallery {
+    height: 100%;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .studio-inspiration .inspire-gallery-head {
+    position: relative;
+    max-height: 100%;
+  }
+  .studio-inspiration .inspire-results {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
 }
 
 /* Keep the edge handle vertically centered as the navigation list changes height. */
