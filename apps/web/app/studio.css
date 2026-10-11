@@ -1519,12 +1519,14 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle { right: -12px; margin: 0
 }
 .inspire-gallery-head {
   position: sticky;
-  top: calc(var(--studio-header) + 22px);
+  top: 10px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 24px;
   min-width: 0;
+  max-height: calc(100dvh - var(--studio-header) - 48px);
+  overflow-y: auto;
   margin: 0;
   padding: 18px;
   background: var(--surface);
@@ -1572,7 +1574,7 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle { right: -12px; margin: 0
 .inspire-results { min-width: 0; }
 @media (max-width: 1000px) {
   .inspire-gallery { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-  .inspire-gallery-head { position: static; gap: 12px; }
+  .inspire-gallery-head { position: static; max-height: none; overflow: visible; gap: 12px; }
   .inspire-filter-section { display: flex; align-items: flex-start; gap: 14px; }
   .inspire-filter-label { flex: 0 0 auto; margin: 9px 0 0; }
   .inspire-filters { flex-direction: row; flex-wrap: wrap; gap: 4px; }
@@ -1653,12 +1655,21 @@ html[data-theme='dark'] .inspire-hero-search:focus-within { border-color: var(--
 .studio-content > .ai-settings {
   min-height: 100%;
   margin: 0;
-  padding: 24px;
+  padding: 10px;
   background: var(--app-background);
 }
 .studio-content > .ai-settings { max-width: none; }
 .studio-content .content-page { min-height: 100%; }
 .studio-content .library-content { max-width: none; }
+.commerce-output-field {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.commerce-output-field > span:first-child { flex: 0 0 auto; }
+.commerce-output-field .select-trigger { flex: 1 1 auto; min-width: 0; margin: 0; }
+.commerce-output-field .settings-value { flex: 0 0 auto; margin: 0; }
 .studio-rail-nav :is(a, button).active {
   color: #fff;
   background: #111318;
@@ -1755,7 +1766,7 @@ html[data-theme='dark'] .inspire-hero-search:focus-within { border-color: var(--
   .studio-content > .content-page,
   .studio-content > .studio-inspiration,
   .studio-content > .commerce-page,
-  .studio-content > .ai-settings { min-height: 0; padding: 18px 6px; }
+  .studio-content > .ai-settings { min-height: 0; padding: 8px; }
   .workbench-page { height: auto; min-height: 100dvh; padding: 12px; overflow: visible; }
   .workbench-shell,
   .workbench-shell.config-right,
@@ -1805,4 +1816,20 @@ html[data-theme='dark'] .inspire-hero-search:focus-within { border-color: var(--
   .studio-page-skeleton-rail { grid-row: auto; height: 112px; border-radius: var(--radius-sidebar); }
   .studio-page-skeleton-topbar { grid-column: 1; height: 56px; }
   .studio-page-skeleton-content { grid-column: 1; padding: 18px 6px; }
+}
+
+/* Empty canvases center the illustration without reserving a scrollable results area. */
+.mode-general .result-body:has(.empty-creation-image) {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+.mode-general .result-body:has(.empty-creation-image) .result-empty {
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+}
+.mode-general .empty-creation-image {
+  width: min(380px, 100%);
+  max-height: min(36dvh, 280px);
+  object-fit: contain;
 }

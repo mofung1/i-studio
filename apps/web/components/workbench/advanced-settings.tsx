@@ -8,7 +8,6 @@ import type { GenerationModel } from '@/lib/contracts'
 
 import {
   detailModules,
-  languageOptions,
   productMainModules,
   retouchOptions,
   styleOptions,
@@ -31,7 +30,6 @@ interface AdvancedSettingsProps {
   resolution: string
   count: number
   model: GenerationModel
-  outputLanguage: string
   moduleMode: ModuleMode
   moduleCounts: Record<string, number>
   recreateStrength: 'style' | 'high'
@@ -42,7 +40,6 @@ interface AdvancedSettingsProps {
   onSetResolution: (resolution: string) => void
   onSetCount: (count: number) => void
   onSetModel: (model: GenerationModel) => void
-  onSetOutputLanguage: (language: string) => void
   onSetModuleMode: (mode: ModuleMode) => void
   onSetModuleCounts: (counts: Record<string, number>) => void
   onSetRecreateStrength: (strength: 'style' | 'high') => void
@@ -52,9 +49,9 @@ interface AdvancedSettingsProps {
 /** 高级设置：默认收起，专业用户展开后仍然是完整控制面。 */
 export function AdvancedSettings(props: AdvancedSettingsProps) {
   const {
-    mode, task, referenceStrength, outputLanguage,
+    mode, task, referenceStrength,
     moduleMode, moduleCounts, recreateStrength, enhancements, summary,
-    onSetReferenceStrength, onSetOutputLanguage,
+    onSetReferenceStrength,
     onSetModuleMode, onSetModuleCounts, onSetRecreateStrength, onSetEnhancements,
   } = props
   const [open, setOpen] = useState(false)
@@ -106,18 +103,6 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
               </label>
 
             </div>
-          )}
-
-          {mode === 'commerce' && task !== 'product-retouch' && (
-            <label className="settings-field">
-              <span>目标语言</span>
-              <Select value={outputLanguage} onValueChange={onSetOutputLanguage}>
-                <SelectTrigger aria-label="目标语言"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {languageOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </label>
           )}
 
           {mode === 'commerce' && task === 'viral-recreate' && (

@@ -275,6 +275,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         <div className="composer-control-row">
         <BasicSettings
           mode={mode}
+          task={task}
           resolution={resolution}
           count={count}
           imageEndpoints={props.imageEndpoints}
@@ -284,6 +285,8 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           onSetCount={onSetCount}
           aspectRatio={aspectRatio}
           outputSummary={outputSummary}
+          outputLanguage={outputLanguage}
+          onSetOutputLanguage={onSetOutputLanguage}
           onSetAspectRatio={onSetAspectRatio}
           style={style}
           referenceStrength={referenceStrength}
@@ -303,7 +306,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           resolution={resolution}
           count={count}
           model={model}
-          outputLanguage={outputLanguage}
           moduleMode={moduleMode}
           moduleCounts={moduleCounts}
           recreateStrength={recreateStrength}
@@ -313,7 +315,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           onSetResolution={onSetResolution}
           onSetCount={onSetCount}
           onSetModel={onSetModel}
-          onSetOutputLanguage={onSetOutputLanguage}
           onSetModuleMode={onSetModuleMode}
           onSetModuleCounts={onSetModuleCounts}
           onSetRecreateStrength={onSetRecreateStrength}
