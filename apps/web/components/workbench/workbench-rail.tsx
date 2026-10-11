@@ -56,7 +56,7 @@ export function WorkbenchRail({ mode, section = mode ?? 'general', task, onChang
               : <Link key={id} href={`/workbench?mode=commerce&task=${id}`} aria-label={meta.title} title={meta.title} aria-current={task === id ? 'page' : undefined}>{content}</Link>
           })}
         </div>}
-        <Link href="/inspire" className={section === 'inspire' ? 'active' : ''} aria-label="灵感" title="灵感" aria-current={section === 'inspire' ? 'page' : undefined}><Sparkles size={18} /><span>灵感</span></Link>
+        <Link href="/inspire" className={section === 'inspire' ? 'active' : ''} aria-label="发现灵感" title="发现灵感" aria-current={section === 'inspire' ? 'page' : undefined}><Sparkles size={18} /><span>发现灵感</span></Link>
         <Link href="/assets" className={section === 'assets' || section === 'history' ? 'active' : ''} aria-label="我的资产" title="我的资产" aria-current={section === 'assets' || section === 'history' ? 'page' : undefined}><Folder size={18} /><span>我的资产</span></Link>
       </nav>
       <div className="studio-rail-footer"><Link href="/settings/ai" aria-label="设置" title="设置" aria-current={section === 'settings' ? 'page' : undefined}><Settings size={18} /><span>设置</span></Link></div>
