@@ -3,10 +3,12 @@
 import { ChevronDown, Image as ImageIcon, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
-import { generalCountOptions, ratioOptions, resolutionOptions, styleOptions, type GeneralStyle, type ReferenceStrength, type WorkbenchMode } from './shared'
+import type { CommerceTaskType } from '@/lib/contracts'
+import { generalCountOptions, languageOptions, ratioOptions, resolutionOptions, styleOptions, type GeneralStyle, type ReferenceStrength, type WorkbenchMode } from './shared'
 
 interface BasicSettingsProps {
   mode: WorkbenchMode
+  task: CommerceTaskType
   aspectRatio: string
   resolution: string
   count: number
@@ -16,6 +18,8 @@ interface BasicSettingsProps {
   onSetResolution: (resolution: string) => void
   onSetCount: (count: number) => void
   outputSummary: string
+  outputLanguage: string
+  onSetOutputLanguage: (language: string) => void
   onSetAspectRatio: (ratio: string) => void
   style: GeneralStyle
   referenceStrength: ReferenceStrength
@@ -36,7 +40,7 @@ function GeneralParameterPopover({ aspectRatio, resolution, count, style, refere
 }
 
 export function BasicSettings(props: BasicSettingsProps) {
-  const { mode, aspectRatio, resolution, count, imageEndpoints, endpointId, onSetEndpoint, onSetResolution, onSetCount, outputSummary, onSetAspectRatio, style, referenceStrength, onSetStyle, onSetReferenceStrength } = props
+  const { mode, task, aspectRatio, resolution, count, imageEndpoints, endpointId, onSetEndpoint, onSetResolution, onSetCount, outputSummary, outputLanguage, onSetOutputLanguage, onSetAspectRatio, style, referenceStrength, onSetStyle, onSetReferenceStrength } = props
   const [paramsOpen, setParamsOpen] = useState(false)
   const paramsRef = useRef<HTMLElement>(null)
 
@@ -77,7 +81,14 @@ export function BasicSettings(props: BasicSettingsProps) {
       <label className="settings-field model-field"><span>生图模型</span><Select value={endpointId || undefined} onValueChange={onSetEndpoint}><SelectTrigger aria-label="生图模型"><SelectValue placeholder="请先配置生图服务" /></SelectTrigger><SelectContent>{imageEndpoints.map(endpoint => <SelectItem key={endpoint.id} value={endpoint.id}>{endpoint.name}</SelectItem>)}</SelectContent></Select></label>
       <label className="settings-field"><span>尺寸比例</span><Select value={aspectRatio} onValueChange={onSetAspectRatio}><SelectTrigger aria-label="尺寸比例"><SelectValue /></SelectTrigger><SelectContent>{ratioOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
       <label className="settings-field"><span>清晰度</span><Select value={resolution} onValueChange={onSetResolution}><SelectTrigger aria-label="清晰度"><SelectValue /></SelectTrigger><SelectContent>{resolutionOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></label>
-      <div className="settings-field"><span>预计出图</span><span className="settings-value">{outputSummary}</span></div>
+      {mode === 'commerce' && task !== 'product-retouch' ? <div className="settings-field commerce-output-field">
+        <span>预计出图</span>
+        <Select value={outputLanguage} onValueChange={onSetOutputLanguage}>
+          <SelectTrigger aria-label="目标语言"><SelectValue /></SelectTrigger>
+          <SelectContent>{languageOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+        </Select>
+        <span className="settings-value">{outputSummary}</span>
+      </div> : <div className="settings-field"><span>预计出图</span><span className="settings-value">{outputSummary}</span></div>}
     </div>
   </fieldset>
 }
