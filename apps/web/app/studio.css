@@ -637,14 +637,17 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 34px;
+  height: 36px;
+  min-height: 36px;
   max-width: 220px;
+  margin-top: 0;
   padding: 0 11px;
-  color: #3f4650;
+  color: var(--foreground);
   background: var(--surface);
-  border: 1px solid #dfe3e8;
+  border: 1px solid var(--border);
   border-radius: 999px;
   font-size: var(--text-small);
+  line-height: 1;
   cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
@@ -652,7 +655,7 @@
 .mode-general .settings-chip[aria-expanded='true'] {
   color: var(--foreground);
   background: var(--surface-2);
-  border-color: #aeb5bf;
+  border-color: var(--line-strong);
 }
 .mode-general .settings-chip > span {
   min-width: 0;
@@ -1028,7 +1031,25 @@
 .settings-field .select-trigger { height: 40px; min-height: 40px; padding: 0 12px; background: var(--control-bg); border-color: transparent; border-radius: 8px; font-size: var(--text-ui); }
 .settings-field .select-trigger:hover { background: var(--control-hover); border-color: transparent; }
 .settings-field .select-trigger:focus-visible { border-color: var(--foreground-3); }
-.mode-general .settings-chip, .mode-general .settings-field .select-trigger { height: 38px; min-height: 38px; background: var(--control-bg); border-color: transparent; border-radius: 8px; font-size: var(--text-small); }
+.mode-general .settings-chip {
+  height: 36px;
+  min-height: 36px;
+  margin-top: 0;
+  color: var(--foreground);
+  background: var(--control-bg);
+  border-color: transparent;
+  border-radius: 8px;
+  font-size: var(--text-small);
+  line-height: 1;
+}
+.mode-general .settings-field .select-trigger {
+  height: 38px;
+  min-height: 38px;
+  background: var(--control-bg);
+  border-color: transparent;
+  border-radius: 8px;
+  font-size: var(--text-small);
+}
 .mode-general .settings-chip:is(:hover, [aria-expanded='true']), .mode-general .settings-field .select-trigger:hover { color: var(--foreground); background: var(--control-hover); border-color: transparent; }
 .mode-general .basic-settings-popover { border-color: var(--border-soft); border-radius: 12px; }
 .mode-general .basic-settings-popover .settings-field > span { font-size: var(--text-small); }
@@ -1208,7 +1229,7 @@
 .module-stepper button { width: 28px; height: 28px; border: 0; border-radius: 6px; }
 .module-stepper span { font-size: var(--text-small); }
 
-/* Theme switching is immediate; image colors are never inverted. */
+/* Theme switching never inverts image colors. */
 .studio-theme-toggle { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; background: transparent; color: var(--foreground-3); border: 0; border-radius: 9px; cursor: pointer; }
 .studio-theme-toggle:hover { background: var(--control-bg); color: var(--foreground); }
 .studio-primary:hover, .generate-button:hover:not(:disabled) { background: var(--primary-hover); }
@@ -1956,6 +1977,180 @@ html[data-theme='dark'] .studio-rail-toggle-label {
   color: #eaecf0;
   background: #202228;
   border-color: #3b3f48;
+}
+
+/* Keep the asset library's scroll position visibly discoverable. */
+html:has(.library-content),
+.studio-content:has(.library-content) {
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--muted) transparent;
+}
+html:has(.library-content)::-webkit-scrollbar,
+.studio-content:has(.library-content)::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+html:has(.library-content)::-webkit-scrollbar-thumb,
+.studio-content:has(.library-content)::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--muted);
+}
+
+/* Make the collapse handle readable at rest, including when the rail is collapsed. */
+.studio-rail-toggle {
+  width: 32px;
+  height: 40px;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: 11px;
+  box-shadow: var(--shadow-sm);
+}
+.studio-rail-toggle:is(:hover, :focus-visible) {
+  color: var(--foreground);
+  background: var(--control-bg);
+  border-color: var(--line-strong);
+}
+
+/* The language selector and live output summary share one balanced row. */
+.workbench-shell.mode-commerce .commerce-output-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.workbench-shell.mode-commerce .commerce-output-controls > .select-trigger,
+.workbench-shell.mode-commerce .commerce-output-controls > .settings-value {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+.workbench-shell.mode-commerce .commerce-output-controls > .settings-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--surface-subtle);
+  border-color: var(--border);
+}
+
+/* Keep the product brief as one writing surface with a quiet, useful action row. */
+.workbench-shell.mode-commerce .config-card-prompt .prompt-editor {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-editor:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 3px var(--focus-soft);
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-editor .prompt-input {
+  min-height: 124px;
+  margin: 0;
+  padding: 16px 16px 12px;
+  color: var(--foreground);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  font-size: var(--text-ui);
+  line-height: 1.75;
+  resize: vertical;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-editor .prompt-input:hover,
+.workbench-shell.mode-commerce .config-card-prompt .prompt-editor .prompt-input:focus {
+  border: 0;
+  box-shadow: none;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-editor-bar {
+  flex: 0 0 auto;
+  min-height: 46px;
+  padding: 7px 10px 7px 14px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-subtle);
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-editor-actions {
+  min-width: 0;
+  gap: 6px;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-count {
+  padding: 0;
+  color: var(--foreground-3);
+  background: transparent;
+  border-radius: 0;
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+  line-height: 32px;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-count.is-over {
+  color: var(--danger);
+  background: transparent;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-undo {
+  height: 32px;
+  padding: 0 8px;
+  color: var(--foreground-3);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  font-size: var(--text-small);
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-undo:hover {
+  color: var(--foreground);
+  background: var(--control-hover);
+  border-color: transparent;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance {
+  min-height: 32px;
+  padding: 0 12px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 7px;
+  font-size: var(--text-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance:hover:not(:disabled) {
+  color: var(--primary-foreground);
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance:disabled {
+  color: var(--foreground-3);
+  background: var(--control-bg);
+  border-color: transparent;
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance.is-blocked {
+  color: var(--foreground-3);
+  background: transparent;
+  border-color: var(--border);
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance.is-blocked:hover {
+  color: var(--foreground-2);
+  background: var(--control-hover);
+  border-color: var(--border);
+}
+.workbench-shell.mode-commerce .config-card-prompt .prompt-note {
+  margin: 10px 2px 0;
+}
+
+@media (max-width: 520px) {
+  .workbench-shell.mode-commerce .config-card-prompt .prompt-editor-bar {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .workbench-shell.mode-commerce .config-card-prompt .prompt-editor-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }
 
 /* Preserve scrolling while keeping browser scrollbar chrome out of the workspace. */
