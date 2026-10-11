@@ -66,7 +66,6 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
         {searchInput && <button type="button" className="inspire-search-clear" aria-label="清除搜索" onClick={clearSearch}><X size={15} /></button>}
       </div>
       <div className="inspire-filter-section">
-        <p className="inspire-filter-label">分类</p>
         <div className="inspire-filters" role="group" aria-label="按分类筛选">
           <button type="button" className="inspire-filter-chip" aria-pressed={category === ''} onClick={() => changeCategory('')}><span>全部</span><span className="inspire-filter-count">{allTotal}</span></button>
           {categories.map((item) => <button key={item.category} type="button" className="inspire-filter-chip" aria-pressed={category === item.category} onClick={() => changeCategory(item.category)}><span>{item.category}</span><span className="inspire-filter-count">{item.count}</span></button>)}
