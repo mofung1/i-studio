@@ -20,7 +20,7 @@ export default async function WorkbenchPage({ searchParams }: WorkbenchPageProps
     : 'product-main'
 
   return (
-    <Suspense fallback={<WorkbenchSkeleton />}>
+    <Suspense fallback={<WorkbenchSkeleton mode={initialMode} />}>
       <Workbench
         initialMode={initialMode}
         initialPrompt={params.prompt}

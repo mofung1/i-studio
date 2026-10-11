@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, ChevronLeft, ChevronRight, Clock3, Download, Image as ImageIcon, Loader2, Maximize2, Trash2, X } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Clock3, Download, Image as ImageIcon, Loader2, Maximize2, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -8,10 +8,10 @@ import { useEffect, useRef, useState } from 'react'
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { InfoDialog } from '@/components/info-dialog'
-import { TopNavigation } from '@/components/top-navigation'
+import { StudioShell } from '@/components/studio-shell'
 import { FailureNotice } from '@/components/workbench/failure-notice'
 import { apiBaseUrl, deleteGeneratedAsset, deleteGenerationTask, getAccessToken, readApiError } from '@/lib/api'
-import { moduleLabel } from '@/components/workbench/shared'
+import { languageOptions, modelOptions, moduleLabel, optionLabel, platformOptions, styleOptions } from '@/components/workbench/shared'
 
 interface GeneratedTask {
   id: string
@@ -20,7 +20,7 @@ interface GeneratedTask {
   resultImages?: string[]
   resultModules?: string[]
   errorMessage?: string
-  input: { productName?: string; prompt?: string; requirements?: string; mode?: string; taskType?: string }
+  input: { productName?: string; prompt?: string; requirements?: string; mode?: string; taskType?: string; model?: string; aspectRatio?: string; resolution?: string; count?: number; style?: string; referenceStrength?: string; platform?: string; outputLanguage?: string; moduleMode?: string; moduleCounts?: Record<string, number>; recreateStrength?: string; enhancements?: string[] }
 }
 
 interface GeneratedImage {
@@ -70,6 +70,24 @@ function taskTypeLabel(task: GeneratedTask) {
   return taskLabels[task.input.taskType ?? ''] ?? '通用生图'
 }
 
+function parameterRows(task: GeneratedTask) {
+  const input = task.input
+  const rows: Array<[string, string]> = []
+  if (input.prompt || input.requirements) rows.push(['提示词', input.prompt || input.requirements || ''])
+  if (input.model) rows.push(['模型', optionLabel(modelOptions, input.model) || '已配置模型'])
+  if (input.aspectRatio) rows.push(['比例', input.aspectRatio])
+  if (input.resolution) rows.push(['分辨率', input.resolution])
+  if (input.count) rows.push(['生成数量', `${input.count} 张`])
+  if (input.style) rows.push(['创作风格', optionLabel(styleOptions, input.style) || input.style])
+  if (input.referenceStrength) rows.push(['参考强度', { low: '低', medium: '中', high: '高' }[input.referenceStrength] ?? input.referenceStrength])
+  if (input.platform) rows.push(['目标平台', optionLabel(platformOptions, input.platform) || input.platform])
+  if (input.outputLanguage) rows.push(['目标语言', optionLabel(languageOptions, input.outputLanguage) || input.outputLanguage])
+  if (input.moduleMode) rows.push(['图片模块', input.moduleMode === 'smart' ? '智能组合' : input.moduleMode === 'custom' ? '自定义' : input.moduleMode])
+  if (input.recreateStrength) rows.push(['复刻程度', input.recreateStrength === 'style' ? '参考风格' : input.recreateStrength === 'high' ? '高度复刻' : input.recreateStrength])
+  if (input.enhancements?.length) rows.push(['快捷优化', input.enhancements.join('、')])
+  return rows
+}
+
 export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
   const router = useRouter()
   const [tasks, setTasks] = useState<GeneratedTask[]>([])
@@ -81,6 +99,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
   const [confirmTarget, setConfirmTarget] = useState<{ kind: 'image'; image: GeneratedImage } | { kind: 'task'; task: GeneratedTask } | null>(null)
   /** 失败记录：点击卡片直接弹窗看原因，不再跳任务详情页 */
   const [infoTask, setInfoTask] = useState<GeneratedTask | null>(null)
+  const [detailsTask, setDetailsTask] = useState<GeneratedTask | null>(null)
   const previewTrigger = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -212,8 +231,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
     setSelectedImage({ task, path, index })
   }
 
-  return <div className="site-shell">
-    <TopNavigation />
+  return <StudioShell section={view === 'tasks' ? 'history' : 'assets'} title={view === 'tasks' ? '创作历史' : '我的资产'}>
     <main className="content-page">
     <div className="library-content">
       <header className="library-head">
@@ -266,6 +284,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
                       <button type="button" title="下载" aria-label="下载这张图片" onClick={() => void downloadProtectedAsset(image.path, `istudio-${image.task.id.slice(0, 8)}-${image.index + 1}.png`).catch(() => setError('下载失败'))}>
                         <Download size={14} />
                       </button>
+                      <button type="button" title="查看提示词和参数" aria-label={`查看${taskTitle(image.task)}的提示词和参数`} onClick={() => setDetailsTask(image.task)}><SlidersHorizontal size={14} /></button>
                       <button type="button" className="is-danger" title="删除这张图片" aria-label={`删除${taskTitle(image.task)}第${image.index + 1}张图片`} disabled={deletingKey === key} onClick={() => setConfirmTarget({ kind: 'image', image })}>
                         {deletingKey === key ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       </button>
@@ -335,6 +354,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
                         <AlertTriangle size={14} />
                       </button>
                     )}
+                    <button type="button" title="查看提示词和参数" aria-label={`查看${taskTitle(task)}的提示词和参数`} onClick={() => setDetailsTask(task)}><SlidersHorizontal size={14} /></button>
                     <button type="button" className="is-danger" title="删除这条记录" aria-label={`删除记录 ${taskTitle(task)}`} disabled={deletingKey === task.id} onClick={() => setConfirmTarget({ kind: 'task', task })}>
                       {deletingKey === task.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     </button>
@@ -406,6 +426,18 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
         }}
       />
     )}
+    {detailsTask && (
+      <InfoDialog
+        title="生成提示词与参数"
+        subtitle={`${taskTitle(detailsTask)} · ${taskTypeLabel(detailsTask)} · ${formatWhen(detailsTask.createdAt)}`}
+        onClose={() => setDetailsTask(null)}
+      >
+        <dl className="studio-parameter-details asset-parameter-details">
+          {parameterRows(detailsTask).map(([label, value]) => <div key={label} className={label === '提示词' ? 'parameter-prompt' : undefined}><dt>{label}</dt><dd>{value}</dd></div>)}
+          {!parameterRows(detailsTask).length && <p className="empty-state">这条记录没有可展示的参数。</p>}
+        </dl>
+      </InfoDialog>
+    )}
     {infoTask && (
       <InfoDialog
         title="这条记录生成失败"
@@ -415,5 +447,5 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
         <FailureNotice message={infoTask.errorMessage || '供应商未返回错误详情，请稍后重试。'} compact />
       </InfoDialog>
     )}
-  </div>
+  </StudioShell>
 }

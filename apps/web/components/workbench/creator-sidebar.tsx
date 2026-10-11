@@ -180,28 +180,59 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   }
 
   return (
-    <aside className="configuration-panel creator-sidebar" aria-label="创作设置">
+    <aside id="creation-settings" className={`configuration-panel creator-sidebar ${isGeneral ? 'general-composer' : 'commerce-settings'}`} aria-label="创作设置">
       <div className="configuration-scroll">
+        <div className="composer-surface">
         <div className="creator-sheet-head">
           <span>创作设置</span>
           <button type="button" aria-label="收起创作设置" onClick={onCloseSheet}><X size={16} /></button>
         </div>
 
-        <fieldset className="form-section config-card config-card-assets">
-          <div className="field-heading">
-            <legend>{assetLabel}</legend>
-            <span>{isGeneral ? `最多 ${maxFiles} 张` : needsSingleReference ? '必须 1 张' : '至少 1 张'}</span>
+        {isGeneral ? (
+          <div className="composer-input-grid">
+            <div className="composer-media" aria-label="参考图片">
+              <ReferenceUploader
+                files={assetFiles}
+                max={maxFiles}
+                onChange={onSetReferenceFiles}
+                labelFor={(index) => `参考 ${index + 1}`}
+                emptyTitle="添加参考图片"
+                emptyHint="点击添加"
+                acceptedHint={`JPG / PNG / WebP · 最多 ${maxFiles} 张`}
+                collapseAt={2}
+              />
+            </div>
+            <fieldset className="form-section config-card config-card-prompt">
+              <PromptEditor
+                value={prompt}
+                onChange={onSetPrompt}
+                ariaLabel="画面描述"
+                placeholder="输入文字或上传参考图，描述你想生成的内容。"
+                enhance={(value) => (promptEnhanceEnabled ? runEnhance('prompt', value) : buildEnhancedPrompt(value, style))}
+                enhanceDisabledReason={!prompt.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
+                helper={enhanceHelper}
+              />
+            </fieldset>
           </div>
-          <ReferenceUploader
-            files={assetFiles}
-            max={maxFiles}
-            onChange={isGeneral ? onSetReferenceFiles : onSetProductFiles}
-            labelFor={(index) => isGeneral ? `参考 ${index + 1}` : index === 0 ? '主图' : `素材 ${index + 1}`}
-            emptyTitle={isGeneral ? '添加参考图片' : '上传商品原图'}
-            emptyHint="拖拽或点击上传"
-            acceptedHint={`JPG / PNG · 最多 ${maxFiles} 张`}
-          />
-        </fieldset>
+        ) : null}
+
+        {!isGeneral && (
+          <fieldset className="form-section config-card config-card-assets">
+            <div className="field-heading">
+              <legend>{assetLabel}</legend>
+              <span>{needsSingleReference ? '必须 1 张' : '至少 1 张'}</span>
+            </div>
+            <ReferenceUploader
+              files={productFiles}
+              max={maxFiles}
+              onChange={onSetProductFiles}
+              labelFor={(index) => index === 0 ? '主图' : `素材 ${index + 1}`}
+              emptyTitle="上传商品原图"
+              emptyHint="拖拽或点击上传"
+              acceptedHint={`JPG / PNG / WebP · 最多 ${maxFiles} 张`}
+            />
+          </fieldset>
+        )}
 
         {needsSingleReference && (
           <fieldset className="form-section config-card config-card-assets">
@@ -225,19 +256,9 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           </fieldset>
         )}
 
-        <fieldset className="form-section config-card config-card-prompt">
-          <div className="field-heading"><legend>{isGeneral ? '画面描述' : requirementsLabel}</legend></div>
-          {isGeneral ? (
-            <PromptEditor
-              value={prompt}
-              onChange={onSetPrompt}
-              ariaLabel="画面描述"
-              placeholder="例如：一支绿色保温杯放在森林岩石上，清晨阳光从树叶之间洒下来，高级户外产品摄影。"
-              enhance={(value) => (promptEnhanceEnabled ? runEnhance('prompt', value) : buildEnhancedPrompt(value, style))}
-              enhanceDisabledReason={!prompt.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
-              helper={enhanceHelper}
-            />
-          ) : (
+        {!isGeneral && (
+          <fieldset className="form-section config-card config-card-prompt">
+            <div className="field-heading"><legend>{requirementsLabel}</legend></div>
             <PromptEditor
               value={requirements}
               onChange={onSetRequirements}
@@ -248,19 +269,31 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               enhanceDisabledReason={!requirements.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
               helper={enhanceHelper}
             />
-          )}
-        </fieldset>
+          </fieldset>
+        )}
 
+        <div className="composer-control-row">
         <BasicSettings
           mode={mode}
-          style={style}
+          resolution={resolution}
+          count={count}
+          imageEndpoints={props.imageEndpoints}
+          endpointId={props.endpointId}
+          onSetEndpoint={props.onSetEndpoint}
+          onSetResolution={onSetResolution}
+          onSetCount={onSetCount}
           aspectRatio={aspectRatio}
           outputSummary={outputSummary}
-          onSetStyle={onSetStyle}
           onSetAspectRatio={onSetAspectRatio}
+          style={style}
+          referenceStrength={referenceStrength}
+          onSetStyle={onSetStyle}
+          onSetReferenceStrength={onSetReferenceStrength}
         />
 
-        <AdvancedSettings
+        {!isGeneral && <AdvancedSettings
+          style={style}
+          onSetStyle={onSetStyle}
           imageEndpoints={props.imageEndpoints}
           endpointId={props.endpointId}
           onSetEndpoint={props.onSetEndpoint}
@@ -285,10 +318,23 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           onSetModuleCounts={onSetModuleCounts}
           onSetRecreateStrength={onSetRecreateStrength}
           onSetEnhancements={onSetEnhancements}
-        />
+        />}
+        {isGeneral && (<GenerateBar
+        title={title}
+        expectedCount={expectedCount}
+        aspectRatio={aspectRatio}
+        resolution={resolution}
+        notice={null}
+        isSubmitting={isSubmitting}
+        isGenerating={isGenerating}
+        aiEnabled={aiEnabled}
+        onSubmit={onSubmit}
+      />)}
+        </div>
+        {isGeneral && notice && <p className={`form-notice ${notice.kind}`} role="status">{notice.message}</p>}
+        </div>
       </div>
-
-      <GenerateBar
+      {!isGeneral && (<GenerateBar
         title={title}
         expectedCount={expectedCount}
         aspectRatio={aspectRatio}
@@ -298,7 +344,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         isGenerating={isGenerating}
         aiEnabled={aiEnabled}
         onSubmit={onSubmit}
-      />
+      />)}
     </aside>
   )
 }

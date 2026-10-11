@@ -1,7 +1,7 @@
 'use client'
 
-import { ImagePlus, Upload } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { ChevronLeft, ImagePlus, Plus, Upload } from 'lucide-react'
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 
 import { SelectedImageThumbnail } from './selected-image-thumbnail'
 
@@ -14,9 +14,21 @@ interface ReferenceUploaderProps {
   emptyTitle: string
   emptyHint: string
   acceptedHint: string
+  /** 从指定张数开始堆叠，悬停、点击或键盘操作展开完整列表。 */
+  collapseAt?: number
 }
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const fileKeys = new WeakMap<File, number>()
+let nextFileKey = 0
+
+function fileKeyFor(file: File) {
+  const existing = fileKeys.get(file)
+  if (existing !== undefined) return existing
+  const key = nextFileKey++
+  fileKeys.set(file, key)
+  return key
+}
 
 /** 参考图 / 商品素材上传：空态是整块拖拽区，有图后是缩略图列表。 */
 export function ReferenceUploader({
@@ -27,12 +39,28 @@ export function ReferenceUploader({
   emptyTitle,
   emptyHint,
   acceptedHint,
+  collapseAt,
 }: ReferenceUploaderProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const uploaderRef = useRef<HTMLDivElement>(null)
+  const stackToggleRef = useRef<HTMLButtonElement>(null)
+  const listId = useId()
   const sortRef = useRef<{ index: number; startX: number; startY: number; active: boolean } | null>(null)
+  const [hovered, setHovered] = useState(false)
+  const [pinned, setPinned] = useState(false)
+  const [keyboardFocus, setKeyboardFocus] = useState(false)
+  const [availableWidth, setAvailableWidth] = useState(0)
+  const shouldCollapse = Boolean(collapseAt && files.length >= collapseAt)
+  const expanded = !shouldCollapse || hovered || pinned || keyboardFocus || draggingIndex !== null
+
+  function closeStack() {
+    setHovered(false)
+    setPinned(false)
+    setKeyboardFocus(false)
+  }
 
   const full = files.length >= max
 
@@ -68,7 +96,7 @@ export function ReferenceUploader({
         drag.active = true
         setDraggingIndex(drag.index)
       }
-      const items = Array.from(document.querySelectorAll('.uploaded-thumb'))
+      const items = Array.from(uploaderRef.current?.querySelectorAll<HTMLElement>('.uploaded-thumb') ?? [])
       const overIndex = items.findIndex((element) => {
         const rect = element.getBoundingClientRect()
         return event.clientX >= rect.left && event.clientX <= rect.right
@@ -106,6 +134,30 @@ export function ReferenceUploader({
     }
   }, [files])
 
+  useEffect(() => {
+    if (!collapseAt) return
+    const container = uploaderRef.current?.closest('.composer-input-grid')
+    if (!container) return
+    // 展开宽度以整块输入区为边界，避免撑出提示词面板或移动端视口。
+    const observer = new ResizeObserver(() => setAvailableWidth(container.clientWidth))
+    setAvailableWidth(container.clientWidth)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [collapseAt])
+
+  useEffect(() => {
+    if (!shouldCollapse) closeStack()
+  }, [shouldCollapse])
+
+  useEffect(() => {
+    if (!pinned) return
+    const closeOutside = (event: PointerEvent) => {
+      if (!uploaderRef.current?.contains(event.target as Node)) closeStack()
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    return () => document.removeEventListener('pointerdown', closeOutside)
+  }, [pinned])
+
   function startSort(index: number, event: React.PointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return
     const target = event.target as HTMLElement
@@ -122,7 +174,32 @@ export function ReferenceUploader({
 
   return (
     <div
-      className={`reference-uploader ${isDraggingOver ? 'is-dragging-over' : ''}`}
+      ref={uploaderRef}
+      className={`reference-uploader ${collapseAt ? 'is-compact' : ''} ${isDraggingOver ? 'is-dragging-over' : ''} ${shouldCollapse ? 'is-stackable' : ''} ${shouldCollapse && !expanded ? 'is-collapsed' : ''}`}
+      style={collapseAt ? {
+        '--reference-slots': files.length + (full ? 0 : 1),
+        '--reference-stack-offset': `${Math.min(Math.max(files.length - 1, 0), 2) * 14}px`,
+        '--reference-available-width': availableWidth ? `${availableWidth}px` : '100%',
+      } as CSSProperties : undefined}
+      onPointerEnter={(event) => {
+        if (shouldCollapse && event.pointerType === 'mouse' && window.matchMedia('(hover: hover)').matches) setHovered(true)
+      }}
+      onPointerLeave={(event) => { if (event.pointerType === 'mouse') setHovered(false) }}
+      onFocusCapture={(event) => {
+        if (!event.target.closest('.reference-stack-toggle') && event.target.matches(':focus-visible')) setKeyboardFocus(true)
+      }}
+      onBlurCapture={(event) => {
+        if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) {
+          setKeyboardFocus(false)
+          setPinned(false)
+        }
+      }}
+      onKeyDown={(event) => {
+        if (shouldCollapse && event.key === 'Escape') {
+          closeStack()
+          requestAnimationFrame(() => stackToggleRef.current?.focus())
+        }
+      }}
       onDragOver={(event) => {
         if (!isExternalFileDrag(event)) return
         event.preventDefault()
@@ -144,61 +221,104 @@ export function ReferenceUploader({
       }}
     >
       {files.length === 0 ? (
-        <label className="reference-dropzone">
+        <button type="button" className="reference-dropzone" aria-label={emptyTitle} title={acceptedHint} onClick={() => inputRef.current?.click()}>
           <span className="reference-dropzone-icon"><ImagePlus size={22} aria-hidden="true" /></span>
           <strong>{emptyTitle}</strong>
           <span>{emptyHint}</span>
           <span className="reference-dropzone-hint">{acceptedHint}</span>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple={max > 1}
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => {
-              accept(Array.from(event.target.files ?? []))
-              event.target.value = ''
-            }}
-          />
-        </label>
+        </button>
       ) : (
         <>
-          <div className="upload-list">
-            {files.map((file, index) => (
-              <SelectedImageThumbnail
-                key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
-                file={file}
-                label={labelFor(index)}
-                index={index}
-                total={files.length}
-                isDragging={draggingIndex === index}
-                onPointerDown={(event) => startSort(index, event)}
-                onRemove={() => onChange(files.filter((_, fileIndex) => fileIndex !== index))}
-                onReplace={(next) => onChange(files.map((current, fileIndex) => (fileIndex === index ? next : current)))}
-                onMove={move}
-              />
-            ))}
-            {!full && (
-              <label className="add-thumb">
-                <span className="add-thumb-icon"><Upload size={16} aria-hidden="true" /></span>
-                <span>添加图片</span>
-                <input
-                  multiple={max > 1}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => {
-                    accept(Array.from(event.target.files ?? []))
-                    event.target.value = ''
-                  }}
+          <div className="upload-list" id={listId} aria-label="已上传图片">
+            {files.map((file, index) => {
+              const thumbnail = (
+                <SelectedImageThumbnail
+                  key={fileKeyFor(file)}
+                  file={file}
+                  label={labelFor(index)}
+                  index={index}
+                  total={files.length}
+                  isDragging={draggingIndex === index}
+                  onPointerDown={(event) => startSort(index, event)}
+                  onRemove={() => onChange(files.filter((_, fileIndex) => fileIndex !== index))}
+                  onReplace={(next) => onChange(files.map((current, fileIndex) => (fileIndex === index ? next : current)))}
+                  onMove={move}
                 />
-              </label>
+              )
+              return collapseAt ? (
+                <div
+                  key={fileKeyFor(file)}
+                  className={`reference-thumbnail-slot ${index >= 3 ? 'is-overflow' : ''}`}
+                  style={{ '--reference-index': index, '--reference-angle': `${index % 2 === 0 ? -4 : 4}deg` } as CSSProperties}
+                  inert={shouldCollapse && !expanded}
+                >
+                  {thumbnail}
+                </div>
+              ) : thumbnail
+            })}
+            {!full && (
+              <button
+                type="button"
+                className="add-thumb"
+                aria-label="添加图片"
+                title={acceptedHint}
+                tabIndex={shouldCollapse && !expanded ? -1 : undefined}
+                style={collapseAt ? { '--reference-index': files.length } as CSSProperties : undefined}
+                onClick={() => inputRef.current?.click()}
+              >
+                <span className="add-thumb-icon">{collapseAt ? <Plus size={18} aria-hidden="true" /> : <Upload size={16} aria-hidden="true" />}</span>
+                <span>添加图片</span>
+              </button>
+            )}
+            {shouldCollapse && expanded && (
+              <button
+                type="button"
+                className="reference-stack-close"
+                aria-label="收起参考图片"
+                onClick={() => { closeStack(); requestAnimationFrame(() => stackToggleRef.current?.focus()) }}
+              >
+                <ChevronLeft size={16} aria-hidden="true" />
+              </button>
             )}
           </div>
+          {shouldCollapse && (
+            <button
+              ref={stackToggleRef}
+              type="button"
+              className="reference-stack-toggle"
+              hidden={expanded}
+              aria-label={`展开 ${files.length} 张参考图片`}
+              aria-expanded={expanded}
+              aria-controls={listId}
+              onClick={() => {
+                setPinned(true)
+                requestAnimationFrame(() => uploaderRef.current?.querySelector<HTMLElement>('.uploaded-thumb')?.focus())
+              }}
+            >
+              <span className="reference-stack-count">{files.length}</span>
+              {!full && <span className="reference-stack-plus" aria-hidden="true"><Plus size={14} /></span>}
+            </button>
+          )}
           <p className="reference-meta">
             <span>{files.length}/{max} 张</span>
             <span>可拖动排序</span>
           </p>
         </>
       )}
+      <input
+        ref={inputRef}
+        className="reference-file-input"
+        type="file"
+        multiple={max > 1}
+        accept="image/jpeg,image/png,image/webp"
+        aria-label={emptyTitle}
+        tabIndex={-1}
+        hidden
+        onChange={(event) => {
+          accept(Array.from(event.target.files ?? []))
+          event.target.value = ''
+        }}
+      />
 
       {isDraggingOver && <span className="reference-drop-overlay" aria-hidden="true">松开即可上传</span>}
       {error && <p className="field-helper is-error" role="alert">{error}</p>}

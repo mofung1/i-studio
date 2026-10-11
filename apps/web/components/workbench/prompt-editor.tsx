@@ -119,8 +119,8 @@ export function PromptEditor({
               className={`prompt-enhance ${blocked ? 'is-blocked' : ''}`}
               type="button"
               disabled={isEnhancing}
-              aria-describedby={blocked ? hintId : undefined}
-              title={enhanceDisabledReason ?? (isEnhancing ? '正在处理…' : '用 AI 把当前描述整理得更专业')}
+              aria-describedby={blocked && blockedHint ? hintId : undefined}
+              title={isEnhancing ? '正在处理…' : '用 AI 把当前描述整理得更专业'}
               onClick={() => void runEnhance()}
             >
               {isEnhancing ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Sparkles size={14} aria-hidden="true" />}
@@ -136,8 +136,6 @@ export function PromptEditor({
           {error || enhanceDisabledReason}
           {error && <button className="prompt-retry" type="button" onClick={() => void runEnhance()}>重试</button>}
         </p>
-      ) : enhanceDisabledReason ? (
-        <p className="prompt-note" id={hintId}><AlertTriangle size={13} aria-hidden="true" />{enhanceDisabledReason}</p>
       ) : justEnhanced ? (
         <p className="prompt-note"><Check size={13} aria-hidden="true" />已重新组织描述，可点「撤销」还原</p>
       ) : helper ? <p className="prompt-note">{helper}</p> : null}

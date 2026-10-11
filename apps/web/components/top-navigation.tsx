@@ -2,62 +2,14 @@
 
 import { Menu, X } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
-import { apiBaseUrl, getAccessToken } from '@/lib/api'
+import { AccountMenu } from './account-menu'
 
 import { Brand } from './brand'
 
 export function TopNavigation() {
-  const router = useRouter()
-  const [username, setUsername] = useState('')
-  const [menuOpen, setMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
-  const accountRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const token = getAccessToken()
-    if (!token) return
-
-    const controller = new AbortController()
-    fetch(`${apiBaseUrl}/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('登录状态获取失败')))
-      .then((data: { authenticated?: boolean; user?: { username?: string } }) => {
-        if (data.authenticated && data.user?.username) setUsername(data.user.username)
-      })
-      .catch(() => undefined)
-
-    return () => controller.abort()
-  }, [])
-
-  useEffect(() => {
-    if (!menuOpen) return
-
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!accountRef.current?.contains(event.target as Node)) setMenuOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [menuOpen])
-
-  function logout() {
-    window.localStorage.removeItem('istudio-access-token')
-    setUsername('')
-    setMenuOpen(false)
-    router.push('/')
-    router.refresh()
-  }
 
   return (
     <header className="top-navigation">
@@ -73,20 +25,14 @@ export function TopNavigation() {
         {navOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
       <nav id="primary-navigation" aria-label="主导航" data-open={navOpen}>
-        <Link href="/workbench?mode=general" onClick={() => setNavOpen(false)}>通用生图</Link>
-        <Link href="/workbench?mode=commerce&task=product-main" onClick={() => setNavOpen(false)}>电商设计</Link>
+        <Link href="/workbench?mode=general" onClick={() => setNavOpen(false)}>AI 生图</Link>
+        <Link href="/commerce" onClick={() => setNavOpen(false)}>电商工具</Link>
         <Link href="/inspire" onClick={() => setNavOpen(false)}>灵感</Link>
         <Link href="/assets" onClick={() => setNavOpen(false)}>资产库</Link>
         <Link href="/settings/ai" onClick={() => setNavOpen(false)}>设置</Link>
       </nav>
       <div className="nav-actions">
-        {username ? <div className="account-menu" ref={accountRef}>
-          <button className="avatar-button" type="button" onClick={() => setMenuOpen((open) => !open)} aria-label={`${username}的账户菜单`} aria-haspopup="menu" aria-expanded={menuOpen}>{username.slice(0, 1).toUpperCase()}</button>
-          {menuOpen && <div className="account-dropdown" role="menu">
-            <span>{username}</span>
-            <button type="button" role="menuitem" onClick={logout}>退出登录</button>
-          </div>}
-        </div> : <Link className="login-button" href="/login">登录</Link>}
+        <AccountMenu />
       </div>
     </header>
   )

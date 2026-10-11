@@ -38,7 +38,7 @@ export function useInspirationPrompts() {
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const loadingRef = useRef(false)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
@@ -148,5 +148,6 @@ export function useInspirationPrompts() {
     setSearchInput,
     clearSearch,
     loadMore,
+    reload: () => { void loadPage(1, category, query, true) },
   }
 }

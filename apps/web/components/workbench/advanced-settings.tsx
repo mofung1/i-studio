@@ -1,19 +1,18 @@
 'use client'
 
-import { Check, ChevronDown, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { Check, Plus, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import type { GenerationModel } from '@/lib/contracts'
 
 import {
   detailModules,
-  generalCountOptions,
   languageOptions,
-  modelOptions,
   productMainModules,
-  resolutionOptions,
   retouchOptions,
+  styleOptions,
+  type GeneralStyle,
   type ModuleMode,
   type ReferenceStrength,
   type WorkbenchMode,
@@ -26,6 +25,8 @@ interface AdvancedSettingsProps {
   onSetEndpoint: (id: string) => void
   mode: WorkbenchMode
   task: CommerceTaskType
+  style: GeneralStyle
+  onSetStyle: (style: GeneralStyle) => void
   referenceStrength: ReferenceStrength
   resolution: string
   count: number
@@ -51,35 +52,47 @@ interface AdvancedSettingsProps {
 /** 高级设置：默认收起，专业用户展开后仍然是完整控制面。 */
 export function AdvancedSettings(props: AdvancedSettingsProps) {
   const {
-    mode, task, referenceStrength, resolution, count, model, outputLanguage,
+    mode, task, referenceStrength, outputLanguage,
     moduleMode, moduleCounts, recreateStrength, enhancements, summary,
-    onSetReferenceStrength, onSetResolution, onSetCount, onSetModel, onSetOutputLanguage,
+    onSetReferenceStrength, onSetOutputLanguage,
     onSetModuleMode, onSetModuleCounts, onSetRecreateStrength, onSetEnhancements,
   } = props
   const [open, setOpen] = useState(false)
+  const panelRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!open || mode !== 'general') return
+    const closeOutside = (event: PointerEvent) => {
+      const target = event.target as HTMLElement
+      if (!panelRef.current?.contains(target) && !target.closest('.select-content')) setOpen(false)
+    }
+    const closeEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', closeOutside)
+    document.addEventListener('keydown', closeEscape)
+    return () => { document.removeEventListener('pointerdown', closeOutside); document.removeEventListener('keydown', closeEscape) }
+  }, [mode, open])
+  const expanded = mode === 'commerce' || open
 
   const moduleList = task === 'product-main' ? productMainModules : detailModules
   const moduleTotal = Object.values(moduleCounts).reduce((total, value) => total + value, 0)
   const usesModules = mode === 'commerce' && (task === 'product-main' || task === 'detail-page')
 
   return (
-    <section className={`advanced-settings ${open ? 'is-open' : ''}`} aria-label="高级设置">
-      <button
+    <section className={`advanced-settings ${expanded ? 'is-open' : ''}`} aria-label="更多参数" ref={panelRef}>
+      {mode === 'commerce' ? <h3 className="advanced-heading">更多设置</h3> : <button
         className="advanced-toggle"
         type="button"
         aria-expanded={open}
         aria-controls="advanced-settings-body"
         onClick={() => setOpen((value) => !value)}
       >
-        <span>高级设置</span>
-        <small>{summary}</small>
-        <ChevronDown size={16} aria-hidden="true" />
-      </button>
+        <SlidersHorizontal size={15} aria-hidden="true" /><span>更多参数</span>{mode !== 'general' && <small>{summary}</small>}
+      </button>}
 
-      {open && (
+      {expanded && (
         <div className="advanced-body" id="advanced-settings-body">
           {mode === 'general' && (
             <div className="settings-grid">
+              <label className="settings-field"><span>创作风格</span><Select value={props.style} onValueChange={value => props.onSetStyle(value as GeneralStyle)}><SelectTrigger aria-label="创作风格"><SelectValue /></SelectTrigger><SelectContent>{styleOptions.map(([value, label]) => <SelectItem value={value} key={value}>{label}</SelectItem>)}</SelectContent></Select></label>
               <label className="settings-field">
                 <span>参考强度</span>
                 <Select value={referenceStrength} onValueChange={(value) => onSetReferenceStrength(value as ReferenceStrength)}>
@@ -91,15 +104,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
                   </SelectContent>
                 </Select>
               </label>
-              <label className="settings-field">
-                <span>生成数量</span>
-                <Select value={String(count)} onValueChange={(value) => onSetCount(Number(value))}>
-                  <SelectTrigger aria-label="生成数量"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {generalCountOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </label>
+
             </div>
           )}
 
@@ -115,7 +120,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
             </label>
           )}
 
-          {task === 'viral-recreate' && (
+          {mode === 'commerce' && task === 'viral-recreate' && (
             <div className="choice-group">
               <span className="choice-label">复刻程度</span>
               <div className="recreate-options">
@@ -131,7 +136,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
             </div>
           )}
 
-          {task === 'product-retouch' && (
+          {mode === 'commerce' && task === 'product-retouch' && (
             <div className="choice-group">
               <span className="choice-label">快捷优化项</span>
               <div className="insight-chips">
@@ -227,26 +232,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
             </div>
           )}
 
-          <div className="settings-grid">
-            <label className="settings-field">
-              <span>分辨率</span>
-              <Select value={resolution} onValueChange={onSetResolution}>
-                <SelectTrigger aria-label="分辨率"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {resolutionOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </label>
-            <label className="settings-field">
-              <span>生图模型</span>
-              <Select value={props.endpointId || undefined} onValueChange={props.onSetEndpoint}>
-                <SelectTrigger aria-label="生图模型"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {props.imageEndpoints.map(endpoint => <SelectItem key={endpoint.id} value={endpoint.id}>{endpoint.name} · {endpoint.model}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </label>
-          </div>
+
         </div>
       )}
     </section>

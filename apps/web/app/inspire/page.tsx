@@ -1,16 +1,8 @@
 import { InspirationGallery } from '@/components/inspiration-gallery'
-import { TopNavigation } from '@/components/top-navigation'
+import { StudioShell } from '@/components/studio-shell'
 
-/** 灵感瀑布流：独立页面，不再放在工作台里。 */
 export default function InspirePage() {
-  return (
-    <div className="site-shell">
-      <TopNavigation />
-      <main className="content-page">
-        <div className="library-content">
-          <InspirationGallery />
-        </div>
-      </main>
-    </div>
-  )
+  return <StudioShell section="inspire" title="灵感">
+    <main className="studio-inspiration"><InspirationGallery /></main>
+  </StudioShell>
 }

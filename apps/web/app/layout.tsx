@@ -2,39 +2,31 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
 import './globals.css'
-
-/**
- * 首屏绘制前就把首页的背景图应用上：
- * 否则 React 挂载后才贴背景图，会先闪一下空背景。
- */
-const homeAppearanceScript = `(function(){try{
-if(location.pathname!=='/')return;
-var root=document.documentElement;
-root.setAttribute('data-home-theme',localStorage.getItem('istudio-home-theme')==='light'?'light':'dark');
-var bg=localStorage.getItem('istudio-home-background');
-if(bg&&bg.indexOf('data:image/')===0)root.style.setProperty('--home-bg','url("'+bg+'")');
-}catch(e){}})();`
+import './studio.css'
 
 /**
  * 工作台骨架屏渲染前就把配置面板方向定下来：
  * 否则骨架屏默认左侧、React 挂载后从 localStorage 读到右侧，布局会闪跳一下。
  */
+const themeScript = `(function(){var theme;try{theme=localStorage.getItem('istudio-theme')}catch(e){}document.documentElement.setAttribute('data-theme',theme==='dark'||(theme!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light')})();`
+
 const workbenchConfigSideScript = `(function(){try{
-if(location.pathname!=='/workbench')return;
+document.documentElement.setAttribute('data-studio-rail',localStorage.getItem('istudio-rail-collapsed')==='true'?'collapsed':'expanded');
+if(location.pathname!=='/workbench'&&location.pathname!=='/')return;
 var side=localStorage.getItem('istudio-config-side');
 document.documentElement.setAttribute('data-wb-side',side||'left');
 }catch(e){}})();`
 
 export const metadata: Metadata = {
-  title: 'iStudio AI - 电商视觉工作台',
-  description: '面向电商团队的 AI 图片创作工作台',
+  title: 'iStudio - 个人 AI 创作工作台',
+  description: '个人 AI 生图、灵感探索与电商视觉创作工作台',
 }
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="zh-CN" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: homeAppearanceScript }} />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: workbenchConfigSideScript }} />
       </head>
       <body>{children}</body>
