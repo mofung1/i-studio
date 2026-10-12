@@ -75,6 +75,7 @@ export function ResultWorkspace({
   const pendingImageRef = useRef<number | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [downloadError, setDownloadError] = useState('')
 
   const isHistoryView = Boolean(historyTask)
   const images = isHistoryView ? (historyTask?.resultImages ?? []) : (activeResult?.resultImages ?? [])
@@ -120,7 +121,12 @@ export function ResultWorkspace({
   function downloadCurrent() {
     if (!heroImage) return
     const prefix = isHistoryView ? historyTask?.id.slice(0, 8) : activeResult?.id.slice(0, 8)
-    void downloadProtectedAsset(heroImage, `istudio-${prefix ?? 'result'}-${safeIndex + 1}.png`)
+    downloadImage(heroImage, `istudio-${prefix ?? 'result'}-${safeIndex + 1}.png`)
+  }
+
+  function downloadImage(path: string, filename: string) {
+    setDownloadError('')
+    void downloadProtectedAsset(path, filename).catch(() => setDownloadError('下载失败，请检查连接后重试'))
   }
 
   function step(direction: -1 | 1) {
@@ -190,6 +196,8 @@ export function ResultWorkspace({
         </div>
       </header>
 
+      {downloadError && <p className="form-notice error" role="alert">{downloadError}</p>}
+
       <div className="result-body">
         {isGenerating && !isHistoryView && (
           <div className="result-generating">
@@ -238,12 +246,6 @@ export function ResultWorkspace({
 
         {heroImage !== '' && (!isGenerating || isHistoryView) && (
           <div className="result-result">
-            {imageSource.mode === 'general' ? <div className={`general-result-grid count-${images.length}`} aria-label="本次生成的图片">
-              {images.map((path, index) => <figure className="general-result-image" key={path}>
-                <button type="button" className="general-result-open" aria-label={`放大查看第 ${index + 1} 张`} onClick={() => { setActiveImageIndex(index); setLightboxOpen(true) }}><AuthenticatedImage path={path} alt={`AI 生成结果 ${index + 1}`} /></button>
-                <figcaption><span>第 {index + 1} 张</span><div><button type="button" aria-label={`下载第 ${index + 1} 张`} title="下载图片" onClick={() => void downloadProtectedAsset(path, `istudio-${heroGroup}-${index + 1}.png`)}><Download size={15} /></button><button type="button" aria-label={`第 ${index + 1} 张用作参考图`} title="用作参考图" onClick={() => onUseImageAsReference(path, imageSource)}><RotateCcw size={15} /></button></div></figcaption>
-              </figure>)}
-            </div> : (
             <div className={`result-stage${images.length > 1 ? ' has-strip' : ''}`}>
               {/* 图片就绪前先按当前比例撑出与结果一致的画框，避免生成完成时塌陷或跳动 */}
               <div
@@ -337,7 +339,6 @@ export function ResultWorkspace({
                 </ol>
               )}
             </div>
-            )}
             <div className="canvas-image-footer"><span>当前图片 · {safeIndex + 1} / {images.length}</span><button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => onUseImageAsReference(heroImage, imageSource)}><ImageIcon size={15} />用作参考，继续创作</button></div>
           </div>
         )}
@@ -357,7 +358,7 @@ export function ResultWorkspace({
               }
               onSetActiveResultIndex(() => resultIndex)
             }}
-            onDownload={(path, filename) => void downloadProtectedAsset(path, filename)}
+            onDownload={downloadImage}
             onUseAsReference={(path) => onUseImageAsReference(path, { mode, taskType: task })}
           />
         )}
@@ -372,7 +373,7 @@ export function ResultWorkspace({
         refreshKey={refreshKey}
         onClose={onToggleHistory}
         onSelect={onSelectHistory}
-        onDownload={(path, filename) => void downloadProtectedAsset(path, filename)}
+        onDownload={downloadImage}
         onUseAsReference={onUseImageAsReference}
         onLoadConfig={onLoadHistoryConfig}
         onRegenerate={onRegenerateFromHistory}

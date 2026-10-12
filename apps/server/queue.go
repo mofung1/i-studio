@@ -53,16 +53,18 @@ func generationWorkerCount(raw string) int {
 	return count
 }
 
-func (q *taskQueue) enqueue(id string) {
+func (q *taskQueue) enqueue(id string) bool {
 	if q.redis != nil {
 		if q.redis.LPush(context.Background(), generationQueueKey, id).Err() == nil {
-			return
+			return true
 		}
 	}
 	select {
 	case q.fallback <- id:
+		return true
 	default:
-		fmt.Printf("queue full, task %s remains queued\n", id)
+		q.server.updateTaskResult(id, "failed", nil, nil, "生成队列已满，请稍后重试")
+		return false
 	}
 }
 
@@ -92,6 +94,10 @@ func (q *taskQueue) recoverRedisTasks() {
 }
 
 func (q *taskQueue) nextTask() (string, bool) {
+	if q.redis == nil {
+		id, ok := <-q.fallback
+		return id, ok && id != ""
+	}
 	if q.redis != nil {
 		values, err := q.redis.BRPopLPush(context.Background(), generationQueueKey, generationProcessingKey, 3*time.Second).Result()
 		if err == nil && values != "" {
@@ -101,7 +107,7 @@ func (q *taskQueue) nextTask() (string, bool) {
 	select {
 	case id := <-q.fallback:
 		return id, id != ""
-	default:
+	case <-time.After(250 * time.Millisecond):
 		return "", false
 	}
 }

@@ -16,6 +16,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
+	"maps"
 	mimepkg "mime"
 	"net/http"
 	"os"
@@ -89,8 +90,11 @@ func main() {
 		panic(fmt.Errorf("database migration failed: %w", err))
 	}
 	root := env("STORAGE_ROOT", "storage/uploads")
-	_ = os.MkdirAll(root, 0o755)
-	s := &server{users: map[string]user{}, tasks: map[string]task{}, secret: []byte(env("AUTH_JWT_SECRET", "istudio-dev-secret-change-me")), db: db, storageRoot: root, storage: newLocalStorage(root)}
+	secret, err := loadAuthSecret(root)
+	if err != nil {
+		panic(fmt.Errorf("auth signing key initialization failed: %w", err))
+	}
+	s := &server{users: map[string]user{}, tasks: map[string]task{}, secret: secret, db: db, storageRoot: root, storage: newLocalStorage(root)}
 	s.ai = newAIConfigStore(s)
 	if err := s.ai.migrateLegacy(); err != nil {
 		panic(fmt.Errorf("AI configuration initialization failed: %w", err))
@@ -372,14 +376,15 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 			s.error(w, 500, "TASK_STORAGE_ERROR", "任务暂时无法保存")
 			return
 		}
-		s.json(w, http.StatusAccepted, map[string]any{"task": t, "aiEnabled": s.provider != nil, "message": "任务已创建，等待 AI 服务处理。"})
-		s.queue.enqueue(t.ID)
+	} else {
+		s.mu.Lock()
+		s.tasks[t.ID] = t
+		s.mu.Unlock()
+	}
+	if !s.queue.enqueue(t.ID) {
+		s.error(w, http.StatusServiceUnavailable, "GENERATION_QUEUE_FULL", "生成队列已满，请稍后重试")
 		return
 	}
-	s.mu.Lock()
-	s.tasks[t.ID] = t
-	s.mu.Unlock()
-	s.queue.enqueue(t.ID)
 	s.json(w, http.StatusAccepted, map[string]any{"task": t, "aiEnabled": s.provider != nil, "message": "任务已创建，等待 AI 服务处理。"})
 }
 func (s *server) taskByID(w http.ResponseWriter, r *http.Request) {
@@ -437,13 +442,27 @@ func (s *server) deleteTask(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 	if s.db != nil {
-		keys, err := deleteTaskRecords(s.db, userID, id)
+		tx, err := s.db.Begin()
+		if err != nil {
+			s.error(w, 500, "TASK_STORAGE_ERROR", "删除失败，请稍后重试")
+			return
+		}
+		defer tx.Rollback()
+		keys, err := deleteTaskRecords(tx, userID, id)
 		if err == sql.ErrNoRows {
 			s.error(w, http.StatusNotFound, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
 			return
 		}
 		if err != nil {
+			if err == errTaskActive {
+				s.error(w, http.StatusConflict, "GENERATION_TASK_ACTIVE", "任务正在生成，请完成后再删除")
+				return
+			}
 			s.error(w, http.StatusInternalServerError, "TASK_STORAGE_ERROR", "删除失败，请稍后重试")
+			return
+		}
+		if err := tx.Commit(); err != nil {
+			s.error(w, 500, "TASK_STORAGE_ERROR", "删除失败，请稍后重试")
 			return
 		}
 		for _, key := range keys {
@@ -459,6 +478,10 @@ func (s *server) deleteTask(w http.ResponseWriter, r *http.Request, id string) {
 	t, ok := s.tasks[id]
 	if !ok || t.UserID != userID {
 		s.error(w, http.StatusNotFound, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
+		return
+	}
+	if isActiveTask(t.Status) {
+		s.error(w, http.StatusConflict, "GENERATION_TASK_ACTIVE", "任务正在生成，请完成后再删除")
 		return
 	}
 	delete(s.tasks, id)
@@ -499,9 +522,19 @@ func (s *server) retryTask(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 	input, ok := original.Input.(map[string]any)
+	input = maps.Clone(input)
 	if !ok || validateGenerationInput(input) != nil {
 		s.error(w, http.StatusBadRequest, "GENERATION_INPUT_INVALID", "原任务参数无法重试")
 		return
+	}
+	if s.ai != nil {
+		e, err := s.ai.resolve("image", stringValue(input["endpointId"], ""), stringValue(input["model"], ""))
+		if err != nil {
+			s.error(w, 503, "AI_ENDPOINT_UNAVAILABLE", err.Error())
+			return
+		}
+		input["endpointId"] = e.ID
+		input["model"] = e.Model
 	}
 	if err := s.validateInputOwnership(userID, input); err != nil {
 		s.error(w, http.StatusBadRequest, "GENERATION_ASSET_INVALID", err.Error())
@@ -519,7 +552,10 @@ func (s *server) retryTask(w http.ResponseWriter, r *http.Request, id string) {
 		s.tasks[retry.ID] = retry
 		s.mu.Unlock()
 	}
-	s.queue.enqueue(retry.ID)
+	if !s.queue.enqueue(retry.ID) {
+		s.error(w, http.StatusServiceUnavailable, "GENERATION_QUEUE_FULL", "生成队列已满，请稍后重试")
+		return
+	}
 	s.json(w, http.StatusAccepted, map[string]any{"task": retry, "message": "任务已创建，等待 AI 服务处理。"})
 }
 
@@ -620,13 +656,23 @@ func (s *server) deleteAsset(w http.ResponseWriter, r *http.Request, id string) 
 		s.error(w, http.StatusServiceUnavailable, "DATABASE_REQUIRED", "删除资产需要数据库服务")
 		return
 	}
-	key, err := deleteAssetRecord(s.db, userID, id)
+	tx, err := s.db.Begin()
+	if err != nil {
+		s.error(w, 500, "ASSET_STORAGE_ERROR", "删除失败，请稍后重试")
+		return
+	}
+	defer tx.Rollback()
+	key, err := deleteAssetRecord(tx, userID, id)
 	if err == sql.ErrNoRows {
 		s.error(w, http.StatusNotFound, "ASSET_NOT_FOUND", "资产不存在")
 		return
 	}
 	if err != nil {
 		s.error(w, http.StatusInternalServerError, "ASSET_STORAGE_ERROR", "删除失败，请稍后重试")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		s.error(w, 500, "ASSET_STORAGE_ERROR", "删除失败，请稍后重试")
 		return
 	}
 	if key != "" && s.storage != nil {
@@ -731,10 +777,12 @@ func (s *server) assets(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusServiceUnavailable, "DATABASE_REQUIRED", "上传素材需要数据库服务")
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 11<<20)
 	if err := r.ParseMultipartForm(11 << 20); err != nil {
 		s.error(w, 400, "ASSET_UPLOAD_INVALID", "上传文件无效")
 		return
 	}
+	defer r.MultipartForm.RemoveAll()
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		s.error(w, 400, "ASSET_FILE_REQUIRED", "请选择图片")

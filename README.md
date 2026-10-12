@@ -1,92 +1,172 @@
 # iStudio
 
-面向国内和跨境电商团队的 AI 图片创作平台。
+个人部署的 AI 图片创作工作台，包含通用生图、四种电商工具、灵感库、生成资产与 AI 服务配置。首页直接进入工作台。
+
+## 当前功能
+
+- **AI 生图**：文字描述、最多 6 张参考图、模型选择、画面比例、1K / 2K / 4K、风格与参考强度；界面一次可生成 1–4 张。
+- **电商工具**：商品主图、详情页、爆款复刻、产品精修；主图和详情页可按模块组合，单个模块最多 4 张，总计最多 16 张。
+- **生成结果**：任务进度、主图预览、缩略图切换、下载、继续创作与重新生成。通用生图提交成功后，底部配置自动折叠；完成后保持折叠，继续创作时展开。
+- **资产与历史**：查看生成图片、提示词和参数；载入历史配置继续编辑；删除图片或整条记录。生成中的任务需完成后才能删除。
+- **灵感库**：公开只读，支持搜索、分类、分页加载、复制提示词和带入工作台，需要先导入案例数据。
+- **AI 配置**：首个注册账号管理全局服务和 Prompt 模板，其他账号可使用已启用服务。Prompt AI 支持图片识别能力开关。
+
+风格与参考强度通过发送给模型的文字指令表达；实际尺寸、参考效果及可用分辨率取决于所配置的模型。
 
 ## 目录结构
 
 ```text
-apps/web     Next.js 用户端（独立 pnpm 项目）
-apps/server  Go API server
-docker       Docker Compose（PostgreSQL / Redis / API / Web）
-ui           Appica Nova 版前端（保留原路由与业务逻辑的换肤版）
-UI-1         灯箱与工单版前端（无落地页，首页即工作台）
-UI-2         柔光台版前端（浅色玻璃 + 柔和彩色，先做生成页与登录页）
-UI-3         黑白工坊版前端（黑白主题 + 柠檬黄点缀，先做生成页与登录页）
-UI-4         Studio Calm 版前端（简约大气、雾蓝与薄荷色点缀，当前只设计生图主页）
+apps/web/       Next.js 15 + React 19 用户端，独立 pnpm 项目
+apps/server/    Go API、鉴权、数据库、任务队列、AI 协议客户端
+  migrations/   AI 配置表迁移（随服务编译并在启动时执行）
+  seed/         灵感库导入所需的 Markdown
+  storage/      本地运行数据（uploads 下的文件不提交到 Git）
+docker/         Docker Compose 和前后端 Dockerfile
+docs/           实现记录与项目检查报告
+design/         设计参考
+dev.sh          本地前后端启动脚本
+TODO.md         后续功能计划
 ```
 
-## 本地开发
+旧 `ui`、`UI-1`～`UI-4` 换肤副本、废弃首页与临时骨架屏预览已移除；当前唯一前端位于 `apps/web`。
 
-### 前后端一键启动（dev.sh）
+## 快速启动
 
-```bash
-./dev.sh              # 前端 http://127.0.0.1:3000 + API http://127.0.0.1:4000
-./dev.sh --infra      # 顺带用 Docker 起 postgres / redis（数据持久化）
-./dev.sh --web-port 3100 --api-port 4100   # 自定义端口（会自动放行 CORS 来源）
-./dev.sh --no-install # 跳过 pnpm install
-```
+### Docker（完整持久化环境）
 
-脚本会做的事：检查 `go`/`node`/`pnpm` 与端口占用、探测 Postgres/Redis 是否可达（连不上会说明会降级成内存存储 / 进程内队列）、编译后端二进制后与 Next dev 一起启动，日志分别带 `[api]` / `[web]` 前缀；按 `Ctrl+C` 同时停掉两端并释放端口。
-
-### Docker 一键启动（推荐）
+需要 Docker 和支持 `env_file.required` 的 Docker Compose v2。AI 服务可在网页中配置，无需先填写供应商密钥。
 
 ```bash
 cd docker
 docker compose up --build
 ```
 
-同时启动 PostgreSQL、Redis、Go API 和 Next.js Web。默认端口：
-
-| 服务 | 端口 |
+| 服务 | 默认地址 / 端口 |
 | --- | --- |
-| Web | `33000` |
-| API | `44000` |
-| PostgreSQL | `55432` |
-| Redis | `56379` |
+| Web | http://127.0.0.1:33000 |
+| API | http://127.0.0.1:44000 |
+| PostgreSQL | 127.0.0.1:55432 |
+| Redis | 127.0.0.1:56379 |
 
-可通过环境变量覆盖（`WEB_PORT`、`API_PORT`、`POSTGRES_PORT`、`REDIS_PORT`）。前台运行时按 `Ctrl+C` 停止整组服务；数据保存在 Docker volumes 中，下次启动仍保留。
-
-### 前端单独开发
+默认仅绑定宿主机回环地址。`WEB_PORT`、`API_PORT`、`POSTGRES_PORT` 和 `REDIS_PORT` 可覆盖端口；前端 API 地址和 CORS 会随 Web / API 端口变化。例如：
 
 ```bash
+WEB_PORT=33100 API_PORT=44100 docker compose up --build
+```
+
+如果通过其他主机名或反向代理访问，需要配置浏览器可达的 `NEXT_PUBLIC_API_BASE_URL` 与 API 的 `WEB_ORIGINS`。`NEXT_PUBLIC_*` 在构建时写入前端，改地址后必须重新构建 Web。
+
+前台按 `Ctrl+C` 停止服务。后台启动用 `docker compose up -d --build`，查看日志用 `docker compose logs -f api web`，停止用 `docker compose down`。`down` 保留命名卷，`down -v` 会删除数据库及 Redis 数据。
+
+### 本地开发
+
+需要 Node.js 20+、pnpm 10 和 Go 1.25。首次运行先复制后端配置：
+
+```bash
+cp apps/server/.env.example apps/server/.env
+./dev.sh --infra
+```
+
+`--infra` 启动 Compose 中的 PostgreSQL / Redis。前端默认 http://127.0.0.1:3000，API 默认 http://127.0.0.1:4000。
+
+```bash
+./dev.sh                                   # 使用已启动的基础服务
+./dev.sh --web-port 3100 --api-port 4100     # 自定义前后端端口
+./dev.sh --no-install                       # 跳过前端依赖安装
+```
+
+脚本自动将前端连接到本次 API 端口，无需修改 `.env.local`；检查端口、安装缺失的前端依赖、构建 API，并带 `[api]` / `[web]` 前缀输出日志。停止时只清理本次启动的进程。
+
+同一套数据库 / Redis 当前应只运行一个 API 进程；使用本地 API 前，先停止 Compose 的 API：
+
+```bash
+cd docker
+docker compose stop api
+```
+
+也可以分别启动：
+
+```bash
+# 终端 1
+cd apps/server
+go run .
+
+# 终端 2
 cd apps/web
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-默认运行在 http://127.0.0.1:3000。
+前端单独开发默认请求 `http://127.0.0.1:4000`。如果连接 Docker 后端，可在 `apps/web/.env.local` 配置：
 
-### 后端
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:44000
+```
+
+同时将该前端来源加入后端 `WEB_ORIGINS`；Compose 默认允许 33000 和本地开发的 3000。
+
+## 首次配置 AI
+
+1. 打开工作台，注册账号。首个账号拥有全局 AI 配置管理权限。
+2. 进入 `/settings/ai`，添加 Image AI 服务，填写名称、协议、Base URL、API Key、Model 和超时，启用服务。
+3. 如需 AI 优化提示词，添加 Prompt AI 服务；模型支持图片输入时开启 Vision。
+4. 回到工作台选择模型并生成。每种用途自动选择一个默认服务，也可手动指定；禁用或删除默认服务会重新选择可用项。
+
+| 用途 | 支持协议 |
+| --- | --- |
+| Prompt AI | OpenAI Compatible Chat |
+| Image AI | OpenAI Image API（生成及 multipart 编辑）、Gemini generateContent |
+
+Model 为自由字符串，支持官方、自建或兼容服务。Base URL 填服务根地址或版本根地址；例如 OpenAI Compatible 的 `/v1` 根路径、Gemini 的服务根地址或 `/v1beta`。
+
+Prompt 配置包含通用、电商及四种任务模板，可启用、保存、查看或恢复默认。初始化会补齐缺失模板、更新默认内容并保留已保存的自定义内容。关闭 Vision 时，前端不发送图片，后端也会拒绝图片输入。
+
+**测试连接会实际调用所选服务；图片测试会生成一张图并可能产生费用。** 自动测试使用模拟客户端，不调用已配置的付费服务。
+
+旧 `DEEPSEEK_*` / `BANANA_ROUTER_*` 环境变量仅用于首次迁移已有部署。新部署直接使用网页配置；旧 Endpoint 的异步能力保留，新配置使用标准同步图片协议。
+
+## 数据与备份
+
+- PostgreSQL 保存账号、任务、资产元数据、灵感库及 AI 配置；Docker 使用 `istudio_postgres_data` 命名卷。
+- 生成图片写入 `STORAGE_ROOT`，按北京时间日期归档；Compose 绑定到 `apps/server/storage/uploads`。
+- AI Key 使用 AES-256-GCM 加密，接口仅返回配置状态和尾四位掩码。未提供 `AI_CONFIG_ENCRYPTION_KEY` 时自动创建 `STORAGE_ROOT/.ai/encryption.key`。
+- 未提供 `AUTH_JWT_SECRET` 时自动创建随机签名密钥 `STORAGE_ROOT/.auth/signing.key`；显式配置时使用自己的随机长字符串。原来使用固定默认密钥的部署，切换到随机密钥后需要重新登录。
+- **备份应同时包含 PostgreSQL、整个 `STORAGE_ROOT` 和自定义环境变量。** 丢失 AI 加密密钥会导致已有供应商 Key 无法解密。
+
+PostgreSQL 不可用时，账号和任务回退到内存，重启后丢失；素材上传、资产持久化与灵感库需要数据库。AI 配置仍可保存到 `.ai/config.json`。Redis 不可用时使用进程内队列，重启不保证恢复未完成任务；Redis 模式支持恢复处理中队列，但当前没有多实例租约机制。
+
+## 灵感库导入
+
+需要 PostgreSQL；导入命令读取已准备好的 Markdown，并下载案例图。可指定自己的文件和图片源：
 
 ```bash
 cd apps/server
-cp .env.example .env   # 配置数据库、认证等部署参数；AI 服务在 Web 中填写
-go run .
+go run . seed-inspiration -h
+go run . seed-inspiration \
+  -g1 seed/handdraw-gallery.md \
+  -g2 seed/empty.md \
+  -cat seed/handdraw-categories.md
 ```
 
-启动后用首个注册账号进入 `/settings/ai`，配置 Prompt AI 和 Image AI 的协议、Base URL、API Key、Model、超时并启用。每种用途自动选择一个默认 Endpoint，也可以手动切换；删除或禁用默认项会自动选取另一个启用项。其他账号可使用这些服务，只允许首个账号管理全局配置。
+默认图片源及参数见 `seed-inspiration -h`。图片保存于 `STORAGE_ROOT/inspiration`，不进入 Git；Compose API 的绑定挂载会复用这些文件。`CDN_BASE_URL` 可切换到已上传的案例图地址。
 
-Prompt AI 支持 OpenAI Compatible Chat；Image AI 支持 OpenAI Image API（生成与 multipart 编辑）和 Gemini generateContent。模型名是自由字符串，同一协议客户端适用于官方、自建或中转地址。OpenAI Chat 的 Base URL 可为服务的版本根路径（例如 `https://api.openai.com/v1` 或 `https://api.deepseek.com`）；OpenAI Image 使用 `/v1` 版本根路径；Gemini 可填服务根地址或 `/v1beta`。工作台读取已启用 Endpoint，不再限制固定模型名单。
-
-Prompt 配置页可编辑通用、电商系统提示词和四种电商任务模板，支持启用、保存、查看与恢复默认。初始化仅补齐缺失模板并更新默认内容，保留用户已保存的内容。Prompt Endpoint 的 Vision capability 控制图片输入；关闭时前端只发送文字，后端拒绝图片请求。
-
-API Key 在后端用 AES-256-GCM 加密存储，响应仅返回配置状态和尾四位掩码。未设置 `AI_CONFIG_ENCRYPTION_KEY` 时，自动生成 `STORAGE_ROOT/.ai/encryption.key`（权限 0600）。备份或迁移数据库时必须同时保存此文件；多实例应使用同一个 32 字节 Base64 密钥。Docker 已挂载 `STORAGE_ROOT`，密钥会随该目录持久保存。无 PostgreSQL 时，AI 设置回退到 `STORAGE_ROOT/.ai/config.json` 的加密本地存储；账号、素材等仍遵循现有内存降级行为。
-
-首次初始化且没有 Endpoint 时，旧 `DEEPSEEK_*` 自动迁移为 `openai_chat`，旧 `BANANA_ROUTER_*` 自动迁移为两个图片协议对应的旧模型配置（保留 GPT 默认值及异步路径）。迁移标记避免启动重复创建，之后以数据库为主。旧部署导入的 `capabilities.async` 保留异步图片扩展；新配置使用标准同步 OpenAI Image API。BananaRouter 仅作为旧变量名称存在。
-
-“测试连接”会真实调用所选协议与模型，图片测试会生成一张图片并可能产生费用。自动回归使用本地模拟服务，不发起付费请求。
-
-## 交付验证
+## 验证
 
 ```bash
-cd apps/web && pnpm typecheck && pnpm test && pnpm build
+pnpm --dir apps/web typecheck
+pnpm --dir apps/web test
+pnpm --dir apps/web build
 GOCACHE=/tmp/istudio-go-cache go -C apps/server test -race ./...
+GOCACHE=/tmp/istudio-go-cache go -C apps/server vet ./...
+bash -n dev.sh
+docker compose -f docker/docker-compose.yml config --quiet
 ```
 
-后端在启动时执行 `apps/server/migrations/001_ai_configuration.sql`，新增 `ai_endpoints`、`prompt_templates` 与 `schema_migrations`（首次导入标记）。新增接口：
+数据库回归默认跳过。通过 `TEST_DATABASE_URL` 开启，测试会创建独立 schema 并在结束时清理，不读取业务 AI 配置：
 
-- `GET/POST /v1/ai-endpoints`
-- `PUT/DELETE /v1/ai-endpoints/:id`
-- `POST /v1/ai-endpoints/:id/test`
-- `POST /v1/ai-endpoints/:id/default`
-- `GET/PUT /v1/prompt-templates`（PUT 可传 `restoreDefault: true`）
+```bash
+TEST_DATABASE_URL='postgresql://istudio:istudio_dev@127.0.0.1:55432/istudio?sslmode=disable' \
+  GOCACHE=/tmp/istudio-go-cache go -C apps/server test -race ./...
+```
+
+当前检查结果和仍需演进的设计见 [项目检查报告](docs/project-review-2026-10-12.md)，产品计划见 [TODO](TODO.md)。

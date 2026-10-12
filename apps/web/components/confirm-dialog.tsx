@@ -1,8 +1,9 @@
 'use client'
 
 import { AlertTriangle, Loader2, X } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useDialogFocus } from './use-dialog-focus'
 
 interface ConfirmDialogProps {
   title: string
@@ -12,51 +13,32 @@ interface ConfirmDialogProps {
   detail?: string
   confirmLabel: string
   busy?: boolean
+  error?: string
   onCancel: () => void
   onConfirm: () => void
 }
 
 /** 通用二次确认弹窗：删除这类不可恢复的操作统一走它，样式与重新生成弹窗保持一致。 */
 export function ConfirmDialog({
-  title, description, detail, confirmLabel, busy = false, onCancel, onConfirm,
+  title, description, detail, confirmLabel, busy = false, error, onCancel, onConfirm,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onCancel()
-        return
-      }
-      if (event.key !== 'Tab') return
-      const focusables = dialogRef.current?.querySelectorAll('button')
-      if (!focusables?.length) return
-      const first = focusables[0] as HTMLElement
-      const last = focusables[focusables.length - 1] as HTMLElement
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
+  useDialogFocus(dialogRef, () => { if (!busy) onCancel() }, '.confirm-dialog-cancel')
 
   return createPortal(
     <div
       className="dialog-backdrop"
       role="presentation"
-      onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel() }}
+      onMouseDown={(event) => { if (!busy && event.target === event.currentTarget) onCancel() }}
     >
       <div className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" ref={dialogRef}>
         <header className="confirm-dialog-head">
           <h2 id="confirm-dialog-title">{title}</h2>
-          <button type="button" aria-label="关闭" title="关闭" onClick={onCancel}><X size={17} /></button>
+          <button type="button" aria-label="关闭" title="关闭" disabled={busy} onClick={onCancel}><X size={17} /></button>
         </header>
         <p className="confirm-dialog-note">{description}</p>
+        {error && <p className="form-notice error" role="alert">{error}</p>}
         {detail && (
           <p className="confirm-dialog-warning">
             <AlertTriangle size={13} aria-hidden="true" />
@@ -64,8 +46,8 @@ export function ConfirmDialog({
           </p>
         )}
         <div className="confirm-dialog-actions">
-          <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>取消</button>
-          <button type="button" className="confirm-dialog-primary is-danger" autoFocus disabled={busy} onClick={onConfirm}>
+          <button type="button" className="confirm-dialog-cancel" disabled={busy} onClick={onCancel}>取消</button>
+          <button type="button" className="confirm-dialog-primary is-danger" disabled={busy} onClick={onConfirm}>
             {busy && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
             {confirmLabel}
           </button>

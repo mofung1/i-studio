@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, Sparkles, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useDialogFocus } from '../use-dialog-focus'
 
 export interface RegenerateRow {
   label: string
@@ -36,6 +37,7 @@ export function RegenerateDialog({ title, rows, expectedCount, onCancel, onConfi
   // 只有真的被截断的行才需要「展开」按钮
   const [overflowingRows, setOverflowingRows] = useState<string[]>([])
   const dialogRef = useRef<HTMLDivElement>(null)
+  useDialogFocus(dialogRef, onCancel, '.confirm-dialog-cancel')
   const textRefs = useRef<Record<string, HTMLElement | null>>({})
 
   // rows 每次渲染都是新数组，这里只在测量结果变化时才更新 state，避免死循环
@@ -50,28 +52,6 @@ export function RegenerateDialog({ title, rows, expectedCount, onCancel, onConfi
     setOverflowingRows((current) => (current.join('|') === next.join('|') ? current : next))
   }, [expandedRows, rows])
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onCancel()
-        return
-      }
-      if (event.key !== 'Tab') return
-      const focusables = dialogRef.current?.querySelectorAll('button, input')
-      if (!focusables?.length) return
-      const first = focusables[0] as HTMLElement
-      const last = focusables[focusables.length - 1] as HTMLElement
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onCancel])
 
   function confirm() {
     if (skipNextTime) window.localStorage.setItem(SKIP_KEY, '1')
@@ -130,7 +110,7 @@ export function RegenerateDialog({ title, rows, expectedCount, onCancel, onConfi
         </label>
         <div className="confirm-dialog-actions">
           <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>取消</button>
-          <button type="button" className="confirm-dialog-primary" autoFocus onClick={confirm}>
+          <button type="button" className="confirm-dialog-primary" onClick={confirm}>
             <Sparkles size={15} aria-hidden="true" />确认生成
           </button>
         </div>

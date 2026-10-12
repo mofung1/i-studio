@@ -12,6 +12,8 @@ var allowedLanguages = stringSet("none", "zh-CN", "zh-TW", "en", "ja", "ko", "th
 var allowedTasks = stringSet("product-main", "detail-page", "viral-recreate", "product-retouch")
 var allowedRecreateStrengths = stringSet("style", "high")
 var allowedEnhancements = stringSet("gloss", "repair", "clarity", "color", "perspective", "background")
+var allowedStyles = stringSet("unspecified", "studio", "minimal", "fresh", "technology", "guochao", "handdrawn")
+var allowedReferenceStrengths = stringSet("low", "medium", "high")
 
 func validateGenerationInput(input map[string]any) error {
 	if input["model"] == nil {
@@ -24,15 +26,21 @@ func validateGenerationInput(input map[string]any) error {
 			return err
 		}
 	}
+	if input["projectId"] != nil {
+		if err := requireText(input, "projectId", 1, 200); err != nil {
+			return err
+		}
+	}
 	if err := requireOneOf(input, "aspectRatio", allowedRatios, "1:1"); err != nil {
 		return err
 	}
 	if err := requireOneOf(input, "resolution", allowedResolutions, "2K"); err != nil {
 		return err
 	}
-	count := intValue(input["count"], 1)
-	if count < 1 || count > 16 || (input["count"] != nil && !isJSONInteger(input["count"])) {
-		return fmt.Errorf("count must be an integer between 1 and 16")
+	if value, exists := input["count"]; exists {
+		if !isJSONInteger(value) || value.(float64) < 1 || value.(float64) > 16 {
+			return fmt.Errorf("count must be an integer between 1 and 16")
+		}
 	}
 	mode, ok := input["mode"].(string)
 	if !ok {
@@ -41,6 +49,12 @@ func validateGenerationInput(input map[string]any) error {
 	switch mode {
 	case "general":
 		if err := requireText(input, "prompt", 1, 10000); err != nil {
+			return err
+		}
+		if err := requireOneOf(input, "style", allowedStyles, "unspecified"); err != nil {
+			return err
+		}
+		if err := requireOneOf(input, "referenceStrength", allowedReferenceStrengths, "medium"); err != nil {
 			return err
 		}
 		return validateStringArray(input, "referenceAssetIds", 0, 6, 200)
@@ -63,6 +77,15 @@ func validateCommerceInput(input map[string]any) error {
 		return err
 	}
 	taskType, _ := input["taskType"].(string)
+	requirementsLimit := 2000
+	if taskType == "viral-recreate" || taskType == "product-retouch" {
+		requirementsLimit = 1000
+	}
+	if input["requirements"] != nil {
+		if err := requireText(input, "requirements", 0, requirementsLimit); err != nil {
+			return err
+		}
+	}
 	switch taskType {
 	case "product-main", "detail-page":
 		if err := requireOneOf(input, "outputLanguage", allowedLanguages, "none"); err != nil {
@@ -73,6 +96,11 @@ func validateCommerceInput(input map[string]any) error {
 		}
 		moduleTotal := 0
 		countProvided := input["count"] != nil
+		if input["moduleCounts"] != nil {
+			if _, ok := input["moduleCounts"].(map[string]any); !ok {
+				return fmt.Errorf("moduleCounts must be an object")
+			}
+		}
 		if counts, ok := input["moduleCounts"].(map[string]any); ok {
 			allowed := allowedModules[taskType]
 			for key, value := range counts {
@@ -94,7 +122,10 @@ func validateCommerceInput(input map[string]any) error {
 		if moduleTotal > 16 {
 			return fmt.Errorf("moduleCounts total must not exceed 16")
 		}
-		if stringValue(input["moduleMode"], "smart") == "custom" && moduleTotal > 0 {
+		if stringValue(input["moduleMode"], "smart") == "custom" {
+			if moduleTotal == 0 {
+				return fmt.Errorf("custom module mode requires at least one module")
+			}
 			if !countProvided {
 				count = moduleTotal
 				input["count"] = float64(moduleTotal)
@@ -104,6 +135,9 @@ func validateCommerceInput(input map[string]any) error {
 		}
 		return nil
 	case "viral-recreate":
+		if err := requireOneOf(input, "outputLanguage", allowedLanguages, "none"); err != nil {
+			return err
+		}
 		if err := validateStringArray(input, "referenceAssetIds", 1, 1, 200); err != nil {
 			return err
 		}
@@ -143,13 +177,17 @@ func requireText(input map[string]any, key string, minimum, maximum int) error {
 }
 
 func requireOneOf(input map[string]any, key string, allowed map[string]struct{}, fallback string) error {
-	value, ok := input[key].(string)
-	if !ok || value == "" {
+	raw, exists := input[key]
+	value, ok := raw.(string)
+	if !exists || (ok && value == "") {
 		if fallback != "" {
 			input[key] = fallback
 			return nil
 		}
 		return fmt.Errorf("%s is required", key)
+	}
+	if !ok {
+		return fmt.Errorf("%s must be a string", key)
 	}
 	if _, ok := allowed[value]; !ok {
 		return fmt.Errorf("unsupported %s %q", key, value)

@@ -1,43 +1,10 @@
 package main
 
-import (
-	"database/sql"
-	"net/url"
-	"os"
-	"testing"
-)
+import "testing"
 
 // Uses an isolated schema and never reads production AI configuration.
 func TestAIConfigurationPostgres(t *testing.T) {
-	rawURL := os.Getenv("TEST_AI_DATABASE_URL")
-	if rawURL == "" {
-		t.Skip("TEST_AI_DATABASE_URL not set")
-	}
-	db, err := sql.Open("pgx", rawURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	schema := "ai_test_" + randomID()
-	if _, err := db.Exec("CREATE SCHEMA " + schema); err != nil {
-		t.Fatal(err)
-	}
-	defer db.Exec("DROP SCHEMA " + schema + " CASCADE")
-	parsed, err := url.Parse(rawURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	query := parsed.Query()
-	query.Set("search_path", schema)
-	parsed.RawQuery = query.Encode()
-	isolated, err := sql.Open("pgx", parsed.String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer isolated.Close()
-	if err := migrateDatabase(isolated); err != nil {
-		t.Fatal(err)
-	}
+	isolated := isolatedTestDatabase(t)
 	s := testAIStore(t)
 	s.db = isolated
 	if err := s.ai.migrateLegacy(); err != nil {

@@ -55,6 +55,7 @@ export function HistoryDrawer({
   const [scope, setScope] = useState<'type' | 'all'>('type')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmTarget, setConfirmTarget] = useState<HistoryTask | null>(null)
+  const [deleteError, setDeleteError] = useState('')
   const { tasks, isLoading, error, reload } = useTaskHistory({
     mode: scope === 'type' ? mode : undefined,
     taskType: task,
@@ -69,10 +70,13 @@ export function HistoryDrawer({
     const item = confirmTarget
     if (!item) return
     setDeletingId(item.id)
+    setDeleteError('')
     try {
       await onDelete(item)
       setConfirmTarget(null)
       reload()
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : '删除失败，请稍后重试')
     } finally {
       setDeletingId(null)
     }
@@ -205,7 +209,7 @@ export function HistoryDrawer({
                       title="删除这条记录"
                       aria-label="删除这条记录"
                       disabled={deletingId === item.id}
-                      onClick={() => setConfirmTarget(item)}
+                      onClick={() => { setDeleteError(''); setConfirmTarget(item) }}
                     >
                       {deletingId === item.id
                         ? <Loader2 size={13} className="animate-spin" />
@@ -230,6 +234,7 @@ export function HistoryDrawer({
           description={`${taskTitle(confirmTarget.input)} · ${formatTime(confirmTarget.createdAt)}`}
           detail="记录与它生成的图片会一起删除，删除后不可恢复。"
           confirmLabel="删除"
+          error={deleteError}
           busy={deletingId === confirmTarget.id}
           onCancel={() => setConfirmTarget(null)}
           onConfirm={() => void confirmDelete()}

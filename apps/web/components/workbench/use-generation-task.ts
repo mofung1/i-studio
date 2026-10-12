@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { generationInputSchema, type GenerationInput } from '@/lib/contracts'
 
@@ -32,6 +32,8 @@ export type SubmitParams = {
   buildPayload: (productAssetIds: string[], referenceAssetIds: string[]) => unknown
   /** 未登录或 401 时的跳转回调 */
   onAuthRequired: () => void
+  /** 任务创建成功后调整工作台布局，不在校验或提交失败时触发。 */
+  onSubmitted?: () => void
 }
 
 export function useGenerationTask(scopeKey = 'default') {
@@ -42,6 +44,8 @@ export function useGenerationTask(scopeKey = 'default') {
   const [generationTaskScope, setGenerationTaskScope] = useState(scopeKey)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [notice, setNotice] = useState<GenerationNotice | null>(null)
+  const submissionId = useRef(0)
+  const submittingRef = useRef(false)
 
   const isGenerating = Boolean(generationTask && !terminalStatuses.has(generationTask.status))
   const activeResult = resultHistory[activeResultIndex] ?? null
@@ -51,6 +55,15 @@ export function useGenerationTask(scopeKey = 'default') {
     setNotice(null)
   }, [])
 
+  const removeResult = useCallback((id: string) => {
+    const removedIndex = resultHistory.findIndex(item => item.id === id)
+    if (removedIndex >= 0) {
+      setResultHistory(previous => previous.filter(item => item.id !== id))
+      setActiveResultIndex(index => Math.max(0, index - (removedIndex <= index ? 1 : 0)))
+    }
+    setGenerationTask(current => current?.id === id ? null : current)
+  }, [resultHistory])
+
   // 通用生图和电商生图使用不同的结果作用域，切换工作台时不能沿用另一类结果。
   useEffect(() => {
     setResultHistory([])
@@ -58,7 +71,21 @@ export function useGenerationTask(scopeKey = 'default') {
     setGenerationTask(null)
     setGenerationTaskScope(scopeKey)
     setNotice(null)
+    setIsSubmitting(false)
+    submittingRef.current = false
+    submissionId.current += 1
+    return () => { submissionId.current += 1 }
   }, [scopeKey])
+
+  useEffect(() => {
+    if (notice?.kind !== 'success') return
+
+    const timer = window.setTimeout(() => {
+      setNotice((current) => current === notice ? null : current)
+    }, 10_000)
+
+    return () => window.clearTimeout(timer)
+  }, [notice])
 
   // 轮询任务状态，结束后把成功结果追加到历史并切到最新
   useEffect(() => {
@@ -66,6 +93,7 @@ export function useGenerationTask(scopeKey = 'default') {
 
     let cancelled = false
     let timer = 0
+    let pollingNotice: GenerationNotice | null = null
     const loadTask = async () => {
       try {
         const token = getAccessToken()
@@ -76,6 +104,7 @@ export function useGenerationTask(scopeKey = 'default') {
         if (!response.ok) throw new Error(await readApiError(response, '任务状态获取失败'))
         const data = await response.json() as { task: InlineGenerationTask }
         if (cancelled) return
+        setNotice(current => current === pollingNotice ? null : current)
         setGenerationTask(data.task)
         if (terminalStatuses.has(data.task.status) && data.task.resultImages?.length) {
           setResultHistory((prev) => {
@@ -88,11 +117,9 @@ export function useGenerationTask(scopeKey = 'default') {
         if (!terminalStatuses.has(data.task.status)) timer = window.setTimeout(loadTask, 3000)
       } catch (error) {
         if (cancelled) return
-        setGenerationTask((current) => current ? {
-          ...current,
-          status: 'failed',
-          errorMessage: error instanceof Error ? error.message : '任务状态获取失败',
-        } : current)
+        pollingNotice = { kind: 'error', message: `${error instanceof Error ? error.message : '任务状态获取失败'}，正在重试查询` }
+        setNotice(pollingNotice)
+        timer = window.setTimeout(loadTask, 3000)
       }
     }
 
@@ -103,13 +130,17 @@ export function useGenerationTask(scopeKey = 'default') {
     }
   }, [generationTask?.id, generationTask?.status, generationTaskScope, scopeKey])
 
-  const submit = useCallback(async ({ productFiles, referenceFiles, buildPayload, onAuthRequired }: SubmitParams) => {
+  const submit = useCallback(async ({ productFiles, referenceFiles, buildPayload, onAuthRequired, onSubmitted }: SubmitParams) => {
+    if (submittingRef.current) return
     const token = getAccessToken()
     if (!token) {
       onAuthRequired()
       return
     }
 
+    const requestId = ++submissionId.current
+    const isCurrent = () => requestId === submissionId.current
+    submittingRef.current = true
     setIsSubmitting(true)
     setNotice(null)
     setGenerationTask(null)
@@ -127,6 +158,7 @@ export function useGenerationTask(scopeKey = 'default') {
         Promise.all(productFiles.map((file) => uploadAsset(file, token))),
         Promise.all(referenceFiles.map((file) => uploadAsset(file, token))),
       ])
+      if (!isCurrent()) return
       const result = generationInputSchema.safeParse(buildPayload(productAssetIds, referenceAssetIds))
 
       if (!result.success) {
@@ -140,18 +172,23 @@ export function useGenerationTask(scopeKey = 'default') {
         headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(validatedInput),
       })
+      if (!isCurrent()) return
       if (response.status === 401) {
         onAuthRequired()
         return
       }
       if (!response.ok) throw new Error(await readApiError(response, '任务创建失败'))
       const data = await response.json() as { task: InlineGenerationTask; message: string }
+      if (!isCurrent()) return
       setGenerationTask(data.task)
-      setNotice({ kind: 'success', message: '任务已提交，结果将在当前页面显示' })
+      onSubmitted?.()
     } catch (error) {
-      setNotice({ kind: 'error', message: error instanceof Error ? error.message : '任务创建失败，请稍后重试' })
+      if (isCurrent()) setNotice({ kind: 'error', message: error instanceof Error ? error.message : '任务创建失败，请稍后重试' })
     } finally {
-      setIsSubmitting(false)
+      if (isCurrent()) {
+        submittingRef.current = false
+        setIsSubmitting(false)
+      }
     }
   }, [scopeKey])
 
@@ -167,5 +204,6 @@ export function useGenerationTask(scopeKey = 'default') {
     setActiveResultIndex,
     submit,
     reset,
+    removeResult,
   }
 }

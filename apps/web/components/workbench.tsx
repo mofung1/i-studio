@@ -74,23 +74,40 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   const [imageEndpoints, setImageEndpoints] = useState<{ id: string; name: string; model: string; isDefault: boolean }[]>([])
   const [endpointId, setEndpointId] = useState('')
   const [panelOpen, setPanelOpen] = useState(false)
+  const [generalConfigCollapsed, setGeneralConfigCollapsed] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyTask, setHistoryTask] = useState<HistoryTask | null>(null)
   const [loadingConfigId, setLoadingConfigId] = useState<string | null>(null)
   // 提交那一刻的产出张数：生成过程中再改参数，加载占位不会跟着变
   const [submittedCount, setSubmittedCount] = useState<number | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [autoRegeneratePending, setAutoRegeneratePending] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   // 切换生图类型会重置结果作用域并顺带清空提示，这里把提示延后到切换完成后再显示
   const pendingNoticeRef = useRef<GenerationNotice | null>(null)
+  const configurationRequestRef = useRef(0)
 
   const {
     generationTask, resultHistory, activeResultIndex, activeResult,
     isSubmitting, isGenerating, notice, setNotice,
-    setActiveResultIndex, submit,
+    setActiveResultIndex, submit, removeResult,
   } = useGenerationTask(`${mode}:${task}`)
 
   const hasProductImage = productFiles.length > 0
+
+  // 等历史配置提交到 React 后，再用本轮渲染的参数生成，避免异步回调拿到旧配置。
+  useEffect(() => {
+    if (!autoRegeneratePending) return
+    setAutoRegeneratePending(false)
+    createGenerationTask()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRegeneratePending])
+
+  useEffect(() => {
+    if (mode === 'general' && notice?.kind === 'error') {
+      setGeneralConfigCollapsed(false)
+    }
+  }, [mode, notice])
 
   useEffect(() => {
     const savedSide = window.localStorage.getItem('istudio-config-side')
@@ -162,15 +179,21 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       ]
 
   function changeMode(nextMode: WorkbenchMode) {
+    configurationRequestRef.current += 1
+    setLoadingConfigId(null)
     setMode(nextMode)
+    setGeneralConfigCollapsed(false)
     setPanelOpen(false)
     setNotice(null)
     router.replace(nextMode === 'general' ? '/workbench?mode=general' : `/workbench?mode=commerce&task=${task}`)
   }
 
   function changeTask(nextTask: CommerceTaskType) {
+    configurationRequestRef.current += 1
+    setLoadingConfigId(null)
     setTask(nextTask)
     setMode('commerce')
+    setGeneralConfigCollapsed(false)
     setPanelOpen(false)
     setNotice(null)
     router.replace(`/workbench?mode=commerce&task=${nextTask}`)
@@ -202,6 +225,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     const targetMode = source.mode === 'commerce' ? 'commerce' : 'general'
     const targetTask = (['product-main', 'detail-page', 'viral-recreate', 'product-retouch'] as CommerceTaskType[])
       .includes(source.taskType) ? source.taskType : 'product-main'
+    if (targetMode === 'general') setGeneralConfigCollapsed(false)
     setNotice(null)
     try {
       const file = await fetchImageFile(path, 'ref-result')
@@ -217,7 +241,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       if (!sameScope) {
         setMode(targetMode)
         setTask(targetTask)
-            setHistoryTask(null)
+        setHistoryTask(null)
         setHistoryOpen(false)
         router.replace(targetMode === 'general' ? '/workbench?mode=general' : `/workbench?mode=commerce&task=${targetTask}`)
       }
@@ -235,6 +259,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
   /** 载入一条历史记录的配置，继续在当前工作台里编辑 */
   async function loadHistoryConfig(historyTaskToLoad: HistoryTask) {
+    const requestId = ++configurationRequestRef.current
     const input = historyTaskToLoad.input
     setLoadingConfigId(historyTaskToLoad.id)
     setNotice(null)
@@ -243,6 +268,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         fetchAssetFiles(input.productAssetIds ?? []),
         fetchAssetFiles(input.referenceAssetIds ?? []),
       ])
+      if (requestId !== configurationRequestRef.current) return false
       const nextMode: WorkbenchMode = input.mode === 'commerce' ? 'commerce' : 'general'
       const nextTask: CommerceTaskType = (['product-main', 'detail-page', 'viral-recreate', 'product-retouch'] as CommerceTaskType[])
         .includes(input.taskType as CommerceTaskType)
@@ -251,7 +277,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
       setMode(nextMode)
       setTask(nextTask)
-        setPrompt(input.prompt ?? '')
+      if (nextMode === 'general') setGeneralConfigCollapsed(false)
+      setPrompt(input.prompt ?? '')
       setRequirements(input.requirements ?? '')
       setPlatform(input.platform ?? 'smart')
       setOutputLanguage(input.outputLanguage ?? 'none')
@@ -274,18 +301,25 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       const message = '已载入历史记录的配置，可继续调整后生成'
       if (nextMode === mode && (nextMode === 'general' || nextTask === task)) setNotice({ kind: 'success', message })
       else pendingNoticeRef.current = { kind: 'success', message }
+      return true
     } catch (error) {
-      setNotice({ kind: 'error', message: error instanceof Error ? error.message : '载入配置失败' })
+      if (requestId === configurationRequestRef.current) setNotice({ kind: 'error', message: error instanceof Error ? error.message : '载入配置失败' })
+      return false
     } finally {
-      setLoadingConfigId(null)
+      if (requestId === configurationRequestRef.current) setLoadingConfigId(null)
     }
   }
 
   /** 用一条历史记录自己的配置再生成一次：先回填配置，再走二次确认 */
   async function regenerateFromHistory(historyTaskToLoad: HistoryTask) {
-    await loadHistoryConfig(historyTaskToLoad)
+    if (isSubmitting || isGenerating) {
+      setNotice({ kind: 'error', message: '当前任务正在生成，请完成后再重新生成' })
+      return
+    }
+    const loaded = await loadHistoryConfig(historyTaskToLoad)
+    if (!loaded) return
     if (shouldSkipRegenerateConfirm()) {
-      createGenerationTask()
+      setAutoRegeneratePending(true)
       return
     }
     // 与上一批 state 更新同一批提交，弹窗里展示的就是刚载入的配置
@@ -297,6 +331,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
     setNotice(null)
     try {
       await deleteGenerationTask(record.id)
+      removeResult(record.id)
       if (historyTask?.id === record.id) {
         setHistoryTask(null)
         setHistoryOpen(false)
@@ -313,6 +348,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
   /** 重新生成前先确认：每次生成都会调用 AI 服务并产生费用 */
   function requestRegenerate() {
+    if (mode === 'general') setGeneralConfigCollapsed(false)
     if (shouldSkipRegenerateConfirm()) {
       createGenerationTask()
       return
@@ -352,6 +388,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   }
 
   function createGenerationTask() {
+    if (isSubmitting || isGenerating) return
     const token = getAccessToken()
     if (!token) {
       const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`
@@ -389,6 +426,11 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       productFiles,
       referenceFiles,
       buildPayload,
+      onSubmitted: () => {
+        if (mode === 'general') {
+          setGeneralConfigCollapsed(true)
+        }
+      },
       onAuthRequired: () => {
         const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`
         router.push(`/login?next=${encodeURIComponent(currentUrl)}`)
@@ -398,7 +440,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
   return (
     <main className="workbench-page">
-      <section className={`workbench-shell mode-${mode} config-${configSide} ${panelOpen ? 'panel-open' : ''}`}>
+      <section className={`workbench-shell mode-${mode} config-${configSide} ${panelOpen ? 'panel-open' : ''} ${mode === 'general' && generalConfigCollapsed ? 'general-config-collapsed' : ''}`}>
         <WorkbenchRail
           mode={mode}
           onChangeMode={changeMode}
@@ -421,6 +463,8 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
         />
         <CreatorSidebar
               mode={mode}
+              generalConfigCollapsed={generalConfigCollapsed}
+              onToggleGeneralConfig={() => setGeneralConfigCollapsed((collapsed) => !collapsed)}
               task={task}
               title={title}
               requirementsPlaceholder={requirementsPlaceholder}
@@ -450,6 +494,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               notice={notice}
               isSubmitting={isSubmitting}
               isGenerating={isGenerating}
+              generationStatus={generationTask?.status ?? null}
               onSetProductFiles={setProductFiles}
               onSetReferenceFiles={setReferenceFiles}
               onSetPrompt={setPrompt}
@@ -494,6 +539,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
               onSelectHistory={(nextTask) => {
                 setHistoryTask(nextTask)
                 setHistoryOpen(false)
+                if (mode === 'general') setGeneralConfigCollapsed(true)
               }}
               onExitHistoryView={() => setHistoryTask(null)}
               onLoadHistoryConfig={(record) => void loadHistoryConfig(record)}

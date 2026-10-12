@@ -432,7 +432,20 @@ var enhancementHints = map[string]string{
 func promptForInput(input map[string]any) string {
 	if prompt := strings.TrimSpace(stringValue(input["prompt"], "")); prompt != "" {
 		if stringValue(input["mode"], "") != "commerce" {
-			return prompt
+			parts := []string{prompt}
+			style := stringValue(input["style"], "unspecified")
+			if style != "unspecified" && promptStyleLabels[style] != "" {
+				parts = append(parts, "创作风格："+promptStyleLabels[style])
+			}
+			if input["mode"] == "general" && len(sourceImages(input)) > 0 {
+				strengthHints := map[string]string{
+					"low":    "参考图片仅提供轻度视觉启发，以文字描述为主",
+					"medium": "遵循文字描述，适度参考图片的视觉特征",
+					"high":   "在遵循文字描述的前提下，尽量保持参考图片中要求保留的视觉特征",
+				}
+				parts = append(parts, strengthHints[stringValue(input["referenceStrength"], "medium")])
+			}
+			return strings.Join(parts, "。")
 		}
 		parts := []string{prompt}
 		appendCommerceTextPolicy(&parts, input)

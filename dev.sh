@@ -84,22 +84,17 @@ else
   info "AI 服务可在 Web 设置中配置；旧 AI 环境变量只用于首次迁移"
 fi
 
-if [[ ! -f "$WEB_DIR/.env.local" ]]; then
-  warn "缺少 apps/web/.env.local → 前端将默认请求 http://127.0.0.1:4000"
-  warn "建议写入：NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:${API_PORT}"
-else
-  WEB_API_URL="$(grep -E '^NEXT_PUBLIC_API_BASE_URL=' "$WEB_DIR/.env.local" | tail -1 | cut -d= -f2- | tr -d '[:space:]')"
-  if [[ -n "$WEB_API_URL" && "$WEB_API_URL" != *":${API_PORT}"* ]]; then
-    warn "apps/web/.env.local 的 NEXT_PUBLIC_API_BASE_URL=${WEB_API_URL} 与本次 API 端口(${API_PORT})不一致，浏览器会请求错地址"
-    info "  改这一行为：NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:${API_PORT}（或改用默认端口 4000）"
-  fi
-fi
+info "本次前端会自动连接 http://127.0.0.1:${API_PORT}，无需修改 .env.local"
 
 # ------------------------------------------------------------ 数据库/Redis
-DB_PORT="$(grep -E '^DATABASE_URL=' "$SERVER_DIR/.env" 2>/dev/null | sed -n 's/.*@[^:]*:\([0-9]\{2,\}\)\/.*/\1/p' | head -1)"
+DB_PORT="$( { grep -E '^DATABASE_URL=' "$SERVER_DIR/.env" 2>/dev/null || true; } | sed -n 's/.*@[^:]*:\([0-9]\{2,\}\)\/.*/\1/p' | head -1)"
 DB_PORT="${DB_PORT:-55432}"
-REDIS_PORT="$(grep -E '^REDIS_URL=' "$SERVER_DIR/.env" 2>/dev/null | sed -n 's|.*://[^:]*:\([0-9]\{2,\}\).*|\1|p' | head -1)"
-REDIS_PORT="${REDIS_PORT:-6379}"
+REDIS_PORT="$( { grep -E '^REDIS_URL=' "$SERVER_DIR/.env" 2>/dev/null || true; } | sed -n 's|.*://[^:]*:\([0-9]\{2,\}\).*|\1|p' | head -1)"
+REDIS_PORT="${REDIS_PORT:-56379}"
+if [[ ! -f "$SERVER_DIR/.env" ]]; then
+  export DATABASE_URL="${DATABASE_URL:-postgresql://istudio:istudio_dev@127.0.0.1:$DB_PORT/istudio?sslmode=disable}"
+  export REDIS_URL="${REDIS_URL:-redis://127.0.0.1:$REDIS_PORT}"
+fi
 
 if ! tcp_open 127.0.0.1 "$DB_PORT"; then
   warn "连不上 Postgres(127.0.0.1:$DB_PORT)：后端会降级为内存存储（重启后数据丢失）"
@@ -118,7 +113,14 @@ if ! tcp_open 127.0.0.1 "$DB_PORT"; then
 fi
 
 if ! tcp_open 127.0.0.1 "$REDIS_PORT"; then
-  warn "连不上 Redis(127.0.0.1:$REDIS_PORT)：任务队列退回进程内（功能可用，多进程不共享）"
+  if [[ "$START_INFRA" -eq 1 ]] && command -v docker >/dev/null 2>&1; then
+    info "→ 启动 Docker 里的 redis …"
+    (cd "$DOCKER_DIR" && docker compose up -d redis)
+    for _ in $(seq 1 30); do tcp_open 127.0.0.1 "$REDIS_PORT" && break; sleep 1; done
+  fi
+  if ! tcp_open 127.0.0.1 "$REDIS_PORT"; then
+    warn "连不上 Redis(127.0.0.1:$REDIS_PORT)：任务队列退回进程内（功能可用，多进程不共享）"
+  fi
   if [[ "$REDIS_PORT" == "6379" ]]; then
     info "  Docker 里的 Redis 映射在 56379；想复用它就把 apps/server/.env 的 REDIS_URL 改成 redis://127.0.0.1:56379"
   fi
@@ -150,12 +152,6 @@ cleanup() {
     kill "$pid" >/dev/null 2>&1 || true
     wait "$pid" 2>/dev/null || true   # 回收子进程，避免打印 "Terminated" 噪音
   done
-  # 端口兜底：确保 3000/4000 这类端口真的被释放
-  for port in "$WEB_PORT" "$API_PORT"; do
-    local pids
-    pids="$(lsof -ti tcp:"$port" 2>/dev/null || true)"
-    [[ -n "$pids" ]] && kill $pids >/dev/null 2>&1 || true
-  done
   [[ -n "$BUILD_DIR" && -d "$BUILD_DIR" ]] && rm -rf "$BUILD_DIR"
   log "已停止，端口已释放。"
 }
@@ -165,6 +161,7 @@ trap cleanup INT TERM EXIT
 # 导出端口与来源白名单：.env 里已存在的键不会被覆盖，但命令行导出的优先于 .env
 # （loadDotEnv 只填充未设置的环境变量，所以这里 export 能盖过 API_PORT=4000）
 export API_PORT
+export NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:$API_PORT"
 export WEB_ORIGINS="http://127.0.0.1:$WEB_PORT,http://localhost:$WEB_PORT,http://127.0.0.1:3000,http://localhost:3000"
 
 info "→ 启动后端：127.0.0.1:$API_PORT"

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -52,18 +51,7 @@ func TestDeleteTaskRemovesItFromHistory(t *testing.T) {
 
 // 数据库模式：列表要带错误信息；删除资产会同步从任务结果里移除；删除任务连同其生成图片一起清理。
 func TestDatabaseTaskAndAssetDeletion(t *testing.T) {
-	url := os.Getenv("DATABASE_URL")
-	if url == "" {
-		t.Skip("DATABASE_URL not set")
-	}
-	db, err := sql.Open("pgx", url)
-	if err != nil {
-		t.Fatalf("open database: %v", err)
-	}
-	defer db.Close()
-	if err := migrateDatabase(db); err != nil {
-		t.Fatalf("migrate: %v", err)
-	}
+	db := isolatedTestDatabase(t)
 
 	userID := "test-user-" + randomID()
 	if _, err := db.Exec("INSERT INTO users (id, username, password_hash) VALUES ($1,$2,$3)", userID, userID, "x"); err != nil {
@@ -84,7 +72,7 @@ func TestDatabaseTaskAndAssetDeletion(t *testing.T) {
 	if _, err := db.Exec("INSERT INTO assets (id,user_id,task_id,filename,storage_key,mime,size_bytes) VALUES ($1,$2,$3,$4,$5,$6,$7)", assetID, userID, taskID, "generated.png", assetID+".png", "image/png", 12); err != nil {
 		t.Fatalf("insert asset: %v", err)
 	}
-	if _, err := db.Exec("UPDATE generation_tasks SET result_images=$1::jsonb WHERE id=$2", `["`+assetPath+`"]`, taskID); err != nil {
+	if _, err := db.Exec(`UPDATE generation_tasks SET result_images=$1::jsonb, result_modules='["hero","scene","detail"]'::jsonb WHERE id=$2`, `["before","`+assetPath+`","after"]`, taskID); err != nil {
 		t.Fatalf("update result images: %v", err)
 	}
 
@@ -102,8 +90,25 @@ func TestDatabaseTaskAndAssetDeletion(t *testing.T) {
 	}
 	var images []string
 	_ = json.Unmarshal(raw, &images)
-	if len(images) != 0 {
+	if !reflect.DeepEqual(images, []string{"before", "after"}) {
 		t.Fatalf("deleted asset should be removed from the task result, got %#v", images)
+	}
+
+	if err := db.QueryRow("SELECT result_modules FROM generation_tasks WHERE id=$1", taskID).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	var modules []string
+	if err := json.Unmarshal(raw, &modules); err != nil || !reflect.DeepEqual(modules, []string{"hero", "detail"}) {
+		t.Fatalf("modules must stay aligned with remaining images: %#v, %v", modules, err)
+	}
+	if _, err := db.Exec("UPDATE generation_tasks SET status='processing' WHERE id=$1", taskID); err != nil {
+		t.Fatal(err)
+	}
+	if response := deleteRequest(t, s, token, "/v1/generation/tasks/"+taskID); response.Code != http.StatusConflict {
+		t.Fatalf("active database task deletion = %d", response.Code)
+	}
+	if _, err := db.Exec("UPDATE generation_tasks SET status='failed' WHERE id=$1", taskID); err != nil {
+		t.Fatal(err)
 	}
 
 	if recorder := deleteRequest(t, s, token, "/v1/generation/tasks/"+taskID); recorder.Code != http.StatusOK {
@@ -115,5 +120,23 @@ func TestDatabaseTaskAndAssetDeletion(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatalf("task should be deleted")
+	}
+}
+
+func TestDeleteTaskKeepsActiveTasks(t *testing.T) {
+	for _, status := range []string{"queued", "processing", "waiting_provider"} {
+		t.Run(status, func(t *testing.T) {
+			s, token := newTaskListServer(t)
+			task := s.tasks["general-1"]
+			task.Status = status
+			s.tasks[task.ID] = task
+			response := deleteRequest(t, s, token, "/v1/generation/tasks/general-1")
+			if response.Code != http.StatusConflict {
+				t.Fatalf("active task deletion = %d, want 409", response.Code)
+			}
+			if _, exists := s.tasks[task.ID]; !exists {
+				t.Fatal("active task was removed")
+			}
+		})
 	}
 }

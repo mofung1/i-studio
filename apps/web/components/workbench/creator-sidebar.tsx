@@ -1,6 +1,7 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Loader2, SlidersHorizontal, X } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 
 import type { GenerationModel } from '@/lib/contracts'
 
@@ -31,6 +32,8 @@ import type { GenerationNotice } from './use-generation-task'
 
 interface CreatorSidebarProps {
   mode: WorkbenchMode
+  generalConfigCollapsed?: boolean
+  onToggleGeneralConfig?: () => void
   task: CommerceTaskType
   title: string
   requirementsPlaceholder: string
@@ -61,6 +64,7 @@ interface CreatorSidebarProps {
   notice: GenerationNotice | null
   isSubmitting: boolean
   isGenerating: boolean
+  generationStatus: string | null
   onSetProductFiles: (files: File[]) => void
   onSetReferenceFiles: (files: File[]) => void
   onSetPrompt: (prompt: string) => void
@@ -88,6 +92,16 @@ const ASSET_LABELS: Record<CommerceTaskType, string> = {
   'product-retouch': '商品原图',
 }
 
+const COMPACT_STATUS_LABELS: Record<string, string> = {
+  queued: '排队中',
+  processing: '正在生成',
+  waiting_provider: '等待出图',
+  succeeded: '生成完成',
+  failed: '生成失败',
+  cancelled: '已取消',
+  expired: '已超时',
+}
+
 /**
  * 左侧创作控制区：
  * 默认只露出「素材 → 描述 → 风格比例」这三步，其余参数收进高级设置，
@@ -109,6 +123,18 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   } = props
 
   const isGeneral = mode === 'general'
+  const configToggleRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!isGeneral || !props.generalConfigCollapsed) return
+    const body = document.getElementById('creation-settings-body')
+    if (document.activeElement === document.body || body?.contains(document.activeElement)) {
+      configToggleRef.current?.focus()
+    }
+  }, [isGeneral, props.generalConfigCollapsed])
+  const currentModel = optionLabel(modelOptions, props.imageEndpoints.find((endpoint) => endpoint.id === props.endpointId)?.model ?? model)
+  const generationStatus = isSubmitting ? '正在提交'
+    : COMPACT_STATUS_LABELS[props.generationStatus ?? ''] ?? (isGenerating ? '正在生成' : '待生成')
   const assetLabel = isGeneral ? '参考图片' : ASSET_LABELS[task]
   const assetFiles = isGeneral ? referenceFiles : productFiles
   const maxFiles = referenceLimit(mode, task)
@@ -181,7 +207,16 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
 
   return (
     <aside id="creation-settings" className={`configuration-panel creator-sidebar ${isGeneral ? 'general-composer' : 'commerce-settings'}`} aria-label="创作设置">
-      <div className="configuration-scroll">
+      {isGeneral && <div className="general-config-head">
+        <button ref={configToggleRef} type="button" className="general-config-summary" aria-label={props.generalConfigCollapsed ? '展开创作配置' : '收起创作配置'} aria-controls="creation-settings-body" aria-expanded={!props.generalConfigCollapsed} onClick={props.onToggleGeneralConfig}>
+          <SlidersHorizontal size={16} aria-hidden="true" />
+          <span>{props.generalConfigCollapsed ? '展开创作配置' : '收起创作配置'}</span>
+          <small className="general-config-model" title={`当前模型：${currentModel}`}>当前模型：{currentModel}</small>
+          <small className="general-config-status" role="status" aria-atomic="true">{(isSubmitting || isGenerating) && <Loader2 size={12} className="animate-spin" aria-hidden="true" />}{generationStatus}</small>
+          {props.generalConfigCollapsed ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
+        </button>
+      </div>}
+      <div id="creation-settings-body" className="configuration-scroll" hidden={Boolean(isGeneral && props.generalConfigCollapsed)}>
         <div className="composer-surface">
         <div className="creator-sheet-head">
           <span>创作设置</span>
@@ -263,6 +298,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               value={requirements}
               onChange={onSetRequirements}
               ariaLabel={requirementsLabel}
+              maxLength={task === 'product-main' || task === 'detail-page' ? 2000 : 1000}
               placeholder={requirementsPlaceholder}
               enhance={(value) => (promptEnhanceEnabled ? runEnhance('requirements', value) : buildEnhancedPrompt(value, style))}
               enhanceLabel="AI 帮写"
