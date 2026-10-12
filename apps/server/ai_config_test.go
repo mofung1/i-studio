@@ -20,7 +20,7 @@ func testAIStore(t *testing.T) *server {
 	t.Setenv("AI_CONFIG_ENCRYPTION_KEY", "")
 	t.Setenv("DEEPSEEK_API_KEY", "")
 	t.Setenv("BANANA_ROUTER_API_KEY", "")
-	s := &server{secret: []byte("test-secret"), storageRoot: filepath.Join(t.TempDir(), "uploads"), users: map[string]user{}, aiAdminID: "admin"}
+	s := &server{secret: []byte("test-secret"), storageRoot: filepath.Join(t.TempDir(), "uploads"), users: map[string]user{}}
 	s.ai = newAIConfigStore(s)
 	if err := s.ai.migrateLegacy(); err != nil {
 		t.Fatal(err)
@@ -183,7 +183,7 @@ func TestAISettingsAuthorizationAndRestoreDefault(t *testing.T) {
 	for _, test := range []struct {
 		uid    string
 		status int
-	}{{"", 401}, {"other", 403}} {
+	}{{"", 401}} {
 		w := httptest.NewRecorder()
 		s.aiEndpoints(w, request("POST", "/v1/ai-endpoints", "{}", test.uid))
 		if w.Code != test.status {
@@ -192,11 +192,11 @@ func TestAISettingsAuthorizationAndRestoreDefault(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	s.aiEndpoints(w, request("GET", "/v1/ai-endpoints", "", "other"))
-	if strings.Contains(w.Body.String(), "baseUrl") || strings.Contains(w.Body.String(), "apiKey") {
-		t.Fatal("ordinary user received private settings")
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"canManage":true`) || strings.Contains(w.Body.String(), input.APIKey) {
+		t.Fatal("signed-in user cannot manage settings or unmasked key leaked")
 	}
 	w = httptest.NewRecorder()
-	s.promptTemplates(w, request("PUT", "/v1/prompt-templates", `{"key":"rewrite","content":"Custom system","enabled":true}`, "admin"))
+	s.promptTemplates(w, request("PUT", "/v1/prompt-templates", `{"key":"rewrite","content":"Custom system","enabled":true}`, "other"))
 	if w.Code != 200 {
 		t.Fatal(w.Body.String())
 	}

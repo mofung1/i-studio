@@ -10,6 +10,7 @@ import { AuthenticatedImage, downloadProtectedAsset, useProtectedImageUrl } from
 import type { CommerceTaskType } from '@/lib/contracts'
 
 import { GenerationHistory } from './generation-history'
+import { GenerationLoading } from './generation-loading'
 import { FailureNotice } from './failure-notice'
 import { HistoryDrawer } from './history-drawer'
 import { ImageLightbox } from './image-lightbox'
@@ -135,6 +136,24 @@ export function ResultWorkspace({
     setActiveImageIndex(next)
   }
 
+  const recentHistory = !isHistoryView && !isGenerating && resultHistory.length > 0 ? <GenerationHistory
+    placement={mode === 'general' ? 'sidebar' : 'bottom'}
+    items={resultHistory}
+    activeIndex={activeResultIndex}
+    activeImageIndex={safeIndex}
+    onSelect={(resultIndex, imageIndex) => {
+      pendingImageRef.current = imageIndex
+      if (resultIndex === activeResultIndex) {
+        setActiveImageIndex(imageIndex)
+        pendingImageRef.current = null
+        return
+      }
+      onSetActiveResultIndex(() => resultIndex)
+    }}
+    onDownload={downloadImage}
+    onUseAsReference={(path) => onUseImageAsReference(path, { mode, taskType: task })}
+  /> : null
+
   return (
     <section className="creation-canvas result-workspace">
       <header className="result-head">
@@ -198,21 +217,22 @@ export function ResultWorkspace({
 
       {downloadError && <p className="form-notice error" role="alert">{downloadError}</p>}
 
+      <div className={`result-layout${mode === 'general' && recentHistory ? ' has-recent-history' : ''}`}>
       <div className="result-body">
         {isGenerating && !isHistoryView && (
           <div className="result-generating">
-            <div className={`result-stage${generatingImages > 1 ? ' has-strip' : ''}`} aria-hidden="true">
+            <div className={`result-stage${generatingImages > 1 ? ' has-strip' : ''}`}>
               {/* 占位尺寸与生成后的主图一致：同比例、同最大高度 */}
               <div
                 className="result-hero-skeleton"
                 style={{ aspectRatio: heroRatioCss, maxWidth: `calc(var(--hero-max) * ${heroRatio})` }}
               >
-                <span className="skeleton-shimmer" />
+                <GenerationLoading status={generationTask?.status ?? 'processing'} count={generatingCount ?? expectedCount} />
               </div>
               {generatingImages > 1 && (
-                <div className="result-strip-skeleton">
+                <div className="result-strip-skeleton" aria-hidden="true">
                   {Array.from({ length: generatingImages }, (_, index) => (
-                    <span key={index}><span className="skeleton-shimmer" /></span>
+                    <span key={index} className="generation-pending-thumbnail"><span>{index + 1}</span></span>
                   ))}
                 </div>
               )}
@@ -343,25 +363,9 @@ export function ResultWorkspace({
           </div>
         )}
 
-        {/* 生成过程中不显示「最近生成」；放在滚动区内，不占用主图高度 */}
-        {!isHistoryView && !isGenerating && (
-          <GenerationHistory
-            items={resultHistory}
-            activeIndex={activeResultIndex}
-            activeImageIndex={safeIndex}
-            onSelect={(resultIndex, imageIndex) => {
-              pendingImageRef.current = imageIndex
-              if (resultIndex === activeResultIndex) {
-                setActiveImageIndex(imageIndex)
-                pendingImageRef.current = null
-                return
-              }
-              onSetActiveResultIndex(() => resultIndex)
-            }}
-            onDownload={downloadImage}
-            onUseAsReference={(path) => onUseImageAsReference(path, { mode, taskType: task })}
-          />
-        )}
+        {mode !== 'general' && recentHistory}
+      </div>
+      {mode === 'general' && recentHistory}
       </div>
 
       <HistoryDrawer

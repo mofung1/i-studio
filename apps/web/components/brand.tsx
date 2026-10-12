@@ -1,4 +1,9 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
+import { siteLogoUrl } from '@/lib/site-settings'
+import { useSiteBranding } from './site-branding-provider'
 
 /**
  * 品牌标记：圆角画框里嵌一个几何化的「i」。
@@ -26,11 +31,19 @@ export function BrandMark({ className, size = 30 }: { className?: string; size?:
   )
 }
 
+export function BrandLogo({ src, className, size = 30 }: { src?: string; className?: string; size?: number }) {
+  const [failedSource, setFailedSource] = useState('')
+  return src && failedSource !== src
+    ? <img src={src} className={className} width={size} height={size} alt="" aria-hidden="true" onError={() => setFailedSource(src)} style={{ objectFit: 'contain' }} />
+    : <BrandMark className={className} size={size} />
+}
+
 export function Brand() {
+  const { branding } = useSiteBranding()
   return (
-    <Link className="brand" href="/" aria-label="返回首页">
-      <BrandMark className="brand-mark" size={30} />
-      <strong>iStudio</strong>
+    <Link className="brand" href="/" aria-label={`${branding.name}，返回首页`} title={branding.name}>
+      <BrandLogo src={siteLogoUrl(branding.logoPath)} className="brand-mark" size={30} />
+      <strong>{branding.name}</strong>
     </Link>
   )
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func (s *server) aiEndpoints(w http.ResponseWriter, r *http.Request) {
-	uid, ok := s.authenticatedUserID(r)
+	_, ok := s.authenticatedUserID(r)
 	if !ok {
 		s.error(w, 401, "AUTH_REQUIRED", "请先登录")
 		return
@@ -23,22 +23,17 @@ func (s *server) aiEndpoints(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		list := []any{}
-		admin := s.canManageAI(uid)
 		for _, e := range endpoints {
-			if admin {
-				public, err := s.ai.public(e)
-				if err != nil {
-					s.error(w, 500, "AI_KEY_UNAVAILABLE", "无法解密 API Key，请恢复原加密密钥文件")
-					return
-				}
-				list = append(list, public)
-			} else if e.Enabled {
-				list = append(list, map[string]any{"id": e.ID, "name": e.Name, "purpose": e.Purpose, "protocol": e.Protocol, "model": e.Model, "capabilities": e.Capabilities, "enabled": true, "isDefault": e.IsDefault})
+			public, err := s.ai.public(e)
+			if err != nil {
+				s.error(w, 500, "AI_KEY_UNAVAILABLE", "无法解密 API Key，请恢复原加密密钥文件")
+				return
 			}
+			list = append(list, public)
 		}
-		s.json(w, 200, map[string]any{"endpoints": list, "canManage": admin})
+		s.json(w, 200, map[string]any{"endpoints": list, "canManage": true})
 	case http.MethodPost:
-		if !s.requireAIAdmin(w, r) {
+		if !s.requireSettingsUser(w, r) {
 			return
 		}
 		var input endpointInput
@@ -63,7 +58,7 @@ func (s *server) aiEndpoints(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) aiEndpointByID(w http.ResponseWriter, r *http.Request) {
-	if !s.requireAIAdmin(w, r) {
+	if !s.requireSettingsUser(w, r) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
@@ -213,7 +208,7 @@ func defaultPromptTemplates() []promptTemplate {
 }
 
 func (s *server) promptTemplates(w http.ResponseWriter, r *http.Request) {
-	if !s.requireAIAdmin(w, r) {
+	if !s.requireSettingsUser(w, r) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")

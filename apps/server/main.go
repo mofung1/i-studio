@@ -64,6 +64,7 @@ type assetRecord struct {
 }
 type server struct {
 	mu           sync.RWMutex
+	siteMu       sync.Mutex
 	users        map[string]user
 	tasks        map[string]task
 	secret       []byte
@@ -74,7 +75,6 @@ type server struct {
 	provider     imageProvider
 	promptClient promptCompleter
 	ai           *aiConfigStore
-	aiAdminID    string
 }
 
 func main() {
@@ -118,10 +118,13 @@ func main() {
 	mux.HandleFunc("/v1/ai-endpoints", s.aiEndpoints)
 	mux.HandleFunc("/v1/ai-endpoints/", s.aiEndpointByID)
 	mux.HandleFunc("/v1/prompt-templates", s.promptTemplates)
+	mux.HandleFunc("/v1/site-settings", s.siteSettingsHandler)
+	mux.HandleFunc("/v1/site-settings/logo/", s.siteLogo)
 	mux.HandleFunc("/v1/projects", s.projects)
 	mux.HandleFunc("/v1/assets", s.assets)
 	mux.HandleFunc("/v1/assets/", s.assetContent)
 	mux.HandleFunc("/v1/inspiration/prompts", s.inspirationPrompts)
+	mux.HandleFunc("/v1/inspiration/prompts/", s.inspirationPromptByID)
 	mux.HandleFunc("/v1/inspiration/categories", s.inspirationCategories)
 	mux.HandleFunc("/v1/inspiration/images/", s.inspirationImage)
 	port := env("API_PORT", "4000")
@@ -199,9 +202,6 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request, create bool) {
 			return
 		}
 		u = user{ID: randomID(), Username: name, PasswordHash: hashPassword(body.Password)}
-		if len(s.users) == 0 {
-			s.aiAdminID = u.ID
-		}
 		s.users[name] = u
 	} else if !exists || !checkPassword(body.Password, u.PasswordHash) {
 		s.error(w, 401, "INVALID_CREDENTIALS", "用户名或密码错误")
