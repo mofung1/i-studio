@@ -93,6 +93,21 @@ func TestPromptTranslatesEnhancements(t *testing.T) {
 	}
 }
 
+func TestGeneralPromptUsesStyleAndReferenceStrength(t *testing.T) {
+	input := map[string]any{"mode": "general", "prompt": "一只白色花瓶", "style": "handdrawn", "referenceStrength": "low", "sourceImages": []map[string]string{{"mime": "image/png", "data": "image"}}}
+	prompt := promptForInput(input)
+	if !strings.Contains(prompt, "手绘") || !strings.Contains(prompt, "轻度视觉启发") {
+		t.Fatalf("general settings were ignored: %s", prompt)
+	}
+	input["referenceStrength"] = "high"
+	if !strings.Contains(promptForInput(input), "尽量保持") {
+		t.Fatal("high reference strength was ignored")
+	}
+	if promptForInput(map[string]any{"mode": "general", "prompt": "原始描述"}) != "原始描述" {
+		t.Fatal("unspecified style changed the original prompt")
+	}
+}
+
 func TestPromptIgnoresUnknownEnhancements(t *testing.T) {
 	prompt := promptForInput(map[string]any{
 		"taskType":     "product-retouch",

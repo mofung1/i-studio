@@ -45,7 +45,7 @@ services:
       API_PORT: 4000
       DATABASE_URL: postgresql://istudio:${POSTGRES_PASSWORD:-istudio_dev}@postgres:5432/istudio?sslmode=disable
       REDIS_URL: redis://redis:6379
-      WEB_ORIGINS: http://127.0.0.1:33000,http://localhost:33000
+      WEB_ORIGINS: http://127.0.0.1:${WEB_PORT:-33000},http://localhost:${WEB_PORT:-33000},http://127.0.0.1:3000,http://localhost:3000
       STORAGE_ROOT: /data/uploads
     ports:
       - "127.0.0.1:${API_PORT:-44000}:4000"
@@ -69,9 +69,9 @@ services:
       context: ..
       dockerfile: docker/web.Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:44000}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:${API_PORT:-44000}}
     environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:44000}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:${API_PORT:-44000}}
     ports:
       - "127.0.0.1:${WEB_PORT:-33000}:3000"
     depends_on:

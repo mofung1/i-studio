@@ -104,11 +104,18 @@ export default function AISettingsPage() {
   const activeTemplate = templates.find(template => template.key === selectedKey)
   const promptDirty = !!activeTemplate && (promptDraft !== activeTemplate.content || promptEnabled !== activeTemplate.enabled)
 
+  useEffect(() => {
+    if (!promptDirty) return
+    const warnOnLeave = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }
+    window.addEventListener('beforeunload', warnOnLeave)
+    return () => window.removeEventListener('beforeunload', warnOnLeave)
+  }, [promptDirty])
+
   return <StudioShell section="settings" title="设置">
     <main className="ai-settings">
       {!loggedIn ? <p>请先<Link href="/login">登录</Link>后管理 AI 配置。</p> : loading ? <div className="settings-loading" role="status"><LoaderCircle className="settings-spinner" size={20} />正在读取配置</div> : <>
         <div className="settings-tabs" role="tablist" aria-label="设置分类">
-          <button id="services-tab" role="tab" aria-selected={view === 'services'} aria-controls="services-panel" onClick={() => setView('services')}><Settings2 size={16} />AI 服务</button>
+          <button id="services-tab" role="tab" aria-selected={view === 'services'} aria-controls="services-panel" onClick={() => { if (view === 'prompts' && promptDirty && !window.confirm('提示词尚未保存，仍要切换设置分类？')) return; setView('services') }}><Settings2 size={16} />AI 服务</button>
           {canManage && <button id="prompts-tab" role="tab" aria-selected={view === 'prompts'} aria-controls="prompts-panel" onClick={() => setView('prompts')}><Pencil size={16} />Prompt 配置</button>}
         </div>
         {!canManage && <p className="settings-notice">仅首个注册账号可管理全局 AI 配置。</p>}

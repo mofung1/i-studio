@@ -41,6 +41,7 @@ export function useInspirationPrompts() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const loadingRef = useRef(false)
+  const requestRef = useRef<AbortController | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const hasMore = prompts.length < total
@@ -51,7 +52,10 @@ export function useInspirationPrompts() {
 
   const loadPage = useCallback(
     async (targetPage: number, selectedCategory: string, searchQuery: string, replace: boolean) => {
-      if (loadingRef.current) return
+      if (loadingRef.current && !replace) return
+      requestRef.current?.abort()
+      const controller = new AbortController()
+      requestRef.current = controller
       loadingRef.current = true
       setIsLoading(true)
       setError('')
@@ -61,20 +65,23 @@ export function useInspirationPrompts() {
         if (searchQuery) params.set('q', searchQuery)
         let response: Response
         try {
-          response = await fetch(`${apiBaseUrl}/v1/inspiration/prompts?${params.toString()}`)
+          response = await fetch(`${apiBaseUrl}/v1/inspiration/prompts?${params.toString()}`, { signal: controller.signal })
         } catch {
           throw new Error('灵感库加载失败，请检查后端服务是否已启动')
         }
         if (!response.ok) throw new Error('灵感库加载失败')
         const data = (await response.json()) as InspirationResponse
+        if (controller.signal.aborted) return
         setPrompts((prev) => (replace ? data.prompts : [...prev, ...data.prompts]))
         setTotal(data.total)
         setPage(targetPage)
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : '灵感库加载失败')
+        if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '灵感库加载失败')
       } finally {
-        setIsLoading(false)
-        loadingRef.current = false
+        if (requestRef.current === controller) {
+          setIsLoading(false)
+          loadingRef.current = false
+        }
       }
     },
     [],
@@ -106,12 +113,13 @@ export function useInspirationPrompts() {
     return () => window.clearTimeout(timer)
   }, [searchInput])
 
-  // 分类或查询词变化时回到第一页重新加载。
-  // loadPage 是稳定引用（依赖为空），不放进依赖数组；首次挂载时也会触发一次，承担初始加载。
+  // 新筛选会取消旧请求，避免慢响应覆盖当前分类或搜索结果。
   useEffect(() => {
+    setPrompts([])
+    setTotal(0)
     void loadPage(1, category, query, true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, query])
+    return () => requestRef.current?.abort()
+  }, [category, query, loadPage])
 
   const clearSearch = useCallback(() => {
     setSearchInput('')

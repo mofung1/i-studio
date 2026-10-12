@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -108,9 +109,22 @@ type sqlQueryer interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
+var errTaskActive = errors.New("task is still generating")
+
+func isActiveTask(status string) bool {
+	return status == "queued" || status == "processing" || status == "waiting_provider"
+}
+
 // deleteTaskRecords 删除一条生成任务；返回该任务生成图片对应的存储 key（由调用方删除文件）。
 // 任务本身不保留，结果图对应的资产记录一并清理，避免资产库留下孤儿数据。
 func deleteTaskRecords(q sqlQueryer, userID, taskID string) ([]string, error) {
+	var status string
+	if err := q.QueryRow("SELECT status FROM generation_tasks WHERE id=$1 AND user_id=$2 FOR UPDATE", taskID, userID).Scan(&status); err != nil {
+		return nil, err
+	}
+	if isActiveTask(status) {
+		return nil, errTaskActive
+	}
 	rows, err := q.Query("SELECT storage_key FROM assets WHERE user_id=$1 AND task_id=$2", userID, taskID)
 	if err != nil {
 		return nil, err
@@ -118,11 +132,19 @@ func deleteTaskRecords(q sqlQueryer, userID, taskID string) ([]string, error) {
 	keys := []string{}
 	for rows.Next() {
 		var key string
-		if rows.Scan(&key) == nil && key != "" {
+		if err := rows.Scan(&key); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		if key != "" {
 			keys = append(keys, key)
 		}
 	}
+	err = rows.Err()
 	rows.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	result, err := q.Exec("DELETE FROM generation_tasks WHERE id=$1 AND user_id=$2", taskID, userID)
 	if err != nil {
@@ -147,7 +169,16 @@ func deleteAssetRecord(q sqlQueryer, userID, assetID string) (string, error) {
 		return "", err
 	}
 	path := "/v1/assets/" + assetID + "/content"
-	if _, err := q.Exec("UPDATE generation_tasks SET result_images = result_images - $1 WHERE user_id=$2 AND result_images ? $1", path, userID); err != nil {
+	// 两个数组按同一个原始位置过滤，删除中间一张后模块归属仍与图片逐项对应。
+	if _, err := q.Exec(`UPDATE generation_tasks t SET
+		result_images=COALESCE((SELECT jsonb_agg(image.value ORDER BY image.position)
+			FROM jsonb_array_elements(t.result_images) WITH ORDINALITY AS image(value,position)
+			WHERE image.value<>to_jsonb($1::text)), '[]'::jsonb),
+		result_modules=CASE WHEN jsonb_typeof(t.result_modules)<>'array' OR t.result_modules='[]'::jsonb THEN '[]'::jsonb ELSE
+			COALESCE((SELECT jsonb_agg(COALESCE(t.result_modules->((image.position-1)::int),'""'::jsonb) ORDER BY image.position)
+				FROM jsonb_array_elements(t.result_images) WITH ORDINALITY AS image(value,position)
+				WHERE image.value<>to_jsonb($1::text)), '[]'::jsonb) END
+		WHERE t.user_id=$2 AND t.result_images ? $1`, path, userID); err != nil {
 		return key, err
 	}
 	return key, nil

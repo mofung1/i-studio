@@ -194,7 +194,10 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
     try {
       await deleteGeneratedAsset(image.path)
       setTasks((current) => current.map((task) => task.id === image.task.id
-        ? { ...task, resultImages: (task.resultImages ?? []).filter((path) => path !== image.path) }
+        ? { ...task,
+            resultImages: (task.resultImages ?? []).filter((path) => path !== image.path),
+            resultModules: task.resultModules?.filter((_, index) => task.resultImages?.[index] !== image.path),
+          }
         : task))
       if (selectedImage?.path === image.path) setSelectedImage(null)
       setConfirmTarget(null)
@@ -355,7 +358,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
                       </button>
                     )}
                     <button type="button" title="查看提示词和参数" aria-label={`查看${taskTitle(task)}的提示词和参数`} onClick={() => setDetailsTask(task)}><SlidersHorizontal size={14} /></button>
-                    <button type="button" className="is-danger" title="删除这条记录" aria-label={`删除记录 ${taskTitle(task)}`} disabled={deletingKey === task.id} onClick={() => setConfirmTarget({ kind: 'task', task })}>
+                    <button type="button" className="is-danger" title={isActive ? '任务完成后可删除' : '删除这条记录'} aria-label={`删除记录 ${taskTitle(task)}`} disabled={isActive || deletingKey === task.id} onClick={() => setConfirmTarget({ kind: 'task', task })}>
                       {deletingKey === task.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     </button>
                   </div>
@@ -416,6 +419,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
           ? '删除后不可恢复，该图片会从记录里移除。'
           : '该次生成的所有图片会一起删除，删除后不可恢复。'}
         confirmLabel="删除"
+        error={error}
         busy={confirmTarget.kind === 'image'
           ? deletingKey === `${confirmTarget.image.task.id}-${confirmTarget.image.index}`
           : deletingKey === confirmTarget.task.id}

@@ -341,3 +341,28 @@ func TestGenerationWorkerCount(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerationValidationRejectsInvalidOptionalFields(t *testing.T) {
+	for _, value := range []any{float64(0), float64(-1), float64(1.5), "2", nil} {
+		input := map[string]any{"mode": "general", "prompt": "photo", "count": value}
+		if err := validateGenerationInput(input); err == nil {
+			t.Fatalf("accepted invalid count %#v", value)
+		}
+	}
+	for key, value := range map[string]any{"aspectRatio": true, "resolution": float64(2), "style": "unknown", "referenceStrength": "unknown"} {
+		input := map[string]any{"mode": "general", "prompt": "photo", key: value}
+		if err := validateGenerationInput(input); err == nil {
+			t.Fatalf("accepted invalid %s", key)
+		}
+	}
+	for _, counts := range []any{map[string]any{}, []any{}, "hero"} {
+		input := map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"asset"}, "moduleMode": "custom", "moduleCounts": counts}
+		if err := validateGenerationInput(input); err == nil {
+			t.Fatalf("accepted custom modules %#v", counts)
+		}
+	}
+	input := map[string]any{"mode": "commerce", "taskType": "product-retouch", "productAssetIds": []any{"asset"}, "requirements": strings.Repeat("字", 1001)}
+	if err := validateGenerationInput(input); err == nil {
+		t.Fatal("accepted requirements over the frontend limit")
+	}
+}

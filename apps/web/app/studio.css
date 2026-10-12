@@ -322,16 +322,6 @@
   .result-empty { min-height: 250px; }
   .mode-general .prompt-editor .prompt-input { min-height: 88px; }
 }
-.general-result-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; width: min(100%, 900px); margin: 0 auto; }
-.general-result-grid.count-1 { grid-template-columns: minmax(0, 1fr); max-width: 520px; }
-.general-result-image { min-width: 0; margin: 0; }
-.general-result-open { display: flex; justify-content: center; width: 100%; padding: 0; border: 0; border-radius: 5px; overflow: hidden; background: var(--surface-2); cursor: zoom-in; }
-.general-result-open > img { display: block; width: 100%; max-height: 58dvh; object-fit: contain; }
-.general-result-open > :is(.auth-image-loading, .auth-image-failed) { width: 100%; min-height: 200px; }
-.general-result-image figcaption { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; color: var(--muted); font-size: var(--text-small); }
-.general-result-image figcaption > div { display: flex; gap: 4px; }
-.general-result-image figcaption button { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--border); background: var(--surface); border-radius: 4px; cursor: pointer; }
-.general-result-image figcaption button:hover { background: var(--surface-2); }
 .inspire-view-button { display: inline-flex; align-items: center; gap: 5px; padding: 4px 0; color: var(--foreground-3); border: 0; background: none; font-size: var(--text-caption); cursor: pointer; }
 .inspire-actions { gap: 10px; flex-wrap: wrap; }
 .inspire-start-button { margin-left: auto; }
@@ -344,12 +334,7 @@
   .studio-rail-footer { grid-column: 2; grid-row: 1; }
   .workbench-rail-nav { grid-column: 1 / -1; grid-row: 2; }
   .studio-task-nav { grid-column: 1 / -1; grid-row: 3; }
-  .general-result-grid { gap: 14px; }
-  .general-result-image figcaption { align-items: flex-start; flex-wrap: wrap; font-size: var(--text-caption); }
   .studio-parameter-details div { grid-template-columns: 80px minmax(0, 1fr); }
-}
-@media (max-width: 440px) {
-  .general-result-grid { grid-template-columns: minmax(0, 1fr); }
 }
 /* Collapsible navigation keeps all core routes available as labelled icons. */
 .studio-rail-heading { position: relative; }
@@ -2158,6 +2143,7 @@ html:has(.library-content)::-webkit-scrollbar-thumb,
   scrollbar-width: none !important;
   -ms-overflow-style: none;
 }
+
 *::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
 /* Raise the open parameter sheet above the image canvas and adjacent controls. */
@@ -2694,4 +2680,143 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
     margin: 16px -20px -20px;
     padding: 12px 20px calc(14px + env(safe-area-inset-bottom));
   }
+}
+
+/* These page surfaces align flush with the shared content frame. */
+.studio-content > :is(.commerce-page, .content-page, .ai-settings) {
+  padding: 0;
+}
+
+/* Let generated images use the canvas; the composer already has its own desktop row. */
+.mode-general .creation-canvas,
+.mode-general.config-right .creation-canvas {
+  padding-bottom: 0;
+}
+.mode-general .result-stage {
+  --hero-max: clamp(240px, calc(100cqh - 48px), 880px);
+}
+.mode-general .result-stage.has-strip {
+  --hero-max: clamp(200px, calc(100cqh - 145px), 880px);
+}
+
+@media (max-width: 780px) {
+  .mode-general .creation-canvas,
+  .mode-general.config-right .creation-canvas {
+    padding-bottom: 0;
+  }
+  .mode-general .result-stage,
+  .mode-general .result-stage.has-strip {
+    --hero-max: min(68dvh, 680px);
+  }
+}
+
+/* The general composer owns a bottom row; neither state overlays the image canvas. */
+.workbench-shell.mode-general .configuration-panel,
+.workbench-shell.mode-general.config-right .configuration-panel {
+  grid-column: 2;
+  grid-row: 3;
+  position: relative;
+  bottom: auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: auto;
+  max-height: min(45dvh, 420px);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+.mode-general .general-config-head { flex: 0 0 auto; }
+.mode-general .general-config-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: var(--radius-panel);
+  color: var(--foreground-2);
+  background: transparent;
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+}
+.mode-general .general-config-summary:hover { background: var(--hover-background); }
+.mode-general .general-config-summary:focus-visible { outline-offset: -3px; }
+.mode-general .general-config-summary > :is(span, small) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mode-general .general-config-summary > span { flex: 0 0 auto; font-weight: 500; }
+.mode-general .general-config-summary > small { color: var(--muted); font-size: var(--text-small); }
+.mode-general .general-config-summary > .general-config-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.mode-general .general-config-summary > svg { flex-shrink: 0; }
+.workbench-shell.mode-general .configuration-scroll {
+  display: block;
+  position: static;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0 18px 16px;
+  pointer-events: auto;
+}
+.workbench-shell.mode-general .configuration-scroll[hidden] { display: none; }
+.mode-general .configuration-scroll .composer-surface {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mode-general .basic-settings-popover {
+  position: static;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  margin-top: 12px;
+  padding: 12px;
+  box-shadow: none;
+}
+.mode-general .basic-settings-popover-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.workbench-shell.mode-general.general-config-collapsed .configuration-panel { max-height: none; }
+
+/* Short desktop windows scroll the workspace instead of clipping the image stage. */
+@media (min-width: 781px) and (max-height: 600px) {
+  .workbench-page:has(.mode-general) { height: auto; overflow: visible; }
+  .workbench-shell.mode-general,
+  .workbench-shell.mode-general.config-right {
+    height: auto;
+    min-height: calc(100dvh - 2 * var(--layout-padding));
+    grid-template-rows: var(--studio-header) minmax(380px, 1fr) auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 780px) {
+  .workbench-shell.mode-general .configuration-panel,
+  .workbench-shell.mode-general.config-right .configuration-panel {
+    position: static;
+    max-height: none;
+    overflow: hidden;
+  }
+  .workbench-shell.mode-general .configuration-scroll { padding: 0 14px 14px; }
+  .mode-general .general-config-summary { gap: 8px; padding: 12px 14px; min-height: 48px; flex-wrap: wrap; }
+  .mode-general .general-config-summary > .general-config-model { order: 1; flex: 1 0 calc(100% - 24px); margin-left: 24px; font-size: var(--text-caption); }
+  .mode-general .configuration-footer { position: static; bottom: auto; }
+  .mode-general .basic-settings-popover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
