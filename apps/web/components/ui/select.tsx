@@ -36,10 +36,11 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
+  portalContainer,
   ...props
-}: ComponentProps<typeof SelectPrimitive.Content>) {
+}: ComponentProps<typeof SelectPrimitive.Content> & { portalContainer?: HTMLElement | null }) {
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={portalContainer}>
       <SelectPrimitive.Content
         className={cn('select-content', className)}
         position="popper"
