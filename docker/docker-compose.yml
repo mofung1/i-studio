@@ -72,6 +72,7 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:${API_PORT:-44000}}
     environment:
       NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:${API_PORT:-44000}}
+      API_INTERNAL_BASE_URL: http://api:4000
     ports:
       - "127.0.0.1:${WEB_PORT:-33000}:3000"
     depends_on:

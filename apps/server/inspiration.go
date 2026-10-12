@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,15 +19,29 @@ type inspirationPromptRow struct {
 	Width     int    `json:"width"`
 	Height    int    `json:"height"`
 	SortOrder int    `json:"sortOrder"`
+	Enabled   bool   `json:"enabled"`
 }
 
-// inspirationPrompts 分页返回已启用的提示词。公开只读，不要求登录。
+// Visitors see enabled prompts; signed-in management also includes disabled rows.
 func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	if r.Method == http.MethodPost {
+		s.saveInspirationPrompt(w, r, "")
+		return
+	}
 	if r.Method != http.MethodGet {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
+	includeDisabled := r.URL.Query().Get("includeDisabled") == "true"
+	if includeDisabled && !s.requireSettingsUser(w, r) {
+		return
+	}
 	if s.db == nil {
+		if includeDisabled {
+			s.error(w, 503, "INSPIRATION_DATABASE_REQUIRED", "灵感提示词管理需要连接 PostgreSQL 数据库")
+			return
+		}
 		s.json(w, 200, map[string]any{"prompts": []any{}, "categories": []any{}, "page": 1, "pageSize": 24, "total": 0})
 		return
 	}
@@ -39,14 +52,23 @@ func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 	pageSize := clampInt(parseQueryInt(r.URL.Query().Get("pageSize"), 24), 1, 60)
 
 	where := "WHERE enabled = true"
+	if includeDisabled {
+		where = "WHERE true"
+		if status := r.URL.Query().Get("status"); status == "enabled" {
+			where += " AND enabled=true"
+		} else if status == "disabled" {
+			where += " AND enabled=false"
+		}
+	}
 	args := []any{}
 	if category != "" {
 		where += " AND category = $" + strconv.Itoa(len(args)+1)
 		args = append(args, category)
 	}
 	if query != "" {
-		// 标题、提示词、来源三字段模糊匹配，大小写不敏感
+		// 标题、分类、提示词和来源模糊匹配，大小写不敏感。
 		where += " AND (title ILIKE $" + strconv.Itoa(len(args)+1) +
+			" OR category ILIKE $" + strconv.Itoa(len(args)+1) +
 			" OR prompt ILIKE $" + strconv.Itoa(len(args)+1) +
 			" OR source ILIKE $" + strconv.Itoa(len(args)+1) + ")"
 		args = append(args, "%"+query+"%")
@@ -60,7 +82,7 @@ func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	offset := (page - 1) * pageSize
-	querySQL := "SELECT id,title,category,prompt,source,image_key,image_width,image_height,sort_order FROM inspiration_prompts " + where +
+	querySQL := "SELECT " + inspirationPromptColumns + " FROM inspiration_prompts " + where +
 		" ORDER BY sort_order ASC, id ASC LIMIT $" + strconv.Itoa(len(args)+1) + " OFFSET $" + strconv.Itoa(len(args)+2)
 	rows, err := s.db.Query(querySQL, append(args, pageSize, offset)...)
 	if err != nil {
@@ -71,15 +93,16 @@ func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 
 	list := []inspirationPromptRow{}
 	for rows.Next() {
-		var row inspirationPromptRow
-		var imageKey string
-		if err := rows.Scan(&row.ID, &row.Title, &row.Category, &row.Prompt, &row.Source, &imageKey, &row.Width, &row.Height, &row.SortOrder); err != nil {
-			continue
-		}
-		if imageKey != "" {
-			row.ImageURL = inspirationImageURL(imageKey)
+		row, err := scanInspirationPrompt(rows)
+		if err != nil {
+			s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "灵感库查询失败")
+			return
 		}
 		list = append(list, row)
+	}
+	if err := rows.Err(); err != nil {
+		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "灵感库查询失败")
+		return
 	}
 
 	s.json(w, 200, map[string]any{
@@ -187,5 +210,3 @@ func parseQueryInt(raw string, fallback int) int {
 	}
 	return value
 }
-
-var _ = sql.ErrNoRows

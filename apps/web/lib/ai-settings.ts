@@ -27,12 +27,13 @@ export interface PromptTemplate {
   sortOrder: number
 }
 export interface AIConnectionTest { success: boolean; model: string; responseTimeMs: number; message: string }
-export async function settingsRequest<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+export async function settingsRequest<T>(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${apiBaseUrl}/v1/${path}`, {
     method,
     headers: { Authorization: `Bearer ${getAccessToken()}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: 'no-store',
+    signal,
   })
   if (!response.ok) throw new Error(await readApiError(response, '请求失败，请重试'))
   return response.json() as Promise<T>

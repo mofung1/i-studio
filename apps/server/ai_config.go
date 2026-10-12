@@ -513,28 +513,11 @@ func (a *aiConfigStore) public(e endpointConfig) (map[string]any, error) {
 	return result, nil
 }
 
-// Existing accounts have no role field. The oldest account owns instance settings.
-func (s *server) canManageAI(uid string) bool {
-	if uid == "" {
-		return false
-	}
-	if s.db != nil {
-		var id string
-		return s.db.QueryRow("SELECT id FROM users ORDER BY created_at,id LIMIT 1").Scan(&id) == nil && id == uid
-	}
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.aiAdminID == uid
-}
-
-func (s *server) requireAIAdmin(w http.ResponseWriter, r *http.Request) bool {
-	uid, ok := s.authenticatedUserID(r)
+// Instance settings are shared and editable by every signed-in account.
+func (s *server) requireSettingsUser(w http.ResponseWriter, r *http.Request) bool {
+	_, ok := s.authenticatedUserID(r)
 	if !ok {
 		s.error(w, 401, "AUTH_REQUIRED", "请先登录")
-		return false
-	}
-	if !s.canManageAI(uid) {
-		s.error(w, 403, "AI_SETTINGS_FORBIDDEN", "仅首个注册账号可管理全局 AI 配置")
 		return false
 	}
 	return true

@@ -220,6 +220,10 @@ CREATE TABLE IF NOT EXISTS inspiration_prompts (id TEXT PRIMARY KEY, title TEXT 
 		return err
 	}
 	_, err = db.Exec(aiConfigurationMigration)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS site_settings (id BOOLEAN PRIMARY KEY DEFAULT true CHECK (id), name TEXT NOT NULL, logo_key TEXT NOT NULL DEFAULT '');`)
 	return err
 }
 
