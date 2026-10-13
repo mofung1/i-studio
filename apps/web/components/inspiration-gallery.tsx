@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUpRight, Check, Copy, Image as ImageIcon, Pencil, RefreshCw, Search, X } from 'lucide-react'
+import { ArrowUpRight, Check, Copy, Image as ImageIcon, RefreshCw, Search, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -60,7 +60,6 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
 
   return <div className="inspire-gallery">
     <aside className="inspire-gallery-head" aria-label="灵感筛选">
-      {!onUsePrompt && <Link className="inspiration-manage-link" href="/inspire/manage"><Pencil size={15} aria-hidden="true" />管理提示词</Link>}
       <div className="inspire-hero-search" role="search">
         <Search size={17} className="inspire-search-icon" aria-hidden="true" />
         <input type="search" className="inspire-search-input" placeholder="搜索标题、提示词或来源…" aria-label="搜索提示词" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />

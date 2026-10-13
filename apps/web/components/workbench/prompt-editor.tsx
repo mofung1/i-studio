@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, Check, Loader2, RotateCcw, Sparkles } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, ChevronUp, Loader2, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
 
 interface PromptEditorProps {
@@ -15,6 +15,8 @@ interface PromptEditorProps {
   enhanceDisabledReason?: string
   helper?: string
   maxLength?: number
+  compact?: boolean
+  collapsed?: boolean
 }
 
 /** 提示词输入：比普通字段更醒目，带自增高、字数、AI 优化/帮写与状态提示。 */
@@ -28,7 +30,10 @@ export function PromptEditor({
   enhanceDisabledReason,
   helper,
   maxLength = 10000,
+  compact = false,
+  collapsed = false,
 }: PromptEditorProps) {
+  const [expanded, setExpanded] = useState(false)
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [justEnhanced, setJustEnhanced] = useState(false)
   const [error, setError] = useState('')
@@ -38,14 +43,16 @@ export function PromptEditor({
   const [previousValue, setPreviousValue] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const hintId = useId()
+  const textareaId = useId()
 
-  // 输入时自增高：最少 5 行，最多 12 行，超过后内部滚动
+  // Compact view keeps the full value scrollable; expansion only changes its viewport.
   useEffect(() => {
     const node = textareaRef.current
     if (!node) return
     node.style.height = 'auto'
-    node.style.height = `${Math.min(node.scrollHeight, 300)}px`
-  }, [value])
+    node.style.height = `${Math.min(node.scrollHeight, compact && !expanded ? 64 : 300)}px`
+  }, [value, compact, expanded])
+  useEffect(() => { if (compact && collapsed) setExpanded(false) }, [compact, collapsed])
 
   // 条件满足后自动收起拦截提示
   useEffect(() => {
@@ -92,8 +99,9 @@ export function PromptEditor({
   const blocked = Boolean(enhanceDisabledReason)
 
   return (
-    <div className="prompt-editor">
+    <div className={`prompt-editor${compact ? ' prompt-editor-compact' : ''}${compact && expanded ? ' is-expanded' : ''}`}>
       <textarea
+        id={textareaId}
         ref={textareaRef}
         className="prompt-input"
         aria-label={ariaLabel}
@@ -107,7 +115,7 @@ export function PromptEditor({
       />
 
       <div className="prompt-editor-bar">
-        <span className={`prompt-count ${overLimit ? 'is-over' : ''}`}>{value.length}/{maxLength}</span>
+        {(!compact || expanded || overLimit) && <span className={`prompt-count ${overLimit ? 'is-over' : ''}`}>{value.length}/{maxLength}</span>}
         <div className="prompt-editor-actions">
           {previousValue !== null && (
             <button className="prompt-undo" type="button" onClick={undo} title="恢复到改写前的描述">
@@ -120,25 +128,29 @@ export function PromptEditor({
               type="button"
               disabled={isEnhancing}
               aria-describedby={blocked && blockedHint ? hintId : undefined}
-              title={isEnhancing ? '正在处理…' : '用 AI 把当前描述整理得更专业'}
+              title={isEnhancing ? '正在处理…' : helper ?? '用 AI 把当前描述整理得更专业'}
+              aria-description={helper}
               onClick={() => void runEnhance()}
             >
               {isEnhancing ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Sparkles size={14} aria-hidden="true" />}
               {isEnhancing ? '正在处理…' : enhanceLabel}
             </button>
           )}
+          {compact && <button type="button" className="prompt-expand" aria-label={expanded ? '收起完整描述' : '展开完整描述'} aria-expanded={expanded} aria-controls={textareaId} onClick={() => { setExpanded(value => !value); textareaRef.current?.focus({ preventScroll: true }) }}>
+            {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}{expanded ? '收起描述' : '展开描述'}
+          </button>}
         </div>
       </div>
 
       {(error || (blockedHint && enhanceDisabledReason)) ? (
-        <p className="prompt-note is-error" role="alert">
+        <p id={hintId} className="prompt-note is-error" role="alert">
           <AlertTriangle size={13} aria-hidden="true" />
           {error || enhanceDisabledReason}
           {error && <button className="prompt-retry" type="button" onClick={() => void runEnhance()}>重试</button>}
         </p>
-      ) : justEnhanced ? (
+      ) : justEnhanced && (!compact || expanded) ? (
         <p className="prompt-note"><Check size={13} aria-hidden="true" />已重新组织描述，可点「撤销」还原</p>
-      ) : helper ? <p className="prompt-note">{helper}</p> : null}
+      ) : helper && (!compact || expanded) ? <p className="prompt-note">{helper}</p> : null}
     </div>
   )
 }

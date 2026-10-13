@@ -38,7 +38,7 @@ export function GenerationHistory({
       if (selectedBounds.left < listBounds.left) list.scrollLeft -= listBounds.left - selectedBounds.left
       else if (selectedBounds.right > listBounds.right) list.scrollLeft += selectedBounds.right - listBounds.right
     }
-  }, [activeIndex, items.length, placement])
+  }, [activeIndex, activeImageIndex, items.length, placement])
   const versions = items.filter((item) => item.resultImages?.length)
   const displayedVersions = placement === 'sidebar' ? [...versions].reverse() : versions
   if (versions.length === 0) return null
@@ -57,6 +57,24 @@ export function GenerationHistory({
           const versionIndex = items.indexOf(item)
           const versionNumber = versionIndex + 1
           const isActiveVersion = versionIndex === activeIndex
+          if (placement === 'sidebar') return images.map((path, imageIndex) => {
+            const selected = isActiveVersion && imageIndex === activeImageIndex
+            return <li key={`${item.id}-${imageIndex}`} className={selected ? 'history-item active' : 'history-item'}>
+              <div className="history-open">
+                <button type="button" className={selected ? 'history-thumb selected' : 'history-thumb'} aria-pressed={selected} aria-label={`查看第 ${versionNumber} 个版本的第 ${imageIndex + 1} 张`} onClick={() => onSelect(versionIndex, imageIndex)}>
+                  <AuthenticatedImage path={path} alt={`第 ${versionNumber} 个版本第 ${imageIndex + 1} 张`} />
+                </button>
+                <button type="button" className="history-meta" aria-label={`查看第 ${versionNumber} 个版本的第 ${imageIndex + 1} 张详情`} onClick={() => onSelect(versionIndex, imageIndex)}>
+                  <strong>第 {versionNumber} 次 · 第 {imageIndex + 1} 张</strong>
+                  <small>{item.status === 'succeeded' ? '已完成' : '部分完成'}</small>
+                </button>
+              </div>
+              <div className="history-tools">
+                <button type="button" title="下载这张图片" aria-label={`下载第 ${versionNumber} 个版本的第 ${imageIndex + 1} 张图片`} onClick={() => onDownload(path, `istudio-${item.id.slice(0, 8)}-${imageIndex + 1}.png`)}><Download size={13} aria-hidden="true" /></button>
+                <button type="button" title="用作参考图继续创作" aria-label={`把第 ${versionNumber} 个版本的第 ${imageIndex + 1} 张图片用作参考图`} onClick={() => onUseAsReference(path)}><RotateCcw size={13} aria-hidden="true" /></button>
+              </div>
+            </li>
+          })
           return (
             <li key={item.id} className={isActiveVersion ? 'history-item active' : 'history-item'}>
               <div className="history-open">

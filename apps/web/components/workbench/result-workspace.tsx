@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, Image as ImageIcon, Loader2, RefreshCw, RotateCcw,
+  AlertTriangle, Check, ChevronLeft, ChevronRight, Download, Image as ImageIcon, Loader2, Maximize2, RefreshCw, RotateCcw,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -14,6 +14,7 @@ import { GenerationLoading } from './generation-loading'
 import { FailureNotice } from './failure-notice'
 import { HistoryDrawer } from './history-drawer'
 import { ImageLightbox } from './image-lightbox'
+import { ImageViewport } from './image-viewport'
 import { moduleLabel, taskMeta, type WorkbenchMode } from './shared'
 import { taskModeLabel, type HistoryTask } from './use-task-history'
 import { generationStatusLabels, type InlineGenerationTask } from './use-generation-task'
@@ -80,6 +81,7 @@ export function ResultWorkspace({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [downloadError, setDownloadError] = useState('')
+  const [naturalRatio, setNaturalRatio] = useState<{ path: string; ratio: number } | null>(null)
 
   const isHistoryView = Boolean(historyTask)
   const images = isHistoryView ? (historyTask?.resultImages ?? []) : (activeResult?.resultImages ?? [])
@@ -99,6 +101,7 @@ export function ResultWorkspace({
   const [ratioWidth, ratioHeight] = displayRatio.split(':').map(Number)
   const heroRatio = ratioWidth && ratioHeight ? ratioWidth / ratioHeight : 1
   const heroRatioCss = ratioWidth && ratioHeight ? `${ratioWidth} / ${ratioHeight}` : '1 / 1'
+  const imageRatio = naturalRatio?.path === heroImage ? naturalRatio.ratio : heroRatio
   const generatingImages = Math.min(Math.max(generatingCount ?? expectedCount, 1), MAX_SKELETONS)
   const failureMessage = generationTask && !isGenerating && generationTask.status !== 'succeeded'
     ? generationTask.errorMessage || '供应商未返回错误详情，请重试。'
@@ -141,6 +144,12 @@ export function ResultWorkspace({
     if (next < 0 || next >= images.length) return
     setActiveImageIndex(next)
   }
+
+  const imagePager = <div className="result-pager" role="group" aria-label="切换生成图片">
+    {images.length > 1 && <button type="button" aria-label="上一张" disabled={safeIndex === 0} onClick={() => step(-1)}><ChevronLeft size={16} aria-hidden="true" /></button>}
+    <span className="result-pager-count">{safeIndex + 1} / {images.length}</span>
+    {images.length > 1 && <button type="button" aria-label="下一张" disabled={safeIndex === images.length - 1} onClick={() => step(1)}><ChevronRight size={16} aria-hidden="true" /></button>}
+  </div>
 
   const recentHistory = !isHistoryView && !isGenerating && resultHistory.length > 0 ? <GenerationHistory
     placement={mode === 'general' ? 'sidebar' : 'bottom'}
@@ -217,7 +226,7 @@ export function ResultWorkspace({
               )}
             </>
           )}
-          {hasResults && <button type="button" className="studio-secondary" onClick={downloadCurrent}><Download size={15} />下载图片</button>}
+          {hasResults && mode !== 'general' && <button type="button" className="studio-secondary" onClick={downloadCurrent}><Download size={15} />下载图片</button>}
           {hasResults && onDownloadAll && <button type="button" className="studio-secondary" disabled={downloadAllBusy} onClick={onDownloadAll}><Download size={15} aria-hidden="true" />{downloadAllBusy ? '打包中…' : '下载图组'}</button>}
         </div>
       </header>
@@ -230,12 +239,14 @@ export function ResultWorkspace({
           <div className="result-generating">
             <div className={`result-stage${generatingImages > 1 ? ' has-strip' : ''}`}>
               {/* 占位尺寸与生成后的主图一致：同比例、同最大高度 */}
-              <div
-                className="result-hero-skeleton"
-                style={{ aspectRatio: heroRatioCss, maxWidth: `calc(var(--hero-max) * ${heroRatio})` }}
+              <ImageViewport
+                enabled={mode === 'general'}
+                aspectRatio={heroRatio}
+                loading
+                legacyStyle={{ aspectRatio: heroRatioCss, maxWidth: `calc(var(--hero-max) * ${heroRatio})` }}
               >
                 <GenerationLoading status={generationTask?.status ?? 'processing'} count={generatingCount ?? expectedCount} />
-              </div>
+              </ImageViewport>
               {generatingImages > 1 && (
                 <div className="result-strip-skeleton" aria-hidden="true">
                   {Array.from({ length: generatingImages }, (_, index) => (
@@ -276,9 +287,10 @@ export function ResultWorkspace({
           <div className="result-result">
             <div className={`result-stage${images.length > 1 ? ' has-strip' : ''}`}>
               {/* 图片就绪前先按当前比例撑出与结果一致的画框，避免生成完成时塌陷或跳动 */}
-              <div
-                className="result-hero"
-                style={heroReady ? undefined : {
+              <ImageViewport
+                enabled={mode === 'general'}
+                aspectRatio={imageRatio}
+                legacyStyle={heroReady ? undefined : {
                   width: `min(100%, calc(var(--hero-max) * ${heroRatio}))`,
                   aspectRatio: heroRatioCss,
                 }}
@@ -291,7 +303,10 @@ export function ResultWorkspace({
                     title="点击查看大图"
                     onClick={() => setLightboxOpen(true)}
                   >
-                    <img className="result-hero-image" src={heroSource} alt={`AI 生成结果 ${safeIndex + 1}`} />
+                    <img className="result-hero-image" src={heroSource} alt={`AI 生成结果 ${safeIndex + 1}`} onLoad={event => {
+                      const image = event.currentTarget
+                      if (image.naturalWidth > 0 && image.naturalHeight > 0) setNaturalRatio({ path: heroImage, ratio: image.naturalWidth / image.naturalHeight })
+                    }} />
                   </button>
                 ) : (
                   <div
@@ -313,7 +328,7 @@ export function ResultWorkspace({
                   </span>
                 )}
 
-                {heroReady && (
+                {heroReady && mode !== 'general' && (
                   <div className="result-hero-actions">
                     <button type="button" title="下载" aria-label="下载这张图片" onClick={downloadCurrent}>
                       <Download size={16} />
@@ -328,26 +343,10 @@ export function ResultWorkspace({
                     </button>
                   </div>
                 )}
-              </div>
+              </ImageViewport>
 
               {/* 切换按钮放在图片下方，不遮挡画面 */}
-              {images.length > 1 && (
-                <div className="result-pager">
-                  <button
-                    type="button"
-                    aria-label="上一张"
-                    disabled={safeIndex === 0}
-                    onClick={() => step(-1)}
-                  ><ChevronLeft size={16} /></button>
-                  <span className="result-pager-count">{safeIndex + 1} / {images.length}</span>
-                  <button
-                    type="button"
-                    aria-label="下一张"
-                    disabled={safeIndex === images.length - 1}
-                    onClick={() => step(1)}
-                  ><ChevronRight size={16} /></button>
-                </div>
-              )}
+              {mode !== 'general' && images.length > 1 && imagePager}
 
               {images.length > 1 && (
                 <ol className="result-strip" aria-label="本次生成的图片">
@@ -367,7 +366,14 @@ export function ResultWorkspace({
                 </ol>
               )}
             </div>
-            <div className="canvas-image-footer"><span>当前图片 · {safeIndex + 1} / {images.length}</span><button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => onUseImageAsReference(heroImage, imageSource)}><ImageIcon size={15} />用作参考，继续创作</button></div>
+            {mode === 'general' ? <div className="canvas-image-footer result-image-toolbar" role="group" aria-label="图片查看操作">
+              {imagePager}
+              <div className="result-image-commands">
+                <button type="button" className="studio-secondary" disabled={!heroReady} onClick={downloadCurrent}><Download size={15} aria-hidden="true" />下载图片</button>
+                <button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => setLightboxOpen(true)}><Maximize2 size={15} aria-hidden="true" />全屏查看</button>
+                <button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => onUseImageAsReference(heroImage, imageSource)}><ImageIcon size={15} aria-hidden="true" />继续创作</button>
+              </div>
+            </div> : <div className="canvas-image-footer"><span>当前图片 · {safeIndex + 1} / {images.length}</span><button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => onUseImageAsReference(heroImage, imageSource)}><ImageIcon size={15} />用作参考，继续创作</button></div>}
           </div>
         )}
 
@@ -397,6 +403,7 @@ export function ResultWorkspace({
           path={heroImage}
           alt={`${title}生成结果 ${safeIndex + 1}`}
           filename={`istudio-${(isHistoryView ? historyTask?.id : activeResult?.id)?.slice(0, 8) ?? 'result'}-${safeIndex + 1}`}
+          fullscreen={mode === 'general'}
           hasPrev={images.length > 1 && safeIndex > 0}
           hasNext={images.length > 1 && safeIndex < images.length - 1}
           onPrev={() => step(-1)}

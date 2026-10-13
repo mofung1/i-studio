@@ -1,8 +1,5 @@
 'use client'
 
-import { Pause, Play } from 'lucide-react'
-import { useState } from 'react'
-
 interface GenerationLoadingProps {
   status: string
   count: number
@@ -10,14 +7,13 @@ interface GenerationLoadingProps {
 
 /** 黑白画片组合只表示任务仍在运行，不模拟进度或预计完成时间。 */
 export function GenerationLoading({ status, count }: GenerationLoadingProps) {
-  const [paused, setPaused] = useState(false)
   const label = status === 'queued' ? '创作正在排队'
     : status === 'waiting_provider' ? '等待画面返回' : '正在构建画面'
   const description = status === 'queued' ? '任务已提交，轮到后将自动开始'
     : status === 'waiting_provider' ? 'AI 正在处理，完成后会自动展示'
       : '让描述、光影与细节慢慢成形'
 
-  return <div className={`generation-loading${paused ? ' is-paused' : ''}`}>
+  return <div className="generation-loading">
     <div className="generation-loading-art" aria-hidden="true">
       <span className="generation-orbit generation-orbit-outer" />
       <span className="generation-orbit generation-orbit-inner" />
@@ -38,8 +34,5 @@ export function GenerationLoading({ status, count }: GenerationLoadingProps) {
       <p>{description}</p>
       <span className="generation-loading-count">本次创作 · {count} 张</span>
     </div>
-    <button type="button" className="generation-motion-toggle" aria-label={paused ? '播放生成动画' : '暂停生成动画'} aria-pressed={paused} title={paused ? '播放动画' : '暂停动画'} onClick={() => setPaused(value => !value)}>
-      {paused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
-    </button>
   </div>
 }

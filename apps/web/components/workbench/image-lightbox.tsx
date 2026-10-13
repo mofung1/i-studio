@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { useProtectedImageUrl } from '@/components/authenticated-image'
+import { useDialogFocus } from '@/components/use-dialog-focus'
 
 interface ImageLightboxProps {
   path: string
@@ -17,6 +18,7 @@ interface ImageLightboxProps {
   onPrev?: () => void
   onNext?: () => void
   onClose: () => void
+  fullscreen?: boolean
 }
 
 type CropBox = { x: number; y: number; w: number; h: number }
@@ -50,7 +52,7 @@ function saveBlob(blob: Blob, filename: string) {
  * 结果图查看器：查看态支持放大 / 缩小 / 拖动平移；裁剪态支持框选后导出到本地。
  * 裁剪完全在浏览器内完成，不写回服务端，也不产生新的生成费用。
  */
-export function ImageLightbox({ path, alt, filename, hasPrev, hasNext, onPrev, onNext, onClose }: ImageLightboxProps) {
+export function ImageLightbox({ path, alt, filename, hasPrev, hasNext, onPrev, onNext, onClose, fullscreen = false }: ImageLightboxProps) {
   const { source, state, retry } = useProtectedImageUrl(path)
   const [mode, setMode] = useState<'view' | 'crop'>('view')
   const [zoom, setZoom] = useState(1)
@@ -63,6 +65,7 @@ export function ImageLightbox({ path, alt, filename, hasPrev, hasNext, onPrev, o
   const [imageRect, setImageRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
 
   const stageRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
   const dragRef = useRef<{ mode: DragMode; startX: number; startY: number; box: CropBox } | null>(null)
   const panRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
@@ -94,21 +97,21 @@ export function ImageLightbox({ path, alt, filename, hasPrev, hasNext, onPrev, o
     resetView()
   }, [resetView])
 
-  // Esc 关闭灯箱；裁剪态第一次按 Esc 先退出裁剪
+  // 裁剪态第一次按 Esc 先退出裁剪；查看态关闭并把焦点还给入口。
+  useDialogFocus(panelRef, () => {
+    if (mode === 'crop') exitCrop()
+    else onClose()
+  }, 'button[aria-label="关闭"]')
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (mode === 'crop') exitCrop()
-        else onClose()
-        return
-      }
       if (mode !== 'view') return
       if (event.key === 'ArrowLeft' && hasPrev) onPrev?.()
       if (event.key === 'ArrowRight' && hasNext) onNext?.()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [exitCrop, hasNext, hasPrev, mode, onClose, onNext, onPrev])
+  }, [hasNext, hasPrev, mode, onNext, onPrev])
 
   // 窗口尺寸变化时重新测量，保证裁剪框始终贴合图片
   useEffect(() => {
@@ -249,11 +252,11 @@ export function ImageLightbox({ path, alt, filename, hasPrev, hasNext, onPrev, o
 
   return createPortal(
     <div
-      className="image-lightbox"
+      className={`image-lightbox${fullscreen ? ' is-fullscreen' : ''}`}
       role="presentation"
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}
     >
-      <div className="lightbox-panel" role="dialog" aria-modal="true" aria-label={`${alt}查看器`}>
+      <div ref={panelRef} className="lightbox-panel" role="dialog" aria-modal="true" aria-label={`${alt}查看器`}>
         <header className="lightbox-bar">
           <span className="lightbox-title">{alt}</span>
           <div className="lightbox-tools">
