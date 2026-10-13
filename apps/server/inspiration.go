@@ -118,48 +118,17 @@ func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Public categories include enabled prompts; management includes disabled categories too.
+// Public lists show categories with enabled prompts; management also sees empty categories.
 func (s *server) inspirationCategories(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	w.Header().Set("Cache-Control", "no-store")
+	switch r.Method {
+	case http.MethodGet:
+		s.listInspirationCategories(w, r)
+	case http.MethodPost:
+		s.editInspirationCategory(w, r, "")
+	default:
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
-		return
 	}
-	includeDisabled := r.URL.Query().Get("includeDisabled") == "true"
-	if includeDisabled && !s.requireSettingsUser(w, r) {
-		return
-	}
-	if s.db == nil {
-		if includeDisabled {
-			s.error(w, 503, "INSPIRATION_DATABASE_REQUIRED", "灵感提示词管理需要连接 PostgreSQL 数据库")
-			return
-		}
-		s.json(w, 200, map[string]any{"categories": []any{}})
-		return
-	}
-
-	where := "WHERE enabled = true"
-	if includeDisabled {
-		where = ""
-	}
-	rows, err := s.db.Query("SELECT category, count(*) FROM inspiration_prompts " + where + " GROUP BY category ORDER BY min(sort_order) ASC, category ASC")
-	if err != nil {
-		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "分类查询失败")
-		return
-	}
-	defer rows.Close()
-
-	type categoryCount struct {
-		Category string `json:"category"`
-		Count    int    `json:"count"`
-	}
-	list := []categoryCount{}
-	for rows.Next() {
-		var item categoryCount
-		if rows.Scan(&item.Category, &item.Count) == nil {
-			list = append(list, item)
-		}
-	}
-	s.json(w, 200, map[string]any{"categories": list})
 }
 
 // inspirationImageURL 把 image_key 转成可访问的 URL：

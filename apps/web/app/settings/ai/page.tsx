@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Check, LoaderCircle, Pencil, Plus, RotateCcw, Save, Settings2, Trash2, X, Zap } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
+import { PromptTemplateBrowser } from '@/components/prompt-template-browser'
+import { promptGroupLabel } from '@/lib/prompt-groups'
 import { SiteSettingsPanel } from '@/components/site-settings-panel'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import { getAccessToken } from '@/lib/api'
@@ -14,14 +16,7 @@ const protocolLabels: Record<AIProtocol, string> = {
   openai_image: 'OpenAI Image API',
   gemini_generate_content: 'Gemini generateContent',
 }
-const promptTemplateLabels: Record<string, string> = {
-  rewrite: '通用生图',
-  requirements: '电商模式',
-  'product-main': '商品主图',
-  'detail-page': '商品详情',
-  'viral-recreate': '爆款复刻',
-  'product-retouch': '产品精修',
-}
+const promptVariableLabels: Record<string, string> = { prompt: '用户输入的画面描述', style: '所选创作风格的指令', language: '本次选择的画面文字语言' }
 function newEndpoint(purpose: EndpointPurpose): EndpointInput {
   return { name: '', purpose, protocol: purpose === 'prompt' ? 'openai_chat' : 'openai_image', baseUrl: '', model: '', apiKey: '', timeoutSeconds: purpose === 'prompt' ? 60 : 300, capabilities: {}, enabled: true, isDefault: false }
 }
@@ -106,8 +101,15 @@ export default function AISettingsPage() {
   const activeTemplate = templates.find(template => template.key === selectedKey)
   const promptDirty = !!activeTemplate && (promptDraft !== activeTemplate.content || promptEnabled !== activeTemplate.enabled)
 
+
+  function selectTemplate(key: string) {
+    if (key === selectedKey || busy) return
+    if (promptDirty && !window.confirm('放弃未保存的修改？')) return
+    setSelectedKey(key); setSaved(''); setMessage('')
+  }
+
   function switchView(next: typeof view) {
-    if (next === view) return
+    if (next === view || busy) return
     if (((view === 'prompts' && promptDirty) || (view === 'site' && siteDirty)) && !window.confirm('当前配置尚未保存，仍要切换设置分类？')) return
     setSiteDirty(false)
     setView(next)
@@ -149,9 +151,12 @@ export default function AISettingsPage() {
             </div>}
           </section>)}
         </div> : <section id="prompts-panel" role="tabpanel" aria-labelledby="prompts-tab" className="prompt-settings">
-          <nav aria-label="提示词模板">{templates.map(template => <button key={template.key} aria-current={template.key === selectedKey ? 'true' : undefined} onClick={() => { if (promptDirty && !window.confirm('放弃未保存的修改？')) return; setSelectedKey(template.key) }}>{promptTemplateLabels[template.key] ?? template.name}</button>)}</nav>
-          <div className="prompt-settings-editor"><div className="prompt-editor-heading"><div className="prompt-editor-title"><h2>{activeTemplate?.name}</h2>{promptDirty && <span className="prompt-dirty-status">未保存更改</span>}</div><label className="settings-switch"><input type="checkbox" checked={promptEnabled} onChange={event => setPromptEnabled(event.target.checked)} />启用</label></div>
-            <textarea className="prompt-content-editor" aria-label="提示词模板内容" value={promptDraft} maxLength={20000} rows={18} onChange={event => setPromptDraft(event.target.value)} />
+          <div className="prompt-settings-intro"><h2>内置提示词</h2><p>按用途选择并修改，保存后用于后续创作。所有账号共享此配置，停用后不附加该段指令。</p></div>
+          <PromptTemplateBrowser templates={templates} selectedKey={selectedKey} busy={!!busy} onSelect={selectTemplate} />
+          <div className="prompt-settings-editor">{activeTemplate && <p className="prompt-editor-breadcrumb">{promptGroupLabel(activeTemplate)}</p>}<div className="prompt-editor-heading"><div className="prompt-editor-title"><h2>{activeTemplate?.name}</h2>{promptDirty && <span className="prompt-dirty-status">未保存更改</span>}</div><label className="settings-switch"><input type="checkbox" checked={promptEnabled} disabled={!!busy} onChange={event => setPromptEnabled(event.target.checked)} />启用</label></div>
+            {activeTemplate?.description && <p className="prompt-template-purpose">{activeTemplate.description}</p>}
+            {!!activeTemplate?.variables?.length && <p className="prompt-template-variables">可用变量：{activeTemplate.variables.map(variable => <span key={variable}><code>{`{{${variable}}}`}</code> {promptVariableLabels[variable] ?? variable}</span>)}</p>}
+            <textarea className="prompt-content-editor" aria-label="提示词模板内容" value={promptDraft} disabled={!!busy} maxLength={20000} rows={18} onChange={event => setPromptDraft(event.target.value)} />
             <details className="prompt-default"><summary>查看默认 Prompt</summary><pre>{promptDefault}</pre></details>
             <div className="settings-form-actions"><button className="settings-command" disabled={!!busy} onClick={() => { if (window.confirm('恢复默认提示词？当前修改将被替换。')) savePrompt(true) }}><RotateCcw size={16} />恢复默认</button><button className="settings-primary" disabled={!!busy || !promptDraft.trim()} onClick={() => savePrompt()}><Save size={16} />{busy === 'prompt' ? '保存中' : '保存'}</button></div>
           </div>

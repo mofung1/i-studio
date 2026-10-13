@@ -24,12 +24,13 @@ func scanInspirationPrompt(scanner inspirationScanner) (inspirationPromptRow, er
 }
 
 type inspirationPromptInput struct {
-	Title     string `json:"title"`
-	Category  string `json:"category"`
-	Prompt    string `json:"prompt"`
-	Source    string `json:"source"`
-	SortOrder int    `json:"sortOrder"`
-	Enabled   *bool  `json:"enabled"`
+	Title      string `json:"title"`
+	Category   string `json:"category"`
+	CategoryID string `json:"categoryId"`
+	Prompt     string `json:"prompt"`
+	Source     string `json:"source"`
+	SortOrder  int    `json:"sortOrder"`
+	Enabled    *bool  `json:"enabled"`
 }
 
 func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, id string) {
@@ -55,15 +56,32 @@ func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, i
 	}
 	enabled := input.Enabled == nil || *input.Enabled
 	var row inspirationPromptRow
-	var err error
+	tx, err := beginInspirationEdit(s.db)
+	if err != nil {
+		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "提示词保存失败")
+		return
+	}
+	defer tx.Rollback()
+	if input.CategoryID != "" {
+		if err = tx.QueryRow("SELECT name FROM inspiration_categories WHERE id=$1", input.CategoryID).Scan(&input.Category); errors.Is(err, sql.ErrNoRows) {
+			s.error(w, 400, "INSPIRATION_CATEGORY_NOT_FOUND", "分类已变更，请重新选择")
+			return
+		}
+	} else {
+		err = ensureInspirationCategory(tx, input.Category)
+	}
+	if err != nil {
+		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "分类读取失败")
+		return
+	}
 	status := http.StatusOK
 	if id == "" {
 		id = "manual_" + randomID()
-		row, err = scanInspirationPrompt(s.db.QueryRow("INSERT INTO inspiration_prompts(id,title,category,prompt,source,sort_order,enabled) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING "+inspirationPromptColumns, id, input.Title, input.Category, input.Prompt, input.Source, input.SortOrder, enabled))
+		row, err = scanInspirationPrompt(tx.QueryRow("INSERT INTO inspiration_prompts(id,title,category,prompt,source,sort_order,enabled) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING "+inspirationPromptColumns, id, input.Title, input.Category, input.Prompt, input.Source, input.SortOrder, enabled))
 		status = http.StatusCreated
 	} else {
 		// Text edits keep the imported example image, dimensions and creation date.
-		row, err = scanInspirationPrompt(s.db.QueryRow("UPDATE inspiration_prompts SET title=$2,category=$3,prompt=$4,source=$5,sort_order=$6,enabled=$7 WHERE id=$1 RETURNING "+inspirationPromptColumns, id, input.Title, input.Category, input.Prompt, input.Source, input.SortOrder, enabled))
+		row, err = scanInspirationPrompt(tx.QueryRow("UPDATE inspiration_prompts SET title=$2,category=$3,prompt=$4,source=$5,sort_order=$6,enabled=$7 WHERE id=$1 RETURNING "+inspirationPromptColumns, id, input.Title, input.Category, input.Prompt, input.Source, input.SortOrder, enabled))
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		s.error(w, 404, "INSPIRATION_NOT_FOUND", "提示词不存在或已被删除")
@@ -71,6 +89,10 @@ func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, i
 	}
 	if err != nil {
 		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "提示词保存失败，请重试")
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "提示词保存失败")
 		return
 	}
 	s.json(w, status, map[string]any{"prompt": row})

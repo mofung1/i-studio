@@ -12,7 +12,14 @@ export interface InspirationManagementResponse {
   pageSize: number
 }
 
+export interface ManagedInspirationCategory {
+  id: string
+  category: string
+  count: number
+  enabledCount: number
+}
+
 export function inspirationDraft(item?: ManagedInspirationPrompt): InspirationPromptInput {
   return item ? { title: item.title, category: item.category, prompt: item.prompt, source: item.source, sortOrder: item.sortOrder, enabled: item.enabled }
-    : { title: '', category: '其他场景', prompt: '', source: '', sortOrder: 0, enabled: true }
+    : { title: '', category: '', prompt: '', source: '', sortOrder: 0, enabled: true }
 }

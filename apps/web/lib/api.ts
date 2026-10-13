@@ -62,6 +62,17 @@ export interface PromptEnhanceResult {
   model?: string
 }
 
+/** 未配置 Prompt AI 时按服务器中的模板整理文字，不调用 AI。 */
+export async function formatPrompt(text: string, style: string): Promise<PromptEnhanceResult> {
+  const response = await fetch(`${apiBaseUrl}/v1/prompts/format`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getAccessToken()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, style }),
+  })
+  if (!response.ok) throw new Error(await readApiError(response, '提示词整理失败，请重试'))
+  return response.json() as Promise<PromptEnhanceResult>
+}
+
 /** 删除一条生成记录（连同它生成的结果图片）。 */
 export async function deleteGenerationTask(taskId: string) {
   const token = getAccessToken()

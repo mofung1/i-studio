@@ -7,7 +7,7 @@ import type { GenerationModel } from '@/lib/contracts'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 
-import { enhancePrompt } from '@/lib/api'
+import { enhancePrompt, formatPrompt } from '@/lib/api'
 import { downscaleImageFiles } from '@/lib/image-file'
 
 import { AdvancedSettings } from './advanced-settings'
@@ -17,7 +17,6 @@ import { ProductPlatformSelector } from './product-platform-selector'
 import { PromptEditor } from './prompt-editor'
 import { ReferenceUploader } from './reference-uploader'
 import {
-  buildEnhancedPrompt,
   detailModules,
   optionLabel,
   productMainModules,
@@ -176,7 +175,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
     ? referenceFiles
     : task === 'viral-recreate' ? [...productFiles, ...referenceFiles] : productFiles
   // 不向用户暴露用了哪个模型；只有未接入 AI 时才说明当前是本地规则
-  const enhanceHelper = !promptEnhanceEnabled ? '请先在设置中配置提示词 AI 服务' : !props.promptVision ? '当前提示词模型不支持图片识别，请先输入大概的生图内容，再提交给 AI 优化提示词。' : undefined
+  const enhanceHelper = !promptEnhanceEnabled ? '未配置 Prompt AI，将仅整理输入文字，不分析图片。' : !props.promptVision ? '当前提示词模型不支持图片识别，请先输入大概的生图内容，再提交给 AI 优化提示词。' : undefined
   // 空输入时点按钮给出的具体指引（比“请先上传图片或输入文字”更好照做）
   const enhanceBlockedReason = isGeneral
     ? '请先上传参考图片，或输入画面描述'
@@ -248,8 +247,8 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 onChange={onSetPrompt}
                 ariaLabel="画面描述"
                 placeholder="输入文字或上传参考图，描述你想生成的内容。"
-                enhance={(value) => (promptEnhanceEnabled ? runEnhance('prompt', value) : buildEnhancedPrompt(value, style))}
-                enhanceDisabledReason={!prompt.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
+                enhance={async (value) => (promptEnhanceEnabled ? runEnhance('prompt', value) : (await formatPrompt(value, style)).text)}
+                enhanceDisabledReason={!prompt.trim() && (!promptEnhanceEnabled || enhanceImages.length === 0) ? (promptEnhanceEnabled ? enhanceBlockedReason : '请先输入画面描述') : undefined}
                 helper={enhanceHelper}
                 enhanceLabel="AI 优化"
                 compact
@@ -310,9 +309,9 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               ariaLabel={requirementsLabel}
               maxLength={task === 'product-main' || task === 'detail-page' ? 2000 : 1000}
               placeholder={requirementsPlaceholder}
-              enhance={(value) => (promptEnhanceEnabled ? runEnhance('requirements', value) : buildEnhancedPrompt(value, style))}
+              enhance={async (value) => (promptEnhanceEnabled ? runEnhance('requirements', value) : (await formatPrompt(value, style)).text)}
               enhanceLabel="AI 帮写"
-              enhanceDisabledReason={!requirements.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
+              enhanceDisabledReason={!requirements.trim() && (!promptEnhanceEnabled || enhanceImages.length === 0) ? (promptEnhanceEnabled ? enhanceBlockedReason : '请先输入补充需求') : undefined}
               helper={enhanceHelper}
             />
           </fieldset>

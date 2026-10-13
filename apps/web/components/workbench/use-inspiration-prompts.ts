@@ -17,8 +17,10 @@ export interface InspirationPrompt {
 }
 
 export interface InspirationCategory {
+  id?: string
   category: string
   count: number
+  enabledCount?: number
 }
 
 interface InspirationResponse {

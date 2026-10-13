@@ -59,6 +59,8 @@ type promptTemplate struct {
 	DefaultContent string    `json:"defaultContent"`
 	Enabled        bool      `json:"enabled"`
 	SortOrder      int       `json:"sortOrder"`
+	Description    string    `json:"description,omitempty"`
+	Variables      []string  `json:"variables,omitempty"`
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
 }
@@ -302,7 +304,7 @@ func (a *aiConfigStore) withConfig(write bool, fn func(*aiConfiguration) error) 
 			}
 		}
 		for _, t := range state.Templates {
-			if _, err := tx.Exec("INSERT INTO prompt_templates(key,name,category,content,default_content,enabled,sort_order,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(key) DO UPDATE SET content=EXCLUDED.content,default_content=EXCLUDED.default_content,enabled=EXCLUDED.enabled,updated_at=EXCLUDED.updated_at", t.Key, t.Name, t.Category, t.Content, t.DefaultContent, t.Enabled, t.SortOrder, t.CreatedAt, t.UpdatedAt); err != nil {
+			if _, err := tx.Exec("INSERT INTO prompt_templates(key,name,category,content,default_content,enabled,sort_order,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(key) DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,sort_order=EXCLUDED.sort_order,content=EXCLUDED.content,default_content=EXCLUDED.default_content,enabled=EXCLUDED.enabled,updated_at=EXCLUDED.updated_at", t.Key, t.Name, t.Category, t.Content, t.DefaultContent, t.Enabled, t.SortOrder, t.CreatedAt, t.UpdatedAt); err != nil {
 				return err
 			}
 		}
@@ -572,6 +574,11 @@ func (a *aiConfigStore) migrateLegacy() error {
 			for i, t := range state.Templates {
 				if t.Key == def.Key {
 					state.Templates[i].DefaultContent = def.Content
+					state.Templates[i].Name = def.Name
+					state.Templates[i].Category = def.Category
+					state.Templates[i].SortOrder = def.SortOrder
+					state.Templates[i].Description = def.Description
+					state.Templates[i].Variables = def.Variables
 					found = true
 					break
 				}

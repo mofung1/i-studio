@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowUpRight, Check, Copy, Image as ImageIcon, RefreshCw, Search, X } from 'lucide-react'
+import { ArrowUpRight, Check, Copy, Folder, Image as ImageIcon, RefreshCw, Search, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -66,6 +66,7 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
         {searchInput && <button type="button" className="inspire-search-clear" aria-label="清除搜索" onClick={clearSearch}><X size={15} /></button>}
       </div>
       <div className="inspire-filter-section">
+        {!onUsePrompt && <div className="inspire-category-heading"><span>分类</span><Link href="/inspire/categories"><Folder size={14} aria-hidden="true" />分类管理</Link></div>}
         <div className="inspire-filters" role="group" aria-label="按分类筛选">
           <button type="button" className="inspire-filter-chip" aria-pressed={category === ''} onClick={() => changeCategory('')}><span>全部</span><span className="inspire-filter-count">{allTotal}</span></button>
           {categories.map((item) => <button key={item.category} type="button" className="inspire-filter-chip" aria-pressed={category === item.category} onClick={() => changeCategory(item.category)}><span>{item.category}</span><span className="inspire-filter-count">{item.count}</span></button>)}

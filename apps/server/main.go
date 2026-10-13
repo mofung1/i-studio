@@ -115,6 +115,7 @@ func main() {
 	mux.HandleFunc("/v1/generation/tasks", s.tasksHandler)
 	mux.HandleFunc("/v1/generation/tasks/", s.taskByID)
 	mux.HandleFunc("/v1/prompts/enhance", s.promptEnhance)
+	mux.HandleFunc("/v1/prompts/format", s.formatPrompt)
 	mux.HandleFunc("/v1/clothing/plan", s.clothingPlanHandler)
 	mux.HandleFunc("/v1/ai-endpoints", s.aiEndpoints)
 	mux.HandleFunc("/v1/ai-endpoints/", s.aiEndpointByID)
@@ -127,6 +128,7 @@ func main() {
 	mux.HandleFunc("/v1/inspiration/prompts", s.inspirationPrompts)
 	mux.HandleFunc("/v1/inspiration/prompts/", s.inspirationPromptByID)
 	mux.HandleFunc("/v1/inspiration/categories", s.inspirationCategories)
+	mux.HandleFunc("/v1/inspiration/categories/", s.inspirationCategoryByID)
 	mux.HandleFunc("/v1/inspiration/images/", s.inspirationImage)
 	port := env("API_PORT", "4000")
 	fmt.Printf("iStudio Go API listening on :%s\n", port)
@@ -241,6 +243,22 @@ func (s *server) capabilities(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	payload["imageEndpoints"] = images
+	if _, ok := s.authenticatedUserID(r); ok {
+		templates, err := s.generationPromptSnapshot()
+		if err != nil {
+			s.error(w, 500, "PROMPT_STORAGE_ERROR", "提示词配置读取失败")
+			return
+		}
+		hints := map[string]string{}
+		for _, module := range clothingModules {
+			hints[module.key] = templates["module.clothing-set."+module.key]
+		}
+		poses := []string{}
+		for index := 1; index <= 4; index++ {
+			poses = append(poses, templates[fmt.Sprintf("clothing.pose.%d", index)])
+		}
+		payload["clothingPlanDefaults"] = map[string]any{"modules": hints, "poses": poses, "footer": templates["clothing.plan.footer"]}
+	}
 	s.json(w, 200, payload)
 }
 func (s *server) validate(w http.ResponseWriter, r *http.Request) {

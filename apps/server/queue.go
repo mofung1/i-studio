@@ -170,6 +170,12 @@ func (q *taskQueue) processTask(id string) {
 // generateBatches 返回图片列表与逐图模块归属（modules[i] 为 images[i] 所属模块 key，
 // 非模块化生成时为空切片）。两者按下标一一对应。
 func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, []string, error) {
+	templates, err := q.server.generationPromptSnapshot()
+	if err != nil {
+		return nil, nil, fmt.Errorf("无法读取生成提示词配置：%w", err)
+	}
+	input["generationPrompts"] = templates
+	defer delete(input, "generationPrompts")
 	if dynamic, ok := q.server.provider.(*dynamicImageProvider); ok {
 		client, err := dynamic.clientFor(input)
 		if err != nil {
@@ -224,12 +230,16 @@ func (q *taskQueue) generateClothingBatches(id string, input map[string]any) ([]
 		return nil, nil, fmt.Errorf("服装生成规划缺失，请重新确认规划")
 	}
 	previousCount, previousID, previousHint := input["count"], input["taskId"], input["moduleHint"]
-	defer func() { input["count"], input["taskId"], input["moduleHint"] = previousCount, previousID, previousHint }()
+	defer func() {
+		input["count"], input["taskId"], input["moduleHint"] = previousCount, previousID, previousHint
+		delete(input, "generationModule")
+	}()
 	images, attribution := []string{}, []string{}
 	for index, shot := range shots {
 		input["count"] = 1
 		input["taskId"] = fmt.Sprintf("%s-clothing-%d", id, index+1)
 		input["moduleHint"] = shot.Description
+		input["generationModule"] = shot.ModuleKey
 		q.server.updateTaskStatus(id, "processing")
 		remote, err := q.imageClient(input).Submit(context.Background(), input)
 		if err != nil {
@@ -308,7 +318,7 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 			size := min(remaining, batchSize)
 			input["count"] = size
 			input["taskId"] = fmt.Sprintf("%s-%s-%d", id, module, batch)
-			input["moduleHint"] = commerceModuleHint(stringValue(input["taskType"], ""), module)
+			input["moduleHint"] = configuredModuleHint(input, stringValue(input["taskType"], ""), module)
 			q.server.updateTaskStatus(id, "processing")
 			remote, err := q.imageClient(input).Submit(context.Background(), input)
 			if err != nil {

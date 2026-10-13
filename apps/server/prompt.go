@@ -231,7 +231,7 @@ func labeledValue(labels map[string]string, raw string) string {
 }
 
 // buildPromptUserText 把用户输入与当前配置拼成给模型的用户消息。
-func buildPromptUserText(target, text string, r *http.Request) string {
+func buildPromptUserText(target, text string, r *http.Request, prompts ...generationPromptSet) string {
 	var builder strings.Builder
 	if target == "requirements" {
 		builder.WriteString("请结合下面的配置，输出一段可直接用于生成商品图的提示词。\n")
@@ -241,7 +241,7 @@ func buildPromptUserText(target, text string, r *http.Request) string {
 
 	writeContextLine(&builder, "任务类型", labeledValue(promptTaskTypeLabels, r.FormValue("taskType")))
 	writeContextLine(&builder, "目标平台", labeledValue(promptPlatformLabels, r.FormValue("platform")))
-	writeContextLine(&builder, "模块组合", moduleContextText(r))
+	writeContextLine(&builder, "模块组合", moduleContextText(r, prompts...))
 	writeContextLine(&builder, "期望风格", labeledValue(promptStyleLabels, r.FormValue("style")))
 	writeContextLine(&builder, "文字语言", labeledValue(promptLanguageLabels, r.FormValue("outputLanguage")))
 	writeContextLine(&builder, "复刻程度", labeledValue(promptRecreateLabels, r.FormValue("recreateStrength")))
@@ -282,7 +282,7 @@ const (
 // modules 是「中文名×数量」（后端不认识也能正常显示），moduleKeys 是并行的「key×数量」，
 // 用来补上与生成时同源的模块表达要点，让模型知道每个模块各自要表达什么。
 // 比例、分辨率这类输出规格不参与提示词生成。
-func moduleContextText(r *http.Request) string {
+func moduleContextText(r *http.Request, prompts ...generationPromptSet) string {
 	mode := strings.TrimSpace(r.FormValue("moduleMode"))
 	labels := r.MultipartForm.Value["modules"]
 	keys := r.MultipartForm.Value["moduleKeys"]
@@ -301,7 +301,7 @@ func moduleContextText(r *http.Request) string {
 		}
 		if index < len(keys) {
 			if key, _ := splitNameCount(keys[index]); key != "" {
-				if intent := moduleIntent(strings.TrimSpace(r.FormValue("taskType")), key); intent != "" {
+				if intent := moduleIntent(strings.TrimSpace(r.FormValue("taskType")), key, prompts...); intent != "" {
 					entry += "（" + intent + "）"
 				}
 			}
@@ -332,8 +332,12 @@ func splitNameCount(item string) (name, count string) {
 
 // moduleIntent 取模块的表达要点（去掉开头的模块名，只保留要表达的内容），
 // 与生成阶段注入的 moduleHint 同源，保证「AI 帮写」和真正出图的目标一致。
-func moduleIntent(taskType, key string) string {
-	hint := strings.TrimSpace(commerceModuleHint(taskType, strings.TrimSpace(key)))
+func moduleIntent(taskType, key string, prompts ...generationPromptSet) string {
+	input := map[string]any{}
+	if len(prompts) > 0 {
+		input["generationPrompts"] = prompts[0]
+	}
+	hint := strings.TrimSpace(configuredModuleHint(input, taskType, strings.TrimSpace(key)))
 	if hint == "" {
 		return ""
 	}

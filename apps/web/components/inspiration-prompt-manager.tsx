@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, LoaderCircle, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Folder, LoaderCircle, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { apiBaseUrl, getAccessToken } from '@/lib/api'
 import { settingsRequest } from '@/lib/ai-settings'
-import { inspirationDraft, type InspirationManagementResponse, type InspirationPromptInput, type ManagedInspirationPrompt } from '@/lib/inspiration-settings'
+import { inspirationDraft, type InspirationManagementResponse, type InspirationPromptInput, type ManagedInspirationCategory, type ManagedInspirationPrompt } from '@/lib/inspiration-settings'
 import { ConfirmDialog } from './confirm-dialog'
 import type { InspirationCategory } from './workbench/use-inspiration-prompts'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from './select'
@@ -24,9 +24,13 @@ export function InspirationPromptManager() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [editing, setEditing] = useState<{ item?: ManagedInspirationPrompt; draft: InspirationPromptInput } | null>(null)
+  const [editing, setEditing] = useState<{ item?: ManagedInspirationPrompt; draft: InspirationPromptInput; initial: InspirationPromptInput } | null>(null)
   const [saving, setSaving] = useState(false)
   const [editorError, setEditorError] = useState('')
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [categoryName, setCategoryName] = useState('')
+  const [categorySaving, setCategorySaving] = useState(false)
+  const [categoryError, setCategoryError] = useState('')
   const [deleting, setDeleting] = useState<ManagedInspirationPrompt | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
@@ -34,7 +38,7 @@ export function InspirationPromptManager() {
   const focusRef = useRef<HTMLElement | null>(null)
   const addRef = useRef<HTMLButtonElement>(null)
   const editorOpen = editing !== null
-  const dirty = !!editing && JSON.stringify(editing.draft) !== JSON.stringify(inspirationDraft(editing.item))
+  const dirty = (!!editing && JSON.stringify(editing.draft) !== JSON.stringify(editing.initial)) || (addingCategory && !!categoryName.trim())
 
   useEffect(() => { setLoggedIn(!!getAccessToken()) }, [])
   useEffect(() => {
@@ -69,10 +73,13 @@ export function InspirationPromptManager() {
   function edit(item?: ManagedInspirationPrompt) {
     focusRef.current = document.activeElement as HTMLElement
     setEditorError(''); setNotice('')
-    setEditing({ item, draft: inspirationDraft(item) })
+    const draft = inspirationDraft(item)
+    if (!item && filters.category) draft.category = filters.category
+    setEditing({ item, draft, initial: draft })
+    setAddingCategory(false); setCategoryName(''); setCategoryError('')
   }
   function closeEditor() {
-    if (saving || (dirty && !window.confirm('放弃尚未保存的提示词修改？'))) return
+    if (saving || categorySaving || (dirty && !window.confirm('放弃尚未保存的提示词修改？'))) return
     setEditing(null)
   }
   function field(patch: Partial<InspirationPromptInput>) {
@@ -84,12 +91,23 @@ export function InspirationPromptManager() {
     if (!editing || saving) return
     setSaving(true); setEditorError('')
     try {
-      await settingsRequest(`inspiration/prompts${editing.item ? `/${encodeURIComponent(editing.item.id)}` : ''}`, editing.item ? 'PUT' : 'POST', editing.draft)
+      const categoryId = categories.find(category => category.category === editing.draft.category)?.id
+      await settingsRequest(`inspiration/prompts${editing.item ? `/${encodeURIComponent(editing.item.id)}` : ''}`, editing.item ? 'PUT' : 'POST', { ...editing.draft, categoryId })
       setNotice(editing.item ? '提示词已保存' : '提示词已新增')
       if (!editing.item) { setSearch(''); setFilters({ query: '', category: '', status: 'all', page: 1 }) }
       setEditing(null); setRefresh(value => value + 1)
     } catch (error) { setEditorError(errorText(error)) }
     finally { setSaving(false) }
+  }
+  async function createCategory() {
+    if (!categoryName.trim() || categorySaving) return
+    setCategorySaving(true); setCategoryError('')
+    try {
+      const { category } = await settingsRequest<{ category: ManagedInspirationCategory }>('inspiration/categories', 'POST', { name: categoryName.trim() })
+      setCategories(previous => [...previous.filter(item => item.category !== category.category), category])
+      field({ category: category.category }); setAddingCategory(false); setCategoryName('')
+    } catch (error) { setCategoryError(errorText(error)) }
+    finally { setCategorySaving(false) }
   }
   async function deletePrompt() {
     if (!deleting || deleteBusy) return
@@ -112,6 +130,7 @@ export function InspirationPromptManager() {
       <Select value={filters.category ? `category:${filters.category}` : 'all'} onValueChange={value => setFilters(previous => ({ ...previous, category: value === 'all' ? '' : value.slice('category:'.length), page: 1 }))}><SelectTrigger className="inspiration-manager-category" aria-label="提示词分类筛选"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">全部分类</SelectItem>{Array.from(new Set([...categories.map(item => item.category), ...(filters.category ? [filters.category] : [])])).map(category => <SelectItem key={category} value={`category:${category}`}>{category}</SelectItem>)}</SelectGroup></SelectContent></Select>
       <Select value={filters.status} onValueChange={status => setFilters(previous => ({ ...previous, status, page: 1 }))}><SelectTrigger className="inspiration-manager-status" aria-label="提示词状态筛选"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">全部状态</SelectItem><SelectItem value="enabled">已启用</SelectItem><SelectItem value="disabled">未启用</SelectItem></SelectGroup></SelectContent></Select>
       <button type="button" className="settings-command" aria-label="刷新提示词列表" disabled={loading} onClick={() => setRefresh(value => value + 1)}><RefreshCw size={16} aria-hidden="true" />刷新</button>
+      <Link className="settings-command" href="/inspire/categories"><Folder size={16} aria-hidden="true" />分类管理</Link>
       <button ref={addRef} type="button" className="settings-primary" onClick={() => edit()}><Plus size={17} aria-hidden="true" />新增提示词</button>
     </div>
     {notice && <p className="settings-saved" role="status">{notice}</p>}
@@ -126,15 +145,18 @@ export function InspirationPromptManager() {
     {!error && <div className="inspiration-manager-pagination"><span>共 {total} 条 · 第 {filters.page} / {Math.max(1, Math.ceil(total / PAGE_SIZE))} 页</span><div><button type="button" className="settings-command" aria-label="上一页" disabled={loading || filters.page <= 1} onClick={() => setFilters(previous => ({ ...previous, page: previous.page - 1 }))}><ChevronLeft size={17} aria-hidden="true" />上一页</button><button type="button" className="settings-command" aria-label="下一页" disabled={loading || filters.page * PAGE_SIZE >= total} onClick={() => setFilters(previous => ({ ...previous, page: previous.page + 1 }))}>下一页<ChevronRight size={17} aria-hidden="true" /></button></div></div>}
     <dialog ref={dialogRef} className="endpoint-dialog inspiration-editor-dialog" aria-labelledby="inspiration-editor-title" onCancel={event => { event.preventDefault(); closeEditor() }}>
       {editing && <form onSubmit={save} aria-busy={saving}>
-        <div className="endpoint-section-head"><h2 id="inspiration-editor-title">{editing.item ? '编辑提示词' : '新增提示词'}</h2><button type="button" className="settings-icon" aria-label="关闭提示词编辑" disabled={saving} onClick={closeEditor}><X size={20} aria-hidden="true" /></button></div>
+        <div className="endpoint-section-head"><h2 id="inspiration-editor-title">{editing.item ? '编辑提示词' : '新增提示词'}</h2><button type="button" className="settings-icon" aria-label="关闭提示词编辑" disabled={saving || categorySaving} onClick={closeEditor}><X size={20} aria-hidden="true" /></button></div>
         {editorError && <p className="settings-error" role="alert">{editorError}</p>}
-        <fieldset disabled={saving} className="inspiration-editor-fields">
+        <fieldset disabled={saving || categorySaving} className="inspiration-editor-fields">
           <label className="settings-field"><span>标题</span><input autoFocus required maxLength={160} value={editing.draft.title} onChange={event => field({ title: event.target.value })} /></label>
-          <div className="endpoint-form-grid"><label className="settings-field"><span>分类</span><input required maxLength={80} value={editing.draft.category} onChange={event => field({ category: event.target.value })} /></label><label className="settings-field"><span>来源（可选）</span><input maxLength={500} value={editing.draft.source} onChange={event => field({ source: event.target.value })} /></label></div>
+          <div className="endpoint-form-grid"><div className="settings-field inspiration-editor-category"><label htmlFor="inspiration-prompt-category">分类</label><Select key={JSON.stringify(categories.map(category => category.category))} value={editing.draft.category ? `category:${editing.draft.category}` : ''} onValueChange={value => field({ category: value.slice('category:'.length) })} disabled={saving || categorySaving}><SelectTrigger id="inspiration-prompt-category" aria-label="提示词分类"><SelectValue placeholder="选择分类" /></SelectTrigger><SelectContent portalContainer={dialogRef.current} className="endpoint-dialog-select-content"><SelectGroup>{categories.map(category => <SelectItem value={`category:${category.category}`} key={category.category}>{category.category}</SelectItem>)}</SelectGroup></SelectContent></Select>
+            {addingCategory ? <div className="inspiration-inline-category"><input autoFocus aria-label="新增分类名称" maxLength={80} placeholder="输入分类名称" value={categoryName} onChange={event => setCategoryName(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); void createCategory() } }} /><div><button type="button" className="settings-command" disabled={!categoryName.trim() || categorySaving} onClick={() => void createCategory()}>{categorySaving ? '新增中…' : '新增并选择'}</button><button type="button" className="settings-command" disabled={categorySaving} onClick={() => setAddingCategory(false)}>取消</button></div></div> : <button type="button" className="inspiration-category-add" onClick={() => { setAddingCategory(true); setCategoryError('') }}><Plus size={14} aria-hidden="true" />新增分类</button>}
+            {!categories.length && !addingCategory && <small>暂无分类，请先新增分类。</small>}{categoryError && <p className="settings-error" role="alert">{categoryError}</p>}
+          </div><label className="settings-field"><span>来源（可选）</span><input maxLength={500} value={editing.draft.source} onChange={event => field({ source: event.target.value })} /></label></div>
           <div className="settings-field"><label htmlFor="inspiration-prompt-content">提示词内容</label><textarea id="inspiration-prompt-content" required maxLength={20000} rows={9} value={editing.draft.prompt} onChange={event => field({ prompt: event.target.value })} /></div>
           <div className="inspiration-editor-options"><label className="settings-switch"><input type="checkbox" checked={editing.draft.enabled} onChange={event => field({ enabled: event.target.checked })} />启用并展示在灵感库</label><label className="settings-field inspiration-order-field"><span>排序（越小越靠前）</span><input type="number" min={-1000000} max={1000000} step={1} required value={editing.draft.sortOrder} onChange={event => field({ sortOrder: Number(event.target.value) })} /></label></div>
         </fieldset>
-        <div className="settings-form-actions"><button type="button" className="settings-command" disabled={saving} onClick={closeEditor}>取消</button><button type="submit" className="settings-primary" disabled={saving || !dirty || !editing.draft.title.trim() || !editing.draft.category.trim() || !editing.draft.prompt.trim()}>{saving ? <LoaderCircle size={16} className="settings-spinner" aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}{saving ? '保存中' : '保存提示词'}</button></div>
+        <div className="settings-form-actions"><button type="button" className="settings-command" disabled={saving || categorySaving} onClick={closeEditor}>取消</button><button type="submit" className="settings-primary" disabled={saving || categorySaving || !dirty || !editing.draft.title.trim() || !categories.some(category => category.category === editing.draft.category) || !editing.draft.prompt.trim()}>{saving ? <LoaderCircle size={16} className="settings-spinner" aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}{saving ? '保存中' : '保存提示词'}</button></div>
       </form>}
     </dialog>
     {deleting && <ConfirmDialog title="删除灵感提示词" description={`删除“${deleting.title}”后，它将从灵感库移除。`} detail="删除后不可恢复" confirmLabel="删除提示词" busy={deleteBusy} error={deleteError} onCancel={() => setDeleting(null)} onConfirm={() => void deletePrompt()} />}

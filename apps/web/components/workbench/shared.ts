@@ -75,18 +75,5 @@ export function referenceLimit(mode: WorkbenchMode, task: CommerceTaskType) {
   return 6
 }
 
-/**
- * 提示词优化（本地结构化，未接入真实模型）：
- * 按「主体场景 → 画面要求 → 光线质感 → 风格 → 输出约束」重组用户描述。
- */
-export function buildEnhancedPrompt(prompt: string, style: GeneralStyle) {
-  const base = prompt.trim().replace(/[。；;，,\s]+$/, '')
-  if (!base) return ''
-  const lines = [`${base}。`, '画面要求：主体清晰完整，构图平衡，留白充足，无杂乱元素。', '光线与质感：柔和自然光，材质与细节清晰，高级商业质感。']
-  if (style !== 'unspecified') lines.push(`画面风格：${optionLabel(styleOptions, style)}。`)
-  lines.push('输出要求：高分辨率，真实可信，不添加未指定的文字与 Logo。')
-  return lines.join('\n')
-}
-
 /** 各任务在画布空态展示的设计参考图 */
 export const generalCanvasImage = 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=1400&q=88'

@@ -373,11 +373,22 @@ func seedOneCase(db *sql.DB, item inspirationCase, inspirationDir, imageBaseURL 
 		_ = file.Close()
 	}
 
-	_, err := db.Exec(`INSERT INTO inspiration_prompts (id,title,category,prompt,source,image_key,image_width,image_height,enabled,sort_order)
+	tx, err := beginInspirationEdit(db)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err = ensureInspirationCategory(tx, item.Category); err != nil {
+		return err
+	}
+	_, err = tx.Exec(`INSERT INTO inspiration_prompts (id,title,category,prompt,source,image_key,image_width,image_height,enabled,sort_order)
 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true,$9)
 ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, category=EXCLUDED.category, prompt=EXCLUDED.prompt, source=EXCLUDED.source, image_key=EXCLUDED.image_key, image_width=EXCLUDED.image_width, image_height=EXCLUDED.image_height`,
 		id, item.Title, item.Category, item.Prompt, item.Source, imageKey, width, height, item.Number)
-	return err
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func downloadInspirationImage(client *http.Client, url, dest string) error {
