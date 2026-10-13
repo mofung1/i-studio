@@ -68,6 +68,11 @@ func (s *server) validateInputOwnership(userID string, input map[string]any) err
 			}
 		}
 	}
+	for _, key := range []string{"modelAssetId", "sceneAssetId"} {
+		if id, _ := input[key].(string); id != "" && !s.userOwnsAsset(userID, id) {
+			return fmt.Errorf("素材不存在或无权访问")
+		}
+	}
 	return nil
 }
 

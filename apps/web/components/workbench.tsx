@@ -9,11 +9,13 @@ import { apiBaseUrl, deleteGenerationTask, getAccessToken } from '@/lib/api'
 
 import { InfoDialog } from './info-dialog'
 import { CreatorSidebar } from './workbench/creator-sidebar'
+import { ClothingWorkbench } from './workbench/clothing-workbench'
 import { RegenerateDialog, shouldSkipRegenerateConfirm, type RegenerateRow } from './workbench/regenerate-dialog'
 import { ResultWorkspace } from './workbench/result-workspace'
 import { WorkbenchHeader } from './workbench/workbench-header'
 import { WorkbenchRail } from './workbench/workbench-rail'
 import { useGenerationTask, type GenerationNotice } from './workbench/use-generation-task'
+import { historyWorkbenchUrl, referenceWorkbenchUrl, useWorkbenchHandoff } from './workbench/use-workbench-handoff'
 import type { HistoryTask } from './workbench/use-task-history'
 import {
   detailModules,
@@ -41,7 +43,13 @@ interface WorkbenchProps {
   initialCount?: string
 }
 
-export function Workbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount }: WorkbenchProps) {
+export function Workbench(props: WorkbenchProps) {
+  return props.initialMode === 'commerce' && props.initialTask === 'clothing-set'
+    ? <ClothingWorkbench initialModel={props.initialModel} initialAspectRatio={props.initialAspectRatio} initialResolution={props.initialResolution} />
+    : <StandardWorkbench {...props} />
+}
+
+function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialModel, initialAspectRatio, initialResolution, initialCount }: WorkbenchProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -94,6 +102,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
   } = useGenerationTask(`${mode}:${task}`)
 
   const hasProductImage = productFiles.length > 0
+  useWorkbenchHandoff({ ready: aiEnabled !== null, onHistory: (record, review) => review ? regenerateFromHistory(record) : loadHistoryConfig(record), onReference: path => useImageAsReference(path, { mode, taskType: task }), onError: message => setNotice({ kind: 'error', message }) })
 
   // 等历史配置提交到 React 后，再用本轮渲染的参数生成，避免异步回调拿到旧配置。
   useEffect(() => {
@@ -222,6 +231,11 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
    * 与当前工具同类型时直接填入素材区；不同类型时先切到对应的生图配置页再填入。
    */
   async function useImageAsReference(path: string, source: { mode: WorkbenchMode; taskType: CommerceTaskType }) {
+    if (source.mode === 'commerce' && source.taskType === 'clothing-set') {
+      const target = referenceWorkbenchUrl(path, 'commerce', 'clothing-set')
+      if (target) router.replace(target)
+      return
+    }
     const targetMode = source.mode === 'commerce' ? 'commerce' : 'general'
     const targetTask = (['product-main', 'detail-page', 'viral-recreate', 'product-retouch'] as CommerceTaskType[])
       .includes(source.taskType) ? source.taskType : 'product-main'
@@ -259,6 +273,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
 
   /** 载入一条历史记录的配置，继续在当前工作台里编辑 */
   async function loadHistoryConfig(historyTaskToLoad: HistoryTask) {
+    if (historyTaskToLoad.input.taskType === 'clothing-set') { router.replace(historyWorkbenchUrl(historyTaskToLoad)); return false }
     const requestId = ++configurationRequestRef.current
     const input = historyTaskToLoad.input
     setLoadingConfigId(historyTaskToLoad.id)
@@ -316,6 +331,7 @@ export function Workbench({ initialMode, initialPrompt, initialTask, initialMode
       setNotice({ kind: 'error', message: '当前任务正在生成，请完成后再重新生成' })
       return
     }
+    if (historyTaskToLoad.input.taskType === 'clothing-set') { router.replace(historyWorkbenchUrl(historyTaskToLoad, true)); return }
     const loaded = await loadHistoryConfig(historyTaskToLoad)
     if (!loaded) return
     if (shouldSkipRegenerateConfirm()) {

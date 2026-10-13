@@ -15,19 +15,21 @@ interface GenerateBarProps {
   isGenerating: boolean
   aiEnabled: boolean | null
   onSubmit: () => void
+  buttonLabel?: string
+  busyLabel?: string
 }
 
 /** 固定在创作区底部的生成区，不随参数滚动消失。 */
 export function GenerateBar({
-  title, expectedCount, aspectRatio, resolution, notice, isSubmitting, isGenerating, aiEnabled, onSubmit,
+  title, expectedCount, aspectRatio, resolution, notice, isSubmitting, isGenerating, aiEnabled, onSubmit, buttonLabel, busyLabel,
 }: GenerateBarProps) {
   const label = isSubmitting
-    ? '正在提交…'
+    ? busyLabel ?? '正在提交…'
     : isGenerating
       ? '正在生成…'
       : aiEnabled === null
         ? '检查 AI 服务…'
-        : `生成${title}`
+        : buttonLabel ?? `生成${title}`
 
   const hint = isGenerating
     ? '当前任务生成中，完成后可以继续提交新任务'

@@ -90,6 +90,7 @@ const ASSET_LABELS: Record<CommerceTaskType, string> = {
   'detail-page': '产品素材',
   'viral-recreate': '商品原图',
   'product-retouch': '商品原图',
+  'clothing-set': '服装原图',
 }
 
 const COMPACT_STATUS_LABELS: Record<string, string> = {

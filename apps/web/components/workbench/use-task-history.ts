@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
+import type { ClothingMode, ClothingShot, ClothingStyle } from '@/lib/contracts'
 
 /** 历史任务的输入参数，字段与 /v1/generation/tasks 返回的 input 一致 */
 export interface HistoryTaskInput {
@@ -26,6 +27,11 @@ export interface HistoryTaskInput {
   count?: number
   productAssetIds?: string[]
   referenceAssetIds?: string[]
+  clothingMode?: ClothingMode
+  clothingStyle?: ClothingStyle
+  clothingPlan?: ClothingShot[]
+  modelAssetId?: string
+  sceneAssetId?: string
 }
 
 export interface HistoryTask {
@@ -43,6 +49,7 @@ const taskTypeLabels: Record<string, string> = {
   'detail-page': '详情页',
   'viral-recreate': '爆款复刻',
   'product-retouch': '产品精修',
+  'clothing-set': '服装组图',
 }
 
 export const activeTaskStatuses = new Set(['queued', 'processing', 'waiting_provider'])

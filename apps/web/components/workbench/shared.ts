@@ -1,4 +1,5 @@
 import type { CommerceTaskType } from '@/lib/contracts'
+import { clothingProductModules } from '@/lib/clothing'
 
 export type WorkbenchMode = 'general' | 'commerce'
 export type ConfigSide = 'left' | 'right'
@@ -27,6 +28,7 @@ export const taskMeta: Record<CommerceTaskType, { title: string; description: st
     description: '修复和提升商品原图质量',
     image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=1400&q=88',
   },
+  'clothing-set': { title: '服装组图', description: '生成服装商品图组与模特上身图片', image: '/images/clothing-workbench.svg' },
 }
 
 export const commerceTasks = Object.entries(taskMeta) as Array<[CommerceTaskType, (typeof taskMeta)[CommerceTaskType]]>
@@ -38,6 +40,7 @@ export const detailModules = [['hero', '首屏主视觉'], ['selling', '核心�
 const moduleLabelsByTaskType: Record<string, Record<string, string>> = {
   'product-main': Object.fromEntries(productMainModules),
   'detail-page': Object.fromEntries(detailModules),
+  'clothing-set': { ...Object.fromEntries(clothingProductModules.map(([key, label]) => [key, label])), 'clothing-model': '模特上身' },
 }
 
 /** 取模块 key 对应中文标签；未知任务类型或未知 key 回退空串，调用方按需展示。 */

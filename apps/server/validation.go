@@ -9,7 +9,7 @@ var allowedRatios = stringSet("1:1", "3:4", "4:3", "9:16", "16:9")
 var allowedResolutions = stringSet("1K", "2K", "4K")
 var allowedPlatforms = stringSet("smart", "taobao", "1688", "tmall", "pinduoduo", "jd", "douyin", "amazon", "temu", "ebay")
 var allowedLanguages = stringSet("none", "zh-CN", "zh-TW", "en", "ja", "ko", "th", "ms", "id", "ru")
-var allowedTasks = stringSet("product-main", "detail-page", "viral-recreate", "product-retouch")
+var allowedTasks = stringSet("product-main", "detail-page", "viral-recreate", "product-retouch", "clothing-set")
 var allowedRecreateStrengths = stringSet("style", "high")
 var allowedEnhancements = stringSet("gloss", "repair", "clarity", "color", "perspective", "background")
 var allowedStyles = stringSet("unspecified", "studio", "minimal", "fresh", "technology", "guochao", "handdrawn")
@@ -87,6 +87,8 @@ func validateCommerceInput(input map[string]any) error {
 		}
 	}
 	switch taskType {
+	case "clothing-set":
+		return validateClothingInput(input)
 	case "product-main", "detail-page":
 		if err := requireOneOf(input, "outputLanguage", allowedLanguages, "none"); err != nil {
 			return err

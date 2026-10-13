@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, ChevronLeft, ChevronRight, Copy, Folder, Image as ImageIcon, Images, LayoutGrid, Plus, Settings, Sparkles, WandSparkles } from 'lucide-react'
+import { Box, ChevronLeft, ChevronRight, Copy, Folder, Image as ImageIcon, Images, LayoutGrid, Plus, Settings, Shirt, Sparkles, WandSparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -18,7 +18,7 @@ interface WorkbenchRailProps {
   onChangeTask?: (task: CommerceTaskType) => void
 }
 
-const taskIcons = { 'product-main': Box, 'detail-page': Images, 'viral-recreate': Copy, 'product-retouch': WandSparkles }
+const taskIcons = { 'product-main': Box, 'detail-page': Images, 'viral-recreate': Copy, 'product-retouch': WandSparkles, 'clothing-set': Shirt }
 
 export function WorkbenchRail({ mode, section = mode ?? 'general', task, onChangeMode, onChangeTask }: WorkbenchRailProps) {
   const [collapsed, setCollapsed] = useState(false)

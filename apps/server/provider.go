@@ -403,6 +403,9 @@ var moduleHints = map[string]string{
 // moduleLabel 取模块的中文名（moduleHints 的第一段），用于错误信息等面向用户的位置，
 // 避免把内部 key（如 selling）直接暴露给用户。
 func moduleLabel(key string) string {
+	if label, _ := clothingModule(key); label != "" {
+		return label
+	}
 	hint := strings.TrimSpace(moduleHints[strings.TrimSpace(key)])
 	if hint == "" {
 		return key
@@ -430,6 +433,9 @@ var enhancementHints = map[string]string{
 }
 
 func promptForInput(input map[string]any) string {
+	if stringValue(input["taskType"], "") == "clothing-set" {
+		return clothingPromptForInput(input)
+	}
 	if prompt := strings.TrimSpace(stringValue(input["prompt"], "")); prompt != "" {
 		if stringValue(input["mode"], "") != "commerce" {
 			parts := []string{prompt}

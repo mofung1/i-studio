@@ -9,6 +9,7 @@ import { apiBaseUrl, getAccessToken, readApiError, uploadAsset } from '@/lib/api
 export type InlineGenerationTask = {
   id: string
   status: string
+  input?: GenerationInput
   resultImages?: string[]
   /** 与 resultImages 逐项对应的模块 key（custom 模块化生成时才有） */
   resultModules?: string[]
@@ -28,8 +29,10 @@ export type GenerationNotice = { kind: 'success' | 'error'; message: string }
 export type SubmitParams = {
   productFiles: File[]
   referenceFiles: File[]
+  modelFile?: File
+  sceneFile?: File
   /** 用已上传资产 ID 构建待提交的 payload；返回 null 表示前置校验未过 */
-  buildPayload: (productAssetIds: string[], referenceAssetIds: string[]) => unknown
+  buildPayload: (productAssetIds: string[], referenceAssetIds: string[], roles?: { modelAssetId?: string; sceneAssetId?: string }) => unknown
   /** 未登录或 401 时的跳转回调 */
   onAuthRequired: () => void
   /** 任务创建成功后调整工作台布局，不在校验或提交失败时触发。 */
@@ -130,7 +133,7 @@ export function useGenerationTask(scopeKey = 'default') {
     }
   }, [generationTask?.id, generationTask?.status, generationTaskScope, scopeKey])
 
-  const submit = useCallback(async ({ productFiles, referenceFiles, buildPayload, onAuthRequired, onSubmitted }: SubmitParams) => {
+  const submit = useCallback(async ({ productFiles, referenceFiles, modelFile, sceneFile, buildPayload, onAuthRequired, onSubmitted }: SubmitParams) => {
     if (submittingRef.current) return
     const token = getAccessToken()
     if (!token) {
@@ -149,17 +152,20 @@ export function useGenerationTask(scopeKey = 'default') {
       const draftResult = generationInputSchema.safeParse(buildPayload(
         productFiles.map((_, index) => `pending-product-${index}`),
         referenceFiles.map((_, index) => `pending-reference-${index}`),
+        { modelAssetId: modelFile ? 'pending-model' : undefined, sceneAssetId: sceneFile ? 'pending-scene' : undefined },
       ))
       if (!draftResult.success) {
         const firstIssue = draftResult.error.issues[0]
         throw new Error(firstIssue?.message ?? '请完成必填配置')
       }
-      const [productAssetIds, referenceAssetIds] = await Promise.all([
+      const [productAssetIds, referenceAssetIds, modelAssetId, sceneAssetId] = await Promise.all([
         Promise.all(productFiles.map((file) => uploadAsset(file, token))),
         Promise.all(referenceFiles.map((file) => uploadAsset(file, token))),
+        modelFile ? uploadAsset(modelFile, token) : undefined,
+        sceneFile ? uploadAsset(sceneFile, token) : undefined,
       ])
       if (!isCurrent()) return
-      const result = generationInputSchema.safeParse(buildPayload(productAssetIds, referenceAssetIds))
+      const result = generationInputSchema.safeParse(buildPayload(productAssetIds, referenceAssetIds, { modelAssetId, sceneAssetId }))
 
       if (!result.success) {
         const firstIssue = result.error.issues[0]

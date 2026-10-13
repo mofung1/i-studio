@@ -55,6 +55,9 @@ interface ResultWorkspaceProps {
   onSetActiveResultIndex: (updater: (index: number) => number) => void
   /** 重新生成（是否二次确认由父级决定） */
   onRegenerate: () => void
+  onDownloadAll?: () => void
+  downloadAllBusy?: boolean
+  onConfigure?: () => void
 }
 
 const MAX_SKELETONS = 8
@@ -66,7 +69,7 @@ export function ResultWorkspace({
   isGenerating, isSubmitting, aiEnabled,
   historyOpen, historyTask, loadingHistoryConfigId, isRegeneratingHistory,
   onToggleHistory, onSelectHistory, onExitHistoryView, onLoadHistoryConfig, onRegenerateFromHistory,
-  onDeleteHistoryTask, onUseImageAsReference, onSetActiveResultIndex, onRegenerate,
+  onDeleteHistoryTask, onUseImageAsReference, onSetActiveResultIndex, onRegenerate, onDownloadAll, downloadAllBusy, onConfigure,
 }: ResultWorkspaceProps) {
   const currentTask = taskMeta[task]
   const title = mode === 'general' ? '通用生图' : currentTask.title
@@ -83,6 +86,9 @@ export function ResultWorkspace({
   const safeIndex = Math.min(activeImageIndex, Math.max(images.length - 1, 0))
   const heroImage = images[safeIndex] ?? ''
   const hasResults = images.length > 0
+  const displayInput = isHistoryView ? historyTask?.input : isGenerating ? generationTask?.input : activeResult?.input
+  const displayRatio = displayInput?.aspectRatio ?? aspectRatio
+  const displayResolution = displayInput?.resolution ?? resolution
   // 主图走缓存：同一组结果内左右切换时保留上一张直到新图就绪，不会闪白；
   // 换组（新的一次生成 / 另一条历史记录）则重新显示占位，避免显示过期画面。
   const heroGroup = isHistoryView ? historyTask?.id ?? 'history' : activeResult?.id ?? 'current'
@@ -90,7 +96,7 @@ export function ResultWorkspace({
   const heroReady = heroState === 'loaded' && heroSource !== ''
   const heroFailed = heroState === 'failed'
   // 加载占位按当前比例铺开，尺寸与生成后的图片一致
-  const [ratioWidth, ratioHeight] = aspectRatio.split(':').map(Number)
+  const [ratioWidth, ratioHeight] = displayRatio.split(':').map(Number)
   const heroRatio = ratioWidth && ratioHeight ? ratioWidth / ratioHeight : 1
   const heroRatioCss = ratioWidth && ratioHeight ? `${ratioWidth} / ${ratioHeight}` : '1 / 1'
   const generatingImages = Math.min(Math.max(generatingCount ?? expectedCount, 1), MAX_SKELETONS)
@@ -195,9 +201,9 @@ export function ResultWorkspace({
                   此时没有可重新生成的对象，直接引导用户用左侧的生成按钮 */}
               {(hasResults || isGenerating) && (
                 <>
-                  <span className="meta-chip">{expectedCount > 0 ? `${expectedCount} 张` : '—'}</span>
-                  <span className="meta-chip">{aspectRatio}</span>
-                  <span className="meta-chip">{resolution}</span>
+                  <span className="meta-chip">{isGenerating ? `${generatingCount ?? expectedCount} 张` : `${images.length} 张`}</span>
+                  <span className="meta-chip">{displayRatio}</span>
+                  <span className="meta-chip">{displayResolution}</span>
                   <button
                     type="button"
                     className="meta-action is-primary"
@@ -212,6 +218,7 @@ export function ResultWorkspace({
             </>
           )}
           {hasResults && <button type="button" className="studio-secondary" onClick={downloadCurrent}><Download size={15} />下载图片</button>}
+          {hasResults && onDownloadAll && <button type="button" className="studio-secondary" disabled={downloadAllBusy} onClick={onDownloadAll}><Download size={15} aria-hidden="true" />{downloadAllBusy ? '打包中…' : '下载图组'}</button>}
         </div>
       </header>
 
@@ -243,6 +250,7 @@ export function ResultWorkspace({
         {!isGenerating && !hasResults && !isHistoryView && (
           <div className="result-empty">
             {failureMessage ? <FailureNotice message={failureMessage} /> : <img className="empty-creation-image" src="/empty-creation.svg" width={420} height={280} alt="暂无生成结果，黑白抽象画幅空态插画" draggable={false} />}
+            {onConfigure && <button type="button" className="studio-secondary" onClick={onConfigure}>上传服装，开始规划</button>}
           </div>
         )}
 
@@ -299,9 +307,9 @@ export function ResultWorkspace({
                   </div>
                 )}
 
-                {moduleLabel(task, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '') && (
+                {moduleLabel(imageSource.taskType, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '') && (
                   <span className="module-badge">
-                    {moduleLabel(task, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '')}
+                    {moduleLabel(imageSource.taskType, (isHistoryView ? historyTask?.resultModules?.[safeIndex] : activeResult?.resultModules?.[safeIndex]) ?? '')}
                   </span>
                 )}
 
