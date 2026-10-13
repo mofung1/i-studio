@@ -81,12 +81,52 @@ export const productRetouchInputSchema = commerceBaseSchema.extend({
   requirements: z.string().trim().max(1000, '需求描述过长，请精简到 1000 字以内').default(''),
 })
 
+export const clothingModuleKeys = ['clothing-front', 'clothing-back', 'clothing-3d', 'clothing-mannequin', 'clothing-detail', 'clothing-selling', 'clothing-model'] as const
+export const clothingShotSchema = z.object({
+  id: z.string().min(1).max(80),
+  moduleKey: z.enum(clothingModuleKeys),
+  label: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(2000),
+})
+export type ClothingShot = z.infer<typeof clothingShotSchema>
+export type ClothingMode = 'product' | 'model'
+export type ClothingStyle = 'studio' | 'natural' | 'street' | 'editorial'
+export interface ClothingPlan { summary: string; warnings: string[]; shots: ClothingShot[] }
+
+export const clothingInputSchema = commerceBaseSchema.extend({
+  taskType: z.literal('clothing-set'),
+  clothingMode: z.enum(['product', 'model']),
+  clothingStyle: z.enum(['studio', 'natural', 'street', 'editorial']).default('studio'),
+  modelAssetId: z.string().min(1).max(200).optional(),
+  sceneAssetId: z.string().min(1).max(200).optional(),
+  requirements: z.string().trim().max(2000).default(''),
+  outputLanguage: outputLanguageSchema.default('none'),
+  moduleCounts: moduleCountsSchema,
+  clothingPlan: z.array(clothingShotSchema).min(1).max(16),
+})
+
 export const commerceGenerationInputSchema = z.discriminatedUnion('taskType', [
   productMainInputSchema,
   detailPageInputSchema,
   viralRecreateInputSchema,
   productRetouchInputSchema,
-])
+  clothingInputSchema,
+]).superRefine((input, ctx) => {
+  if (input.taskType !== 'clothing-set') return
+  const counts = input.moduleCounts
+  const total = Object.values(counts).reduce((sum, value) => sum + value, 0)
+  if (input.clothingMode === 'model') {
+    if (!input.modelAssetId) ctx.addIssue({ code: z.ZodIssueCode.custom, message: '模特上身需要上传模特照片' })
+    if (Object.keys(counts).some(key => key !== 'clothing-model') || total > 4) ctx.addIssue({ code: z.ZodIssueCode.custom, message: '模特上身一次支持 1–4 张' })
+  } else if (input.modelAssetId || input.sceneAssetId || Object.keys(counts).some(key => key === 'clothing-model' || !clothingModuleKeys.includes(key as typeof clothingModuleKeys[number]))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: '商品组图的素材或图种不正确' })
+  }
+  const actual: Record<string, number> = {}
+  input.clothingPlan.forEach(shot => { actual[shot.moduleKey] = (actual[shot.moduleKey] ?? 0) + 1 })
+  if (!total || input.count !== total || input.clothingPlan.length !== total || Object.keys(actual).some(key => actual[key] !== counts[key]) || Object.keys(counts).some(key => counts[key] !== actual[key]) || new Set(input.clothingPlan.map(shot => shot.id)).size !== total) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: '生成规划必须与所选图种和张数一致' })
+  }
+})
 
 export const generationInputSchema = z.union([
   generalGenerationInputSchema,
@@ -104,4 +144,5 @@ export const commerceTaskCapabilities = {
   'detail-page': { title: '详情页', required: ['productAssetIds'], optional: ['platform', 'outputLanguage', 'moduleMode', 'moduleCounts', 'requirements'] },
   'viral-recreate': { title: '爆款复刻', required: ['productAssetIds', 'referenceAssetIds'], optional: ['platform', 'outputLanguage', 'recreateStrength', 'requirements'] },
   'product-retouch': { title: '产品精修', required: ['productAssetIds'], optional: ['platform', 'enhancements', 'requirements'] },
+  'clothing-set': { title: '服装组图', required: ['productAssetIds', 'clothingMode', 'moduleCounts', 'clothingPlan'], optional: ['modelAssetId', 'sceneAssetId', 'clothingStyle', 'requirements', 'outputLanguage'] },
 } as const satisfies Record<CommerceTaskType, { title: string; required: readonly string[]; optional: readonly string[] }>

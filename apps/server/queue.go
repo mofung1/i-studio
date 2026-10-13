@@ -176,6 +176,9 @@ func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, 
 		input["protocolClient"] = client
 		defer delete(input, "protocolClient")
 	}
+	if stringValue(input["taskType"], "") == "clothing-set" {
+		return q.generateClothingBatches(id, input)
+	}
 	if counts := customModuleCounts(input); len(counts) > 0 {
 		return q.generateModuleBatches(id, input, counts)
 	}
@@ -211,6 +214,41 @@ func customModuleCounts(input map[string]any) map[string]int {
 }
 
 const imageRequestBatchSize = 1
+
+func (q *taskQueue) generateClothingBatches(id string, input map[string]any) ([]string, []string, error) {
+	raw, _ := json.Marshal(input["clothingPlan"])
+	var shots []clothingShot
+	if err := json.Unmarshal(raw, &shots); err != nil || len(shots) == 0 {
+		return nil, nil, fmt.Errorf("服装生成规划缺失，请重新确认规划")
+	}
+	previousCount, previousID, previousHint := input["count"], input["taskId"], input["moduleHint"]
+	defer func() { input["count"], input["taskId"], input["moduleHint"] = previousCount, previousID, previousHint }()
+	images, attribution := []string{}, []string{}
+	for index, shot := range shots {
+		input["count"] = 1
+		input["taskId"] = fmt.Sprintf("%s-clothing-%d", id, index+1)
+		input["moduleHint"] = shot.Description
+		q.server.updateTaskStatus(id, "processing")
+		remote, err := q.imageClient(input).Submit(context.Background(), input)
+		if err != nil {
+			return images, attribution, fmt.Errorf("%s 生成失败：%w", shot.Label, err)
+		}
+		batch := remote.Images
+		if len(batch) == 0 {
+			q.server.updateTaskStatus(id, "waiting_provider")
+			batch, err = q.waitForImages(id, remote.ID, q.imageClient(input))
+		}
+		if err != nil || len(batch) != 1 {
+			if err == nil {
+				err = fmt.Errorf("预期一张图片，供应商返回 %d 张", len(batch))
+			}
+			return images, attribution, fmt.Errorf("%s 生成失败：%w", shot.Label, err)
+		}
+		images = append(images, batch[0])
+		attribution = append(attribution, shot.ModuleKey)
+	}
+	return images, attribution, nil
+}
 
 func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]string, error) {
 	remaining := intValue(input["count"], 1)
@@ -339,30 +377,50 @@ func (s *server) attachSourceImages(input map[string]any) error {
 		return nil
 	}
 	images := make([]map[string]string, 0, 4)
-	totalBytes := 0
+	type sourceAsset struct{ id, role string }
+	assets := []sourceAsset{}
+	clothing := stringValue(input["taskType"], "") == "clothing-set"
 	for _, key := range []string{"productAssetIds", "referenceAssetIds"} {
-		assetIDs, _ := input[key].([]any)
-		for _, value := range assetIDs {
-			assetID, _ := value.(string)
-			var storageKey, mime string
-			if err := s.db.QueryRow("SELECT storage_key,mime FROM assets WHERE id=$1", assetID).Scan(&storageKey, &mime); err != nil {
-				return fmt.Errorf("无法读取任务素材")
+		ids, _ := input[key].([]any)
+		for _, id := range ids {
+			role := ""
+			if clothing {
+				role = "garment"
 			}
-			file, err := s.storage.Open(storageKey)
-			if err != nil {
-				return fmt.Errorf("任务素材文件不存在")
-			}
-			data, readErr := io.ReadAll(io.LimitReader(file, 10<<20+1))
-			_ = file.Close()
-			if readErr != nil || len(data) == 0 || len(data) > 10<<20 {
-				return fmt.Errorf("任务素材读取失败")
-			}
-			totalBytes += len(data)
-			if totalBytes > 20<<20 {
-				return fmt.Errorf("任务素材总大小不能超过 20MB")
-			}
-			images = append(images, map[string]string{"mime": mime, "data": base64.StdEncoding.EncodeToString(data)})
+			assets = append(assets, sourceAsset{stringValue(id, ""), role})
 		}
+	}
+	if clothing {
+		for _, key := range []struct{ name, role string }{{"modelAssetId", "model"}, {"sceneAssetId", "scene"}} {
+			if id := stringValue(input[key.name], ""); id != "" {
+				assets = append(assets, sourceAsset{id, key.role})
+			}
+		}
+	}
+	totalBytes := 0
+	for _, asset := range assets {
+		var storageKey, mime string
+		if err := s.db.QueryRow("SELECT storage_key,mime FROM assets WHERE id=$1", asset.id).Scan(&storageKey, &mime); err != nil {
+			return fmt.Errorf("无法读取任务素材")
+		}
+		file, err := s.storage.Open(storageKey)
+		if err != nil {
+			return fmt.Errorf("任务素材文件不存在")
+		}
+		data, readErr := io.ReadAll(io.LimitReader(file, 10<<20+1))
+		_ = file.Close()
+		if readErr != nil || len(data) == 0 || len(data) > 10<<20 {
+			return fmt.Errorf("任务素材读取失败")
+		}
+		totalBytes += len(data)
+		if totalBytes > 20<<20 {
+			return fmt.Errorf("任务素材总大小不能超过 20MB")
+		}
+		image := map[string]string{"mime": mime, "data": base64.StdEncoding.EncodeToString(data)}
+		if asset.role != "" {
+			image["role"] = asset.role
+		}
+		images = append(images, image)
 	}
 	if len(images) > 0 {
 		input["sourceImages"] = images

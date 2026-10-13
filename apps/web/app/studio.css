@@ -3134,3 +3134,78 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
   .inspiration-editor-dialog { padding: 20px; }
   .inspiration-editor-options { align-items: flex-start; flex-direction: column; }
 }
+
+/* Clothing: source roles stay separate, every planned image is reviewable. */
+.clothing-mode-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 20px; border-radius: 8px; background: var(--control-bg); }
+.clothing-mode-selector button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); font-size: var(--text-small); }
+.clothing-mode-selector button[aria-pressed='true'] { color: var(--foreground); background: var(--surface); border-color: var(--border); }
+.clothing-field-help { margin: 0 0 12px; color: var(--muted); font-size: var(--text-caption); line-height: 1.7; }
+.clothing-module-list { display: grid; gap: 8px; }
+.clothing-module { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--border-soft); border-radius: 8px; }
+.clothing-module.is-selected { border-color: var(--foreground-3); background: var(--surface-subtle); }
+.clothing-module label { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; cursor: pointer; }
+.clothing-module label input { flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--foreground); }
+.clothing-module label span { display: grid; gap: 4px; }
+.clothing-module strong { font-size: var(--text-small); font-weight: 500; }
+.clothing-module small { color: var(--muted); font-size: var(--text-caption); line-height: 1.5; }
+.clothing-module > input { width: 52px; min-height: 44px; padding: 6px; color: var(--foreground); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; text-align: center; font-size: var(--text-small); }
+.clothing-requirements-label { display: block; margin-bottom: 8px; color: var(--foreground-3); font-size: var(--text-small); }
+.clothing-requirements { display: block; width: 100%; min-height: 100px; padding: 10px; border: 1px solid var(--border); border-radius: 6px; color: var(--foreground); background: var(--surface); font: inherit; font-size: var(--text-small); line-height: 1.8; resize: vertical; }
+.clothing-parameter-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+.clothing-parameter-grid > .settings-field { margin: 0; }
+.clothing-parameter-grid .select-trigger { min-height: 44px; height: auto; }
+.clothing-model-field { grid-column: 1 / -1; }
+.clothing-panel-backdrop { display: none; }
+.clothing-parameter-details { display: grid; grid-template-columns: auto 1fr; gap: 12px 24px; font-size: var(--text-small); }
+.clothing-parameter-details dt { color: var(--muted); }
+.clothing-parameter-details dd { margin: 0; text-align: right; }
+.clothing-plan-dialog { display: none; width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 1px solid var(--border); border-radius: 14px; color: var(--foreground); background: var(--surface); box-shadow: var(--shadow-panel); overflow: hidden; }
+.clothing-plan-dialog[open] { display: flex; flex-direction: column; }
+.clothing-plan-dialog::backdrop { background: rgb(0 0 0 / .5); }
+.clothing-plan-heading { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 24px; border-bottom: 1px solid var(--border-soft); }
+.clothing-plan-heading span { color: var(--muted); font-size: var(--text-caption); }
+.clothing-plan-heading h2 { margin: 6px 0 0; font-size: 21px; font-weight: 550; letter-spacing: -.4px; }
+.clothing-plan-heading button { width: 44px; height: 44px; flex-shrink: 0; }
+.clothing-plan-body { min-height: 0; padding: 20px 24px; overflow-y: auto; overscroll-behavior: contain; }
+.clothing-plan-context { margin: 0 0 14px; color: var(--muted); font-size: var(--text-small); }
+.clothing-plan-requirements { margin-bottom: 16px; color: var(--foreground-2); font-size: var(--text-small); line-height: 1.8; }
+.clothing-plan-requirements summary { cursor: pointer; }
+.clothing-plan-requirements p { padding: 10px 12px; margin: 8px 0 0; border-radius: 6px; background: var(--control-bg); white-space: pre-wrap; overflow-wrap: anywhere; }
+.clothing-plan-tools { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.clothing-plan-tools p { margin: 0; color: var(--foreground-2); font-size: var(--text-small); line-height: 1.8; }
+.clothing-plan-tools > span { display: flex; align-items: center; gap: 8px; font-size: var(--text-small); }
+.clothing-plan-dialog .settings-command { min-height: 44px; flex-shrink: 0; color: var(--foreground); background: var(--surface); }
+.clothing-plan-dialog .settings-primary { min-height: 44px; color: var(--primary-foreground); }
+.clothing-plan-dialog button:disabled { opacity: .45; cursor: default; }
+.clothing-plan-message, .clothing-plan-warnings { padding: 12px 16px; margin: 0 0 16px; border: 1px solid var(--border); border-radius: 8px; color: var(--foreground-2); background: var(--control-bg); font-size: var(--text-small); line-height: 1.8; }
+.clothing-plan-warnings { padding-left: 32px; }
+.clothing-plan-shots { display: grid; gap: 12px; padding: 0; margin: 0; min-width: 0; border: 0; }
+.clothing-plan-shots:disabled { opacity: .5; }
+.clothing-plan-shot { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 10px; }
+.clothing-shot-number { padding-top: 2px; color: var(--muted); font-size: var(--text-small); font-variant-numeric: tabular-nums; }
+.clothing-plan-shot > div { display: grid; gap: 8px; }
+.clothing-plan-shot label { font-size: var(--text-caption); color: var(--muted); }
+.clothing-plan-shot input, .clothing-plan-shot textarea { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; color: var(--foreground); background: var(--surface); font: inherit; font-size: var(--text-small); line-height: 1.8; }
+.clothing-plan-shot textarea { resize: vertical; }
+.clothing-plan-shot input { margin-bottom: 4px; }
+.clothing-plan-footer { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--border-soft); }
+.clothing-plan-footer > span { color: var(--muted); font-size: var(--text-caption); }
+.clothing-plan-footer > div { display: flex; gap: 10px; }
+@media (max-width: 780px) {
+  .workbench-shell.clothing-workbench .configuration-panel { display: none; }
+  .workbench-shell.clothing-workbench.panel-open .configuration-panel { display: flex; position: fixed; inset: auto 0 0; z-index: 80; height: min(90dvh, 900px); margin: 0; width: 100%; border-radius: 16px 16px 0 0; }
+  .workbench-shell.clothing-workbench .configuration-scroll { min-height: 0; flex: 1; overflow-y: auto; }
+  .workbench-shell.clothing-workbench .creator-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; font-size: var(--text-small); }
+  .clothing-workbench .creator-sheet-head button { width: 44px; height: 44px; display: grid; place-items: center; }
+  .clothing-workbench .configuration-footer { position: static; flex-shrink: 0; }
+  .clothing-panel-backdrop:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 79; background: rgb(0 0 0 / .4); }
+  .clothing-plan-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); border-radius: 12px; }
+  .clothing-plan-heading { padding: 16px; }
+  .clothing-plan-heading h2 { font-size: 19px; }
+  .clothing-plan-body { padding: 16px; }
+  .clothing-plan-tools { flex-wrap: wrap; gap: 12px; }
+  .clothing-plan-shot { grid-template-columns: 22px minmax(0, 1fr); padding: 12px; gap: 8px; }
+  .clothing-plan-footer { padding: 14px 16px; }
+  .clothing-plan-footer > div { width: 100%; }
+  .clothing-plan-footer button { flex: 1; justify-content: center; }
+}

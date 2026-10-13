@@ -4,7 +4,7 @@ import type { CommerceTaskType } from '@/lib/contracts'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 
-const commerceTasks: CommerceTaskType[] = ['product-main', 'detail-page', 'viral-recreate', 'product-retouch']
+const commerceTasks: CommerceTaskType[] = ['product-main', 'detail-page', 'viral-recreate', 'product-retouch', 'clothing-set']
 
 interface WorkbenchPageProps {
   searchParams: Promise<{ mode?: string; task?: string; view?: string; prompt?: string; model?: string; aspectRatio?: string; resolution?: string; count?: string }>

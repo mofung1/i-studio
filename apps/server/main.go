@@ -115,6 +115,7 @@ func main() {
 	mux.HandleFunc("/v1/generation/tasks", s.tasksHandler)
 	mux.HandleFunc("/v1/generation/tasks/", s.taskByID)
 	mux.HandleFunc("/v1/prompts/enhance", s.promptEnhance)
+	mux.HandleFunc("/v1/clothing/plan", s.clothingPlanHandler)
 	mux.HandleFunc("/v1/ai-endpoints", s.aiEndpoints)
 	mux.HandleFunc("/v1/ai-endpoints/", s.aiEndpointByID)
 	mux.HandleFunc("/v1/prompt-templates", s.promptTemplates)
@@ -389,6 +390,10 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 }
 func (s *server) taskByID(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/v1/generation/tasks/")
+	if strings.HasSuffix(path, "/download") {
+		s.downloadTaskImages(w, r, strings.TrimSuffix(path, "/download"))
+		return
+	}
 	if strings.HasSuffix(path, "/retry") {
 		s.retryTask(w, r, strings.TrimSuffix(path, "/retry"))
 		return

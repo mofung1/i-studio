@@ -24,7 +24,7 @@ interface WorkbenchHeaderProps {
 
 /** 当前创作上下文与画布辅助操作。 */
 export function WorkbenchHeader({
-  mode, task, configSide, historyOpen, onShowDetails, onToggleHistory, onChangeSide, onTogglePanel,
+  mode, task, configSide, panelOpen, historyOpen, onShowDetails, onToggleHistory, onChangeSide, onTogglePanel,
 }: WorkbenchHeaderProps) {
   const inCommerce = mode === 'commerce'
 
@@ -42,6 +42,7 @@ export function WorkbenchHeader({
           type="button"
           className="panel-toggle"
           aria-controls="creation-settings"
+          aria-expanded={panelOpen}
           onClick={onTogglePanel}
         >
           <SlidersHorizontal size={16} aria-hidden="true" />

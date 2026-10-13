@@ -12,6 +12,7 @@ import { StudioShell } from '@/components/studio-shell'
 import { FailureNotice } from '@/components/workbench/failure-notice'
 import { apiBaseUrl, deleteGeneratedAsset, deleteGenerationTask, getAccessToken, readApiError } from '@/lib/api'
 import { languageOptions, modelOptions, moduleLabel, optionLabel, platformOptions, styleOptions } from '@/components/workbench/shared'
+import { clothingStyles } from '@/lib/clothing'
 
 interface GeneratedTask {
   id: string
@@ -20,7 +21,7 @@ interface GeneratedTask {
   resultImages?: string[]
   resultModules?: string[]
   errorMessage?: string
-  input: { productName?: string; prompt?: string; requirements?: string; mode?: string; taskType?: string; model?: string; aspectRatio?: string; resolution?: string; count?: number; style?: string; referenceStrength?: string; platform?: string; outputLanguage?: string; moduleMode?: string; moduleCounts?: Record<string, number>; recreateStrength?: string; enhancements?: string[] }
+  input: { productName?: string; prompt?: string; requirements?: string; mode?: string; taskType?: string; model?: string; aspectRatio?: string; resolution?: string; count?: number; style?: string; referenceStrength?: string; platform?: string; outputLanguage?: string; moduleMode?: string; moduleCounts?: Record<string, number>; recreateStrength?: string; enhancements?: string[]; clothingMode?: string; clothingStyle?: string }
 }
 
 interface GeneratedImage {
@@ -34,6 +35,7 @@ const taskLabels: Record<string, string> = {
   'detail-page': '详情页',
   'viral-recreate': '爆款复刻',
   'product-retouch': '产品精修',
+  'clothing-set': '服装组图',
 }
 
 const statusLabels: Record<string, string> = {
@@ -79,6 +81,8 @@ function parameterRows(task: GeneratedTask) {
   if (input.resolution) rows.push(['分辨率', input.resolution])
   if (input.count) rows.push(['生成数量', `${input.count} 张`])
   if (input.style) rows.push(['创作风格', optionLabel(styleOptions, input.style) || input.style])
+  if (input.clothingMode) rows.push(['服装模式', input.clothingMode === 'model' ? '模特上身' : '商品组图'])
+  if (input.clothingStyle) rows.push(['拍摄风格', optionLabel(clothingStyles, input.clothingStyle)])
   if (input.referenceStrength) rows.push(['参考强度', { low: '低', medium: '中', high: '高' }[input.referenceStrength] ?? input.referenceStrength])
   if (input.platform) rows.push(['目标平台', optionLabel(platformOptions, input.platform) || input.platform])
   if (input.outputLanguage) rows.push(['目标语言', optionLabel(languageOptions, input.outputLanguage) || input.outputLanguage])
