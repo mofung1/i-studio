@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { X } from 'lucide-react'
 import { apiBaseUrl, deleteGenerationTask, getAccessToken, readApiError } from '@/lib/api'
-import { analyzeClothing, clothingStyles, defaultClothingCounts, makeClothingPlan } from '@/lib/clothing'
+import { analyzeClothing, clothingStyles, defaultClothingCounts, makeClothingPlan, type ClothingPlanDefaults } from '@/lib/clothing'
 import type { ClothingPlan } from '@/lib/contracts'
 import { InfoDialog } from '@/components/info-dialog'
 import { ClothingSettings, type ClothingSettingsValue } from './clothing-settings'
@@ -30,6 +30,7 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
   const [endpoints, setEndpoints] = useState<{ id: string; name: string; model: string; isDefault?: boolean }[]>([])
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
   const [canAnalyze, setCanAnalyze] = useState(false)
+  const [planDefaults, setPlanDefaults] = useState<ClothingPlanDefaults>()
   const [plan, setPlan] = useState<ClothingPlan | null>(null)
   const [planning, setPlanning] = useState(false)
   const [planMessage, setPlanMessage] = useState('')
@@ -51,6 +52,7 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
     fetch(`${apiBaseUrl}/v1/generation/capabilities`, { headers: { Authorization: `Bearer ${getAccessToken()}` }, signal: controller.signal }).then(response => response.json()).then(data => {
       if (controller.signal.aborted) return
       setAiEnabled(!!data.aiEnabled); setCanAnalyze(!!data.promptEnhanceEnabled && !!data.promptVision)
+      setPlanDefaults(data.clothingPlanDefaults)
       const available = data.imageEndpoints ?? []
       setEndpoints(available)
       const selected = available.find((endpoint: { model: string }) => endpoint.model === initialModel) ?? available.find((endpoint: { isDefault: boolean }) => endpoint.isDefault) ?? available[0]
@@ -108,7 +110,7 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
     if (!getAccessToken()) { login(); return }
     setNotice(null); setPlanMessage('')
     const current = ++revision.current
-    const base = plan ?? draftPlan.current ?? makeClothingPlan(settings.mode, counts, settings.requirements)
+    const base = plan ?? draftPlan.current ?? makeClothingPlan(settings.mode, counts, settings.requirements, planDefaults)
     draftPlan.current = base
     setPlan(base)
     if (!useAI) return
@@ -163,7 +165,7 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
       const selected = endpoints.find(endpoint => endpoint.id === input.endpointId) ?? endpoints.find(endpoint => endpoint.model === input.model)
       const next: ClothingSettingsValue = { mode: input.clothingMode ?? 'product', style: input.clothingStyle ?? 'studio', counts: input.clothingMode === 'model' ? { ...defaultClothingCounts } : input.moduleCounts ?? { ...defaultClothingCounts }, modelCount: input.clothingMode === 'model' ? Math.min(4, Math.max(1, input.count ?? 1)) : 1, garments, models, scenes, requirements: input.requirements ?? '', platform: input.platform ?? 'smart', outputLanguage: input.outputLanguage ?? 'none', endpointId: selected?.id ?? '', model: selected?.model ?? input.model ?? 'gpt-image-2', aspectRatio: input.aspectRatio ?? '3:4', resolution: input.resolution ?? '2K' }
       setSettings(next); setHistoryTask(null); setHistoryOpen(false); setPanelOpen(true)
-      const restored = makeClothingPlan(next.mode, next.mode === 'model' ? { 'clothing-model': next.modelCount } : next.counts, next.requirements)
+      const restored = makeClothingPlan(next.mode, next.mode === 'model' ? { 'clothing-model': next.modelCount } : next.counts, next.requirements, planDefaults)
       draftPlan.current = { ...restored, summary: '已载入历史拍摄规划，确认后重新生成。', shots: input.clothingPlan ?? restored.shots }
       if (regenerate) {
         setPlan(draftPlan.current); setPlanMessage('')

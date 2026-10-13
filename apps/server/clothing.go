@@ -22,13 +22,13 @@ type clothingPlan struct {
 }
 
 var clothingModules = []struct{ key, label, hint string }{
-	{"clothing-front", "正面精修", "完整展示服装正面，干净背景，自然均匀光线，保持服装真实颜色、版型、印花与 Logo"},
-	{"clothing-back", "背面精修", "展示服装背面结构，依据背面原图，不臆造不可见的图案、标签与工艺"},
-	{"clothing-3d", "立体展示", "生成白底的服装静态立体效果图，展示真实廓形、垂坠和厚度，不出现人体或杂物"},
-	{"clothing-mannequin", "人台展示", "服装穿在人台上，白底摄影，展示版型与垂坠；人台不是人物模特"},
-	{"clothing-detail", "细节特写", "近景展示原图可见的面料纹理、领口、袖口、缝线或印花工艺，保持真实细节"},
-	{"clothing-selling", "卖点图", "根据用户提供或图片可见的服装特点制作卖点图，不编造面料成分、尺码、性能、价格或认证"},
-	{"clothing-model", "模特上身", "由上传模特穿着用户提供的同套服装，保留模特身份与服装外观，穿着结构自然合理"},
+	{"clothing-front", "正面精修", generationDefaults["module.clothing-set.clothing-front"]},
+	{"clothing-back", "背面精修", generationDefaults["module.clothing-set.clothing-back"]},
+	{"clothing-3d", "立体展示", generationDefaults["module.clothing-set.clothing-3d"]},
+	{"clothing-mannequin", "人台展示", generationDefaults["module.clothing-set.clothing-mannequin"]},
+	{"clothing-detail", "细节特写", generationDefaults["module.clothing-set.clothing-detail"]},
+	{"clothing-selling", "卖点图", generationDefaults["module.clothing-set.clothing-selling"]},
+	{"clothing-model", "模特上身", generationDefaults["module.clothing-set.clothing-model"]},
 }
 
 func clothingModule(key string) (string, string) {
@@ -139,18 +139,23 @@ func validateClothingShots(shots []clothingShot, counts map[string]int, total in
 	return nil
 }
 
-func baseClothingPlan(mode string, counts map[string]int, requirements string) clothingPlan {
+func baseClothingPlan(mode string, counts map[string]int, requirements string, prompts ...generationPromptSet) clothingPlan {
 	plan := clothingPlan{Summary: "以原图服装为准，整组采用统一的光线和背景，每张都是独立成片。", Warnings: []string{}, Shots: []clothingShot{}}
-	poses := []string{"正面自然站姿，完整展示所选服装，取景与模特照片可见范围匹配", "侧面站姿，展示服装廓形与垂坠", "自然行走姿态，服装清晰完整", "场景全身照，保持同一模特与穿搭"}
+	templates := generationDefaults
+	if len(prompts) > 0 {
+		templates = prompts[0]
+	}
 	for _, module := range clothingModules {
 		for i := 0; i < counts[module.key]; i++ {
-			description := module.hint
+			parts := []string{templates["module.clothing-set."+module.key]}
 			if mode == "model" {
-				description += "。" + poses[i]
+				parts = append(parts, templates[fmt.Sprintf("clothing.pose.%d", i+1)])
 			}
 			if requirements != "" {
-				description += "。结合用户已填写的补充需求"
+				parts = append(parts, "结合用户已填写的补充需求")
 			}
+			parts = append(parts, templates["clothing.plan.footer"])
+			description := clipRunes(joinPromptParts(parts, "。"), 2000)
 			plan.Shots = append(plan.Shots, clothingShot{ID: fmt.Sprintf("%s-%d", module.key, i+1), ModuleKey: module.key, Label: fmt.Sprintf("%s %d", module.label, i+1), Description: description})
 		}
 	}
@@ -238,9 +243,14 @@ func (s *server) clothingPlanHandler(w http.ResponseWriter, r *http.Request) {
 			roles = append(roles, fmt.Sprintf("图片 %d：%s", len(images), group.role))
 		}
 	}
-	plan := baseClothingPlan(mode, counts, requirements)
+	templates, err := s.generationPromptSnapshot()
+	if err != nil {
+		s.error(w, 500, "PROMPT_STORAGE_ERROR", "提示词配置读取失败")
+		return
+	}
+	plan := baseClothingPlan(mode, counts, requirements, templates)
 	starter, _ := json.Marshal(plan)
-	system := `你是服装电商摄影策划。依据用户图片优化给出的 JSON 拍摄规划。只返回 JSON，字段为 summary、warnings、shots；每个 shot 必须原样保留 id 和 moduleKey，可以完善 label 与 description。不得改变顺序、图种或张数。描述每张图的拍摄视角、背景、光线与服装细节，每张都是独立成片。严格保留服装颜色、版型、印花、Logo 与工艺；模特参考仅用于人物身份，场景参考仅用于背景。只描述可见特征，不猜测面料成分、尺码、性能或认证；不可见的背面结构需在 warnings 说明。summary 最多 1200 字，warnings 最多 8 项，每项最多 300 字，每张 description 最多 2000 字。`
+	system := templates["clothing.plan"] + "\n" + clothingPlanOutputContract
 	userText := fmt.Sprintf("模式：%s；风格：%s；比例：%s；平台：%s；画面文字语言：%s\n补充要求：%s\n%s\n请优化这份规划：%s", mode, options["clothingStyle"], options["aspectRatio"], options["platform"], options["outputLanguage"], requirements, strings.Join(roles, "\n"), starter)
 	text, err := s.promptClient.complete(r.Context(), system, userText, images, 4000)
 	if err != nil {
@@ -270,24 +280,26 @@ func (s *server) clothingPlanHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func clothingPromptForInput(input map[string]any) string {
-	parts := []string{"服装电商摄影，每次只生成一张独立成片。服装原图是商品外观的唯一依据，必须保留真实颜色、版型、印花、Logo、纽扣和缝线，不替换款式，不新增配件或虚构面料成分、尺码、性能、价格和认证。不可见的结构、印花、标签与工艺不作具体臆造；背面素材不足时采用保守展示。整组采用统一光线、色温与背景逻辑。"}
+	parts := []string{generationText(input, "image.clothing.common")}
 	if stringValue(input["clothingMode"], "") == "model" {
-		parts = append(parts, "模特穿着全部服装原图所组成的同套搭配。模特参考仅用于保持人物身份、脸部和体型，不复制模特原有衣服。保留脸型、发型、发色、眼镜与可见年龄特征，不美化成另一个人。场景参考仅用于背景，不复制其中的人物或服装。衣服自然贴合人体，印花随面料弯曲但保持原有图形结构；手臂不遮挡关键图案。取景遵循用户规划与模特照片可见的身体范围，穿着结构与人体比例自然合理。")
+		parts = append(parts, generationText(input, "image.clothing.model"))
 	} else {
-		parts = append(parts, "各张服装原图是同一件服装的不同视角，请保持同一件商品。服装原图中的人体只用于说明穿着状态，不能复制到正面、背面或立体商品图中。正面、背面、立体与人台图必须完整展示领口、两侧袖口与下摆，四周保留至少约 6% 安全边距，衣服不能贴边或被裁断；只有细节特写允许局部取景。")
+		parts = append(parts, generationText(input, "image.clothing.product"))
 	}
-	parts = append(parts, "把印花和 Logo 视为原图的完整图形保留，保留其字形、线条、位置与相对比例，不重新排字或重新设计标志，不因提高清晰度而猜写微小文字。白色摄影棚背景保持干净，柔和接触阴影，避免衣服轮廓融入背景。")
+	parts = append(parts, generationText(input, "image.clothing.print"))
+	if key := stringValue(input["generationModule"], ""); key != "" {
+		parts = append(parts, configuredModuleHint(input, "clothing-set", key))
+	}
 	for index, image := range sourceImages(input) {
 		labels := map[string]string{"garment": "服装原图", "model": "模特参考，只用于人物身份", "scene": "场景参考，只用于背景"}
 		parts = append(parts, fmt.Sprintf("参考图片 %d：%s", index+1, labels[image["role"]]))
 	}
-	styles := map[string]string{"studio": "摄影棚柔和均匀布光", "natural": "自然生活场景与自然光", "street": "真实街拍光线与环境", "editorial": "品牌画报，克制的时尚构图"}
-	parts = append(parts, styles[stringValue(input["clothingStyle"], "studio")])
+	parts = append(parts, generationText(input, "clothing.style."+stringValue(input["clothingStyle"], "studio")))
 	parts = append(parts, "适配目标电商平台："+stringValue(input["platform"], "smart"))
 	parts = append(parts, "本张拍摄规划："+stringValue(input["moduleHint"], ""))
 	if text := stringValue(input["requirements"], ""); text != "" {
 		parts = append(parts, "补充要求："+text)
 	}
 	appendCommerceTextPolicy(&parts, input)
-	return strings.Join(parts, "。")
+	return joinPromptParts(parts, "。")
 }

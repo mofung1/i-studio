@@ -382,23 +382,16 @@ func openAISize(ratio, resolution string) string {
 }
 
 // moduleHints 把模块标识翻译成自然语言生成指导，供模块化差异化生成使用。
-var moduleHints = map[string]string{
-	"hero":        "主视觉首图，突出商品主体与品牌调性，构图干净居中",
-	"white":       "纯白底主图，背景为均匀纯白 RGB 255,255,255，仅展示商品，商品完整居中且四周保留安全边距，均匀柔光和自然接触阴影，不出现道具、边框或额外文字",
-	"selling":     "卖点主图，围绕核心卖点构图，画面有清晰的信息层次",
-	"scene":       "场景应用图，商品置于真实使用场景中，氛围自然",
-	"detail":      "产品细节图，近景特写材质与工艺细节",
-	"spec":        "规格参数图，只排版用户提供或原图清楚可读的规格；缺少参数时展示商品外观，不编造尺寸、容量或数值，不绘制虚假的测量标注",
-	"feedback":    "用户反馈图，只使用用户提供的真实评价；未提供评价时展示中性的使用场景，不生成评价引语、星级、销量或用户身份",
-	"package":     "包装内容图，只展示原图可见或用户明确列出的包装和配件，不凭空添加赠品或套装",
-	"brand":       "品牌故事图，传达品牌调性与生活方式",
-	"certificate": "品质认证图，仅在用户提供认证资料时展示相应认证；资料不足时改为商品工艺展示，不生成认证标识、证书编号或检测结论",
-	"install":     "安装指引图，分步骤清晰展示安装过程",
-	"faq":         "常见问题图，以画面解答用户疑虑",
-	"size":        "尺码对照图，只使用用户提供的真实尺码数据；未提供数据时展示版型与比例，不生成尺码表或测量数字",
-	"material":    "材质纹理图，特写材质质感与用料",
-	"promotion":   "结尾促销图，只使用用户明确提供的价格、优惠和期限；缺少促销资料时展示商品收尾主视觉，不生成折扣、倒计时或虚构优惠",
-}
+var moduleHints = func() map[string]string {
+	hints := map[string]string{}
+	for key := range allowedModules["detail-page"] {
+		hints[key] = generationDefaults["module.detail-page."+key]
+	}
+	for key := range allowedModules["product-main"] {
+		hints[key] = generationDefaults["module.product-main."+key]
+	}
+	return hints
+}()
 
 // moduleLabel 取模块的中文名（moduleHints 的第一段），用于错误信息等面向用户的位置，
 // 避免把内部 key（如 selling）直接暴露给用户。
@@ -422,16 +415,6 @@ var allowedModules = map[string]map[string]struct{}{
 	"detail-page":  stringSet("hero", "selling", "scene", "detail", "spec", "feedback", "package", "brand", "certificate", "install", "faq", "size", "material", "promotion"),
 }
 
-// enhancementHints 把精修选项翻译成自然语言指导，替代原始数组拼接。
-var enhancementHints = map[string]string{
-	"gloss":       "增强产品光泽与质感，只调整与真实材质相符的柔和反光，不将哑光改为镜面，不覆盖包装文字",
-	"repair":      "修复划痕与瑕疵，只清理拍摄污点和偶发损伤，保留真实接缝、印刷纹理与结构",
-	"clarity":     "提升整体清晰度，克制降噪和锐化，不重新绘制文字与图案，不产生锐化白边",
-	"color":       "校正色彩，只修正偏色和曝光，以商品原图颜色为准，不改变商品配色",
-	"perspective": "修正透视变形，保留商品真实长宽比例和部件关系，不拉伸或重新设计外形",
-	"background":  "净化背景，清理原有杂物后保持背景材质与场景逻辑；用户明确要求换底时才替换，不新增绿植、摆件或装饰道具",
-}
-
 func promptForInput(input map[string]any) string {
 	if stringValue(input["taskType"], "") == "clothing-set" {
 		return clothingPromptForInput(input)
@@ -447,24 +430,18 @@ func promptForInput(input map[string]any) string {
 	parts := []string{prompt}
 	style := stringValue(input["style"], "unspecified")
 	if style != "unspecified" && promptStyleLabels[style] != "" {
-		parts = append(parts, "创作风格："+promptStyleLabels[style])
+		parts = append(parts, generationText(input, "image.style."+style))
 	}
 	if input["mode"] == "general" && len(sourceImages(input)) > 0 {
-		strengthHints := map[string]string{
-			"low":    "参考图片仅提供轻度视觉启发，以文字描述为主",
-			"medium": "遵循文字描述，适度参考图片的视觉特征",
-			"high":   "在遵循文字描述的前提下，尽量保持参考图片中要求保留的视觉特征",
-		}
-		parts = append(parts, strengthHints[stringValue(input["referenceStrength"], "medium")])
+		parts = append(parts, generationText(input, "image.reference."+stringValue(input["referenceStrength"], "medium")))
 	}
-	return strings.Join(parts, "。")
+	return joinPromptParts(parts, "。")
 }
 
 func appendCommerceTextPolicy(parts *[]string, input map[string]any) {
 	if stringValue(input["mode"], "") != "commerce" && stringValue(input["taskType"], "") == "" {
 		return
 	}
-	preserve := "必须保留商品原图中已有的包装文字、品牌名、Logo、型号和商标，不要删除、替换、翻译或重写"
 	languages := map[string]string{
 		"zh-CN": "简体中文", "zh-TW": "繁体中文", "en": "英语", "ja": "日语", "ko": "韩语",
 		"th": "泰语", "ms": "马来语", "id": "印尼语", "ru": "俄语",
@@ -474,11 +451,9 @@ func appendCommerceTextPolicy(parts *[]string, input map[string]any) {
 		language = "none"
 	}
 	if language == "none" {
-		*parts = append(*parts, "不新增营销文案、字母或数字；"+preserve)
+		*parts = append(*parts, generationText(input, "image.text.none"))
 	} else if name := languages[language]; name != "" {
-		*parts = append(*parts, preserve+"；如需新增文字，仅使用"+name+"，文案只来自用户明确提供或原图清楚可见的信息。用户指定标题和副标题时逐字使用，不额外扩写；文字与商品分区排版，不覆盖主体或包装标签")
-	} else {
-		*parts = append(*parts, preserve)
+		*parts = append(*parts, renderPrompt(generationText(input, "image.text.language"), map[string]string{"language": name}))
 	}
 }
 

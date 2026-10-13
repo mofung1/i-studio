@@ -25,6 +25,8 @@ export interface PromptTemplate {
   defaultContent: string
   enabled: boolean
   sortOrder: number
+  description?: string
+  variables?: string[]
 }
 export interface AIConnectionTest { success: boolean; model: string; responseTimeMs: number; message: string }
 export async function settingsRequest<T>(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {

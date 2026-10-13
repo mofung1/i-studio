@@ -22,15 +22,10 @@ func (b promptBuilder) build(target, text string, r *http.Request) (string, stri
 			}
 		}
 	}
-	return strings.Join(parts, "\n\n"), buildPromptUserText(target, text, r)
+	return strings.Join(parts, "\n\n"), buildPromptUserText(target, text, r, promptSet(b.templates))
 }
 func (s *server) buildPrompt(target, text string, r *http.Request) (string, string, error) {
-	if s.ai == nil {
-		system, user := (promptBuilder{defaultPromptTemplates()}).build(target, text, r)
-		return system, user, nil
-	}
-	var templates []promptTemplate
-	err := s.ai.withConfig(false, func(state *aiConfiguration) error { templates = state.Templates; return nil })
+	templates, err := s.promptSnapshot()
 	if err != nil {
 		return "", "", err
 	}

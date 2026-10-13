@@ -193,10 +193,11 @@ func safeAIError(err error, key string) string {
 
 func defaultPromptTemplates() []promptTemplate {
 	now := time.Now().UTC()
-	list := []promptTemplate{{Key: "rewrite", Name: "通用提示词优化", Category: "system", Content: promptRewriteSystemPrompt}, {Key: "requirements", Name: "电商提示词生成", Category: "system", Content: requirementSystemPrompt}}
+	list := []promptTemplate{{Key: "rewrite", Name: "通用提示词优化", Category: "system", Content: promptRewriteSystemPrompt, Description: "配置 Prompt AI 后用于通用生图的 AI 优化，不直接发送给图片模型。"}, {Key: "requirements", Name: "电商提示词生成", Category: "system", Content: requirementSystemPrompt, Description: "电商 AI 帮写的基础指令，与所选任务的优化说明共同使用。"}}
 	for _, key := range []string{"product-main", "detail-page", "viral-recreate", "product-retouch"} {
-		list = append(list, promptTemplate{Key: key, Name: promptTaskTypeLabels[key], Category: "mode", Content: promptTaskGuidance[key]})
+		list = append(list, promptTemplate{Key: key, Name: promptTaskTypeLabels[key], Category: "mode", Content: promptTaskGuidance[key], Description: "仅用于此任务的 AI 帮写；实际图片生成要求在电商生图分类中配置。"})
 	}
+	list = append(list, generationPromptDefinitions()...)
 	for i := range list {
 		list[i].DefaultContent = list[i].Content
 		list[i].Enabled = true
@@ -214,7 +215,11 @@ func (s *server) promptTemplates(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodGet {
 		err := s.ai.withConfig(false, func(state *aiConfiguration) error {
-			s.json(w, 200, map[string]any{"templates": state.Templates})
+			list := make([]promptTemplate, 0, len(state.Templates))
+			for _, template := range state.Templates {
+				list = append(list, templateMetadata(template))
+			}
+			s.json(w, 200, map[string]any{"templates": list})
 			return nil
 		})
 		if err != nil {
@@ -244,6 +249,9 @@ func (s *server) promptTemplates(w http.ResponseWriter, r *http.Request) {
 					t.Content = t.DefaultContent
 					t.Enabled = true
 				} else {
+					if err := validateTemplateVariables(t, input.Content); err != nil {
+						return err
+					}
 					t.Content = input.Content
 					t.Enabled = input.Enabled
 				}
@@ -259,5 +267,5 @@ func (s *server) promptTemplates(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 400, "PROMPT_TEMPLATE_INVALID", err.Error())
 		return
 	}
-	s.json(w, 200, map[string]any{"template": result})
+	s.json(w, 200, map[string]any{"template": templateMetadata(result)})
 }

@@ -28,6 +28,8 @@ func inspirationRequest(t *testing.T, s *server, method, path string, input any,
 	w := httptest.NewRecorder()
 	if r.URL.Path == "/v1/inspiration/categories" {
 		s.inspirationCategories(w, r)
+	} else if strings.HasPrefix(r.URL.Path, "/v1/inspiration/categories/") {
+		s.inspirationCategoryByID(w, r)
 	} else if strings.HasPrefix(r.URL.Path, "/v1/inspiration/prompts/") {
 		s.inspirationPromptByID(w, r)
 	} else {

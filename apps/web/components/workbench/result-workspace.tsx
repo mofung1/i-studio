@@ -198,7 +198,7 @@ export function ResultWorkspace({
               {hasResults && !isGenerating && (
                 <span className="meta-chip is-status">
                   <Check size={12} aria-hidden="true" />
-                  {activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'} · 第 {activeResultIndex + 1}/{resultHistory.length} 次 · {images.length} 张
+                  {activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'}{mode !== 'general' && ` · 第 ${activeResultIndex + 1}/${resultHistory.length} 次 · ${images.length} 张`}
                 </span>
               )}
               {isGenerating && (
@@ -211,7 +211,7 @@ export function ResultWorkspace({
                   此时没有可重新生成的对象，直接引导用户用左侧的生成按钮 */}
               {(hasResults || isGenerating) && (
                 <>
-                  <span className="meta-chip">{isGenerating ? `${generatingCount ?? expectedCount} 张` : `${images.length} 张`}</span>
+                  {mode !== 'general' && <span className="meta-chip">{isGenerating ? `${generatingCount ?? expectedCount} 张` : `${images.length} 张`}</span>}
                   <span className="meta-chip">{displayRatio}</span>
                   <span className="meta-chip">{displayResolution}</span>
                   <button
@@ -368,7 +368,7 @@ export function ResultWorkspace({
               )}
             </div>
             {mode === 'general' ? <div className="canvas-image-footer result-image-toolbar" role="group" aria-label="图片查看操作">
-              {imagePager}
+              {images.length > 1 && imagePager}
               <div className="result-image-commands">
                 <button type="button" className="studio-secondary" disabled={!heroReady} onClick={downloadCurrent}><Download size={15} aria-hidden="true" />下载图片</button>
                 <button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => setLightboxOpen(true)}><Maximize2 size={15} aria-hidden="true" />全屏查看</button>
