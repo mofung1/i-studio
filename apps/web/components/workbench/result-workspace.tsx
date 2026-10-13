@@ -81,7 +81,7 @@ export function ResultWorkspace({
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [downloadError, setDownloadError] = useState('')
-  const [naturalRatio, setNaturalRatio] = useState<{ path: string; ratio: number } | null>(null)
+  const [naturalImage, setNaturalImage] = useState<{ path: string; width: number; height: number } | null>(null)
 
   const isHistoryView = Boolean(historyTask)
   const images = isHistoryView ? (historyTask?.resultImages ?? []) : (activeResult?.resultImages ?? [])
@@ -101,7 +101,8 @@ export function ResultWorkspace({
   const [ratioWidth, ratioHeight] = displayRatio.split(':').map(Number)
   const heroRatio = ratioWidth && ratioHeight ? ratioWidth / ratioHeight : 1
   const heroRatioCss = ratioWidth && ratioHeight ? `${ratioWidth} / ${ratioHeight}` : '1 / 1'
-  const imageRatio = naturalRatio?.path === heroImage ? naturalRatio.ratio : heroRatio
+  const currentImageSize = naturalImage?.path === heroImage ? naturalImage : null
+  const imageRatio = currentImageSize ? currentImageSize.width / currentImageSize.height : heroRatio
   const generatingImages = Math.min(Math.max(generatingCount ?? expectedCount, 1), MAX_SKELETONS)
   const failureMessage = generationTask && !isGenerating && generationTask.status !== 'succeeded'
     ? generationTask.errorMessage || '供应商未返回错误详情，请重试。'
@@ -305,7 +306,7 @@ export function ResultWorkspace({
                   >
                     <img className="result-hero-image" src={heroSource} alt={`AI 生成结果 ${safeIndex + 1}`} onLoad={event => {
                       const image = event.currentTarget
-                      if (image.naturalWidth > 0 && image.naturalHeight > 0) setNaturalRatio({ path: heroImage, ratio: image.naturalWidth / image.naturalHeight })
+                      if (image.naturalWidth > 0 && image.naturalHeight > 0) setNaturalImage({ path: heroImage, width: image.naturalWidth, height: image.naturalHeight })
                     }} />
                   </button>
                 ) : (
@@ -373,7 +374,7 @@ export function ResultWorkspace({
                 <button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => setLightboxOpen(true)}><Maximize2 size={15} aria-hidden="true" />全屏查看</button>
                 <button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => onUseImageAsReference(heroImage, imageSource)}><ImageIcon size={15} aria-hidden="true" />继续创作</button>
               </div>
-            </div> : <div className="canvas-image-footer"><span>当前图片 · {safeIndex + 1} / {images.length}</span><button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => onUseImageAsReference(heroImage, imageSource)}><ImageIcon size={15} />用作参考，继续创作</button></div>}
+            </div> : <div className="canvas-image-footer"><span>当前图片 · {safeIndex + 1} / {images.length}{heroReady && currentImageSize && ` · 实际 ${currentImageSize.width} × ${currentImageSize.height} px`}</span><button type="button" className="studio-secondary" disabled={!heroReady} onClick={() => onUseImageAsReference(heroImage, imageSource)}><ImageIcon size={15} />用作参考，继续创作</button></div>}
           </div>
         )}
 

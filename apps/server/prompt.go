@@ -36,7 +36,7 @@ const requirementSystemPrompt = `你是跨境电商视觉策划，同时也是�
 2. 内容顺序自然融入：商品主体与外包装特征 → 场景与环境 → 构图与视角 → 光线 → 材质与质感 → 风格与氛围 → 输出约束。
 3. 图片里能直接看到的信息（外形、颜色、材质、包装文字与图案、原场景）优先采用；用户写的文字优先于推断。
 4. 包装上原有的文字与 logo 必须保留并写清，不要改写、也不要杜撰新的文案；看不清或不确定的文字不要猜写，改为「保持包装原有文字与版式不变」。
-5. 图片和文字都没有提到的软信息（目标人群、使用场景、氛围、道具搭配、构图方式）可按品类常识合理推断，并写成明确方案。
+5. 图片和文字都没有提到的氛围、构图和布光可按用途合理安排。产品精修默认保持原图场景，不推断新机位、绿植、摆件或装饰；只有用户明确要求换底或新增元素时才描述对应变化。
 6. 结合目标平台的常见商品图习惯安排构图、留白与背景，让画面符合该平台的主流审美（不要编造平台硬性规范）。
 7. 画面文字严格遵从「文字语言」参数；若要求不新增文字，则只保留商品原有包装文字。
 8. 若给出了复刻程度或精修项，请把它们落实成具体的画面表述。
@@ -55,8 +55,8 @@ const requirementSystemPrompt = `你是跨境电商视觉策划，同时也是�
 var promptTaskGuidance = map[string]string{
 	"product-main":    "本次任务是商品主图：画面要一眼看清商品本体与核心卖点，主体完整、背景干净、留白合理。",
 	"detail-page":     "本次任务是电商详情页素材，会按用户选择的模块成套产出。请按模块名称、顺序与数量逐个落实，每个模块写清拍什么、机位与构图、画面里出现的信息或元素；整组保持统一的色温、光线与机位语言，看起来像同一套详情素材，不要只写成一张主图式的画面。",
-	"viral-recreate":  "本次任务是爆款复刻：商品本体以用户上传的原图为准，可以借鉴参考图的视觉结构与氛围，不要照搬参考图中的其他商品。",
-	"product-retouch": "本次任务是产品精修：以商品原图的真实外观为基准，只做质感、清晰度、背景与色彩上的提升，不改变商品形状、颜色与包装信息。",
+	"viral-recreate":  "本次任务是爆款复刻：商品原图提供主体外观，最后一张爆款参考图只提供构图、背景、布光和视觉层次。参考风格允许围绕商品重构场景，高度复刻尽量保持构图与光影；两者都不能复制参考图商品、品牌或文案。",
+	"product-retouch": "本次任务是产品精修：以原图做局部编辑，只落实用户选择的精修项，保留商品形状、真实配色、机位、包装文字与印刷纹理；默认清理杂物后延续原场景，不增加绿植、摆件或新的广告场景。",
 }
 
 // promptSystem 选择系统提示词，并按任务类型补上对应板块的表达重点。
@@ -301,7 +301,7 @@ func moduleContextText(r *http.Request) string {
 		}
 		if index < len(keys) {
 			if key, _ := splitNameCount(keys[index]); key != "" {
-				if intent := moduleIntent(key); intent != "" {
+				if intent := moduleIntent(strings.TrimSpace(r.FormValue("taskType")), key); intent != "" {
 					entry += "（" + intent + "）"
 				}
 			}
@@ -332,8 +332,8 @@ func splitNameCount(item string) (name, count string) {
 
 // moduleIntent 取模块的表达要点（去掉开头的模块名，只保留要表达的内容），
 // 与生成阶段注入的 moduleHint 同源，保证「AI 帮写」和真正出图的目标一致。
-func moduleIntent(key string) string {
-	hint := strings.TrimSpace(moduleHints[strings.TrimSpace(key)])
+func moduleIntent(taskType, key string) string {
+	hint := strings.TrimSpace(commerceModuleHint(taskType, strings.TrimSpace(key)))
 	if hint == "" {
 		return ""
 	}

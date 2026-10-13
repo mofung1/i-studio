@@ -141,7 +141,7 @@ export type CommerceTaskType = CommerceGenerationInput['taskType']
 
 export const commerceTaskCapabilities = {
   'product-main': { title: '商品主图', required: ['productAssetIds'], optional: ['platform', 'outputLanguage', 'moduleMode', 'moduleCounts', 'requirements'] },
-  'detail-page': { title: '详情页', required: ['productAssetIds'], optional: ['platform', 'outputLanguage', 'moduleMode', 'moduleCounts', 'requirements'] },
+  'detail-page': { title: '商品详情', required: ['productAssetIds'], optional: ['platform', 'outputLanguage', 'moduleMode', 'moduleCounts', 'requirements'] },
   'viral-recreate': { title: '爆款复刻', required: ['productAssetIds', 'referenceAssetIds'], optional: ['platform', 'outputLanguage', 'recreateStrength', 'requirements'] },
   'product-retouch': { title: '产品精修', required: ['productAssetIds'], optional: ['platform', 'enhancements', 'requirements'] },
   'clothing-set': { title: '服装组图', required: ['productAssetIds', 'clothingMode', 'moduleCounts', 'clothingPlan'], optional: ['modelAssetId', 'sceneAssetId', 'clothingStyle', 'requirements', 'outputLanguage'] },

@@ -308,7 +308,7 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 			size := min(remaining, batchSize)
 			input["count"] = size
 			input["taskId"] = fmt.Sprintf("%s-%s-%d", id, module, batch)
-			input["moduleHint"] = moduleHints[module]
+			input["moduleHint"] = commerceModuleHint(stringValue(input["taskType"], ""), module)
 			q.server.updateTaskStatus(id, "processing")
 			remote, err := q.imageClient(input).Submit(context.Background(), input)
 			if err != nil {
@@ -410,7 +410,10 @@ func (s *server) attachSourceImages(input map[string]any) error {
 	for _, key := range []string{"productAssetIds", "referenceAssetIds"} {
 		ids, _ := input[key].([]any)
 		for _, id := range ids {
-			role := ""
+			role := "reference"
+			if key == "productAssetIds" {
+				role = "product"
+			}
 			if clothing {
 				role = "garment"
 			}

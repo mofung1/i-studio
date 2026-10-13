@@ -263,8 +263,9 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           <fieldset className="form-section config-card config-card-assets">
             <div className="field-heading">
               <legend>{assetLabel}</legend>
-              <span>{needsSingleReference ? '必须 1 张' : '至少 1 张'}</span>
+              <span>{maxFiles === 1 ? '必须 1 张' : `1–${maxFiles} 张`}</span>
             </div>
+            <p className="field-helper">{task === 'product-retouch' ? '以原图为基础做局部精修；需要换底或调整角度时，请在补充要求中说明。' : '多张素材请使用同一商品的不同角度，外观、包装与文字以这些原图为准。'}</p>
             <ReferenceUploader
               files={productFiles}
               max={maxFiles}
@@ -280,6 +281,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         {needsSingleReference && (
           <fieldset className="form-section config-card config-card-assets">
             <div className="field-heading"><legend>参考图（爆款图）</legend><span>必须 1 张</span></div>
+            <p className="field-helper">只参考构图、背景与光影；最终商品和包装来自商品原图。</p>
             <ReferenceUploader
               files={referenceFiles}
               max={1}

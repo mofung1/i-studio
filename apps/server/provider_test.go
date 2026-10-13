@@ -103,7 +103,7 @@ func TestGeneralPromptUsesStyleAndReferenceStrength(t *testing.T) {
 	if !strings.Contains(promptForInput(input), "尽量保持") {
 		t.Fatal("high reference strength was ignored")
 	}
-	if promptForInput(map[string]any{"mode": "general", "prompt": "原始描述"}) != "原始描述" {
+	if promptForInput(map[string]any{"mode": "general", "taskType": "product-main", "prompt": "原始描述"}) != "原始描述" {
 		t.Fatal("unspecified style changed the original prompt")
 	}
 }

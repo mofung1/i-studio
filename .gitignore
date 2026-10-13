@@ -17,3 +17,6 @@ apps/server/storage/uploads/inspiration/
 
 # 运行时上传和生成图片：保存在本地/挂载卷，不提交到 Git
 apps/server/storage/uploads/
+
+# 真实电商效果测试的原图与对照结果，仅保存在本地。
+artifacts/commerce-eval-*/
