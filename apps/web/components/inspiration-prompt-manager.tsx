@@ -7,6 +7,7 @@ import { apiBaseUrl, getAccessToken } from '@/lib/api'
 import { settingsRequest } from '@/lib/ai-settings'
 import { inspirationDraft, type InspirationManagementResponse, type InspirationPromptInput, type ManagedInspirationPrompt } from '@/lib/inspiration-settings'
 import { ConfirmDialog } from './confirm-dialog'
+import type { InspirationCategory } from './workbench/use-inspiration-prompts'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from './select'
 
 const PAGE_SIZE = 20
@@ -17,8 +18,8 @@ export function InspirationPromptManager() {
   const [items, setItems] = useState<ManagedInspirationPrompt[]>([])
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
-  const [categorySearch, setCategorySearch] = useState('')
-  const [filters, setFilters] = useState({ query: '', categoryQuery: '', status: 'all', page: 1 })
+  const [categories, setCategories] = useState<InspirationCategory[]>([])
+  const [filters, setFilters] = useState({ query: '', category: '', status: 'all', page: 1 })
   const [refresh, setRefresh] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -37,20 +38,23 @@ export function InspirationPromptManager() {
 
   useEffect(() => { setLoggedIn(!!getAccessToken()) }, [])
   useEffect(() => {
-    const timer = window.setTimeout(() => setFilters(previous => previous.query === search.trim() && previous.categoryQuery === categorySearch.trim() ? previous : { ...previous, query: search.trim(), categoryQuery: categorySearch.trim(), page: 1 }), 350)
+    const timer = window.setTimeout(() => setFilters(previous => previous.query === search.trim() ? previous : { ...previous, query: search.trim(), page: 1 }), 350)
     return () => window.clearTimeout(timer)
-  }, [search, categorySearch])
+  }, [search])
   useEffect(() => {
     if (!loggedIn) return
     const controller = new AbortController()
     setLoading(true); setError('')
-    const params = new URLSearchParams({ includeDisabled: 'true', page: String(filters.page), pageSize: String(PAGE_SIZE), q: filters.query, categoryQuery: filters.categoryQuery, status: filters.status })
-    settingsRequest<InspirationManagementResponse>(`inspiration/prompts?${params}`, 'GET', undefined, controller.signal).then(data => {
-      if (!controller.signal.aborted) { setItems(data.prompts); setTotal(data.total) }
+    const params = new URLSearchParams({ includeDisabled: 'true', page: String(filters.page), pageSize: String(PAGE_SIZE), q: filters.query, category: filters.category, status: filters.status })
+    Promise.all([
+      settingsRequest<InspirationManagementResponse>(`inspiration/prompts?${params}`, 'GET', undefined, controller.signal),
+      settingsRequest<{ categories: InspirationCategory[] }>('inspiration/categories?includeDisabled=true', 'GET', undefined, controller.signal),
+    ]).then(([data, categoryData]) => {
+      if (!controller.signal.aborted) { setItems(data.prompts); setTotal(data.total); setCategories(categoryData.categories) }
     }).catch(error => { if (!controller.signal.aborted) setError(errorText(error)) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [loggedIn, filters.query, filters.categoryQuery, filters.status, filters.page, refresh])
+  }, [loggedIn, filters.query, filters.category, filters.status, filters.page, refresh])
   useEffect(() => {
     if (editorOpen) dialogRef.current?.showModal()
     else { dialogRef.current?.close(); (focusRef.current?.isConnected ? focusRef.current : addRef.current)?.focus() }
@@ -82,7 +86,7 @@ export function InspirationPromptManager() {
     try {
       await settingsRequest(`inspiration/prompts${editing.item ? `/${encodeURIComponent(editing.item.id)}` : ''}`, editing.item ? 'PUT' : 'POST', editing.draft)
       setNotice(editing.item ? '提示词已保存' : '提示词已新增')
-      if (!editing.item) { setSearch(''); setCategorySearch(''); setFilters({ query: '', categoryQuery: '', status: 'all', page: 1 }) }
+      if (!editing.item) { setSearch(''); setFilters({ query: '', category: '', status: 'all', page: 1 }) }
       setEditing(null); setRefresh(value => value + 1)
     } catch (error) { setEditorError(errorText(error)) }
     finally { setSaving(false) }
@@ -105,7 +109,7 @@ export function InspirationPromptManager() {
   return <main className="inspiration-manager">
     <div className="inspiration-manager-toolbar" role="search" aria-label="搜索与筛选提示词">
       <label className="inspiration-manager-search"><Search size={17} aria-hidden="true" /><input type="search" aria-label="搜索管理提示词" placeholder="搜索标题、提示词或来源" value={search} onChange={event => setSearch(event.target.value)} /></label>
-      <label className="inspiration-manager-search inspiration-manager-category"><Search size={17} aria-hidden="true" /><input type="search" aria-label="搜索提示词分类" placeholder="搜索分类" maxLength={80} value={categorySearch} onChange={event => setCategorySearch(event.target.value)} /></label>
+      <Select value={filters.category ? `category:${filters.category}` : 'all'} onValueChange={value => setFilters(previous => ({ ...previous, category: value === 'all' ? '' : value.slice('category:'.length), page: 1 }))}><SelectTrigger className="inspiration-manager-category" aria-label="提示词分类筛选"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">全部分类</SelectItem>{Array.from(new Set([...categories.map(item => item.category), ...(filters.category ? [filters.category] : [])])).map(category => <SelectItem key={category} value={`category:${category}`}>{category}</SelectItem>)}</SelectGroup></SelectContent></Select>
       <Select value={filters.status} onValueChange={status => setFilters(previous => ({ ...previous, status, page: 1 }))}><SelectTrigger className="inspiration-manager-status" aria-label="提示词状态筛选"><SelectValue /></SelectTrigger><SelectContent><SelectGroup><SelectItem value="all">全部状态</SelectItem><SelectItem value="enabled">已启用</SelectItem><SelectItem value="disabled">未启用</SelectItem></SelectGroup></SelectContent></Select>
       <button type="button" className="settings-command" aria-label="刷新提示词列表" disabled={loading} onClick={() => setRefresh(value => value + 1)}><RefreshCw size={16} aria-hidden="true" />刷新</button>
       <button ref={addRef} type="button" className="settings-primary" onClick={() => edit()}><Plus size={17} aria-hidden="true" />新增提示词</button>
@@ -113,7 +117,7 @@ export function InspirationPromptManager() {
     {notice && <p className="settings-saved" role="status">{notice}</p>}
     {error && <p className="settings-error" role="alert">{error}</p>}
     <section className="inspiration-manager-list" aria-label="管理提示词列表" aria-busy={loading}>
-      {loading ? <div className="settings-loading" role="status"><LoaderCircle className="settings-spinner" size={20} />正在读取提示词</div> : error ? null : !items.length ? <p className="inspiration-manager-empty">{filters.query || filters.categoryQuery || filters.status !== 'all' ? '没有符合筛选条件的提示词' : '灵感库还没有提示词，点击「新增提示词」开始添加。'}</p> : items.map(item => <article className="inspiration-manager-row" key={item.id}>
+      {loading ? <div className="settings-loading" role="status"><LoaderCircle className="settings-spinner" size={20} />正在读取提示词</div> : error ? null : !items.length ? <p className="inspiration-manager-empty">{filters.query || filters.category || filters.status !== 'all' ? '没有符合筛选条件的提示词' : '灵感库还没有提示词，点击「新增提示词」开始添加。'}</p> : items.map(item => <article className="inspiration-manager-row" key={item.id}>
         {item.imageUrl && <img className="inspiration-manager-cover" src={item.imageUrl.startsWith('/') ? `${apiBaseUrl}${item.imageUrl}` : item.imageUrl} alt="" loading="lazy" />}
         <div className="inspiration-manager-copy"><div className="inspiration-manager-title"><h2>{item.title}</h2><span className={item.enabled ? 'inspiration-manager-badge' : 'inspiration-manager-badge is-disabled'}>{item.enabled ? '已启用' : '未启用'}</span></div><p className="inspiration-manager-meta">{[item.category, item.source].filter(Boolean).join(' · ')}</p><p className="inspiration-manager-excerpt">{item.prompt}</p></div>
         <div className="inspiration-manager-actions"><button type="button" className="settings-command" aria-label={`编辑 ${item.title}`} onClick={() => edit(item)}><Pencil size={16} aria-hidden="true" />编辑</button><button type="button" className="settings-command" aria-label={`删除 ${item.title}`} onClick={() => { setDeleteError(''); setDeleting(item) }}><Trash2 size={16} aria-hidden="true" />删除</button></div>
