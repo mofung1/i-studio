@@ -115,7 +115,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
                 </label>
                 <label className={recreateStrength === 'high' ? 'selected' : ''}>
                   <input type="radio" checked={recreateStrength === 'high'} onChange={() => onSetRecreateStrength('high')} />
-                  <span><strong>高度复刻</strong><small>参照参考图视觉结构替换产品和文案，场景细节略有差异</small></span>
+                  <span><strong>高度复刻</strong><small>贴近构图、视角和光影；保持商品原图外观，不复制参考图品牌和文案</small></span>
                 </label>
               </div>
             </div>

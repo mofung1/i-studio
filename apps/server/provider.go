@@ -384,20 +384,20 @@ func openAISize(ratio, resolution string) string {
 // moduleHints 把模块标识翻译成自然语言生成指导，供模块化差异化生成使用。
 var moduleHints = map[string]string{
 	"hero":        "主视觉首图，突出商品主体与品牌调性，构图干净居中",
-	"white":       "纯白底主图，商品居中、光影均匀，符合平台主图规范",
+	"white":       "纯白底主图，背景为均匀纯白 RGB 255,255,255，仅展示商品，商品完整居中且四周保留安全边距，均匀柔光和自然接触阴影，不出现道具、边框或额外文字",
 	"selling":     "卖点主图，围绕核心卖点构图，画面有清晰的信息层次",
 	"scene":       "场景应用图，商品置于真实使用场景中，氛围自然",
 	"detail":      "产品细节图，近景特写材质与工艺细节",
-	"spec":        "规格参数图，清晰直观地展示商品规格信息",
-	"feedback":    "用户反馈图，呈现真实使用场景与口碑氛围",
-	"package":     "包装内容图，展示商品包装与配件全家福",
+	"spec":        "规格参数图，只排版用户提供或原图清楚可读的规格；缺少参数时展示商品外观，不编造尺寸、容量或数值，不绘制虚假的测量标注",
+	"feedback":    "用户反馈图，只使用用户提供的真实评价；未提供评价时展示中性的使用场景，不生成评价引语、星级、销量或用户身份",
+	"package":     "包装内容图，只展示原图可见或用户明确列出的包装和配件，不凭空添加赠品或套装",
 	"brand":       "品牌故事图，传达品牌调性与生活方式",
-	"certificate": "品质认证图，突出品质保障与认证信息",
+	"certificate": "品质认证图，仅在用户提供认证资料时展示相应认证；资料不足时改为商品工艺展示，不生成认证标识、证书编号或检测结论",
 	"install":     "安装指引图，分步骤清晰展示安装过程",
 	"faq":         "常见问题图，以画面解答用户疑虑",
-	"size":        "尺码对照图，直观展示尺寸规格对比",
+	"size":        "尺码对照图，只使用用户提供的真实尺码数据；未提供数据时展示版型与比例，不生成尺码表或测量数字",
 	"material":    "材质纹理图，特写材质质感与用料",
-	"promotion":   "结尾促销图，营造促成购买的促销氛围",
+	"promotion":   "结尾促销图，只使用用户明确提供的价格、优惠和期限；缺少促销资料时展示商品收尾主视觉，不生成折扣、倒计时或虚构优惠",
 }
 
 // moduleLabel 取模块的中文名（moduleHints 的第一段），用于错误信息等面向用户的位置，
@@ -424,83 +424,38 @@ var allowedModules = map[string]map[string]struct{}{
 
 // enhancementHints 把精修选项翻译成自然语言指导，替代原始数组拼接。
 var enhancementHints = map[string]string{
-	"gloss":       "增强产品光泽与质感",
-	"repair":      "修复划痕与瑕疵",
-	"clarity":     "提升整体清晰度",
-	"color":       "校正色彩",
-	"perspective": "修正透视变形",
-	"background":  "净化背景",
+	"gloss":       "增强产品光泽与质感，只调整与真实材质相符的柔和反光，不将哑光改为镜面，不覆盖包装文字",
+	"repair":      "修复划痕与瑕疵，只清理拍摄污点和偶发损伤，保留真实接缝、印刷纹理与结构",
+	"clarity":     "提升整体清晰度，克制降噪和锐化，不重新绘制文字与图案，不产生锐化白边",
+	"color":       "校正色彩，只修正偏色和曝光，以商品原图颜色为准，不改变商品配色",
+	"perspective": "修正透视变形，保留商品真实长宽比例和部件关系，不拉伸或重新设计外形",
+	"background":  "净化背景，清理原有杂物后保持背景材质与场景逻辑；用户明确要求换底时才替换，不新增绿植、摆件或装饰道具",
 }
 
 func promptForInput(input map[string]any) string {
 	if stringValue(input["taskType"], "") == "clothing-set" {
 		return clothingPromptForInput(input)
 	}
-	if prompt := strings.TrimSpace(stringValue(input["prompt"], "")); prompt != "" {
-		if stringValue(input["mode"], "") != "commerce" {
-			parts := []string{prompt}
-			style := stringValue(input["style"], "unspecified")
-			if style != "unspecified" && promptStyleLabels[style] != "" {
-				parts = append(parts, "创作风格："+promptStyleLabels[style])
-			}
-			if input["mode"] == "general" && len(sourceImages(input)) > 0 {
-				strengthHints := map[string]string{
-					"low":    "参考图片仅提供轻度视觉启发，以文字描述为主",
-					"medium": "遵循文字描述，适度参考图片的视觉特征",
-					"high":   "在遵循文字描述的前提下，尽量保持参考图片中要求保留的视觉特征",
-				}
-				parts = append(parts, strengthHints[stringValue(input["referenceStrength"], "medium")])
-			}
-			return strings.Join(parts, "。")
+	mode := stringValue(input["mode"], "")
+	if mode == "commerce" || (mode == "" && stringValue(input["taskType"], "") != "") {
+		return commercePromptForInput(input)
+	}
+	prompt := strings.TrimSpace(stringValue(input["prompt"], ""))
+	if prompt == "" {
+		return ""
+	}
+	parts := []string{prompt}
+	style := stringValue(input["style"], "unspecified")
+	if style != "unspecified" && promptStyleLabels[style] != "" {
+		parts = append(parts, "创作风格："+promptStyleLabels[style])
+	}
+	if input["mode"] == "general" && len(sourceImages(input)) > 0 {
+		strengthHints := map[string]string{
+			"low":    "参考图片仅提供轻度视觉启发，以文字描述为主",
+			"medium": "遵循文字描述，适度参考图片的视觉特征",
+			"high":   "在遵循文字描述的前提下，尽量保持参考图片中要求保留的视觉特征",
 		}
-		parts := []string{prompt}
-		appendCommerceTextPolicy(&parts, input)
-		return strings.Join(parts, "。")
-	}
-	parts := []string{stringValue(input["productName"], "商品"), stringValue(input["requirements"], "专业电商产品图")}
-	taskPrompts := map[string]string{"product-main": "商品主图", "detail-page": "电商详情页", "viral-recreate": "参考爆款视觉复刻", "product-retouch": "产品精修，保留真实商品外观"}
-	if taskPrompt := taskPrompts[stringValue(input["taskType"], "")]; taskPrompt != "" {
-		parts = append(parts, taskPrompt)
-	}
-	platforms := map[string]string{
-		"smart": "适合目标平台", "taobao": "淘宝", "1688": "1688", "tmall": "天猫", "pinduoduo": "拼多多", "jd": "京东", "douyin": "抖音",
-		"amazon": "Amazon", "temu": "TEMU", "ebay": "eBay",
-	}
-	if platform := platforms[stringValue(input["platform"], "")]; platform != "" {
-		parts = append(parts, "适配"+platform+"平台商品图片")
-	}
-	appendCommerceTextPolicy(&parts, input)
-	if strength := stringValue(input["recreateStrength"], ""); strength == "high" {
-		parts = append(parts, "高度复刻参考图的视觉结构，替换为商品原图")
-	}
-	if enhancements, ok := input["enhancements"].([]any); ok {
-		items := make([]string, 0, len(enhancements))
-		for _, item := range enhancements {
-			if text, ok := item.(string); ok {
-				if hint := enhancementHints[text]; hint != "" {
-					items = append(items, hint)
-				}
-			}
-		}
-		if len(items) > 0 {
-			parts = append(parts, "产品精修要求："+strings.Join(items, "、"))
-		}
-	}
-	// 模块化差异化生成：模块批次注入 moduleHint 时用自然语言指导，替代原始 map 拼接
-	if hint := stringValue(input["moduleHint"], ""); hint != "" {
-		parts = append(parts, "本组图片的生成方向："+hint)
-	} else if counts, ok := input["moduleCounts"].(map[string]any); ok {
-		parts = append(parts, "按以下模块生成详情素材："+fmt.Sprint(counts))
-	}
-	if scene := stringValue(input["sceneDescription"], ""); scene != "" {
-		parts = append(parts, scene)
-	}
-	if points, ok := input["sellingPoints"].([]any); ok {
-		for _, point := range points {
-			if text, ok := point.(string); ok {
-				parts = append(parts, text)
-			}
-		}
+		parts = append(parts, strengthHints[stringValue(input["referenceStrength"], "medium")])
 	}
 	return strings.Join(parts, "。")
 }
@@ -515,10 +470,13 @@ func appendCommerceTextPolicy(parts *[]string, input map[string]any) {
 		"th": "泰语", "ms": "马来语", "id": "印尼语", "ru": "俄语",
 	}
 	language := stringValue(input["outputLanguage"], "")
+	if language == "" || stringValue(input["taskType"], "") == "product-retouch" {
+		language = "none"
+	}
 	if language == "none" {
 		*parts = append(*parts, "不新增营销文案、字母或数字；"+preserve)
 	} else if name := languages[language]; name != "" {
-		*parts = append(*parts, preserve+"；如需新增文字，仅使用"+name)
+		*parts = append(*parts, preserve+"；如需新增文字，仅使用"+name+"，文案只来自用户明确提供或原图清楚可见的信息。用户指定标题和副标题时逐字使用，不额外扩写；文字与商品分区排版，不覆盖主体或包装标签")
 	} else {
 		*parts = append(*parts, preserve)
 	}

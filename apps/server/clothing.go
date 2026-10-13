@@ -141,7 +141,7 @@ func validateClothingShots(shots []clothingShot, counts map[string]int, total in
 
 func baseClothingPlan(mode string, counts map[string]int, requirements string) clothingPlan {
 	plan := clothingPlan{Summary: "以原图服装为准，整组采用统一的光线和背景，每张都是独立成片。", Warnings: []string{}, Shots: []clothingShot{}}
-	poses := []string{"正面自然站姿，完整展示整套穿搭", "侧面站姿，展示服装廓形与垂坠", "自然行走姿态，服装清晰完整", "场景全身照，保持同一模特与穿搭"}
+	poses := []string{"正面自然站姿，完整展示所选服装，取景与模特照片可见范围匹配", "侧面站姿，展示服装廓形与垂坠", "自然行走姿态，服装清晰完整", "场景全身照，保持同一模特与穿搭"}
 	for _, module := range clothingModules {
 		for i := 0; i < counts[module.key]; i++ {
 			description := module.hint
@@ -272,10 +272,11 @@ func (s *server) clothingPlanHandler(w http.ResponseWriter, r *http.Request) {
 func clothingPromptForInput(input map[string]any) string {
 	parts := []string{"服装电商摄影，每次只生成一张独立成片。服装原图是商品外观的唯一依据，必须保留真实颜色、版型、印花、Logo、纽扣和缝线，不替换款式，不新增配件或虚构面料成分、尺码、性能、价格和认证。不可见的结构、印花、标签与工艺不作具体臆造；背面素材不足时采用保守展示。整组采用统一光线、色温与背景逻辑。"}
 	if stringValue(input["clothingMode"], "") == "model" {
-		parts = append(parts, "模特穿着全部服装原图所组成的同套搭配。模特参考仅用于保持人物身份、脸部和体型，不复制模特原有衣服。场景参考仅用于背景，不复制其中的人物或服装。穿着结构与人体比例自然合理。")
+		parts = append(parts, "模特穿着全部服装原图所组成的同套搭配。模特参考仅用于保持人物身份、脸部和体型，不复制模特原有衣服。保留脸型、发型、发色、眼镜与可见年龄特征，不美化成另一个人。场景参考仅用于背景，不复制其中的人物或服装。衣服自然贴合人体，印花随面料弯曲但保持原有图形结构；手臂不遮挡关键图案。取景遵循用户规划与模特照片可见的身体范围，穿着结构与人体比例自然合理。")
 	} else {
-		parts = append(parts, "各张服装原图是同一件服装的不同视角，请保持同一件商品。")
+		parts = append(parts, "各张服装原图是同一件服装的不同视角，请保持同一件商品。服装原图中的人体只用于说明穿着状态，不能复制到正面、背面或立体商品图中。正面、背面、立体与人台图必须完整展示领口、两侧袖口与下摆，四周保留至少约 6% 安全边距，衣服不能贴边或被裁断；只有细节特写允许局部取景。")
 	}
+	parts = append(parts, "把印花和 Logo 视为原图的完整图形保留，保留其字形、线条、位置与相对比例，不重新排字或重新设计标志，不因提高清晰度而猜写微小文字。白色摄影棚背景保持干净，柔和接触阴影，避免衣服轮廓融入背景。")
 	for index, image := range sourceImages(input) {
 		labels := map[string]string{"garment": "服装原图", "model": "模特参考，只用于人物身份", "scene": "场景参考，只用于背景"}
 		parts = append(parts, fmt.Sprintf("参考图片 %d：%s", index+1, labels[image["role"]]))
