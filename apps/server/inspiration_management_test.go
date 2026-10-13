@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -168,5 +169,38 @@ func TestInspirationManagementValidationDoesNotChangeRecords(t *testing.T) {
 	w := inspirationRequest(t, s, "PUT", "/v1/inspiration/prompts/missing", map[string]any{"title": "标题", "category": "分类", "prompt": "内容"}, "second-account")
 	if w.Code != 404 {
 		t.Fatal("editing missing record created a new prompt", w.Code)
+	}
+}
+
+func TestInspirationManagementCategorySearchCombinesFiltersAndPagination(t *testing.T) {
+	s := testSiteServer(t)
+	s.db = isolatedTestDatabase(t)
+	if _, err := s.db.Exec(`INSERT INTO inspiration_prompts(id,title,category,prompt,enabled,sort_order) VALUES
+		('coat-enabled','服装主图','服装摄影','蓝色外套',true,1),
+		('coat-disabled','服装主图草稿','服装摄影','蓝色外套',false,2),
+		('shirt-disabled','衬衫草稿','服装设计','白色衬衫',false,3),
+		('portrait','人像','人像摄影','服装摄影风格',true,4)`); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		query string
+		ids   []string
+	}{
+		{"categoryQuery=服装", []string{"coat-enabled"}},
+		{"includeDisabled=true&categoryQuery=服装", []string{"coat-enabled", "coat-disabled", "shirt-disabled"}},
+		{"includeDisabled=true&categoryQuery=服装&status=disabled&q=蓝色", []string{"coat-disabled"}},
+		{"includeDisabled=true&categoryQuery=服装&pageSize=1&page=2", []string{"coat-disabled"}},
+		{"includeDisabled=true&category=服装摄影&categoryQuery=设计", nil},
+		{"includeDisabled=true&categoryQuery=" + url.QueryEscape("' OR true --"), nil},
+	} {
+		rows := readInspirationList(t, inspirationRequest(t, s, "GET", "/v1/inspiration/prompts?"+test.query, nil, "signed-in-account"))
+		if len(rows) != len(test.ids) {
+			t.Fatalf("%s: got %d rows, want %d", test.query, len(rows), len(test.ids))
+		}
+		for index, row := range rows {
+			if row.ID != test.ids[index] {
+				t.Fatalf("%s: unexpected row %q", test.query, row.ID)
+			}
+		}
 	}
 }

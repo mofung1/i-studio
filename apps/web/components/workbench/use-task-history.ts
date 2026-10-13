@@ -46,7 +46,7 @@ export interface HistoryTask {
 
 const taskTypeLabels: Record<string, string> = {
   'product-main': '商品主图',
-  'detail-page': '详情页',
+  'detail-page': '商品详情',
   'viral-recreate': '爆款复刻',
   'product-retouch': '产品精修',
   'clothing-set': '服装组图',

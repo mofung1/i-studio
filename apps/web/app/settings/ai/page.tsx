@@ -18,7 +18,7 @@ const promptTemplateLabels: Record<string, string> = {
   rewrite: '通用生图',
   requirements: '电商模式',
   'product-main': '商品主图',
-  'detail-page': '电商详情',
+  'detail-page': '商品详情',
   'viral-recreate': '爆款复刻',
   'product-retouch': '产品精修',
 }

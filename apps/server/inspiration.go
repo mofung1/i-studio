@@ -47,6 +47,7 @@ func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	category := strings.TrimSpace(r.URL.Query().Get("category"))
+	categoryQuery := strings.TrimSpace(r.URL.Query().Get("categoryQuery"))
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	page := clampInt(parseQueryInt(r.URL.Query().Get("page"), 1), 1, 200)
 	pageSize := clampInt(parseQueryInt(r.URL.Query().Get("pageSize"), 24), 1, 60)
@@ -64,6 +65,10 @@ func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 	if category != "" {
 		where += " AND category = $" + strconv.Itoa(len(args)+1)
 		args = append(args, category)
+	}
+	if categoryQuery != "" {
+		where += " AND category ILIKE $" + strconv.Itoa(len(args)+1)
+		args = append(args, "%"+categoryQuery+"%")
 	}
 	if query != "" {
 		// 标题、分类、提示词和来源模糊匹配，大小写不敏感。

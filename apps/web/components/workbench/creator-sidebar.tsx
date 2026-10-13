@@ -125,13 +125,17 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
 
   const isGeneral = mode === 'general'
   const configToggleRef = useRef<HTMLButtonElement>(null)
+  const wasCollapsed = useRef(Boolean(props.generalConfigCollapsed))
 
   useEffect(() => {
-    if (!isGeneral || !props.generalConfigCollapsed) return
+    if (!isGeneral) return
     const body = document.getElementById('creation-settings-body')
-    if (document.activeElement === document.body || body?.contains(document.activeElement)) {
+    if (props.generalConfigCollapsed && (document.activeElement === document.body || body?.contains(document.activeElement))) {
       configToggleRef.current?.focus()
+    } else if (!props.generalConfigCollapsed && wasCollapsed.current) {
+      body?.querySelector<HTMLTextAreaElement>('.prompt-input')?.focus({ preventScroll: true })
     }
+    wasCollapsed.current = Boolean(props.generalConfigCollapsed)
   }, [isGeneral, props.generalConfigCollapsed])
   const currentModel = optionLabel(modelOptions, props.imageEndpoints.find((endpoint) => endpoint.id === props.endpointId)?.model ?? model)
   const generationStatus = isSubmitting ? '正在提交'
@@ -208,7 +212,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
 
   return (
     <aside id="creation-settings" className={`configuration-panel creator-sidebar ${isGeneral ? 'general-composer' : 'commerce-settings'}`} aria-label="创作设置">
-      {isGeneral && <div className="general-config-head">
+      {isGeneral && props.generalConfigCollapsed && <div className="general-config-head">
         <button ref={configToggleRef} type="button" className="general-config-summary" aria-label={props.generalConfigCollapsed ? '展开创作配置' : '收起创作配置'} aria-controls="creation-settings-body" aria-expanded={!props.generalConfigCollapsed} onClick={props.onToggleGeneralConfig}>
           <SlidersHorizontal size={16} aria-hidden="true" />
           <span>{props.generalConfigCollapsed ? '展开创作配置' : '收起创作配置'}</span>
@@ -247,6 +251,9 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 enhance={(value) => (promptEnhanceEnabled ? runEnhance('prompt', value) : buildEnhancedPrompt(value, style))}
                 enhanceDisabledReason={!prompt.trim() && enhanceImages.length === 0 ? enhanceBlockedReason : undefined}
                 helper={enhanceHelper}
+                enhanceLabel="AI 优化"
+                compact
+                collapsed={props.generalConfigCollapsed}
               />
             </fieldset>
           </div>
@@ -357,6 +364,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           onSetRecreateStrength={onSetRecreateStrength}
           onSetEnhancements={onSetEnhancements}
         />}
+        {isGeneral && !props.generalConfigCollapsed && <button ref={configToggleRef} type="button" className="general-config-fold" aria-label="收起创作配置" aria-expanded="true" aria-controls="creation-settings-body" onClick={props.onToggleGeneralConfig}><ChevronDown size={16} aria-hidden="true" />收起</button>}
         {isGeneral && (<GenerateBar
         title={title}
         expectedCount={expectedCount}

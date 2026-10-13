@@ -14,7 +14,7 @@ export const taskMeta: Record<CommerceTaskType, { title: string; description: st
     image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=1400&q=88',
   },
   'detail-page': {
-    title: '详情页',
+    title: '商品详情',
     description: '围绕商品信息生成详情页素材',
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1400&q=88',
   },

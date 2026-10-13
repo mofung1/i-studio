@@ -13,6 +13,9 @@ function Select({ ...props }: ComponentProps<typeof SelectPrimitive.Root>) {
 function SelectValue({ ...props }: ComponentProps<typeof SelectPrimitive.Value>) {
   return <SelectPrimitive.Value {...props} />
 }
+function SelectGroup({ ...props }: ComponentProps<typeof SelectPrimitive.Group>) {
+  return <SelectPrimitive.Group {...props} />
+}
 
 function SelectTrigger({
   className,
@@ -70,4 +73,4 @@ function SelectItem({
   )
 }
 
-export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue }
+export { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue }
