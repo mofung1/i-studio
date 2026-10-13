@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -18,6 +19,7 @@ const (
 	generationQueueKey           = "istudio:generation"
 	generationProcessingKey      = "istudio:generation:processing"
 	defaultGenerationWorkerCount = 4
+	defaultGenerationPollTimeout = 10 * time.Minute
 )
 
 type taskQueue struct {
@@ -344,17 +346,46 @@ func (q *taskQueue) imageClient(input map[string]any) imageProvider {
 }
 
 func (q *taskQueue) waitForImages(id, remoteID string, client imageProvider) ([]string, error) {
+	timeout := generationPollTimeout(env("GENERATION_POLL_TIMEOUT_SECONDS", ""))
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	images, err := pollProviderImages(ctx, id, remoteID, client, 5*time.Second)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return nil, fmt.Errorf("等待供应商结果超时（等待上限 %d 秒）：%w", int(timeout/time.Second), err)
+	}
+	return images, err
+}
+
+func generationPollTimeout(raw string) time.Duration {
+	seconds, err := strconv.Atoi(raw)
+	if err != nil || seconds < 1 {
+		return defaultGenerationPollTimeout
+	}
+	return time.Duration(min(seconds, 3600)) * time.Second
+}
+
+// The deadline covers both waits and HTTP polls, regardless of how many queries run.
+func pollProviderImages(ctx context.Context, id, remoteID string, client imageProvider, interval time.Duration) ([]string, error) {
 	lastPollError := ""
-	for attempt := 0; attempt < 24; attempt++ {
-		time.Sleep(5 * time.Second)
-		result, err := client.Poll(context.Background(), remoteID)
+	for {
+		timer := time.NewTimer(interval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			if lastPollError != "" {
+				return nil, fmt.Errorf("最后一次查询错误：%s：%w", lastPollError, ctx.Err())
+			}
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+		result, err := client.Poll(ctx, remoteID)
 		if err != nil {
 			lastPollError = err.Error()
 			fmt.Printf("task %s provider poll failed: %v\n", id, err)
 			continue
 		}
 		switch result.Status {
-		case "success":
+		case "success", "succeeded", "completed":
 			if len(result.Images) == 0 {
 				return nil, fmt.Errorf("供应商返回成功状态，但没有生成图片")
 			}
@@ -366,10 +397,6 @@ func (q *taskQueue) waitForImages(id, remoteID string, client imageProvider) ([]
 			return nil, fmt.Errorf("供应商返回失败状态，但未提供错误详情")
 		}
 	}
-	if lastPollError != "" {
-		return nil, fmt.Errorf("等待供应商结果超时；最后一次查询错误：%s", lastPollError)
-	}
-	return nil, fmt.Errorf("等待供应商结果超时，请稍后重试")
 }
 
 func (s *server) attachSourceImages(input map[string]any) error {

@@ -26,7 +26,9 @@ func inspirationRequest(t *testing.T, s *server, method, path string, input any,
 		r.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid}))
 	}
 	w := httptest.NewRecorder()
-	if strings.HasPrefix(r.URL.Path, "/v1/inspiration/prompts/") {
+	if r.URL.Path == "/v1/inspiration/categories" {
+		s.inspirationCategories(w, r)
+	} else if strings.HasPrefix(r.URL.Path, "/v1/inspiration/prompts/") {
 		s.inspirationPromptByID(w, r)
 	} else {
 		s.inspirationPrompts(w, r)
@@ -135,7 +137,7 @@ func TestInspirationManagementCRUDAndPublicVisibility(t *testing.T) {
 
 func TestInspirationManagementRequiresLoginAndDatabase(t *testing.T) {
 	s := testSiteServer(t)
-	for _, test := range []struct{ method, path string }{{"POST", "/v1/inspiration/prompts"}, {"PUT", "/v1/inspiration/prompts/id"}, {"DELETE", "/v1/inspiration/prompts/id"}, {"GET", "/v1/inspiration/prompts?includeDisabled=true"}} {
+	for _, test := range []struct{ method, path string }{{"POST", "/v1/inspiration/prompts"}, {"PUT", "/v1/inspiration/prompts/id"}, {"DELETE", "/v1/inspiration/prompts/id"}, {"GET", "/v1/inspiration/prompts?includeDisabled=true"}, {"GET", "/v1/inspiration/categories?includeDisabled=true"}} {
 		w := inspirationRequest(t, s, test.method, test.path, map[string]string{}, "")
 		if w.Code != 401 {
 			t.Fatal("anonymous management was accepted", test, w.Code)
@@ -143,6 +145,40 @@ func TestInspirationManagementRequiresLoginAndDatabase(t *testing.T) {
 		w = inspirationRequest(t, s, test.method, test.path, map[string]string{}, "second-account")
 		if w.Code != 503 || !strings.Contains(w.Body.String(), "INSPIRATION_DATABASE_REQUIRED") {
 			t.Fatal("missing database was not explained", test, w.Code, w.Body.String())
+		}
+	}
+}
+
+func TestManagementCategoriesIncludeDisabledOnlyCategories(t *testing.T) {
+	s := testSiteServer(t)
+	s.db = isolatedTestDatabase(t)
+	if _, err := s.db.Exec(`INSERT INTO inspiration_prompts(id,title,category,prompt,enabled,sort_order) VALUES
+		('public','人像','人像摄影','内容',true,1),
+		('draft','人像草稿','人像摄影','内容',false,2),
+		('private','未启用服装','服装','内容',false,3)`); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		query, user string
+		want        map[string]int
+	}{
+		{"", "", map[string]int{"人像摄影": 1}},
+		{"?includeDisabled=true", "second-account", map[string]int{"人像摄影": 2, "服装": 1}},
+	} {
+		w := inspirationRequest(t, s, "GET", "/v1/inspiration/categories"+test.query, nil, test.user)
+		var data struct {
+			Categories []struct {
+				Category string `json:"category"`
+				Count    int    `json:"count"`
+			} `json:"categories"`
+		}
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &data) != nil || len(data.Categories) != len(test.want) {
+			t.Fatal("unexpected categories response", w.Code, w.Body.String())
+		}
+		for _, item := range data.Categories {
+			if test.want[item.Category] != item.Count {
+				t.Fatal("disabled category count was wrong", item)
+			}
 		}
 	}
 }

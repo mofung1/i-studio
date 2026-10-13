@@ -1,9 +1,81 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 )
+
+type pollingTestProvider struct {
+	poll func(context.Context) (providerPollResult, error)
+}
+
+func (p pollingTestProvider) Submit(context.Context, map[string]any) (providerTask, error) {
+	panic("polling tests must never submit a generation")
+}
+func (p pollingTestProvider) Poll(ctx context.Context, _ string) (providerPollResult, error) {
+	return p.poll(ctx)
+}
+
+func TestProviderPollingWaitsBeyondOldAttemptLimit(t *testing.T) {
+	calls := 0
+	client := pollingTestProvider{poll: func(context.Context) (providerPollResult, error) {
+		calls++
+		if calls == 26 {
+			return providerPollResult{Status: "success", Images: []string{"result.png"}}, nil
+		}
+		return providerPollResult{Status: "processing"}, nil
+	}}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	images, err := pollProviderImages(ctx, "test", "remote", client, time.Nanosecond)
+	if err != nil || len(images) != 1 || calls != 26 {
+		t.Fatalf("late successful task was lost: images=%v, calls=%d, err=%v", images, calls, err)
+	}
+}
+
+func TestProviderPollingDeadlineInterruptsInFlightQuery(t *testing.T) {
+	client := pollingTestProvider{poll: func(ctx context.Context) (providerPollResult, error) {
+		<-ctx.Done()
+		return providerPollResult{}, ctx.Err()
+	}}
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
+	defer cancel()
+	_, err := pollProviderImages(ctx, "test", "remote", client, time.Nanosecond)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("HTTP poll did not honor the overall deadline: %v", err)
+	}
+}
+
+func TestProviderPollingRetriesReadErrorsAndKeepsTerminalFailures(t *testing.T) {
+	calls := 0
+	client := pollingTestProvider{poll: func(context.Context) (providerPollResult, error) {
+		calls++
+		if calls == 1 {
+			return providerPollResult{}, errors.New("temporary read failure")
+		}
+		return providerPollResult{Status: "failed", Error: "provider rejected input"}, nil
+	}}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := pollProviderImages(ctx, "test", "remote", client, time.Nanosecond)
+	if calls != 2 || err == nil || !strings.Contains(err.Error(), "provider rejected input") {
+		t.Fatalf("unexpected polling outcome: calls=%d, err=%v", calls, err)
+	}
+}
+
+func TestGenerationPollTimeoutConfiguration(t *testing.T) {
+	for _, value := range []string{"", "invalid", "0", "-1"} {
+		if generationPollTimeout(value) != 10*time.Minute {
+			t.Fatalf("invalid timeout %q must use ten-minute default", value)
+		}
+	}
+	if generationPollTimeout("900") != 15*time.Minute || generationPollTimeout("99999") != time.Hour {
+		t.Fatal("configured timeout or maximum was not respected")
+	}
+}
 
 func TestInMemoryQueueWaitsForWork(t *testing.T) {
 	q := &taskQueue{fallback: make(chan string, 1)}

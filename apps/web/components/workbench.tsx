@@ -101,6 +101,10 @@ function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialMod
     setActiveResultIndex, submit, removeResult,
   } = useGenerationTask(`${mode}:${task}`)
 
+  useEffect(() => {
+    if (mode === 'general' && generationTask) setGeneralConfigCollapsed(true)
+  }, [mode, generationTask?.id])
+
   const hasProductImage = productFiles.length > 0
   useWorkbenchHandoff({ ready: aiEnabled !== null, onHistory: (record, review) => review ? regenerateFromHistory(record) : loadHistoryConfig(record), onReference: path => useImageAsReference(path, { mode, taskType: task }), onError: message => setNotice({ kind: 'error', message }) })
 

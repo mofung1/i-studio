@@ -2,6 +2,7 @@
 
 import { AlertTriangle, ChevronLeft, ChevronRight, Clock3, Download, Image as ImageIcon, Loader2, Maximize2, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -335,9 +336,9 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
                       </span>
                     </button>
                   ) : isFailed ? (
-                    <button type="button" className="library-media is-empty" aria-label={`查看 ${taskTitle(task)} 的失败信息`} onClick={() => setInfoTask(task)}>
-                      <AlertTriangle size={18} aria-hidden="true" />
-                      <span>{status}</span>
+                    <button type="button" className="library-media library-failed-media" aria-label={`查看 ${taskTitle(task)} 的失败信息`} onClick={() => setInfoTask(task)}>
+                      <Image src="/images/generation-failed.png" alt="" fill sizes="(max-width: 780px) 50vw, (max-width: 1200px) 33vw, 300px" />
+                      <span className="library-failed-caption"><AlertTriangle size={14} aria-hidden="true" />{status}<small>查看原因</small></span>
                     </button>
                   ) : (
                     // 排队中 / 生成中：只显示状态，没有可打开的内容

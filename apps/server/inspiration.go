@@ -118,18 +118,30 @@ func (s *server) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// inspirationCategories 返回各分类及其启用条数，供前端筛选 chips 展示。
+// Public categories include enabled prompts; management includes disabled categories too.
 func (s *server) inspirationCategories(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
+	includeDisabled := r.URL.Query().Get("includeDisabled") == "true"
+	if includeDisabled && !s.requireSettingsUser(w, r) {
+		return
+	}
 	if s.db == nil {
+		if includeDisabled {
+			s.error(w, 503, "INSPIRATION_DATABASE_REQUIRED", "灵感提示词管理需要连接 PostgreSQL 数据库")
+			return
+		}
 		s.json(w, 200, map[string]any{"categories": []any{}})
 		return
 	}
 
-	rows, err := s.db.Query("SELECT category, count(*) FROM inspiration_prompts WHERE enabled = true GROUP BY category ORDER BY min(sort_order) ASC")
+	where := "WHERE enabled = true"
+	if includeDisabled {
+		where = ""
+	}
+	rows, err := s.db.Query("SELECT category, count(*) FROM inspiration_prompts " + where + " GROUP BY category ORDER BY min(sort_order) ASC, category ASC")
 	if err != nil {
 		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "分类查询失败")
 		return

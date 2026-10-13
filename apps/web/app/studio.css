@@ -3078,9 +3078,10 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
 .inspiration-manager-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .inspiration-manager-search { display: flex; align-items: center; flex: 1 1 280px; min-width: 0; gap: 10px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--muted); }
 .inspiration-manager-search input { width: 100%; min-width: 0; height: 44px; padding: 0; border: 0; color: var(--foreground); background: transparent; font-size: var(--text-ui); }
-.inspiration-manager-search:focus-within { outline: 2px solid var(--foreground-3); outline-offset: 2px; }
-.inspiration-manager-search input:focus-visible { outline: 0; }
-.inspiration-manager-category { flex: 0 1 200px; }
+.inspiration-manager-search:focus-within { border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
+.inspiration-manager-search input:focus-visible { outline: 0; box-shadow: none; }
+.inspiration-manager-category { flex: 0 1 200px; width: 200px; min-width: 0; height: 44px; margin: 0; }
+.inspiration-manager-toolbar .select-trigger:focus-visible { outline: 0; border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
 .inspiration-manager-status { flex: 0 0 140px; width: 140px; height: 44px; margin: 0; }
 .inspiration-manager .settings-command { min-height: 44px; color: var(--foreground-2); background: var(--surface); }
 .inspiration-manager :is(.settings-primary, .settings-command):disabled { opacity: .5; cursor: default; }
@@ -3101,6 +3102,9 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
 .inspiration-manager-list > .settings-loading { padding: 32px; }
 .inspiration-manager-pagination { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 20px; color: var(--muted); font-size: var(--text-small); }
 .inspiration-manager-pagination > div { display: flex; gap: 10px; }
+.library-failed-media { position: relative; }
+.library-failed-caption { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 8px 10px; border-radius: 8px; color: var(--foreground); background: var(--surface); font-size: var(--text-small); }
+.library-failed-caption small { margin-left: auto; color: var(--muted); font-size: var(--text-caption); }
 .inspiration-manager-login { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 28px; }
 .inspiration-manager-login p { flex: 1 0 100%; margin: 0; }
 .inspiration-editor-dialog { width: min(760px, calc(100vw - 32px)); }

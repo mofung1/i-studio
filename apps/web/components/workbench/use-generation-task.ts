@@ -17,6 +17,18 @@ export type InlineGenerationTask = {
 }
 
 const terminalStatuses = new Set(['succeeded', 'failed', 'cancelled', 'expired'])
+const activeStatuses = new Set(['queued', 'processing', 'waiting_provider'])
+
+function pendingTaskId(scope: string, value?: string | null) {
+  try {
+    const key = `istudio-pending-generation:${scope.startsWith('general:') ? 'general' : scope}`
+    if (value === null) window.sessionStorage.removeItem(key)
+    else if (value !== undefined) window.sessionStorage.setItem(key, value)
+    return window.sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
 
 export const generationStatusLabels: Record<string, string> = {
   queued: '排队中，前面还有任务',
@@ -77,7 +89,41 @@ export function useGenerationTask(scopeKey = 'default') {
     setIsSubmitting(false)
     submittingRef.current = false
     submissionId.current += 1
-    return () => { submissionId.current += 1 }
+    const requestId = submissionId.current
+    const controller = new AbortController()
+    const token = getAccessToken()
+    // Navigation only stops browser polling. Reconnect to the server-owned task on return.
+    const restoreTask = async () => {
+      if (!token) return
+      const savedId = pendingTaskId(scopeKey)
+      const [mode = 'general', taskType] = scopeKey.split(':')
+      const params = new URLSearchParams({ limit: '50', mode })
+      if (mode === 'commerce' && taskType) params.set('taskType', taskType)
+      try {
+        const response = await fetch(`${apiBaseUrl}/v1/generation/tasks${savedId ? `/${encodeURIComponent(savedId)}` : `?${params}`}`, {
+          headers: { Authorization: `Bearer ${token}` }, signal: controller.signal,
+        })
+        if (controller.signal.aborted || requestId !== submissionId.current) return
+        if (!response.ok) {
+          if (savedId && (response.status === 401 || response.status === 404)) pendingTaskId(scopeKey, null)
+          return
+        }
+        const data = await response.json() as { task?: InlineGenerationTask; tasks?: InlineGenerationTask[] }
+        if (controller.signal.aborted || requestId !== submissionId.current) return
+        const restored = savedId ? data.task : data.tasks?.find(item => activeStatuses.has(item.status))
+        if (!restored || restored.input?.mode !== mode) return
+        if (restored.input.mode === 'commerce' && restored.input.taskType !== taskType) return
+        setGenerationTask(restored)
+        if (terminalStatuses.has(restored.status)) {
+          pendingTaskId(scopeKey, null)
+          if (restored.resultImages?.length) setResultHistory([restored])
+        } else pendingTaskId(scopeKey, restored.id)
+      } catch {
+        // A read failure must not block creating a new task or report a generation failure.
+      }
+    }
+    void restoreTask()
+    return () => { controller.abort(); submissionId.current += 1 }
   }, [scopeKey])
 
   useEffect(() => {
@@ -109,6 +155,7 @@ export function useGenerationTask(scopeKey = 'default') {
         if (cancelled) return
         setNotice(current => current === pollingNotice ? null : current)
         setGenerationTask(data.task)
+        if (terminalStatuses.has(data.task.status) && pendingTaskId(scopeKey) === data.task.id) pendingTaskId(scopeKey, null)
         if (terminalStatuses.has(data.task.status) && data.task.resultImages?.length) {
           setResultHistory((prev) => {
             if (prev.some((item) => item.id === data.task.id)) return prev
@@ -178,13 +225,14 @@ export function useGenerationTask(scopeKey = 'default') {
         headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(validatedInput),
       })
-      if (!isCurrent()) return
+      if (!isCurrent() && !response.ok) return
       if (response.status === 401) {
         onAuthRequired()
         return
       }
       if (!response.ok) throw new Error(await readApiError(response, '任务创建失败'))
       const data = await response.json() as { task: InlineGenerationTask; message: string }
+      if (isCurrent() || !pendingTaskId(scopeKey)) pendingTaskId(scopeKey, data.task.id)
       if (!isCurrent()) return
       setGenerationTask(data.task)
       onSubmitted?.()
