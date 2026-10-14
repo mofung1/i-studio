@@ -56,7 +56,7 @@ export function HistoryDrawer({
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmTarget, setConfirmTarget] = useState<HistoryTask | null>(null)
   const [deleteError, setDeleteError] = useState('')
-  const { tasks, isLoading, error, reload } = useTaskHistory({
+  const { tasks, isLoading, error, reload, hasMore, loadMore } = useTaskHistory({
     mode: scope === 'type' ? mode : undefined,
     taskType: task,
     limit: scope === 'type' ? 40 : 60,
@@ -222,6 +222,7 @@ export function HistoryDrawer({
             })}
           </ol>
 
+          {hasMore && <button type="button" className="library-load-more" disabled={isLoading} onClick={loadMore}>{isLoading ? '正在加载…' : '加载更多记录'}</button>}
           {isLoading && tasks.length > 0 && (
             <p className="history-drawer-loading"><Check size={13} aria-hidden="true" />正在刷新…</p>
           )}

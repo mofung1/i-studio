@@ -389,7 +389,7 @@ function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialMod
     const commerceCount = task === 'product-main' || task === 'detail-page'
       ? moduleMode === 'custom' ? Math.max(1, moduleTotal) : 1
       : 1
-    const imageSettings = { model, endpointId: endpointId || undefined, aspectRatio, resolution, count: mode === 'general' ? count : commerceCount }
+    const imageSettings = { projectId: searchParams.get('projectId') || undefined, model, endpointId: endpointId || undefined, aspectRatio, resolution, count: mode === 'general' ? count : commerceCount }
 
     if (mode === 'general') {
       return {

@@ -25,6 +25,8 @@ interface CacheEntry {
  * 也就不会出现"旧图先消失、新图再出现"的闪白。
  */
 const CACHE_LIMIT = 120
+const CACHE_BYTE_LIMIT = 96 * 1024 * 1024
+let cacheBytes = 0
 const imageCache = new Map<string, CacheEntry>()
 const inflight = new Map<string, Promise<CacheEntry>>()
 let cacheSession = ''
@@ -34,26 +36,27 @@ function ensureImageCacheSession() {
   const session = getAccessToken()
   if (session === cacheSession) return
   for (const entry of imageCache.values()) URL.revokeObjectURL(entry.url)
-  imageCache.clear(); inflight.clear(); cacheSession = session
+  imageCache.clear(); inflight.clear(); cacheBytes = 0; cacheSession = session
 }
 
 export function forgetProtectedImage(path: string) {
   const entry = imageCache.get(path)
-  if (entry) URL.revokeObjectURL(entry.url)
+  if (entry) { URL.revokeObjectURL(entry.url); cacheBytes -= entry.blob.size }
   imageCache.delete(path)
 }
 
 function remember(path: string, entry: CacheEntry) {
+  const previous = imageCache.get(path)
+  if (previous) { cacheBytes -= previous.blob.size; URL.revokeObjectURL(previous.url) }
   imageCache.set(path, entry)
-  if (imageCache.size <= CACHE_LIMIT) return
-  // 超出上限时按插入顺序淘汰最旧的一批
-  const overflow = imageCache.size - CACHE_LIMIT
-  let index = 0
+  cacheBytes += entry.blob.size
   for (const [key, value] of imageCache) {
-    if (index >= overflow) break
+    if (imageCache.size <= CACHE_LIMIT && cacheBytes <= CACHE_BYTE_LIMIT) break
+    // A single oversized response still needs a valid URL for its caller.
+    if (key === path && imageCache.size === 1) break
     imageCache.delete(key)
+    cacheBytes -= value.blob.size
     URL.revokeObjectURL(value.url)
-    index += 1
   }
 }
 

@@ -236,6 +236,10 @@ INSERT INTO inspiration_categories(id,name) SELECT 'category_'||md5(category),ca
 		return err
 	}
 	_, err = db.Exec(promptReverseMigration)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(assetLibraryMigration)
 	return err
 }
 

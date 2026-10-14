@@ -26,3 +26,6 @@ artifacts/prompt-reverse-eval-*/
 
 # 配置界面验证截图，仅保存在本地。
 artifacts/reverse-settings-ui-*/
+
+# 个人工作台功能验证截图与临时测试记录。
+artifacts/personal-workspace-*/

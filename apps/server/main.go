@@ -22,7 +22,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -128,6 +127,9 @@ func main() {
 	mux.HandleFunc("/v1/site-settings", s.siteSettingsHandler)
 	mux.HandleFunc("/v1/site-settings/logo/", s.siteLogo)
 	mux.HandleFunc("/v1/projects", s.projects)
+	mux.HandleFunc("/v1/projects/", s.projectByID)
+	mux.HandleFunc("/v1/library/assets", s.libraryAssets)
+	mux.HandleFunc("/v1/library/download", s.libraryDownload)
 	mux.HandleFunc("/v1/assets", s.assets)
 	mux.HandleFunc("/v1/assets/", s.assetContent)
 	mux.HandleFunc("/v1/inspiration/prompts", s.inspirationPrompts)
@@ -285,53 +287,7 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == http.MethodGet && s.db != nil {
-		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
-		mode := strings.TrimSpace(r.URL.Query().Get("mode"))
-		taskType := strings.TrimSpace(r.URL.Query().Get("taskType"))
-		// 可选过滤：工作台按当前生图类型查看历史记录时使用，不传则保持原有行为
-		limit := clampInt(parseQueryInt(r.URL.Query().Get("limit"), 50), 1, 200)
-		query := "SELECT t.id,t.status,t.created_at,t.input,t.result_images,t.result_modules,t.error_message FROM generation_tasks t WHERE t.user_id=$1"
-		args := []any{userID}
-		if projectID != "" {
-			if !s.userOwnsProject(userID, projectID) {
-				s.error(w, http.StatusNotFound, "PROJECT_NOT_FOUND", "项目不存在")
-				return
-			}
-			query += " AND t.project_id=$2"
-			args = append(args, projectID)
-		}
-		if mode != "" {
-			args = append(args, mode)
-			query += " AND t.input->>'mode'=$" + strconv.Itoa(len(args))
-		}
-		if taskType != "" {
-			args = append(args, taskType)
-			query += " AND t.input->>'taskType'=$" + strconv.Itoa(len(args))
-		}
-		args = append(args, limit)
-		query += " ORDER BY created_at DESC LIMIT $" + strconv.Itoa(len(args))
-		rows, err := s.db.Query(query, args...)
-		if err != nil {
-			s.error(w, 500, "TASK_STORAGE_ERROR", "任务查询失败")
-			return
-		}
-		defer rows.Close()
-		list := []task{}
-		for rows.Next() {
-			var t task
-			var input []byte
-			var resultRaw []byte
-			var modulesRaw []byte
-			var errorMessage sql.NullString
-			if rows.Scan(&t.ID, &t.Status, &t.CreatedAt, &input, &resultRaw, &modulesRaw, &errorMessage) == nil {
-				_ = json.Unmarshal(input, &t.Input)
-				_ = json.Unmarshal(resultRaw, &t.ResultImages)
-				_ = json.Unmarshal(modulesRaw, &t.ResultModules)
-				t.ErrorMessage = errorMessage.String
-				list = append(list, t)
-			}
-		}
-		s.json(w, 200, map[string]any{"tasks": list})
+		s.listGenerationTasks(w, r, userID)
 		return
 	}
 	if r.Method == http.MethodGet {
@@ -629,6 +585,10 @@ func (s *server) updateTaskResult(id, status string, images []string, modules []
 }
 
 func (s *server) assetContent(w http.ResponseWriter, r *http.Request) {
+	if strings.HasSuffix(r.URL.Path, "/thumbnail") {
+		s.assetThumbnail(w, r)
+		return
+	}
 	if r.Method == http.MethodDelete {
 		s.deleteAsset(w, r, assetIDFromPath(r.URL.Path))
 		return
@@ -745,9 +705,9 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	rows, err := s.db.Query(`SELECT p.id,p.name,p.created_at,p.updated_at,
+	rows, err := s.db.Query(`SELECT p.id,p.name,p.created_at,p.updated_at,p.archived,
 		(SELECT COUNT(*) FROM assets a WHERE a.project_id=p.id),
-		(SELECT COUNT(*) FROM generation_tasks t WHERE t.project_id=p.id)
+		(SELECT COUNT(*) FROM generation_tasks t WHERE t.user_id=p.user_id AND (t.project_id=p.id OR EXISTS(SELECT 1 FROM assets a WHERE a.task_id=t.id AND a.user_id=p.user_id AND a.project_id=p.id)))
 		FROM projects p WHERE p.user_id=$1 ORDER BY p.updated_at DESC`, uid)
 	if err != nil {
 		s.error(w, 500, "PROJECT_STORAGE_ERROR", "项目查询失败")
@@ -759,8 +719,9 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 		var id, name string
 		var created, updated time.Time
 		var assetCount, taskCount int
-		if rows.Scan(&id, &name, &created, &updated, &assetCount, &taskCount) == nil {
-			list = append(list, map[string]any{"id": id, "name": name, "createdAt": created, "updatedAt": updated, "assetCount": assetCount, "taskCount": taskCount})
+		var archived bool
+		if rows.Scan(&id, &name, &created, &updated, &archived, &assetCount, &taskCount) == nil {
+			list = append(list, map[string]any{"id": id, "name": name, "createdAt": created, "updatedAt": updated, "assetCount": assetCount, "taskCount": taskCount, "archived": archived})
 		}
 	}
 	s.json(w, 200, map[string]any{"projects": list})
@@ -1062,7 +1023,7 @@ func cors(next http.Handler) http.Handler {
 			w.Header().Set("Vary", "Origin")
 		}
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(204)
 			return
