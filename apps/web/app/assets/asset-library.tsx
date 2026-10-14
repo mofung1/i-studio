@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, Archive, Check, Clock3, Download, Folder, Image as ImageIcon, Loader2, Maximize2, Pencil, Plus, RefreshCw, Search, ScanText, SlidersHorizontal, Star, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Archive, Check, Clock3, Columns2, Download, Folder, Image as ImageIcon, Loader2, Maximize2, Pencil, Plus, RefreshCw, Search, ScanText, SlidersHorizontal, Star, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -17,6 +17,8 @@ import { usePromptReverse } from '@/components/prompt-reverse-provider'
 import { useDialogFocus } from '@/components/use-dialog-focus'
 import { FailureNotice } from '@/components/workbench/failure-notice'
 import { ImageLightbox } from '@/components/workbench/image-lightbox'
+import { LazyImageComparison } from '@/components/image-comparison-button'
+import { comparisonCandidates, comparisonReferences, type ComparisonImage } from '@/lib/image-comparison'
 import { historyWorkbenchUrl, referenceWorkbenchUrl } from '@/components/workbench/use-workbench-handoff'
 import { taskModeLabel, taskTitle, activeTaskStatuses, type HistoryTask } from '@/components/workbench/use-task-history'
 import { deleteGeneratedAsset, deleteGenerationTask, getAccessToken } from '@/lib/api'
@@ -54,6 +56,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' | 'uploads' })
   const [selected, setSelected] = useState<string[]>([])
   const [preview, setPreview] = useState<LibraryAsset | null>(null)
   const [lightbox, setLightbox] = useState<LibraryAsset | null>(null)
+  const [comparison, setComparison] = useState<ComparisonImage[] | null>(null)
   const [detailTask, setDetailTask] = useState<HistoryTask | null>(null)
   const [editing, setEditing] = useState<LibraryAsset | null>(null)
   const [titleDraft, setTitleDraft] = useState('')
@@ -137,6 +140,15 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' | 'uploads' })
     await latestLoad.current(); await loadProjects(); setSelected([])
   }
   function toggleSelect(id: string) { setSelected(previous => previous.includes(id) ? previous.filter(value => value !== id) : previous.length < 100 ? [...previous, id] : previous) }
+  function compareSelected() {
+    const chosen = selected.map(id => assets.find(item => item.id === id)).filter((item): item is LibraryAsset => !!item)
+    if (chosen.length !== 2) return
+    setComparison(comparisonCandidates([
+      ...chosen.map(item => ({ path: item.contentPath, label: `${when(item.createdAt)} · ${assetTitle(item)}`, width: item.width, height: item.height })),
+      ...chosen.flatMap(item => comparisonReferences(item.task?.input)),
+      ...assets.map(item => ({ path: item.contentPath, label: `${when(item.createdAt)} · ${assetTitle(item)}`, width: item.width, height: item.height })),
+    ]))
+  }
   function openEdit(asset: LibraryAsset) { setError(''); setPreview(null); setEditing(asset); setTitleDraft(asset.title); setTagsDraft(asset.tags.join('、')); setProjectDraft(asset.projectId || 'unfiled') }
   async function saveMetadata() {
     await editAssets([editing!.id], { title: titleDraft, tags: tagsDraft.split(/[,，、\n]/), ...(projectDraft === (editing!.projectId || 'unfiled') ? {} : { projectId: projectDraft === 'unfiled' ? '' : projectDraft }) })
@@ -200,6 +212,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' | 'uploads' })
           {notice && <p className="library-feedback" role="status">{notice}</p>}
           {selected.length > 0 && <div className="library-selection" role="toolbar" aria-label="批量操作">
             <strong>已选 {selected.length} 张</strong>
+            <button disabled={selected.length !== 2} title="选择两张图片进行对比" onClick={compareSelected}><Columns2 size={15} />图片对比</button>
             <button disabled={!!busy} onClick={() => void act('download', () => downloadLibraryAssets(selected))}><Download size={15} />打包下载</button>
             <button disabled={!!busy} onClick={() => { setMoveOpen(true); setMoveProject('unfiled') }}><Folder size={15} />移动到项目</button>
             <button disabled={!!busy} onClick={() => void act('favorite', () => editAssets(selected, { favorite: true }), '已加入收藏')}><Star size={15} />收藏</button>
@@ -237,6 +250,7 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' | 'uploads' })
     {moveOpen && <LibraryDialog title={`移动 ${selected.length} 张图片`} onClose={() => { if (!busy) setMoveOpen(false) }}><form onSubmit={event => { event.preventDefault(); void act('move', async () => { await editAssets(selected, { projectId: moveProject === 'unfiled' ? '' : moveProject }); setMoveOpen(false) }, '图片已移动') }}><label>目标项目<select aria-label="目标项目" value={moveProject} onChange={event => setMoveProject(event.target.value)} disabled={!!busy}>{projectOptions.filter(([id]) => !projects.find(item => item.id === id)?.archived).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>{error && <p role="alert" className="settings-error">{error}</p>}<div className="library-form-actions"><button className="studio-secondary" type="button" disabled={!!busy} onClick={() => setMoveOpen(false)}>取消</button><button className="studio-primary" disabled={!!busy}>确认移动</button></div></form></LibraryDialog>}
     {confirm && <ConfirmDialog title={confirm.project ? '移除这个项目？' : confirm.task ? '删除这条创作记录？' : '删除这张图片？'} description={confirm.project?.name || (confirm.task ? taskTitle(confirm.task.input) : assetTitle(confirm.asset!))} detail={confirm.project ? '项目中的图片和记录会保留，并回到未分类。' : '删除后不可恢复，相关图片会从创作记录中移除。'} confirmLabel={confirm.project ? '移除项目' : '删除'} busy={!!busy} error={error} onCancel={() => setConfirm(null)} onConfirm={() => void act('delete', removeConfirmed, '已完成')} />}
     {detailTask && <InfoDialog title="创作记录" subtitle={`${taskModeLabel(detailTask.input)} · ${when(detailTask.createdAt)}`} onClose={() => setDetailTask(null)} hideActions>{detailTask.errorMessage && <FailureNotice message={detailTask.errorMessage} compact />}<p className="library-task-prompt">{detailTask.input.prompt || detailTask.input.requirements || '未填写补充描述'}</p><dl className="library-parameters"><div><dt>模型</dt><dd>{detailTask.input.model}</dd></div><div><dt>比例 / 清晰度</dt><dd>{detailTask.input.aspectRatio} · {detailTask.input.resolution}</dd></div></dl><div className="library-form-actions"><Link className="studio-primary" href={historyWorkbenchUrl(detailTask)}>载入配置继续创作</Link></div></InfoDialog>}
+    {comparison && <LazyImageComparison candidates={comparison} initialLeft={comparison[0]?.path} initialRight={comparison[1]?.path} onClose={() => setComparison(null)} />}
   </StudioShell>
 }
 

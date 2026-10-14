@@ -6,6 +6,8 @@ import {
 import { useEffect, useRef, useState } from 'react'
 
 import { AuthenticatedImage, downloadProtectedAsset, useProtectedImageUrl } from '@/components/authenticated-image'
+import { ImageComparisonButton } from '@/components/image-comparison-button'
+import { comparisonCandidates, comparisonReferences } from '@/lib/image-comparison'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 
@@ -89,6 +91,11 @@ export function ResultWorkspace({
   const heroImage = images[safeIndex] ?? ''
   const hasResults = images.length > 0
   const displayInput = isHistoryView ? historyTask?.input : isGenerating ? generationTask?.input : activeResult?.input
+  const comparisonImages = comparisonCandidates([
+    ...images.map((path, index) => ({ path, label: `当前结果 · 第 ${index + 1} 张` })),
+    ...comparisonReferences(displayInput),
+    ...resultHistory.flatMap((item, index) => (item.resultImages ?? []).map((path, imageIndex) => ({ path, label: `版本 ${index + 1} · 第 ${imageIndex + 1} 张` }))),
+  ])
   const displayRatio = displayInput?.aspectRatio ?? aspectRatio
   const displayResolution = displayInput?.resolution ?? resolution
   // 主图走缓存：同一组结果内左右切换时保留上一张直到新图就绪，不会闪白；
@@ -229,6 +236,7 @@ export function ResultWorkspace({
           )}
           {hasResults && mode !== 'general' && <button type="button" className="studio-secondary" onClick={downloadCurrent}><Download size={15} />下载图片</button>}
           {hasResults && onDownloadAll && <button type="button" className="studio-secondary" disabled={downloadAllBusy} onClick={onDownloadAll}><Download size={15} aria-hidden="true" />{downloadAllBusy ? '打包中…' : '下载图组'}</button>}
+          {hasResults && <ImageComparisonButton candidates={comparisonImages} initialLeft={heroImage} />}
         </div>
       </header>
 
