@@ -6,7 +6,10 @@ require golang.org/x/crypto v0.40.0
 
 require github.com/jackc/pgx/v5 v5.7.2
 
-require github.com/redis/go-redis/v9 v9.7.0
+require (
+	github.com/redis/go-redis/v9 v9.7.0
+	golang.org/x/image v0.28.0
+)
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

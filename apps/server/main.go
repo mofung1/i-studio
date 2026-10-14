@@ -63,18 +63,19 @@ type assetRecord struct {
 	Width, Height                                           int
 }
 type server struct {
-	mu           sync.RWMutex
-	siteMu       sync.Mutex
-	users        map[string]user
-	tasks        map[string]task
-	secret       []byte
-	db           *sql.DB
-	storageRoot  string
-	storage      objectStorage
-	queue        *taskQueue
-	provider     imageProvider
-	promptClient promptCompleter
-	ai           *aiConfigStore
+	mu             sync.RWMutex
+	siteMu         sync.Mutex
+	users          map[string]user
+	tasks          map[string]task
+	secret         []byte
+	db             *sql.DB
+	storageRoot    string
+	storage        objectStorage
+	queue          *taskQueue
+	provider       imageProvider
+	promptClient   promptCompleter
+	ai             *aiConfigStore
+	reverseCancels sync.Map
 }
 
 func main() {
@@ -105,6 +106,7 @@ func main() {
 	s.provider = &dynamicImageProvider{server: s}
 	s.promptClient = &dynamicPromptClient{server: s}
 	s.queue = newTaskQueue(s)
+	s.startPromptReverseWorkers()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/health", s.health)
 	mux.HandleFunc("/v1/auth/register", s.register)
@@ -116,6 +118,9 @@ func main() {
 	mux.HandleFunc("/v1/generation/tasks/", s.taskByID)
 	mux.HandleFunc("/v1/prompts/enhance", s.promptEnhance)
 	mux.HandleFunc("/v1/prompts/format", s.formatPrompt)
+	mux.HandleFunc("/v1/prompts/reverse", s.promptReverseTasks)
+	mux.HandleFunc("/v1/prompts/reverse/", s.promptReverseByID)
+	mux.HandleFunc("/v1/prompt-reverse-settings", s.promptReverseSettingsHandler)
 	mux.HandleFunc("/v1/clothing/plan", s.clothingPlanHandler)
 	mux.HandleFunc("/v1/ai-endpoints", s.aiEndpoints)
 	mux.HandleFunc("/v1/ai-endpoints/", s.aiEndpointByID)

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -24,13 +26,14 @@ func scanInspirationPrompt(scanner inspirationScanner) (inspirationPromptRow, er
 }
 
 type inspirationPromptInput struct {
-	Title      string `json:"title"`
-	Category   string `json:"category"`
-	CategoryID string `json:"categoryId"`
-	Prompt     string `json:"prompt"`
-	Source     string `json:"source"`
-	SortOrder  int    `json:"sortOrder"`
-	Enabled    *bool  `json:"enabled"`
+	Title         string `json:"title"`
+	Category      string `json:"category"`
+	CategoryID    string `json:"categoryId"`
+	Prompt        string `json:"prompt"`
+	Source        string `json:"source"`
+	SortOrder     int    `json:"sortOrder"`
+	Enabled       *bool  `json:"enabled"`
+	ReverseTaskID string `json:"reverseTaskId,omitempty"`
 }
 
 func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, id string) {
@@ -62,6 +65,41 @@ func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 	defer tx.Rollback()
+	imageKey, width, height := "", 0, 0
+	if input.ReverseTaskID != "" {
+		if id != "" {
+			s.error(w, 400, "INSPIRATION_IMAGE_INVALID", "替换现有封面请先创建新的灵感草稿")
+			return
+		}
+		uid, _ := s.authenticatedUserID(r)
+		var sourceKey, mime string
+		if err := tx.QueryRow("SELECT image_key,image_mime,image_width,image_height FROM prompt_reverse_tasks WHERE id=$1 AND user_id=$2 AND status='succeeded' AND expires_at>now() FOR SHARE", input.ReverseTaskID, uid).Scan(&sourceKey, &mime, &width, &height); err != nil {
+			s.error(w, 400, "INSPIRATION_IMAGE_INVALID", "分析原图不存在或已过期，请取消封面选项后重试")
+			return
+		}
+		file, err := s.storage.Open(sourceKey)
+		if err != nil {
+			s.error(w, 400, "INSPIRATION_IMAGE_INVALID", "分析原图已失效")
+			return
+		}
+		data, err := io.ReadAll(io.LimitReader(file, 10<<20+1))
+		_ = file.Close()
+		if err != nil || len(data) > 10<<20 {
+			s.error(w, 400, "INSPIRATION_IMAGE_INVALID", "分析原图无法读取")
+			return
+		}
+		imageKey = "reverse_" + randomID() + extensionForMime(mime)
+		if err := s.storage.Save("inspiration/"+imageKey, bytes.NewReader(data)); err != nil {
+			s.error(w, 500, "INSPIRATION_IMAGE_ERROR", "封面保存失败")
+			return
+		}
+	}
+	imageCommitted := false
+	defer func() {
+		if !imageCommitted && imageKey != "" {
+			_ = s.storage.Delete("inspiration/" + imageKey)
+		}
+	}()
 	if input.CategoryID != "" {
 		if err = tx.QueryRow("SELECT name FROM inspiration_categories WHERE id=$1", input.CategoryID).Scan(&input.Category); errors.Is(err, sql.ErrNoRows) {
 			s.error(w, 400, "INSPIRATION_CATEGORY_NOT_FOUND", "分类已变更，请重新选择")
@@ -77,7 +115,7 @@ func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, i
 	status := http.StatusOK
 	if id == "" {
 		id = "manual_" + randomID()
-		row, err = scanInspirationPrompt(tx.QueryRow("INSERT INTO inspiration_prompts(id,title,category,prompt,source,sort_order,enabled) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING "+inspirationPromptColumns, id, input.Title, input.Category, input.Prompt, input.Source, input.SortOrder, enabled))
+		row, err = scanInspirationPrompt(tx.QueryRow("INSERT INTO inspiration_prompts(id,title,category,prompt,source,sort_order,enabled,image_key,image_width,image_height) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING "+inspirationPromptColumns, id, input.Title, input.Category, input.Prompt, input.Source, input.SortOrder, enabled, imageKey, width, height))
 		status = http.StatusCreated
 	} else {
 		// Text edits keep the imported example image, dimensions and creation date.
@@ -95,6 +133,7 @@ func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, i
 		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "提示词保存失败")
 		return
 	}
+	imageCommitted = true
 	s.json(w, status, map[string]any{"prompt": row})
 }
 

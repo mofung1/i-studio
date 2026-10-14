@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-type promptImage struct{ Mime, Data string }
+type promptImage struct{ Mime, Data, Detail string }
 type promptCompleter interface {
 	complete(context.Context, string, string, []promptImage, int) (string, error)
 	modelName() string

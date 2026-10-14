@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { SiteBrandingProvider } from '@/components/site-branding-provider'
+import { PromptReverseProvider } from '@/components/prompt-reverse-provider'
 import { getSiteBranding } from '@/lib/site-settings-server'
 import { siteLogoUrl, siteTitle } from '@/lib/site-settings'
 
 import './globals.css'
 import './studio.css'
+import './prompt-reverse.css'
 
 /**
  * 工作台骨架屏渲染前就把配置面板方向定下来：
@@ -37,7 +39,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: workbenchConfigSideScript }} />
       </head>
-      <body><SiteBrandingProvider initialBranding={branding}>{children}</SiteBrandingProvider></body>
+      <body><SiteBrandingProvider initialBranding={branding}><PromptReverseProvider>{children}</PromptReverseProvider></SiteBrandingProvider></body>
     </html>
   )
 }

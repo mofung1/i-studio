@@ -27,6 +27,21 @@ interface CacheEntry {
 const CACHE_LIMIT = 120
 const imageCache = new Map<string, CacheEntry>()
 const inflight = new Map<string, Promise<CacheEntry>>()
+let cacheSession = ''
+
+function ensureImageCacheSession() {
+  if (typeof window === 'undefined') return
+  const session = getAccessToken()
+  if (session === cacheSession) return
+  for (const entry of imageCache.values()) URL.revokeObjectURL(entry.url)
+  imageCache.clear(); inflight.clear(); cacheSession = session
+}
+
+export function forgetProtectedImage(path: string) {
+  const entry = imageCache.get(path)
+  if (entry) URL.revokeObjectURL(entry.url)
+  imageCache.delete(path)
+}
 
 function remember(path: string, entry: CacheEntry) {
   imageCache.set(path, entry)
@@ -44,6 +59,8 @@ function remember(path: string, entry: CacheEntry) {
 
 /** 取受保护图片（带缓存与请求去重）；失败时抛出，由调用方决定展示什么 */
 export async function loadProtectedImage(path: string): Promise<CacheEntry> {
+  ensureImageCacheSession()
+  const session = cacheSession
   if (!path.startsWith('/')) return { url: path, blob: new Blob() }
   const cached = imageCache.get(path)
   if (cached) return cached
@@ -56,6 +73,7 @@ export async function loadProtectedImage(path: string): Promise<CacheEntry> {
     })
     if (!response.ok) throw new Error('图片加载失败')
     const blob = await response.blob()
+    if (getAccessToken() !== session) throw new Error('账号已切换，请重新加载图片')
     const entry: CacheEntry = { url: URL.createObjectURL(blob), blob }
     remember(path, entry)
     return entry
@@ -64,7 +82,7 @@ export async function loadProtectedImage(path: string): Promise<CacheEntry> {
   try {
     return await request
   } finally {
-    inflight.delete(path)
+    if (inflight.get(path) === request) inflight.delete(path)
   }
 }
 
@@ -78,6 +96,7 @@ export async function loadProtectedImage(path: string): Promise<CacheEntry> {
  * 避免新图未到达时先显示上一组已经过期的画面。
  */
 export function useProtectedImageUrl(path: string, resetKey?: string) {
+  ensureImageCacheSession()
   const cached = path.startsWith('/') ? imageCache.get(path) : { url: path, blob: new Blob() }
   const [source, setSource] = useState(cached?.url ?? '')
   const [state, setState] = useState<LoadState>(cached ? 'loaded' : path.startsWith('/') ? 'loading' : 'loaded')
@@ -161,6 +180,7 @@ export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageP
 }
 
 export async function downloadProtectedAsset(path: string, filename: string) {
+  ensureImageCacheSession()
   let blob: Blob
   const cached = path.startsWith('/') ? imageCache.get(path) : undefined
   if (cached) {

@@ -15,6 +15,7 @@ import (
 type openAICompatibleClient struct {
 	baseURL, apiKey, model string
 	client                 *http.Client
+	disableThinking        bool
 }
 
 func protocolHTTPClient(timeout time.Duration) *http.Client {
@@ -31,9 +32,16 @@ func (c *openAICompatibleClient) complete(ctx context.Context, system, userText 
 		parts = append(parts, map[string]any{"type": "text", "text": userText})
 	}
 	for _, image := range images {
-		parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]any{"url": fmt.Sprintf("data:%s;base64,%s", image.Mime, image.Data), "detail": "low"}})
+		detail := image.Detail
+		if detail == "" {
+			detail = "low"
+		}
+		parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]any{"url": fmt.Sprintf("data:%s;base64,%s", image.Mime, image.Data), "detail": detail}})
 	}
 	body := map[string]any{"model": c.model, "messages": []any{map[string]any{"role": "system", "content": system}, map[string]any{"role": "user", "content": parts}}, "stream": false, "max_tokens": maxTokens}
+	if c.disableThinking && strings.HasPrefix(c.model, "deepseek-") {
+		body["thinking"] = map[string]any{"type": "disabled"}
+	}
 	data, _ := json.Marshal(body)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, joinProtocolURL(c.baseURL, "chat/completions"), bytes.NewReader(data))
 	if err != nil {

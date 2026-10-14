@@ -16,6 +16,8 @@ import { WorkbenchHeader } from './workbench/workbench-header'
 import { WorkbenchRail } from './workbench/workbench-rail'
 import { useGenerationTask, type GenerationNotice } from './workbench/use-generation-task'
 import { historyWorkbenchUrl, referenceWorkbenchUrl, useWorkbenchHandoff } from './workbench/use-workbench-handoff'
+import { useReversePromptHandoff } from './workbench/use-reverse-prompt-handoff'
+import { applyReverseText } from '@/lib/prompt-reverse'
 import type { HistoryTask } from './workbench/use-task-history'
 import {
   detailModules,
@@ -23,6 +25,7 @@ import {
   modelOptions,
   optionLabel,
   platformOptions,
+  referenceLimit,
   productMainModules,
   styleOptions,
   taskMeta,
@@ -107,6 +110,12 @@ function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialMod
 
   const hasProductImage = productFiles.length > 0
   useWorkbenchHandoff({ ready: aiEnabled !== null, onHistory: (record, review) => review ? regenerateFromHistory(record) : loadHistoryConfig(record), onReference: path => useImageAsReference(path, { mode, taskType: task }), onError: message => setNotice({ kind: 'error', message }) })
+  useReversePromptHandoff({ ready: aiEnabled !== null && mode === 'general', onApply: (text, file) => {
+    if (file && referenceFiles.length >= referenceLimit('general', task)) throw new Error('参考图已达上限，请先移除一张再应用反推结果')
+    setPrompt(previous => applyReverseText(previous, text, previous.trim() ? 'append' : 'replace'))
+    if (file) setReferenceFiles(previous => [...previous, file])
+    setGeneralConfigCollapsed(false); setNotice({ kind: 'success', message: '反推提示词已填入，可调整后开始生成' })
+  }, onError: message => setNotice({ kind: 'error', message }) })
 
   // 等历史配置提交到 React 后，再用本轮渲染的参数生成，避免异步回调拿到旧配置。
   useEffect(() => {

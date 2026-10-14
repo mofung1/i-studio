@@ -9,6 +9,7 @@ describe('prompt navigation groups', () => {
     expect(promptGroupKey(template('image.clothing.model', 'clothing'))).toBe('clothing-generation')
     expect(promptGroupKey(template('clothing.pose.1', 'clothing'))).toBe('clothing-planning')
     expect(promptGroupKey(template('clothing.style.studio', 'clothing'))).toBe('clothing-styles')
+    expect(promptGroupKey(template('reverse.scene', 'reverse'))).toBe('reverse')
   })
   it('keeps unknown templates discoverable and searches descriptions across groups', () => {
     const items = [template('rewrite', 'system'), { ...template('module.clothing-set.clothing-front', 'clothing'), description: '领口特写' }, template('future-template', 'future')]

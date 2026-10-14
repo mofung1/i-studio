@@ -1,13 +1,14 @@
 import type { PromptTemplate } from './ai-settings'
 
 const groupLabels = [
-  ['enhance', 'AI 帮写与优化'], ['general', '通用生图'], ['commerce', '电商生成要求'],
+  ['enhance', 'AI 帮写与优化'], ['reverse', '图片反推'], ['general', '通用生图'], ['commerce', '电商生成要求'],
   ['main-modules', '商品主图模块'], ['detail-modules', '商品详情模块'], ['retouch', '产品精修'],
   ['clothing-generation', '服装生成要求'], ['clothing-styles', '服装拍摄风格'],
   ['clothing-modules', '服装图片图种'], ['clothing-planning', '服装拍摄规划'], ['other', '其他模板'],
 ] as const
 
 export function promptGroupKey(template: PromptTemplate): string {
+  if (template.category === 'reverse') return 'reverse'
   if (['system', 'mode'].includes(template.category)) return 'enhance'
   if (['general', 'commerce', 'retouch'].includes(template.category)) return template.category
   if (template.key.startsWith('module.product-main.')) return 'main-modules'

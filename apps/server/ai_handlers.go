@@ -198,6 +198,7 @@ func defaultPromptTemplates() []promptTemplate {
 		list = append(list, promptTemplate{Key: key, Name: promptTaskTypeLabels[key], Category: "mode", Content: promptTaskGuidance[key], Description: "仅用于此任务的 AI 帮写；实际图片生成要求在电商生图分类中配置。"})
 	}
 	list = append(list, generationPromptDefinitions()...)
+	list = append(list, reversePromptDefinitions()...)
 	for i := range list {
 		list[i].DefaultContent = list[i].Content
 		list[i].Enabled = true
