@@ -378,8 +378,8 @@ img {
 .endpoint-dialog .endpoint-section-head { margin-bottom: 18px; }
 .endpoint-dialog .settings-field, .prompt-settings .settings-field { display: grid; gap: 8px; margin: 18px 0; color: var(--foreground-2); font-size: 12px; font-weight: 550; }
 .endpoint-dialog .settings-field { margin: 14px 0; }
-.endpoint-dialog input:not([type=checkbox]), .endpoint-dialog select, .prompt-settings textarea { width: 100%; min-width: 0; min-height: 42px; padding: 10px 12px; color: var(--foreground); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; font-size: 14px; font-weight: 400; transition: border-color 140ms ease, box-shadow 140ms ease; }
-.endpoint-dialog input:not([type=checkbox]):focus, .endpoint-dialog select:focus, .prompt-settings textarea:focus { border-color: var(--foreground-2); outline: none; box-shadow: 0 0 0 3px var(--focus-soft); }
+.endpoint-dialog input:not([type=checkbox]), .prompt-settings textarea { width: 100%; min-width: 0; min-height: 42px; padding: 10px 12px; color: var(--foreground); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; font-size: 14px; font-weight: 400; transition: border-color 140ms ease, box-shadow 140ms ease; }
+.endpoint-dialog input:not([type=checkbox]):focus, .prompt-settings textarea:focus { border-color: var(--foreground-2); outline: none; box-shadow: 0 0 0 3px var(--focus-soft); }
 .endpoint-form-grid { display: grid; grid-template-columns: minmax(0,1fr) 132px; gap: 16px; }
 .settings-checks { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 20px; }
 .settings-form-actions { justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border); }
@@ -1255,9 +1255,7 @@ img {
 }
 
 .form-section label > input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
-.form-section textarea,
-.form-section select,
-.settings-grid select {
+.form-section textarea {
   width: 100%;
   margin-top: 7px;
   padding: 0 11px;
@@ -1270,22 +1268,18 @@ img {
 }
 
 .form-section input:hover,
-.form-section textarea:hover,
-.form-section select:hover {
+.form-section textarea:hover {
   border-color: var(--line-strong);
 }
 
 .form-section input:focus,
-.form-section textarea:focus,
-.form-section select:focus {
+.form-section textarea:focus {
   border-color: var(--line-strong);
   outline: 0;
   box-shadow: 0 0 0 3px var(--focus-soft);
 }
 
-.form-section input,
-.form-section select,
-.settings-grid select {
+.form-section input {
   height: 40px;
 }
 
@@ -1308,86 +1302,73 @@ img {
   gap: 10px;
 }
 
-/* Radix Select（shadcn 风格） */
+/* One dropdown system for workbench, settings and personal libraries. */
 .select-trigger {
-  width: 100%;
-  height: 40px;
+  --select-control-height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 7px;
-  padding: 0 11px;
-  color: var(--foreground-2);
-  background: var(--surface);
+  width: 100%;
+  min-width: 0;
+  height: var(--select-control-height);
+  min-height: var(--select-control-height);
+  margin: 0;
+  padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 13px;
-  line-height: 1;
+  color: var(--foreground-2);
+  background: var(--control-bg);
+  font-size: var(--text-ui);
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
   cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
-
-.select-trigger:hover {
-  border-color: var(--line-strong);
-}
-
-.select-trigger[data-state='open'] {
-  border-color: var(--line-strong);
-  box-shadow: 0 0 0 3px var(--focus-soft);
-}
-
-.select-trigger[data-placeholder] {
-  color: var(--foreground-3);
-}
-
-.select-chevron {
-  flex: 0 0 auto;
-  color: var(--muted);
-  opacity: 0.7;
-  pointer-events: none;
-}
+.select-trigger[data-size='sm'] { --select-control-height: 36px; }
+.select-trigger[data-size='lg'] { --select-control-height: 44px; }
+.select-trigger:hover:not(:disabled) { color: var(--foreground); background: var(--control-hover); border-color: var(--line-strong); }
+.select-trigger:is(:focus-visible, [data-state='open']) { border-color: var(--foreground); outline: none; box-shadow: inset 0 0 0 1px var(--foreground), 0 0 0 3px var(--focus-soft); }
+.select-trigger:disabled { opacity: .5; cursor: not-allowed; }
+.select-trigger[data-placeholder] { color: var(--placeholder); }
+.select-trigger[aria-invalid='true'] { border-color: var(--danger); }
+.select-value { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select-chevron { flex: 0 0 auto; margin-left: auto; color: var(--muted); pointer-events: none; transition: transform 140ms ease; }
+.select-trigger[data-state='open'] .select-chevron { transform: rotate(180deg); }
+.settings-field:has(> .select-trigger) { display: grid; gap: 7px; }
 
 .select-content {
-  z-index: 60;
+  z-index: 10010;
   min-width: var(--radix-select-trigger-width);
+  max-width: calc(100vw - 24px);
+  max-height: var(--radix-select-content-available-height);
   overflow: hidden;
-  color: var(--foreground-2);
-  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(23, 23, 23, 0.12);
+  color: var(--foreground-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
   animation: select-in 120ms ease;
 }
-
-.select-viewport {
-  padding: 4px;
+.select-viewport { max-height: min(320px, calc(var(--radix-select-content-available-height, 368px) - 48px)); padding: 4px; }
+.select-item { position: relative; display: flex; align-items: center; min-height: 38px; padding: 8px 36px 8px 12px; border-radius: 5px; font-size: var(--text-ui); line-height: 1.5; cursor: pointer; user-select: none; outline: none; }
+.select-item[data-state='checked'] { color: var(--foreground); background: var(--surface-subtle); }
+.select-item[data-highlighted] { color: var(--foreground); background: var(--control-hover); }
+.select-item[data-disabled] { opacity: .4; cursor: not-allowed; }
+.select-item-text { min-width: 0; overflow-wrap: anywhere; }
+.select-item-indicator { position: absolute; right: 11px; display: inline-flex; align-items: center; justify-content: center; color: var(--foreground); pointer-events: none; }
+.select-scroll-button { display: flex; align-items: center; justify-content: center; height: 24px; color: var(--foreground-3); background: var(--surface); }
+@media (max-width: 780px), (pointer: coarse) {
+  .select-trigger[data-size] { --select-control-height: 44px; }
+  .select-item { min-height: 44px; }
 }
-
-.select-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: 7px 28px 7px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: default;
-  user-select: none;
-  outline: none;
+@media (prefers-reduced-motion: reduce) {
+  .select-trigger, .select-chevron { transition: none; }
+  .select-content { animation: none; }
 }
-
-.select-item[data-highlighted] {
-  color: var(--foreground);
-  background: var(--primary-soft);
-}
-
-.select-item-indicator {
-  position: absolute;
-  left: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--primary);
+@media (forced-colors: active) {
+  .select-trigger:is(:focus-visible, [data-state='open']) { outline: 2px solid Highlight; outline-offset: 2px; }
 }
 
 @keyframes select-in {
@@ -1946,8 +1927,6 @@ img {
   white-space: nowrap;
 }
 
-.settings-grid select { min-width: 0; width: 100%; height: 40px; padding: 0 28px 0 11px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; font-size: 13px; margin: 0 }
-
 /* `.form-section label + label` 会给相邻的 label 加 margin-top: 12px，
    但这里的字段是网格项，应靠 grid gap 对齐，否则同排的“尺寸比例/分辨率”会上下错位。 */
 .settings-grid .settings-field {
@@ -1956,12 +1935,6 @@ img {
 
 .single-field {
   grid-template-columns: 1fr;
-}
-
-.settings-grid select:focus {
-  border-color: var(--line-strong);
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--focus-soft);
 }
 
 .configuration-footer {

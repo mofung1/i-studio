@@ -90,7 +90,7 @@ export function BasicSettings(props: BasicSettingsProps) {
     return <section className={`basic-settings compact-basic-settings ${paramsOpen ? 'is-open' : ''}`} aria-label="生成参数">
       <div className="compact-settings-row">
         <Select value={endpointId || undefined} onValueChange={onSetEndpoint}>
-          <SelectTrigger className="settings-chip settings-chip-model" aria-label="模型选择"><Sparkles size={14} aria-hidden="true" /><SelectValue placeholder={modelName} /></SelectTrigger>
+          <SelectTrigger size="sm" className="settings-chip settings-chip-model" aria-label="模型选择"><Sparkles size={14} aria-hidden="true" /><SelectValue placeholder={modelName} /></SelectTrigger>
           <SelectContent>{imageEndpoints.map(endpoint => <SelectItem key={endpoint.id} value={endpoint.id}>{endpoint.name}</SelectItem>)}</SelectContent>
         </Select>
         <button ref={triggerRef} type="button" className="settings-chip settings-chip-output" aria-label="图片参数配置" aria-haspopup="dialog" aria-expanded={paramsOpen} aria-controls={popoverId} popoverTarget={popoverId}>
