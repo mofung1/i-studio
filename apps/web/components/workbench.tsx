@@ -18,6 +18,9 @@ import { useGenerationTask, type GenerationNotice } from './workbench/use-genera
 import { historyWorkbenchUrl, referenceWorkbenchUrl, useWorkbenchHandoff } from './workbench/use-workbench-handoff'
 import { useReversePromptHandoff } from './workbench/use-reverse-prompt-handoff'
 import { applyReverseText } from '@/lib/prompt-reverse'
+import { resolvePresetEndpoint, type CreationPreset, type PersonalApplication } from '@/lib/personal-prompts'
+import { CreationLibraryTools } from './workbench/creation-library-tools'
+import { usePersonalPromptHandoff } from './workbench/use-personal-prompt-handoff'
 import type { HistoryTask } from './workbench/use-task-history'
 import {
   detailModules,
@@ -94,6 +97,8 @@ function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialMod
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [autoRegeneratePending, setAutoRegeneratePending] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [collectionUndo, setCollectionUndo] = useState<PersonalApplication | null>(null)
+  useEffect(() => setCollectionUndo(null), [mode, task])
   // 切换生图类型会重置结果作用域并顺带清空提示，这里把提示延后到切换完成后再显示
   const pendingNoticeRef = useRef<GenerationNotice | null>(null)
   const configurationRequestRef = useRef(0)
@@ -176,6 +181,34 @@ function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialMod
     : task === 'product-main' || task === 'detail-page'
       ? moduleMode === 'custom' ? moduleTotal : 1
       : 1
+
+  function currentPreset(): CreationPreset {
+    const base = { mode, model, ...(endpointId ? { endpointId } : {}), aspectRatio, resolution, count: expectedCount }
+    if (mode === 'general') return { ...base, style, referenceStrength } as CreationPreset
+    return { ...base, taskType: task, platform, outputLanguage,
+      ...(task === 'product-main' || task === 'detail-page' ? { moduleMode, moduleCounts: { ...activeModuleCounts } } : {}),
+      ...(task === 'viral-recreate' ? { recreateStrength } : {}),
+      ...(task === 'product-retouch' ? { enhancements: [...enhancements] } : {}),
+    } as CreationPreset
+  }
+  function applyCollection(application: PersonalApplication, restore = false) {
+    if (isSubmitting || isGenerating) throw new Error('当前正在生成，请完成后再应用')
+    const config = application.config
+    if (config && (config.mode !== mode || (mode === 'commerce' && config.taskType !== task))) throw new Error('该预设属于其他工具，请从“我的提示词”页面应用')
+    const maximum = mode === 'general' ? 10000 : task === 'viral-recreate' || task === 'product-retouch' ? 1000 : 2000
+    if (application.text.length > maximum) throw new Error(`当前工具的描述最多 ${maximum} 字`)
+    const endpoint = config ? resolvePresetEndpoint(config, imageEndpoints) : null
+    if (!restore) setCollectionUndo({ text: mode === 'general' ? prompt : requirements, config: currentPreset(), title: '应用前的配置' })
+    if (restore || !config || application.text.trim()) { if (mode === 'general') setPrompt(application.text); else setRequirements(application.text) }
+    if (config && endpoint) {
+      setEndpointId(endpoint.id); setModel(endpoint.model); setAspectRatio(config.aspectRatio); setResolution(config.resolution)
+      if (mode === 'general') { setCount(config.count); setStyle(config.style ?? 'unspecified'); setReferenceStrength(config.referenceStrength ?? 'medium') }
+      else { setPlatform(config.platform ?? 'smart'); setOutputLanguage(config.outputLanguage ?? 'none'); setModuleMode(config.moduleMode ?? 'smart'); setModuleCounts({ ...config.moduleCounts }); setRecreateStrength(config.recreateStrength ?? 'style'); setEnhancements(config.enhancements ?? []) }
+    }
+    setGeneralConfigCollapsed(false); setNotice({ kind: 'success', message: restore ? '已撤销应用' : `已应用“${application.title}”，可继续编辑或撤销` })
+  }
+  usePersonalPromptHandoff({ ready: aiEnabled !== null && !isGenerating && !isSubmitting, onApply: application => applyCollection(application), onError: message => setNotice({ kind: 'error', message }) })
+
 
   const requirementsPlaceholder = task === 'product-main'
     ? '建议输入：产品名称，核心卖点，目标人群，主图风格，平台规范等'
@@ -477,6 +510,7 @@ function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialMod
           onChangeTask={changeTask}
         />
         <WorkbenchHeader
+          collectionTools={<CreationLibraryTools config={currentPreset()} prompt={mode === 'general' ? prompt : requirements} disabled={isGenerating || isSubmitting} onApply={application => applyCollection(application)} onUndo={collectionUndo ? () => { try { applyCollection(collectionUndo, true); setCollectionUndo(null) } catch (reason) { setNotice({ kind: 'error', message: reason instanceof Error ? reason.message : '撤销失败' }) } } : undefined} />}
           mode={mode}
           task={task}
           configSide={configSide}
