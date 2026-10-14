@@ -37,4 +37,15 @@ describe('protected image cache account isolation', () => {
     expect((await loadProtectedImage('/v1/assets/private/content')).url).toBe(current.url)
     expect(fetch).toHaveBeenCalledTimes(2)
   })
+  it('evicts by byte budget before reaching the image count limit', async () => {
+    const fetch = vi.fn().mockImplementation(async () => ({ ok: true, blob: async () => ({ size: 50 * 1024 * 1024 }) }))
+    vi.stubGlobal('fetch', fetch)
+    const { loadProtectedImage } = await import('./authenticated-image')
+    await loadProtectedImage('/v1/assets/large-a/content')
+    await loadProtectedImage('/v1/assets/large-b/content')
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1)
+    await loadProtectedImage('/v1/assets/large-a/content')
+    expect(fetch).toHaveBeenCalledTimes(3)
+  })
+
 })

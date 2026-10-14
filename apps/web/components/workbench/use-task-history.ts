@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 import type { ClothingMode, ClothingShot, ClothingStyle } from '@/lib/contracts'
@@ -82,8 +82,16 @@ export function useTaskHistory({ mode, taskType, limit = 30, enabled = true, ref
   const [tasks, setTasks] = useState<HistoryTask[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [nextCursor, setNextCursor] = useState('')
+  const requestId = useRef(0)
+  const controllerRef = useRef<AbortController | null>(null)
 
-  const load = useCallback(async (signal?: AbortSignal) => {
+  const load = useCallback(async (cursor = '') => {
+    controllerRef.current?.abort()
+    const controller = new AbortController()
+    controllerRef.current = controller
+    const signal = controller.signal
+    const id = ++requestId.current
     const token = getAccessToken()
     if (!token) {
       setTasks([])
@@ -93,6 +101,7 @@ export function useTaskHistory({ mode, taskType, limit = 30, enabled = true, ref
     setIsLoading(true)
     try {
       const params = new URLSearchParams({ limit: String(limit) })
+      if (cursor) params.set('cursor', cursor)
       if (mode) params.set('mode', mode)
       if (mode === 'commerce' && taskType) params.set('taskType', taskType)
       let response: Response
@@ -105,26 +114,29 @@ export function useTaskHistory({ mode, taskType, limit = 30, enabled = true, ref
         throw new Error('历史记录加载失败，请检查后端服务是否已启动')
       }
       if (!response.ok) throw new Error(await readApiError(response, '历史记录加载失败'))
-      const data = await response.json() as { tasks?: HistoryTask[] }
-      if (signal?.aborted) return
-      setTasks((data.tasks ?? []).filter((task) => (task.resultImages?.length ?? 0) > 0 || task.errorMessage))
+      const data = await response.json() as { tasks?: HistoryTask[]; nextCursor?: string }
+      if (signal.aborted || id !== requestId.current || getAccessToken() !== token) return
+      const items = (data.tasks ?? []).filter(task => (task.resultImages?.length ?? 0) > 0 || task.errorMessage)
+      setTasks(previous => cursor ? [...previous, ...items.filter(item => !previous.some(old => old.id === item.id))] : items)
+      setNextCursor(data.nextCursor ?? '')
       setError('')
     } catch (reason) {
       if (signal?.aborted || (reason instanceof DOMException && reason.name === 'AbortError')) return
       setError(reason instanceof Error ? reason.message : '历史记录加载失败')
     } finally {
-      if (!signal?.aborted) setIsLoading(false)
+      if (!signal.aborted && id === requestId.current) setIsLoading(false)
     }
   }, [limit, mode, taskType])
 
   useEffect(() => {
     if (!enabled) return
-    const controller = new AbortController()
-    void load(controller.signal)
-    return () => controller.abort()
+    setTasks([]); setNextCursor('')
+    void load()
+    return () => { requestId.current += 1; controllerRef.current?.abort() }
   }, [enabled, load, refreshKey])
 
   const reload = useCallback(() => { void load() }, [load])
 
-  return { tasks, isLoading, error, reload }
+  const loadMore = useCallback(() => { if (nextCursor && !isLoading) void load(nextCursor) }, [isLoading, load, nextCursor])
+  return { tasks, isLoading, error, reload, hasMore: !!nextCursor, loadMore }
 }

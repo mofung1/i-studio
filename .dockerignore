@@ -8,3 +8,7 @@ apps/server/storage/uploads
 coverage
 .turbo
 *.log
+**/.next
+**/coverage
+**/*.tsbuildinfo
+artifacts

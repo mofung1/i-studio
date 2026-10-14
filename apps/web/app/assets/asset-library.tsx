@@ -1,466 +1,247 @@
 'use client'
 
-import { AlertTriangle, ChevronLeft, ChevronRight, Clock3, Download, Image as ImageIcon, Loader2, Maximize2, ScanText, SlidersHorizontal, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Archive, Check, Clock3, Download, Folder, Image as ImageIcon, Loader2, Maximize2, Pencil, Plus, RefreshCw, Search, ScanText, SlidersHorizontal, Star, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { InfoDialog } from '@/components/info-dialog'
 import { StudioShell } from '@/components/studio-shell'
+import { LibraryDialog, LibrarySelect } from '@/components/library-controls'
 import { usePromptReverse } from '@/components/prompt-reverse-provider'
+import { useDialogFocus } from '@/components/use-dialog-focus'
 import { FailureNotice } from '@/components/workbench/failure-notice'
-import { apiBaseUrl, deleteGeneratedAsset, deleteGenerationTask, getAccessToken, readApiError } from '@/lib/api'
-import { languageOptions, modelOptions, moduleLabel, optionLabel, platformOptions, styleOptions } from '@/components/workbench/shared'
-import { clothingStyles } from '@/lib/clothing'
+import { ImageLightbox } from '@/components/workbench/image-lightbox'
+import { historyWorkbenchUrl, referenceWorkbenchUrl } from '@/components/workbench/use-workbench-handoff'
+import { taskModeLabel, taskTitle, activeTaskStatuses, type HistoryTask } from '@/components/workbench/use-task-history'
+import { deleteGeneratedAsset, deleteGenerationTask, getAccessToken } from '@/lib/api'
+import { assetFilename, assetTitle, downloadLibraryAssets, libraryRequest, mergeLibraryPage, type LibraryAsset, type LibraryProject } from '@/lib/library'
 
-interface GeneratedTask {
-  id: string
-  status: string
-  createdAt: string
-  resultImages?: string[]
-  resultModules?: string[]
-  errorMessage?: string
-  input: { productName?: string; prompt?: string; requirements?: string; mode?: string; taskType?: string; model?: string; aspectRatio?: string; resolution?: string; count?: number; style?: string; referenceStrength?: string; platform?: string; outputLanguage?: string; moduleMode?: string; moduleCounts?: Record<string, number>; recreateStrength?: string; enhancements?: string[]; clothingMode?: string; clothingStyle?: string }
-}
+const toolOptions: Array<[string, string]> = [['all', '全部工具'], ['general', 'AI 生图'], ['product-main', '商品主图'], ['detail-page', '商品详情'], ['viral-recreate', '爆款复刻'], ['product-retouch', '产品精修'], ['clothing-set', '服装组图']]
+const statuses: Record<string, string> = { queued: '排队中', processing: '正在生成', waiting_provider: '等待 AI 服务', succeeded: '生成完成', failed: '生成失败', cancelled: '已取消', expired: '已过期' }
+const when = (value: string) => new Date(value).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-interface GeneratedImage {
-  task: GeneratedTask
-  path: string
-  index: number
-}
-
-const taskLabels: Record<string, string> = {
-  'product-main': '商品主图',
-  'detail-page': '商品详情',
-  'viral-recreate': '爆款复刻',
-  'product-retouch': '产品精修',
-  'clothing-set': '服装组图',
-}
-
-const statusLabels: Record<string, string> = {
-  queued: '排队中',
-  processing: '正在生成',
-  waiting_provider: '等待 AI 服务',
-  succeeded: '已完成',
-  failed: '生成失败',
-  cancelled: '已取消',
-  expired: '已过期',
-}
-
-const activeStatuses = new Set(['queued', 'processing', 'waiting_provider'])
-
-function taskTitle(task: GeneratedTask) {
-  return task.input.productName
-    || task.input.prompt?.slice(0, 24)
-    || task.input.requirements?.slice(0, 24)
-    || taskLabels[task.input.taskType ?? '']
-    || '通用生图'
-}
-
-/** 卡片副标题用的短时间：当天只显示时刻，跨天显示月/日 + 时刻 */
-function formatWhen(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  const time = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  const today = new Date()
-  const sameDay = date.toDateString() === today.toDateString()
-  return sameDay ? `今天 ${time}` : `${date.getMonth() + 1}/${date.getDate()} ${time}`
-}
-
-function taskTypeLabel(task: GeneratedTask) {
-  return taskLabels[task.input.taskType ?? ''] ?? '通用生图'
-}
-
-function parameterRows(task: GeneratedTask) {
-  const input = task.input
-  const rows: Array<[string, string]> = []
-  if (input.prompt || input.requirements) rows.push(['提示词', input.prompt || input.requirements || ''])
-  if (input.model) rows.push(['模型', optionLabel(modelOptions, input.model) || '已配置模型'])
-  if (input.aspectRatio) rows.push(['比例', input.aspectRatio])
-  if (input.resolution) rows.push(['分辨率', input.resolution])
-  if (input.count) rows.push(['生成数量', `${input.count} 张`])
-  if (input.style) rows.push(['创作风格', optionLabel(styleOptions, input.style) || input.style])
-  if (input.clothingMode) rows.push(['服装模式', input.clothingMode === 'model' ? '模特上身' : '商品组图'])
-  if (input.clothingStyle) rows.push(['拍摄风格', optionLabel(clothingStyles, input.clothingStyle)])
-  if (input.referenceStrength) rows.push(['参考强度', { low: '低', medium: '中', high: '高' }[input.referenceStrength] ?? input.referenceStrength])
-  if (input.platform) rows.push(['目标平台', optionLabel(platformOptions, input.platform) || input.platform])
-  if (input.outputLanguage) rows.push(['目标语言', optionLabel(languageOptions, input.outputLanguage) || input.outputLanguage])
-  if (input.moduleMode) rows.push(['图片模块', input.moduleMode === 'smart' ? '智能组合' : input.moduleMode === 'custom' ? '自定义' : input.moduleMode])
-  if (input.recreateStrength) rows.push(['复刻程度', input.recreateStrength === 'style' ? '参考风格' : input.recreateStrength === 'high' ? '高度复刻' : input.recreateStrength])
-  if (input.enhancements?.length) rows.push(['快捷优化', input.enhancements.join('、')])
-  return rows
-}
-
-export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
+export function AssetLibrary({ view }: { view: 'images' | 'tasks' | 'uploads' }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { openReverse } = usePromptReverse()
-  const [tasks, setTasks] = useState<GeneratedTask[]>([])
-  const [error, setError] = useState('')
+  const [projects, setProjects] = useState<LibraryProject[]>([])
+  const [project, setProject] = useState(searchParams.get('project') || 'all')
+  const [favorite, setFavorite] = useState(false)
+  const [search, setSearch] = useState('')
+  const [query, setQuery] = useState('')
+  const [tool, setTool] = useState('all')
+  const [model, setModel] = useState('')
+  const [tag, setTag] = useState('')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const [sort, setSort] = useState('newest')
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable')
+  const [assets, setAssets] = useState<LibraryAsset[]>([])
+  const [tasks, setTasks] = useState<HistoryTask[]>([])
+  const [total, setTotal] = useState(0)
+  const [cursor, setCursor] = useState('')
   const [loading, setLoading] = useState(true)
-  const [visibleImages, setVisibleImages] = useState(30)
-  const [selectedImage, setSelectedImage] = useState<GeneratedImage | null>(null)
-  const [deletingKey, setDeletingKey] = useState('')
-  const [confirmTarget, setConfirmTarget] = useState<{ kind: 'image'; image: GeneratedImage } | { kind: 'task'; task: GeneratedTask } | null>(null)
-  /** 失败记录：点击卡片直接弹窗看原因，不再跳任务详情页 */
-  const [infoTask, setInfoTask] = useState<GeneratedTask | null>(null)
-  const [detailsTask, setDetailsTask] = useState<GeneratedTask | null>(null)
-  const previewTrigger = useRef<HTMLButtonElement>(null)
+  const [moreBusy, setMoreBusy] = useState(false)
+  const [busy, setBusy] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [selected, setSelected] = useState<string[]>([])
+  const [preview, setPreview] = useState<LibraryAsset | null>(null)
+  const [lightbox, setLightbox] = useState<LibraryAsset | null>(null)
+  const [detailTask, setDetailTask] = useState<HistoryTask | null>(null)
+  const [editing, setEditing] = useState<LibraryAsset | null>(null)
+  const [titleDraft, setTitleDraft] = useState('')
+  const [tagsDraft, setTagsDraft] = useState('')
+  const [projectDraft, setProjectDraft] = useState('')
+  const [projectForm, setProjectForm] = useState<LibraryProject | 'new' | null>(null)
+  const [projectName, setProjectName] = useState('')
+  const [moveOpen, setMoveOpen] = useState(false)
+  const [moveProject, setMoveProject] = useState('unfiled')
+  const [confirm, setConfirm] = useState<{ asset?: LibraryAsset; task?: HistoryTask; project?: LibraryProject } | null>(null)
+  const epoch = useRef(0)
 
+  useEffect(() => { const timer = window.setTimeout(() => setQuery(search.trim()), 250); return () => window.clearTimeout(timer) }, [search])
+  const filters = new URLSearchParams({ limit: '40', sort })
+  if (project !== 'all') filters.set('projectId', project)
+  if (query) filters.set('q', query)
+  if (model.trim()) filters.set('model', model.trim())
+  if (from) filters.set('from', from)
+  if (to) filters.set('to', to)
+  if (tool !== 'all') filters.set('taskType', tool)
+  if (view === 'uploads') filters.set('kind', 'uploads')
+  if (favorite && view !== 'tasks') filters.set('favorite', 'true')
+  if (tag.trim() && view !== 'tasks') filters.set('tag', tag.trim())
+  const filterKey = `${view}:${filters}`
+  const queryString = filters.toString()
+  const currentFilter = useRef(filterKey)
+  currentFilter.current = filterKey
+
+  const loadProjects = useCallback(async () => {
+    const data = await libraryRequest<{ projects: LibraryProject[] }>('projects')
+    setProjects(data.projects)
+  }, [])
+  const load = useCallback(async (next = '', append = false, signal?: AbortSignal) => {
+    const requestEpoch = epoch.current
+    const requestFilter = `${view}:${queryString}`
+    const params = new URLSearchParams(queryString)
+    if (view === 'tasks' && params.get('taskType') === 'general') { params.delete('taskType'); params.set('mode', 'general') }
+    if (next) params.set('cursor', next)
+    try {
+      const data = await libraryRequest<{ assets?: LibraryAsset[]; tasks?: HistoryTask[]; total: number; nextCursor: string }>(`${view === 'tasks' ? 'generation/tasks' : 'library/assets'}?${params}`, { signal })
+      if (signal?.aborted || requestEpoch !== epoch.current || requestFilter !== currentFilter.current) return
+      setAssets(previous => append ? mergeLibraryPage(previous, data.assets ?? []) : data.assets ?? [])
+      setTasks(previous => append ? mergeLibraryPage(previous, data.tasks ?? []) : data.tasks ?? [])
+      setTotal(data.total); setCursor(data.nextCursor); setError('')
+    } catch (reason) {
+      if (!signal?.aborted && requestEpoch === epoch.current && requestFilter === currentFilter.current) setError(reason instanceof Error ? reason.message : '加载失败')
+    } finally { if (!signal?.aborted && requestEpoch === epoch.current && requestFilter === currentFilter.current) { setLoading(false); setMoreBusy(false) } }
+  }, [queryString, view])
+  const latestLoad = useRef(load)
+  latestLoad.current = load
   useEffect(() => {
-    const token = getAccessToken()
-    if (!token) {
-      router.replace(`/login?next=${encodeURIComponent(`/assets${view === 'tasks' ? '?view=tasks' : ''}`)}`)
-      return
-    }
-
+    if (!getAccessToken()) { router.replace(`/login?next=${encodeURIComponent(`/assets?view=${view}`)}`); return }
+    epoch.current += 1
     const controller = new AbortController()
-    let timer = 0
-    const loadTasks = async () => {
-      try {
-        const response = await fetch(`${apiBaseUrl}/v1/generation/tasks`, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        })
-        if (response.status === 401) {
-          router.replace(`/login?next=${encodeURIComponent(`/assets${view === 'tasks' ? '?view=tasks' : ''}`)}`)
-          return
-        }
-        if (!response.ok) throw new Error(await readApiError(response, '记录加载失败'))
-        const data = await response.json() as { tasks?: GeneratedTask[] }
-        if (controller.signal.aborted) return
-        const latestTasks = (data.tasks ?? []).sort((first, second) =>
-          new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
-        setTasks(latestTasks)
-        setError('')
-        if (latestTasks.some((task) => activeStatuses.has(task.status))) {
-          timer = window.setTimeout(loadTasks, 5000)
-        }
-      } catch (reason) {
-        if (!controller.signal.aborted) {
-          setError(reason instanceof Error ? reason.message : '记录加载失败')
-          timer = window.setTimeout(loadTasks, 10000)
-        }
-      } finally {
-        if (!controller.signal.aborted) setLoading(false)
-      }
-    }
-    void loadTasks()
-    return () => {
-      controller.abort()
-      window.clearTimeout(timer)
-    }
-  }, [router, view])
-
+    setLoading(true); setAssets([]); setTasks([]); setSelected([]); setCursor(''); setTotal(0); setMoreBusy(false)
+    void load('', false, controller.signal)
+    return () => controller.abort()
+  }, [filterKey, load, router, view])
+  useEffect(() => { if (getAccessToken()) void loadProjects().catch(reason => setError(reason.message)) }, [loadProjects])
   useEffect(() => {
-    if (!selectedImage) return
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closePreview()
-      if (event.key === 'ArrowLeft') stepPreview(-1)
-      if (event.key === 'ArrowRight') stepPreview(1)
-      if (event.key !== 'Tab') return
-      const actions = document.querySelectorAll<HTMLElement>('.library-lightbox-content a, .library-lightbox-content button')
-      const firstAction = actions.item(0)
-      const lastAction = actions.item(actions.length - 1)
-      if (!firstAction || !lastAction) return
-      if (event.shiftKey && document.activeElement === firstAction) {
-        event.preventDefault()
-        lastAction.focus()
-      } else if (!event.shiftKey && document.activeElement === lastAction) {
-        event.preventDefault()
-        firstAction.focus()
-      }
-    }
-    document.addEventListener('keydown', closeOnEscape)
-    return () => document.removeEventListener('keydown', closeOnEscape)
-  }, [selectedImage])
+    const active = tasks.filter(item => activeTaskStatuses.has(item.status))
+    if (!active.length) return
+    const controller = new AbortController()
+    const timer = window.setInterval(() => {
+      void Promise.all(active.map(item => libraryRequest<{ task: HistoryTask }>(`generation/tasks/${item.id}`, { signal: controller.signal })))
+        .then(results => { if (!controller.signal.aborted) setTasks(current => current.map(item => results.find(result => result.task.id === item.id)?.task ?? item)) })
+        .catch(() => {})
+    }, 5000)
+    return () => { controller.abort(); window.clearInterval(timer) }
+  }, [tasks])
 
-  function closePreview() {
-    setSelectedImage(null)
-    previewTrigger.current?.focus()
+  async function act(key: string, action: () => Promise<void>, success = '') {
+    if (busy) return
+    setBusy(key); setError(''); setNotice('')
+    try { await action(); if (success) setNotice(success) }
+    catch (reason) { setError(reason instanceof Error ? reason.message : '操作失败') }
+    finally { setBusy('') }
   }
-
-  /** 预览里左右切换同一任务的其它图片 */
-  function stepPreview(direction: -1 | 1) {
-    setSelectedImage((current) => {
-      if (!current) return current
-      const images = current.task.resultImages ?? []
-      const next = current.index + direction
-      const path = images[next]
-      if (next < 0 || next >= images.length || !path) return current
-      return { ...current, index: next, path }
-    })
+  async function editAssets(ids: string[], change: Record<string, unknown>) {
+    await libraryRequest('library/assets', { method: 'PATCH', body: JSON.stringify({ ids, ...change }) })
+    await latestLoad.current(); await loadProjects(); setSelected([])
   }
-
-  /** 删除单张生成图片：连同任务结果里的引用一起清掉 */
-  async function removeImage(image: GeneratedImage) {
-    const key = `${image.task.id}-${image.index}`
-    setDeletingKey(key)
-    try {
-      await deleteGeneratedAsset(image.path)
-      setTasks((current) => current.map((task) => task.id === image.task.id
-        ? { ...task,
-            resultImages: (task.resultImages ?? []).filter((path) => path !== image.path),
-            resultModules: task.resultModules?.filter((_, index) => task.resultImages?.[index] !== image.path),
-          }
-        : task))
-      if (selectedImage?.path === image.path) setSelectedImage(null)
-      setConfirmTarget(null)
-      setError('')
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '删除失败，请稍后重试')
-    } finally {
-      setDeletingKey('')
-    }
+  function toggleSelect(id: string) { setSelected(previous => previous.includes(id) ? previous.filter(value => value !== id) : previous.length < 100 ? [...previous, id] : previous) }
+  function openEdit(asset: LibraryAsset) { setError(''); setPreview(null); setEditing(asset); setTitleDraft(asset.title); setTagsDraft(asset.tags.join('、')); setProjectDraft(asset.projectId || 'unfiled') }
+  async function saveMetadata() {
+    await editAssets([editing!.id], { title: titleDraft, tags: tagsDraft.split(/[,，、\n]/), ...(projectDraft === (editing!.projectId || 'unfiled') ? {} : { projectId: projectDraft === 'unfiled' ? '' : projectDraft }) })
+    setEditing(null)
   }
-
-  /** 删除整条记录：记录与它生成的所有图片一起删除 */
-  async function removeTask(task: GeneratedTask) {
-    setDeletingKey(task.id)
-    try {
-      await deleteGenerationTask(task.id)
-      setTasks((current) => current.filter((item) => item.id !== task.id))
-      if (selectedImage?.task.id === task.id) setSelectedImage(null)
-      setConfirmTarget(null)
-      setError('')
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '删除失败，请稍后重试')
-    } finally {
-      setDeletingKey('')
-    }
+  async function saveProject() {
+    await libraryRequest(projectForm === 'new' ? 'projects' : `projects/${(projectForm as LibraryProject).id}`, { method: projectForm === 'new' ? 'POST' : 'PATCH', body: JSON.stringify({ name: projectName }) })
+    await loadProjects(); setProjectForm(null)
   }
-
-  const activeTasks = tasks.filter((task) => activeStatuses.has(task.status))
-  const images = tasks.flatMap((task) => (task.resultImages ?? []).map((path, index) => ({ task, path, index })))
-
-  function openPreview(task: GeneratedTask, index: number) {
-    const path = task.resultImages?.[index]
-    if (!path) return
-    setSelectedImage({ task, path, index })
+  async function removeConfirmed() {
+    if (confirm?.asset) await deleteGeneratedAsset(confirm.asset.contentPath)
+    if (confirm?.task) await deleteGenerationTask(confirm.task.id)
+    if (confirm?.project) { await libraryRequest(`projects/${confirm.project.id}`, { method: 'DELETE' }); if (project === confirm.project.id) setProject('all') }
+    setConfirm(null); await load(); await loadProjects()
   }
-
-  return <StudioShell section={view === 'tasks' ? 'history' : 'assets'} title={view === 'tasks' ? '创作历史' : '我的资产'}>
-    <main className="content-page">
-    <div className="library-content">
-      <header className="library-head">
+  const currentProject = projects.find(item => item.id === project)
+  const projectOptions: Array<[string, string]> = [['unfiled', '未分类'], ...projects.filter(item => !item.archived || item.id === editing?.projectId).map(item => [item.id, item.name] as [string, string])]
+  const assetCount = view === 'tasks' ? tasks.length : assets.length
+  return <StudioShell section={view === 'tasks' ? 'history' : 'assets'} title="我的资产" actions={<Link className="studio-primary" href={`/workbench?mode=general${currentProject && !currentProject.archived ? `&projectId=${encodeURIComponent(currentProject.id)}` : ''}`}><Plus size={16} />{currentProject && !currentProject.archived ? '在项目中创作' : '开始创作'}</Link>}>
+    <main className="asset-manager">
+      <div className="asset-manager-heading">
         <nav className="library-views" aria-label="资产库视图">
           <Link href="/assets" aria-current={view === 'images' ? 'page' : undefined}><ImageIcon size={16} />生成图片</Link>
-          <Link href="/assets?view=tasks" aria-current={view === 'tasks' ? 'page' : undefined}><Clock3 size={16} />按任务查看</Link>
+          <Link href="/assets?view=uploads" aria-current={view === 'uploads' ? 'page' : undefined}><Folder size={16} />上传素材</Link>
+          <Link href="/assets?view=tasks" aria-current={view === 'tasks' ? 'page' : undefined}><Clock3 size={16} />创作记录</Link>
         </nav>
-      </header>
-      {error && <p className="auth-notice" role="alert">{error}</p>}
-      {activeTasks.length > 0 && (
-        <section className="library-active" aria-label="进行中的任务">
-          <h2><Clock3 size={16} />进行中的任务</h2>
-          <div className="library-active-list">{activeTasks.map((task) =>
-            <div className="library-active-item" key={task.id}><span>{taskTitle(task)}</span><strong>{statusLabels[task.status]}</strong></div>)}</div>
-        </section>
-      )}
-
-      {loading ? (
-        <div className="library-grid">
-          {Array.from({ length: 8 }, (_, index) => (
-            <div className="library-card is-skeleton" key={index}>
-              <span className="library-media" />
-              <span className="skeleton-line" />
-              <span className="skeleton-line skeleton-line-narrow" />
-            </div>
-          ))}
-        </div>
-      ) : view === 'images' ? (
-        images.length ? (
-          <>
-            <div className="library-grid">
-              {images.slice(0, visibleImages).map((image) => {
-                const label = moduleLabel(image.task.input.taskType ?? '', image.task.resultModules?.[image.index] ?? '')
-                const key = `${image.task.id}-${image.index}`
-                return (
-                  <article key={key} className="library-card">
-                    <button
-                      type="button"
-                      className="library-media"
-                      aria-label={`放大查看${taskTitle(image.task)}第${image.index + 1}张`}
-                      onClick={(event) => { previewTrigger.current = event.currentTarget; setSelectedImage(image) }}
-                    >
-                      <AuthenticatedImage path={image.path} alt={`${taskTitle(image.task)} ${image.index + 1}`} />
-                    </button>
-                    {label && <span className="library-badge">{label}</span>}
-                    <div className="library-media-actions">
-                      <button type="button" title="放大查看" aria-label={`放大查看${taskTitle(image.task)}第${image.index + 1}张`} onClick={(event) => { previewTrigger.current = event.currentTarget; setSelectedImage(image) }}>
-                        <Maximize2 size={14} />
-                      </button>
-                      <button type="button" title="下载" aria-label="下载这张图片" onClick={() => void downloadProtectedAsset(image.path, `istudio-${image.task.id.slice(0, 8)}-${image.index + 1}.png`).catch(() => setError('下载失败'))}>
-                        <Download size={14} />
-                      </button>
-                      <button type="button" title="查看提示词和参数" aria-label={`查看${taskTitle(image.task)}的提示词和参数`} onClick={() => setDetailsTask(image.task)}><SlidersHorizontal size={14} /></button>
-                      <button type="button" className="is-danger" title="删除这张图片" aria-label={`删除${taskTitle(image.task)}第${image.index + 1}张图片`} disabled={deletingKey === key} onClick={() => setConfirmTarget({ kind: 'image', image })}>
-                        {deletingKey === key ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                      </button>
-                    </div>
-                    <div className="library-card-meta">
-                      <strong>{taskTitle(image.task)}</strong>
-                      <span>
-                        {taskTypeLabel(image.task) !== taskTitle(image.task) && `${taskTypeLabel(image.task)} · `}
-                        {image.index + 1}/{image.task.resultImages?.length ?? 1} · {formatWhen(image.task.createdAt)}
-                      </span>
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
-            {images.length > visibleImages && <button className="library-load-more" type="button" onClick={() => setVisibleImages((current) => current + 30)}>加载更多图片</button>}
-          </>
-        ) : (
-          <div className="library-empty">
-            <p className="empty-state">暂无生成图片，完成的任务结果会自动出现在这里。</p>
-            {tasks.length > 0 && <Link href="/assets?view=tasks">查看任务记录</Link>}
-          </div>
-        )
-      ) : (
-        tasks.length ? (
-          <div className="library-grid">
-            {tasks.map((task) => {
-              const count = task.resultImages?.length ?? 0
-              const status = statusLabels[task.status] ?? task.status
-              const isFailed = task.status === 'failed'
-              const isActive = activeStatuses.has(task.status)
-              const badgeClass = task.status === 'failed' ? ' is-failed' : activeStatuses.has(task.status) ? ' is-active' : ''
-              return (
-                <article key={task.id} className="library-card">
-                  {count > 0 ? (
-                    <button type="button" className="library-media" aria-label={`放大查看 ${taskTitle(task)} 的生成结果`} onClick={() => openPreview(task, 0)}>
-                      <span className={`library-collage${count === 1 ? ' is-single' : ''}`}>
-                        {task.resultImages!.slice(0, 3).map((path, index) => (
-                          <AuthenticatedImage key={`${path}-${index}`} path={path} alt="" />
-                        ))}
-                      </span>
-                    </button>
-                  ) : isFailed ? (
-                    <button type="button" className="library-media library-failed-media" aria-label={`查看 ${taskTitle(task)} 的失败信息`} onClick={() => setInfoTask(task)}>
-                      <Image src="/images/generation-failed.png" alt="" fill sizes="(max-width: 780px) 50vw, (max-width: 1200px) 33vw, 300px" />
-                      <span className="library-failed-caption"><AlertTriangle size={14} aria-hidden="true" />{status}<small>查看原因</small></span>
-                    </button>
-                  ) : (
-                    // 排队中 / 生成中：只显示状态，没有可打开的内容
-                    <div className="library-media is-empty" role="status">
-                      <Loader2 size={18} className={isActive ? 'animate-spin' : undefined} aria-hidden="true" />
-                      <span>{status}</span>
-                    </div>
-                  )}
-                  {count > 0 && <span className={`library-badge${badgeClass}`}>{status}</span>}
-                  <div className="library-media-actions">
-                    {count > 0 && (
-                      <button type="button" title="下载第一张" aria-label="下载这条记录的第一张图片" onClick={() => {
-                        const first = task.resultImages?.[0]
-                        if (first) void downloadProtectedAsset(first, `istudio-${task.id.slice(0, 8)}-1.png`).catch(() => setError('下载失败'))
-                      }}>
-                        <Download size={14} />
-                      </button>
-                    )}
-                    {count === 0 && isFailed && (
-                      <button type="button" title="查看失败原因" aria-label={`查看 ${taskTitle(task)} 的失败原因`} onClick={() => setInfoTask(task)}>
-                        <AlertTriangle size={14} />
-                      </button>
-                    )}
-                    <button type="button" title="查看提示词和参数" aria-label={`查看${taskTitle(task)}的提示词和参数`} onClick={() => setDetailsTask(task)}><SlidersHorizontal size={14} /></button>
-                    <button type="button" className="is-danger" title={isActive ? '任务完成后可删除' : '删除这条记录'} aria-label={`删除记录 ${taskTitle(task)}`} disabled={isActive || deletingKey === task.id} onClick={() => setConfirmTarget({ kind: 'task', task })}>
-                      {deletingKey === task.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                    </button>
-                  </div>
-                  <div className="library-card-meta">
-                    <strong>{taskTitle(task)}</strong>
-                      <span>
-                        {taskTypeLabel(task) !== taskTitle(task) && `${taskTypeLabel(task)} · `}
-                        {count} 张 · {formatWhen(task.createdAt)}
-                      </span>
-                    </div>
-                </article>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="library-empty"><p className="empty-state">暂无任务，先创建第一张图片。</p></div>
-        )
-      )}
-    </div>
-    {selectedImage && <div className="library-lightbox" onMouseDown={(event) => { if (event.target === event.currentTarget) closePreview() }}>
-      <div className="library-lightbox-content" role="dialog" aria-modal="true" aria-label="生成图片预览">
-        <button type="button" aria-label="关闭预览" title="关闭" autoFocus onClick={closePreview}><X size={20} /></button>
-        <AuthenticatedImage key={selectedImage.path} path={selectedImage.path} alt={`${taskTitle(selectedImage.task)} ${selectedImage.index + 1}`} />
-        {(selectedImage.task.resultImages?.length ?? 0) > 1 && (
-          <>
-            <button
-              type="button"
-              className="library-lightbox-nav is-prev"
-              aria-label="上一张"
-              disabled={selectedImage.index === 0}
-              onClick={() => stepPreview(-1)}
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              type="button"
-              className="library-lightbox-nav is-next"
-              aria-label="下一张"
-              disabled={selectedImage.index === (selectedImage.task.resultImages?.length ?? 1) - 1}
-              onClick={() => stepPreview(1)}
-            >
-              <ChevronRight size={18} />
-            </button>
-            <span className="library-lightbox-counter">{selectedImage.index + 1} / {selectedImage.task.resultImages?.length ?? 0}</span>
-          </>
-        )}
-        <div className="library-preview-toolbar"><span>{taskTitle(selectedImage.task)}</span><div className="library-preview-commands">
-          {(selectedImage.task.input.prompt || selectedImage.task.input.requirements) && <button type="button" onClick={() => { const task = selectedImage.task; closePreview(); setDetailsTask(task) }}><SlidersHorizontal size={15} aria-hidden="true" />原提示词</button>}
-          <button type="button" onClick={() => { const assetId = selectedImage.path.match(/^\/v1\/assets\/([^/]+)\/content$/)?.[1]; if (!assetId) { setError('这张图片暂时无法反推，请下载后上传'); return }; const name = taskTitle(selectedImage.task); closePreview(); openReverse({ assetId, imageName: name }) }}><ScanText size={15} aria-hidden="true" />图片反推</button>
-          <button type="button" onClick={() => void downloadProtectedAsset(selectedImage.path, `istudio-${selectedImage.task.id.slice(0, 8)}-${selectedImage.index + 1}.png`).catch(() => setError('下载失败'))}><Download size={15} aria-hidden="true" />下载</button>
-        </div></div>
+        <span className="library-count">{loading ? '正在读取…' : `${total} ${view === 'tasks' ? '条记录' : '张图片'}`}</span>
       </div>
-    </div>}
+      <div className="asset-manager-layout">
+        <aside className="asset-projects" aria-label="作品分类">
+          <button className={project === 'all' && !favorite ? 'active' : ''} onClick={() => { setProject('all'); setFavorite(false) }}><ImageIcon size={16} />全部作品</button>
+          {view !== 'tasks' && <button className={favorite ? 'active' : ''} onClick={() => { setFavorite(!favorite); setProject('all') }}><Star size={16} />我的收藏</button>}
+          <button className={project === 'unfiled' ? 'active' : ''} onClick={() => { setProject('unfiled'); setFavorite(false) }}><Folder size={16} />未分类</button>
+          <div className="asset-projects-title"><span>项目</span><button aria-label="新建项目" onClick={() => { setProjectForm('new'); setProjectName('') }}><Plus size={16} /></button></div>
+          {projects.filter(item => !item.archived).map(item => <button key={item.id} className={project === item.id ? 'active' : ''} onClick={() => { setProject(item.id); setFavorite(false) }}><Folder size={15} /><span>{item.name}</span><small>{item.assetCount ?? 0}</small></button>)}
+          {projects.some(item => item.archived) && <details><summary><Archive size={14} />已归档项目</summary>{projects.filter(item => item.archived).map(item => <button key={item.id} className={project === item.id ? 'active' : ''} onClick={() => setProject(item.id)}><Folder size={14} /><span>{item.name}</span></button>)}</details>}
+        </aside>
+        <section className="asset-manager-results" aria-label="作品列表">
+          <div className="library-toolbar">
+            <label className="library-search"><Search size={17} aria-hidden="true" /><input type="search" aria-label="搜索作品" placeholder="搜索名称、提示词或标签" value={search} onChange={event => setSearch(event.target.value)} /></label>
+            {view !== 'uploads' && <LibrarySelect label="筛选工具" value={tool} options={toolOptions} onChange={setTool} />}
+            <LibrarySelect label="作品排序" value={sort} options={[["newest", "最新优先"], ["oldest", "最早优先"]]} onChange={setSort} />
+            <button className="library-command" aria-label="刷新作品" title="刷新" disabled={loading || !!busy} onClick={() => { setLoading(true); void load() }}><RefreshCw size={16} /></button>
+          </div>
+          <div className="library-filter-row">
+            <details className="library-advanced"><summary><SlidersHorizontal size={14} />更多筛选{(model || tag || from || to) && <span>已设置</span>}</summary><div>
+              {view !== 'uploads' && <label>模型<input aria-label="筛选模型" placeholder="输入模型名称" value={model} onChange={event => setModel(event.target.value)} /></label>}
+              {view !== 'tasks' && <label>标签<input aria-label="筛选标签" placeholder="输入完整标签" value={tag} onChange={event => setTag(event.target.value)} /></label>}
+              <label>开始日期<input type="date" aria-label="开始日期" value={from} max={to || undefined} onChange={event => setFrom(event.target.value)} /></label>
+              <label>结束日期<input type="date" aria-label="结束日期" value={to} min={from || undefined} onChange={event => setTo(event.target.value)} /></label>
+              <button className="library-command" onClick={() => { setModel(''); setTag(''); setFrom(''); setTo('') }}>清除筛选</button>
+            </div></details>
+            {view !== 'tasks' && <button className="library-density" onClick={() => setDensity(density === 'comfortable' ? 'compact' : 'comfortable')}>{density === 'comfortable' ? '紧凑视图' : '舒适视图'}</button>}
+          </div>
+          {currentProject && <div className="library-project-heading"><strong>{currentProject.name}{currentProject.archived && <small>已归档</small>}</strong><div>
+            <button className="library-command" onClick={() => { setProjectForm(currentProject); setProjectName(currentProject.name) }}><Pencil size={14} />改名</button>
+            <button className="library-command" disabled={!!busy} onClick={() => void act('archive', async () => { await libraryRequest(`projects/${currentProject.id}`, { method: 'PATCH', body: JSON.stringify({ archived: !currentProject.archived }) }); await loadProjects() }, currentProject.archived ? '项目已恢复' : '项目已归档')}><Archive size={14} />{currentProject.archived ? '恢复' : '归档'}</button>
+            <button className="library-command" onClick={() => setConfirm({ project: currentProject })}>移除项目</button>
+          </div></div>}
+          {error && <div className="library-feedback is-error" role="alert">{error}<button onClick={() => void load()}>重试</button></div>}
+          {notice && <p className="library-feedback" role="status">{notice}</p>}
+          {selected.length > 0 && <div className="library-selection" role="toolbar" aria-label="批量操作">
+            <strong>已选 {selected.length} 张</strong>
+            <button disabled={!!busy} onClick={() => void act('download', () => downloadLibraryAssets(selected))}><Download size={15} />打包下载</button>
+            <button disabled={!!busy} onClick={() => { setMoveOpen(true); setMoveProject('unfiled') }}><Folder size={15} />移动到项目</button>
+            <button disabled={!!busy} onClick={() => void act('favorite', () => editAssets(selected, { favorite: true }), '已加入收藏')}><Star size={15} />收藏</button>
+            <button onClick={() => setSelected(assets.slice(0, 100).map(item => item.id))}>选择已加载</button>
+            <button aria-label="取消选择" onClick={() => setSelected([])}><X size={16} /></button>
+          </div>}
+          {loading ? <div className="asset-grid">{Array.from({ length: 8 }, (_, i) => <div key={i} className="library-card is-skeleton"><span className="library-media" /><span className="skeleton-line" /></div>)}</div> : view !== 'tasks' ? <div className={`asset-grid is-${density}`}>
+            {assets.map(asset => <article className={`asset-card${selected.includes(asset.id) ? ' is-selected' : ''}`} key={asset.id}>
+              <button className="asset-cover" aria-label={`查看 ${assetTitle(asset)}`} onClick={() => setPreview(asset)}><AuthenticatedImage path={asset.thumbnailPath} alt={assetTitle(asset)} /></button>
+              <label className="asset-checkbox"><input type="checkbox" aria-label={`选择 ${assetTitle(asset)}`} checked={selected.includes(asset.id)} onChange={() => toggleSelect(asset.id)} /><Check size={13} aria-hidden="true" /></label>
+              <button className={`asset-star${asset.favorite ? ' is-favorite' : ''}`} aria-label={asset.favorite ? `取消收藏 ${assetTitle(asset)}` : `收藏 ${assetTitle(asset)}`} aria-pressed={asset.favorite} disabled={!!busy} onClick={() => void act(asset.id, () => editAssets([asset.id], { favorite: !asset.favorite }))}><Star size={16} fill={asset.favorite ? 'currentColor' : 'none'} /></button>
+              <div className="asset-card-copy"><strong title={assetTitle(asset)}>{assetTitle(asset)}</strong><span>{asset.projectName || (asset.task ? taskModeLabel(asset.task.input) : '上传素材')} · {when(asset.createdAt)}</span>{asset.tags.length > 0 && <div className="asset-tags">{asset.tags.map(value => <button key={value} onClick={() => setTag(value)}>{value}</button>)}</div>}</div>
+              <div className="asset-card-actions"><button onClick={() => openEdit(asset)}><Pencil size={14} />整理</button><button aria-label={`下载 ${assetTitle(asset)}`} onClick={() => void act('download', () => downloadProtectedAsset(asset.contentPath, assetFilename(asset)))}><Download size={15} /></button><button aria-label={`删除 ${assetTitle(asset)}`} onClick={() => setConfirm({ asset })}><Trash2 size={15} /></button></div>
+            </article>)}
+          </div> : <div className="asset-grid">{tasks.map(task => <article className="asset-card" key={task.id}>
+            {task.resultImages?.length ? <button className="asset-cover" onClick={() => setDetailTask(task)} aria-label={`查看 ${taskTitle(task.input)}`}><AuthenticatedImage path={(task.resultImages[0] ?? '').replace(/\/content$/, '/thumbnail')} alt={taskTitle(task.input)} /><span className="asset-task-badge">{task.resultImages.length} 张 · {statuses[task.status] ?? task.status}</span></button> : task.status === 'failed' ? <button className="asset-cover is-failed" onClick={() => setDetailTask(task)}><Image src="/images/generation-failed.png" alt="生成失败，查看原因" fill sizes="300px" /><span className="asset-task-badge"><AlertTriangle size={14} />生成失败 · 查看原因</span></button> : <div className="asset-cover is-empty"><Loader2 size={20} className={activeTaskStatuses.has(task.status) ? 'animate-spin' : ''} /><span>{statuses[task.status]}</span></div>}
+            <div className="asset-card-copy"><strong>{taskTitle(task.input)}</strong><span>{taskModeLabel(task.input)} · {when(task.createdAt)}</span></div>
+            <div className="asset-card-actions"><Link href={historyWorkbenchUrl(task)}>继续创作</Link><button onClick={() => setDetailTask(task)} aria-label="查看任务参数"><SlidersHorizontal size={15} /></button><button disabled={activeTaskStatuses.has(task.status)} onClick={() => setConfirm({ task })} aria-label="删除任务记录"><Trash2 size={15} /></button></div>
+          </article>)}</div>}
+          {!loading && assetCount === 0 && !error && <div className="library-empty-state"><Folder size={32} /><strong>{query || tool !== 'all' || tag || favorite || project !== 'all' ? '没有匹配的作品' : view === 'uploads' ? '上传的参考素材会保存在这里' : '从第一张图片开始'}</strong><p>可以调整筛选条件，或开始一次新的创作。</p><Link className="studio-primary" href="/workbench?mode=general">开始创作</Link></div>}
+          {!loading && cursor && <button className="library-load-more" disabled={moreBusy} onClick={() => { setMoreBusy(true); void load(cursor, true) }}>{moreBusy ? '正在加载…' : '加载更多'}</button>}
+          {!loading && assetCount > 0 && <p className="library-end-note">已加载 {assetCount} / {total} {view === 'tasks' ? '条记录' : '张图片'}</p>}
+        </section>
+      </div>
     </main>
-    {confirmTarget && (
-      <ConfirmDialog
-        title={confirmTarget.kind === 'image' ? '删除这张图片？' : '删除这条记录？'}
-        description={confirmTarget.kind === 'image'
-          ? `${taskTitle(confirmTarget.image.task)} 第 ${confirmTarget.image.index + 1} 张`
-          : `${taskTitle(confirmTarget.task)} · ${new Date(confirmTarget.task.createdAt).toLocaleString('zh-CN')}`}
-        detail={confirmTarget.kind === 'image'
-          ? '删除后不可恢复，该图片会从记录里移除。'
-          : '该次生成的所有图片会一起删除，删除后不可恢复。'}
-        confirmLabel="删除"
-        error={error}
-        busy={confirmTarget.kind === 'image'
-          ? deletingKey === `${confirmTarget.image.task.id}-${confirmTarget.image.index}`
-          : deletingKey === confirmTarget.task.id}
-        onCancel={() => setConfirmTarget(null)}
-        onConfirm={() => {
-          if (confirmTarget.kind === 'image') void removeImage(confirmTarget.image)
-          else void removeTask(confirmTarget.task)
-        }}
-      />
-    )}
-    {detailsTask && (
-      <InfoDialog
-        title="生成提示词与参数"
-        subtitle={`${taskTitle(detailsTask)} · ${taskTypeLabel(detailsTask)} · ${formatWhen(detailsTask.createdAt)}`}
-        onClose={() => setDetailsTask(null)}
-      >
-        <dl className="studio-parameter-details asset-parameter-details">
-          {parameterRows(detailsTask).map(([label, value]) => <div key={label} className={label === '提示词' ? 'parameter-prompt' : undefined}><dt>{label}</dt><dd>{value}</dd></div>)}
-          {!parameterRows(detailsTask).length && <p className="empty-state">这条记录没有可展示的参数。</p>}
-        </dl>
-      </InfoDialog>
-    )}
-    {infoTask && (
-      <InfoDialog
-        title="这条记录生成失败"
-        subtitle={`${taskTitle(infoTask)} · ${taskTypeLabel(infoTask)} · ${formatWhen(infoTask.createdAt)}`}
-        onClose={() => setInfoTask(null)}
-      >
-        <FailureNotice message={infoTask.errorMessage || '供应商未返回错误详情，请稍后重试。'} compact />
-      </InfoDialog>
-    )}
+    {preview && <AssetPreview asset={preview} onClose={() => setPreview(null)} onEdit={() => openEdit(preview)} onZoom={() => { setLightbox(preview); setPreview(null) }} onReverse={() => { const asset = preview; setPreview(null); openReverse({ assetId: asset.id, imageName: assetTitle(asset) }) }} />}
+    {lightbox && <ImageLightbox path={lightbox.contentPath} alt={assetTitle(lightbox)} filename={assetFilename(lightbox)} onClose={() => setLightbox(null)} />}
+    {editing && <LibraryDialog title="整理图片" onClose={() => { if (!busy) setEditing(null) }}><form onSubmit={event => { event.preventDefault(); void act('metadata', saveMetadata, '图片信息已保存') }}>
+      <label>作品名称<input aria-label="作品名称" value={titleDraft} maxLength={160} placeholder={assetTitle(editing)} onChange={event => setTitleDraft(event.target.value)} disabled={!!busy} /></label>
+      <label>标签<input aria-label="作品标签" value={tagsDraft} maxLength={400} placeholder="用逗号分隔，例如：产品、夏季" onChange={event => setTagsDraft(event.target.value)} disabled={!!busy} /><small>最多 12 个标签，每个 32 字</small></label>
+      <label>所属项目<select aria-label="所属项目" value={projectDraft} onChange={event => setProjectDraft(event.target.value)} disabled={!!busy}>{projectOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
+      {error && <p role="alert" className="settings-error">{error}</p>}<div className="library-form-actions"><button className="studio-secondary" type="button" disabled={!!busy} onClick={() => setEditing(null)}>取消</button><button className="studio-primary" disabled={!!busy}>{busy === 'metadata' ? '保存中…' : '保存'}</button></div>
+    </form></LibraryDialog>}
+    {projectForm && <LibraryDialog title={projectForm === 'new' ? '新建项目' : '项目改名'} onClose={() => { if (!busy) setProjectForm(null) }}><form onSubmit={event => { event.preventDefault(); void act('project', saveProject, '项目已保存') }}><label>项目名称<input autoFocus aria-label="项目名称" required maxLength={80} value={projectName} onChange={event => setProjectName(event.target.value)} disabled={!!busy} /></label>{error && <p role="alert" className="settings-error">{error}</p>}<div className="library-form-actions"><button className="studio-secondary" type="button" disabled={!!busy} onClick={() => setProjectForm(null)}>取消</button><button className="studio-primary" disabled={!!busy || !projectName.trim()}>保存项目</button></div></form></LibraryDialog>}
+    {moveOpen && <LibraryDialog title={`移动 ${selected.length} 张图片`} onClose={() => { if (!busy) setMoveOpen(false) }}><form onSubmit={event => { event.preventDefault(); void act('move', async () => { await editAssets(selected, { projectId: moveProject === 'unfiled' ? '' : moveProject }); setMoveOpen(false) }, '图片已移动') }}><label>目标项目<select aria-label="目标项目" value={moveProject} onChange={event => setMoveProject(event.target.value)} disabled={!!busy}>{projectOptions.filter(([id]) => !projects.find(item => item.id === id)?.archived).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>{error && <p role="alert" className="settings-error">{error}</p>}<div className="library-form-actions"><button className="studio-secondary" type="button" disabled={!!busy} onClick={() => setMoveOpen(false)}>取消</button><button className="studio-primary" disabled={!!busy}>确认移动</button></div></form></LibraryDialog>}
+    {confirm && <ConfirmDialog title={confirm.project ? '移除这个项目？' : confirm.task ? '删除这条创作记录？' : '删除这张图片？'} description={confirm.project?.name || (confirm.task ? taskTitle(confirm.task.input) : assetTitle(confirm.asset!))} detail={confirm.project ? '项目中的图片和记录会保留，并回到未分类。' : '删除后不可恢复，相关图片会从创作记录中移除。'} confirmLabel={confirm.project ? '移除项目' : '删除'} busy={!!busy} error={error} onCancel={() => setConfirm(null)} onConfirm={() => void act('delete', removeConfirmed, '已完成')} />}
+    {detailTask && <InfoDialog title="创作记录" subtitle={`${taskModeLabel(detailTask.input)} · ${when(detailTask.createdAt)}`} onClose={() => setDetailTask(null)} hideActions>{detailTask.errorMessage && <FailureNotice message={detailTask.errorMessage} compact />}<p className="library-task-prompt">{detailTask.input.prompt || detailTask.input.requirements || '未填写补充描述'}</p><dl className="library-parameters"><div><dt>模型</dt><dd>{detailTask.input.model}</dd></div><div><dt>比例 / 清晰度</dt><dd>{detailTask.input.aspectRatio} · {detailTask.input.resolution}</dd></div></dl><div className="library-form-actions"><Link className="studio-primary" href={historyWorkbenchUrl(detailTask)}>载入配置继续创作</Link></div></InfoDialog>}
   </StudioShell>
+}
+
+function AssetPreview({ asset, onClose, onEdit, onZoom, onReverse }: { asset: LibraryAsset; onClose: () => void; onEdit: () => void; onZoom: () => void; onReverse: () => void }) {
+  const panel = useRef<HTMLDivElement>(null)
+  useDialogFocus(panel, onClose)
+  const reference = referenceWorkbenchUrl(asset.contentPath, 'general', 'product-main')
+  return createPortal(<div className="dialog-backdrop asset-preview-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}><div className="asset-preview" ref={panel} role="dialog" aria-modal="true" aria-label="作品预览"><header><strong>{assetTitle(asset)}</strong><button aria-label="关闭作品预览" onClick={onClose}><X size={20} /></button></header><div className="asset-preview-body"><div className="asset-preview-image"><AuthenticatedImage path={asset.contentPath} alt={assetTitle(asset)} /><button className="asset-preview-zoom" onClick={onZoom}><Maximize2 size={16} />放大 / 裁剪</button></div><aside><p className="library-count">{asset.projectName || '未分类'} · {when(asset.createdAt)}</p><dl className="library-parameters"><div><dt>尺寸</dt><dd>{asset.width} × {asset.height}</dd></div><div><dt>文件</dt><dd>{(asset.sizeBytes / 1024 / 1024).toFixed(2)} MB</dd></div>{asset.task && <div><dt>模型</dt><dd>{asset.task.input.model}</dd></div>}</dl>{asset.task && <p className="asset-preview-prompt">{asset.task.input.prompt || asset.task.input.requirements || '未填写补充描述'}</p>}<div className="asset-tags">{asset.tags.map(tag => <span key={tag}>{tag}</span>)}</div><div className="asset-preview-actions"><button className="studio-secondary" onClick={onEdit}><Pencil size={15} />编辑名称与标签</button><button className="studio-secondary" onClick={onReverse}><ScanText size={15} />图片反推</button>{reference && <Link className="studio-secondary" href={reference}>用作参考图</Link>}{asset.task && <Link className="studio-primary" href={historyWorkbenchUrl(asset.task)}>继续创作</Link>}</div></aside></div></div></div>, document.body)
 }

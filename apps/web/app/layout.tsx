@@ -8,6 +8,7 @@ import { siteLogoUrl, siteTitle } from '@/lib/site-settings'
 import './globals.css'
 import './studio.css'
 import './prompt-reverse.css'
+import './library.css'
 
 /**
  * 工作台骨架屏渲染前就把配置面板方向定下来：

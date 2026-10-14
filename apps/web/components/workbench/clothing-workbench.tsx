@@ -138,7 +138,7 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
       productFiles: snapshot.garments, referenceFiles: [],
       modelFile: snapshot.mode === 'model' ? snapshot.models[0] : undefined,
       sceneFile: snapshot.mode === 'model' ? snapshot.scenes[0] : undefined,
-      buildPayload: (productAssetIds, _referenceAssetIds, roles) => ({ mode: 'commerce', taskType: 'clothing-set', productAssetIds, ...(snapshot.mode === 'model' ? roles : {}), clothingMode: snapshot.mode, clothingStyle: snapshot.style, moduleCounts: snapshot.counts, clothingPlan: confirmed, requirements: snapshot.requirements, platform: snapshot.platform, outputLanguage: snapshot.outputLanguage, model: snapshot.model, endpointId: snapshot.endpointId || undefined, aspectRatio: snapshot.aspectRatio, resolution: snapshot.resolution, count: confirmed.length, consistencyProtection: true }),
+      buildPayload: (productAssetIds, _referenceAssetIds, roles) => ({ projectId: search.get('projectId') || undefined, mode: 'commerce', taskType: 'clothing-set', productAssetIds, ...(snapshot.mode === 'model' ? roles : {}), clothingMode: snapshot.mode, clothingStyle: snapshot.style, moduleCounts: snapshot.counts, clothingPlan: confirmed, requirements: snapshot.requirements, platform: snapshot.platform, outputLanguage: snapshot.outputLanguage, model: snapshot.model, endpointId: snapshot.endpointId || undefined, aspectRatio: snapshot.aspectRatio, resolution: snapshot.resolution, count: confirmed.length, consistencyProtection: true }),
       onAuthRequired: login,
     })
   }
