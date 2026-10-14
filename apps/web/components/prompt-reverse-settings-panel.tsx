@@ -81,7 +81,7 @@ export function PromptReverseSettingsPanel({ endpoints, onDirtyChange, onSavingC
         <div className="reverse-config-label"><h3 id="reverse-service-title">识图服务</h3><p>使用支持图片识别的 Prompt 服务分析参考图。</p></div>
         <div className="reverse-config-controls">
           <Select value={draft.endpointId || 'default'} onValueChange={value => update({ endpointId: value === 'default' ? '' : value })} disabled={saving}>
-            <SelectTrigger aria-label="图片反推识图服务" aria-describedby="reverse-service-help"><SelectValue /></SelectTrigger>
+            <SelectTrigger size="lg" aria-label="图片反推识图服务" aria-describedby="reverse-service-help"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="default">跟随默认 Prompt 服务</SelectItem>{choices.map(item => <SelectItem key={item.id} value={item.id}>{item.name} · {item.model}</SelectItem>)}{draft.endpointId && !choices.some(item => item.id === draft.endpointId) && <SelectItem value={draft.endpointId} disabled>所选服务已不可用</SelectItem>}</SelectContent>
           </Select>
           {serviceReady && !configurationReason ? <div className="reverse-service-summary"><span className="reverse-service-mark"><ScanText size={20} aria-hidden="true" /></span><div><span>{draft.endpointId !== original?.endpointId ? '保存后使用' : '当前使用'} <strong>{selectedService!.name}</strong></span><p>{selectedService!.model}</p></div><span className="reverse-service-capability"><Check size={13} aria-hidden="true" />支持识图</span></div> : <div className="reverse-service-unavailable" role="status"><CircleAlert size={18} aria-hidden="true" /><p>{unavailableReason}</p></div>}

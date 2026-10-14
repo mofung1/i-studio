@@ -21,7 +21,7 @@
 .library-search { display: flex; align-items: center; gap: 10px; flex: 1 1 240px; min-width: 0; min-height: 40px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; color: var(--foreground-3); background: var(--surface); }
 .library-search:focus-within { border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
 .library-search input { width: 100%; min-width: 0; height: 38px; min-height: 0; padding: 0; border: 0; outline: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; }
-.library-toolbar .select-trigger { height: 40px; min-height: 40px; width: 135px; flex: 0 0 auto; background: var(--surface); }
+.library-toolbar .select-trigger { width: 135px; flex: 0 0 auto; }
 .library-command { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 7px; color: var(--foreground-2); background: var(--surface); cursor: pointer; font: inherit; font-size: 12px; }
 .library-command:disabled { opacity: .5; cursor: default; }
 .library-filter-row { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding: 12px 0; }
@@ -30,9 +30,9 @@
 .library-advanced summary span { color: var(--foreground); }
 .library-advanced > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .library-advanced label, .library-dialog-body form > label { display: grid; gap: 7px; color: var(--foreground-2); font-size: 13px; }
-.library-advanced input, .library-dialog-body :is(input,textarea,select) { width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--foreground); background: var(--surface); font: inherit; }
+.library-advanced input, .library-dialog-body :is(input,textarea) { width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--foreground); background: var(--surface); font: inherit; }
 .library-dialog-body textarea { min-height: 150px; resize: vertical; line-height: 1.7; }
-.library-dialog-body :is(input,textarea,select):focus-visible, .library-advanced input:focus-visible { border-color: var(--foreground); outline: 0; box-shadow: inset 0 0 0 1px var(--foreground); }
+.library-dialog-body :is(input,textarea):focus-visible,.library-advanced input:focus-visible { border-color: var(--foreground); outline: 0; box-shadow: inset 0 0 0 1px var(--foreground); }
 .library-density { min-height: 28px; padding: 0; border: 0; color: var(--foreground-3); background: transparent; cursor: pointer; font-size: 12px; }
 .library-project-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; padding: 12px 0; border-bottom: 1px solid var(--border-soft); }
 .library-project-heading strong { font-size: 15px; overflow-wrap: anywhere; }
@@ -109,7 +109,7 @@
 .personal-library-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .personal-library-head .library-views { margin: 0; }
 .personal-library-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-.personal-library-toolbar .select-trigger { height: 40px; width: 150px; background: var(--surface); }
+.personal-library-toolbar .select-trigger { width: 150px; }
 .personal-library-toolbar .library-command { min-height: 40px; }
 .personal-library-toolbar .active { color: var(--foreground); border-color: var(--foreground); }
 .personal-prompt-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
@@ -166,8 +166,8 @@
 .comparison-mobile-label { display: none; }
 .comparison-close { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 7px; background: var(--control-bg); color: var(--foreground-2); cursor: pointer; }
 .comparison-pickers { display: grid; grid-template-columns: minmax(0,1fr) 40px minmax(0,1fr); align-items: end; gap: 10px; flex: 0 0 auto; padding: 12px 20px 8px; }
+.comparison-pickers > .library-command { min-height: 40px; }
 .comparison-pickers label { display: grid; gap: 5px; min-width: 0; color: var(--foreground-3); font-size: 11px; }
-.comparison-pickers select { width: 100%; min-width: 0; min-height: 36px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--foreground-2); font: inherit; font-size: 12px; text-overflow: ellipsis; }
 .comparison-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; flex: 0 0 auto; padding: 8px 20px 12px; }
 .comparison-toolbar output { min-width: 54px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
 .comparison-sync { margin-right: auto; color: var(--foreground-3); font-size: 12px; }
@@ -195,3 +195,5 @@
 .comparison-range output { min-width: 40px; text-align: right; font-variant-numeric: tabular-nums; }
 .comparison-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; flex: 0 0 auto; padding: 12px 20px; color: var(--foreground-3); font-size: 11px; }
 @media (max-width:700px) { .comparison-backdrop { padding: 8px; } .comparison-dialog { height: calc(100dvh - 16px); border-radius: 11px; } .comparison-header { gap: 8px; padding: 12px; flex-wrap: wrap; } .comparison-header h2 { font-size: 16px; } .comparison-header p { display: none; } .comparison-mode button { padding: 0 8px; } .comparison-mobile-label { display: inline; } .comparison-desktop-label { display: none; } .comparison-pickers { gap: 6px; padding: 10px 12px 4px; grid-template-columns: minmax(0,1fr) 36px minmax(0,1fr); } .comparison-toolbar { padding: 6px 12px 10px; gap: 6px; } .comparison-sync { width: 100%; } .comparison-toolbar .library-command { min-height: 34px; padding: 0 8px; } .comparison-pan-buttons button { width: 26px; } .comparison-workspace { padding: 0 12px; } .comparison-stages.is-side { grid-template-columns: minmax(0,1fr); grid-template-rows: repeat(2,minmax(0,1fr)); gap: 8px; } .comparison-range { padding: 10px 12px 0; gap: 8px; } .comparison-footer { padding: 10px 12px; line-height: 1.6; } .comparison-footer span:last-child { display: none; } }
+
+@media (max-width:780px), (pointer:coarse) { .comparison-pickers > .library-command { min-height: 44px; } }

@@ -92,7 +92,6 @@
 .settings-grid { gap: 14px; }
 .settings-field { gap: 7px; min-width: 0; }
 .settings-field > span { font-size: var(--text-small); color: var(--foreground-3); }
-.settings-field .select-trigger { min-height: 36px; height: 36px; border-radius: 4px; box-shadow: none; font-size: var(--text-small); }
 .model-field { grid-column: 1 / -1; }
 .advanced-settings { margin-top: 20px; border: 0; border-radius: 0; background: none; }
 .advanced-heading { margin: 0 0 16px; font-size: var(--text-small); font-weight: 600; }
@@ -377,10 +376,8 @@
 .mode-general .basic-settings { flex: 0 1 auto; min-width: 0; }
 .mode-general .basic-settings .settings-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .mode-general .basic-settings .settings-field > span { display: none; }
-.mode-general .settings-field .select-trigger { display: flex; align-items: center; gap: 6px; height: 32px; min-height: 32px; padding: 0 9px; font-size: var(--text-small); background: var(--surface); border-radius: 4px; }
 .mode-general .model-field { width: 178px; }
 .mode-general .basic-settings .settings-field:not(.model-field) { width: auto; min-width: 72px; }
-.mode-general .basic-settings .select-trigger > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mode-general .advanced-settings { position: relative; margin: 0; padding: 0; }
 .mode-general .advanced-toggle { display: inline-flex; align-items: center; gap: 6px; width: auto; min-height: 32px; padding: 0 4px; border: 0; border-radius: 4px; color: var(--muted); font-size: var(--text-small); }
 .mode-general .advanced-toggle:hover { color: var(--foreground); background: var(--surface-subtle); }
@@ -458,8 +455,6 @@
 .mode-general .composer-control-row { padding-top: 8px; border-top: 0; }
 .mode-general .basic-settings { padding-top: 12px; }
 .mode-general .advanced-settings { padding-top: 12px; }
-.mode-general .settings-field .select-trigger { border-color: #dfe3e8; }
-.mode-general .settings-field .select-trigger:hover { border-color: #aeb5bf; background: var(--surface-2); }
 
 @media (max-width: 780px) {
   .history-top-trigger { display: inline-flex; min-width: 34px; width: 34px; padding: 0; font-size: 0; gap: 0; }
@@ -618,7 +613,7 @@
   gap: 8px;
   min-width: 0;
 }
-.mode-general .settings-chip {
+.mode-general .settings-chip:not(.select-trigger) {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -636,13 +631,13 @@
   cursor: pointer;
   transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
-.mode-general .settings-chip:hover,
-.mode-general .settings-chip[aria-expanded='true'] {
+.mode-general .settings-chip:not(.select-trigger):hover,
+.mode-general .settings-chip:not(.select-trigger)[aria-expanded='true'] {
   color: var(--foreground);
   background: var(--surface-2);
   border-color: var(--line-strong);
 }
-.mode-general .settings-chip > span {
+.mode-general .settings-chip:not(.select-trigger) > span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -691,7 +686,6 @@
 .mode-general .basic-settings-popover .settings-field .select-trigger {
   width: 100%;
   min-width: 0;
-  background: var(--surface);
 }
 
 @media (max-width: 780px) {
@@ -715,7 +709,7 @@
   .mode-general .compact-settings-row {
     flex-wrap: wrap;
   }
-  .mode-general .settings-chip {
+  .mode-general .settings-chip:not(.select-trigger) {
     max-width: calc(100vw - 80px);
   }
   .mode-general .settings-chip-output {
@@ -737,9 +731,6 @@
   width: min(210px, 34vw);
   max-width: 210px;
   justify-content: flex-start;
-}
-.mode-general .settings-chip-model .select-chevron {
-  margin-left: auto;
 }
 .mode-general .settings-chip-output {
   flex: 0 1 auto;
@@ -955,7 +946,6 @@
 .mode-general .basic-settings-popover-head strong { font-size: 15px; letter-spacing: -.1px; }
 .mode-general .basic-settings-popover-grid { gap: 12px; }
 .mode-general .basic-settings-popover .settings-field > span { margin-bottom: 7px; font-size: var(--text-small); }
-.mode-general .basic-settings-popover .settings-field .select-trigger { min-height: 38px; height: 38px; padding: 0 10px; font-size: var(--text-small); }
 @media (max-width: 780px) {
   .mode-general .basic-settings-popover { width: min(440px, calc(100vw - 36px)); padding: 16px; }
   .mode-general .basic-settings-popover-head strong { font-size: 14px; }
@@ -1013,10 +1003,7 @@
 .settings-field > span, .field-heading legend, .reference-dropzone strong { font-size: var(--text-ui); }
 .field-helper, .prompt-note, .reference-meta, .generate-meta { font-size: var(--text-small); line-height: 1.65; }
 .prompt-input, .prompt-editor .prompt-input { font-size: var(--text-ui); border-radius: 8px; }
-.settings-field .select-trigger { height: 40px; min-height: 40px; padding: 0 12px; background: var(--control-bg); border-color: transparent; border-radius: 8px; font-size: var(--text-ui); }
-.settings-field .select-trigger:hover { background: var(--control-hover); border-color: transparent; }
-.settings-field .select-trigger:focus-visible { border-color: var(--foreground-3); }
-.mode-general .settings-chip {
+.mode-general .settings-chip:not(.select-trigger) {
   height: 36px;
   min-height: 36px;
   margin-top: 0;
@@ -1027,19 +1014,9 @@
   font-size: var(--text-small);
   line-height: 1;
 }
-.mode-general .settings-field .select-trigger {
-  height: 38px;
-  min-height: 38px;
-  background: var(--control-bg);
-  border-color: transparent;
-  border-radius: 8px;
-  font-size: var(--text-small);
-}
-.mode-general .settings-chip:is(:hover, [aria-expanded='true']), .mode-general .settings-field .select-trigger:hover { color: var(--foreground); background: var(--control-hover); border-color: transparent; }
+.mode-general .settings-chip:not(.select-trigger):is(:hover, [aria-expanded='true']) { color: var(--foreground); background: var(--control-hover); border-color: transparent; }
 .mode-general .basic-settings-popover { border-color: var(--border-soft); border-radius: 12px; }
 .mode-general .basic-settings-popover .settings-field > span { font-size: var(--text-small); }
-.mode-general .basic-settings-popover .settings-field .select-trigger { font-size: var(--text-ui); background: var(--control-bg); border-color: transparent; }
-.mode-general .basic-settings-popover .settings-field .select-trigger:hover { background: var(--control-hover); }
 .mode-general .configuration-footer .generate-button { min-height: 40px; font-size: var(--text-ui); }
 .mode-general .creation-canvas, .mode-general.config-right .creation-canvas { padding-bottom: 230px; }
 .reference-uploader .upload-list { padding: 0; border: 0; background: transparent; }
@@ -1109,7 +1086,7 @@
 .settings-switch, .settings-checks label { font-size: var(--text-small); }
 .endpoint-dialog { border-color: var(--border-soft); border-radius: 16px; }
 .endpoint-dialog .settings-field > span { font-size: var(--text-ui); }
-.endpoint-dialog .settings-field :is(input, select), .prompt-settings textarea { font-size: var(--text-ui); border-color: var(--border); border-radius: 8px; }
+.endpoint-dialog .settings-field :is(input), .prompt-settings textarea { font-size: var(--text-ui); border-color: var(--border); border-radius: 8px; }
 .auth-card { border-color: transparent; border-radius: 16px; box-shadow: var(--shadow-md); }
 .auth-card label, .auth-input input { font-size: var(--text-ui); }
 .auth-back, .auth-switch { font-size: var(--text-small); }
@@ -1322,18 +1299,6 @@ html[data-theme='dark'] .inspire-actions .inspire-start-button:hover { color: #1
 .ai-settings > .prompt-settings { margin-top: 12px; padding: 24px; border: 1px solid var(--border-soft); border-radius: 12px; background: var(--surface); }
 .ai-settings .prompt-settings nav button { text-align: left; }
 .ai-settings .prompt-settings-editor { min-width: 0; }
-.endpoint-dialog select {
-  appearance: none;
-  padding-right: 40px !important;
-  border-color: var(--border) !important;
-  background-color: var(--surface-subtle) !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4 6 4 4 4-4' stroke='%23667085' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 13px center;
-  cursor: pointer;
-}
-.endpoint-dialog select:hover { border-color: var(--line-strong) !important; background-color: var(--control-bg) !important; }
-.endpoint-dialog select:focus-visible { outline: 2px solid var(--foreground); outline-offset: 2px; }
 
 /* Keep image actions anchored to the media on touch screens as well. */
 .library-card { position: relative; }
@@ -1419,30 +1384,9 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle { right: -12px; margin: 0
 .workbench-shell.mode-commerce.config-right .configuration-footer { background: var(--surface-2); }
 
 /* Radix Select gives the settings dialog a styled, keyboard-friendly option list. */
-.endpoint-dialog .settings-select {
-  height: 44px;
-  min-height: 44px;
-  margin-top: 0;
-  padding: 0 12px;
-  border-color: var(--border);
-  border-radius: 9px;
-  background: var(--surface-subtle);
-  font-size: var(--text-ui);
-}
-.endpoint-dialog .settings-select:hover,
-.endpoint-dialog .settings-select[data-state='open'] { border-color: var(--line-strong); background: var(--control-bg); }
 .endpoint-dialog-select-content {
   min-width: var(--radix-select-trigger-width);
-  max-height: 260px;
-  padding: 4px;
-  border-color: var(--border-soft);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
 }
-.endpoint-dialog-select-content .select-item { min-height: 38px; padding: 8px 32px 8px 34px; border-radius: 7px; color: var(--foreground-2); font-size: var(--text-ui); }
-.endpoint-dialog-select-content .select-item[data-highlighted] { color: var(--foreground); background: var(--control-bg); }
-.endpoint-dialog-select-content .select-item-indicator { left: 10px; color: var(--foreground); }
 
 @media (max-width: 1100px) {
   .inspire-gallery-head { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
@@ -1674,7 +1618,7 @@ html[data-theme='dark'] .inspire-hero-search:focus-within { border-color: var(--
   gap: 10px;
 }
 .commerce-output-field > span:first-child { flex: 0 0 auto; }
-.commerce-output-field .select-trigger { flex: 1 1 auto; min-width: 0; margin: 0; }
+.commerce-output-field .select-trigger { flex: 1 1 auto; min-width: 0; }
 .commerce-output-field .settings-value { flex: 0 0 auto; margin: 0; }
 .studio-rail-nav :is(a, button).active {
   color: #fff;
@@ -2005,11 +1949,14 @@ html:has(.library-content)::-webkit-scrollbar-thumb,
   gap: 10px;
   width: 100%;
 }
-.workbench-shell.mode-commerce .commerce-output-controls > .select-trigger,
 .workbench-shell.mode-commerce .commerce-output-controls > .settings-value {
   width: 100%;
   min-width: 0;
   margin: 0;
+}
+.workbench-shell.mode-commerce .commerce-output-controls > .select-trigger {
+  width: 100%;
+  min-width: 0;
 }
 .workbench-shell.mode-commerce .commerce-output-controls > .settings-value {
   overflow: hidden;
@@ -2183,12 +2130,8 @@ html:has(.library-content)::-webkit-scrollbar-thumb,
   min-width: 0;
 }
 .workbench-shell.mode-commerce .commerce-output-field .select-trigger > span:first-child {
-  display: block;
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Fill the actual content slot instead of centering an old fixed-width gallery. */
@@ -2638,9 +2581,6 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
   color: var(--foreground);
   background: var(--control-bg);
 }
-.endpoint-dialog .endpoint-dialog-select-content {
-  z-index: 10001;
-}
 
 .ai-settings .prompt-default {
   margin-top: 12px;
@@ -3047,13 +2987,8 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
 .mode-general .general-parameter-popover .settings-field { width: auto; min-width: 0; margin: 0; }
 .mode-general .general-parameter-popover .settings-field:last-child { grid-column: 1 / -1; }
 .mode-general .general-parameter-popover .settings-field > span { margin-bottom: 6px; font-size: var(--text-small); font-weight: 450; }
-.mode-general .general-parameter-popover .settings-field .select-trigger { min-height: 40px; height: 40px; justify-content: flex-start; gap: 8px; }
-.mode-general .general-parameter-popover .select-trigger .select-chevron { margin-left: auto; }
-.mode-general .general-parameter-popover .select-item { min-height: 36px; padding: 8px 28px 8px 30px; }
 @media (max-width: 780px) {
   .mode-general .general-parameter-head button { width: 40px; height: 40px; }
-  .mode-general .general-parameter-popover .settings-field .select-trigger { min-height: 44px; height: 44px; }
-  .mode-general .general-parameter-popover .select-item { min-height: 44px; }
 }
 
 /* Configurable branding uses the same footprint for vector and uploaded marks. */
@@ -3106,9 +3041,8 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
 .inspiration-manager-search input { width: 100%; min-width: 0; height: 44px; padding: 0; border: 0; color: var(--foreground); background: transparent; font-size: var(--text-ui); }
 .inspiration-manager-search:focus-within { border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
 .inspiration-manager-search input:focus-visible { outline: 0; box-shadow: none; }
-.inspiration-manager-category { flex: 0 1 200px; width: 200px; min-width: 0; height: 44px; margin: 0; }
-.inspiration-manager-toolbar .select-trigger:focus-visible { outline: 0; border-color: var(--foreground); box-shadow: inset 0 0 0 1px var(--foreground); }
-.inspiration-manager-status { flex: 0 0 140px; width: 140px; height: 44px; margin: 0; }
+.inspiration-manager-category { flex: 0 1 200px; width: 200px; min-width: 0; }
+.inspiration-manager-status { flex: 0 0 140px; width: 140px; }
 .inspiration-manager .settings-command { min-height: 44px; color: var(--foreground-2); background: var(--surface); }
 .inspiration-manager :is(.settings-primary, .settings-command):disabled { opacity: .5; cursor: default; }
 .inspiration-manager .settings-primary { color: var(--primary-foreground); }
@@ -3143,7 +3077,8 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
 .inspiration-editor-dialog .settings-primary { color: var(--primary-foreground); }
 .inspiration-editor-dialog .settings-form-actions { margin-top: 24px; }
 @media (max-width: 780px) {
-  .inspiration-manager-search, .inspiration-manager-category { flex: 1 0 100%; }
+  .inspiration-manager-search { flex: 1 0 100%; }
+  .inspiration-manager-category { flex: 1 0 100%; }
   .inspiration-manager-toolbar > .settings-primary { margin-left: auto; }
   .inspiration-manager-row { align-items: flex-start; flex-wrap: wrap; gap: 12px; padding: 16px; }
   .inspiration-manager-actions { justify-content: flex-end; width: 100%; }
@@ -3171,7 +3106,6 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
 .clothing-requirements { display: block; width: 100%; min-height: 100px; padding: 10px; border: 1px solid var(--border); border-radius: 6px; color: var(--foreground); background: var(--surface); font: inherit; font-size: var(--text-small); line-height: 1.8; resize: vertical; }
 .clothing-parameter-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; }
 .clothing-parameter-grid > .settings-field { margin: 0; }
-.clothing-parameter-grid .select-trigger { min-height: 44px; height: auto; }
 .clothing-model-field { grid-column: 1 / -1; }
 .clothing-panel-backdrop { display: none; }
 .clothing-parameter-details { display: grid; grid-template-columns: auto 1fr; gap: 12px 24px; font-size: var(--text-small); }
