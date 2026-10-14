@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, ChevronLeft, ChevronRight, Copy, Folder, Image as ImageIcon, Images, LayoutGrid, Plus, Settings, Shirt, Sparkles, WandSparkles } from 'lucide-react'
+import { BookMarked, Box, ChevronLeft, ChevronRight, Copy, Folder, Image as ImageIcon, Images, LayoutGrid, Plus, Settings, Shirt, Sparkles, WandSparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -8,7 +8,7 @@ import { Brand } from '@/components/brand'
 import type { CommerceTaskType } from '@/lib/contracts'
 import { commerceTasks, type WorkbenchMode } from './shared'
 
-export type StudioSection = 'general' | 'commerce' | 'inspire' | 'history' | 'assets' | 'settings'
+export type StudioSection = 'general' | 'commerce' | 'inspire' | 'history' | 'assets' | 'settings' | 'prompts'
 
 interface WorkbenchRailProps {
   mode?: WorkbenchMode
@@ -57,6 +57,7 @@ export function WorkbenchRail({ mode, section = mode ?? 'general', task, onChang
           })}
         </div>}
         <Link href="/inspire" className={section === 'inspire' ? 'active' : ''} aria-label="发现灵感" title="发现灵感" aria-current={section === 'inspire' ? 'page' : undefined}><Sparkles size={18} /><span>发现灵感</span></Link>
+        <Link href="/prompts" className={section === 'prompts' ? 'active' : ''} aria-label="我的提示词" title="我的提示词" aria-current={section === 'prompts' ? 'page' : undefined}><BookMarked size={18} /><span>我的提示词</span></Link>
         <Link href="/assets" className={section === 'assets' || section === 'history' ? 'active' : ''} aria-label="我的资产" title="我的资产" aria-current={section === 'assets' || section === 'history' ? 'page' : undefined}><Folder size={18} /><span>我的资产</span></Link>
       </nav>
       <div className="studio-rail-footer"><Link href="/settings/ai" aria-label="设置" title="设置" aria-current={section === 'settings' ? 'page' : undefined}><Settings size={18} /><span>设置</span></Link></div>

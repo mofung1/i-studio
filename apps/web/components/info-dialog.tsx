@@ -11,10 +11,11 @@ interface InfoDialogProps {
   onClose: () => void
   children?: ReactNode
   hideActions?: boolean
+  portalContainer?: HTMLElement | null
 }
 
 /** 只读信息弹窗：样式与确认弹窗一致，底部只有一个「知道了」。 */
-export function InfoDialog({ title, subtitle, onClose, children, hideActions = false }: InfoDialogProps) {
+export function InfoDialog({ title, subtitle, onClose, children, hideActions = false, portalContainer }: InfoDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   const onCloseRef = useRef(onClose)
@@ -26,7 +27,7 @@ export function InfoDialog({ title, subtitle, onClose, children, hideActions = f
     document.body.style.overflow = 'hidden'
     dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCloseRef.current()
+      if (event.key === 'Escape') { event.preventDefault(); onCloseRef.current() }
       if (event.key !== 'Tab') return
       const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button, a[href], input, textarea, select, [tabindex="0"]')
       if (!controls?.length) return
@@ -62,6 +63,6 @@ export function InfoDialog({ title, subtitle, onClose, children, hideActions = f
         </div>}
       </div>
     </div>,
-    document.body,
+    portalContainer ?? document.body,
   )
 }

@@ -130,6 +130,8 @@ func main() {
 	mux.HandleFunc("/v1/projects/", s.projectByID)
 	mux.HandleFunc("/v1/library/assets", s.libraryAssets)
 	mux.HandleFunc("/v1/library/download", s.libraryDownload)
+	mux.HandleFunc("/v1/personal/prompts", s.personalPrompts)
+	mux.HandleFunc("/v1/personal/prompts/", s.personalPromptByID)
 	mux.HandleFunc("/v1/assets", s.assets)
 	mux.HandleFunc("/v1/assets/", s.assetContent)
 	mux.HandleFunc("/v1/inspiration/prompts", s.inspirationPrompts)

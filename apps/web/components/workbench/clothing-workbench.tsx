@@ -7,6 +7,9 @@ import { apiBaseUrl, deleteGenerationTask, getAccessToken, readApiError } from '
 import { analyzeClothing, clothingStyles, defaultClothingCounts, makeClothingPlan, type ClothingPlanDefaults } from '@/lib/clothing'
 import type { ClothingPlan } from '@/lib/contracts'
 import { InfoDialog } from '@/components/info-dialog'
+import { resolvePresetEndpoint, type CreationPreset, type PersonalApplication } from '@/lib/personal-prompts'
+import { CreationLibraryTools } from './creation-library-tools'
+import { usePersonalPromptHandoff } from './use-personal-prompt-handoff'
 import { ClothingSettings, type ClothingSettingsValue } from './clothing-settings'
 import { ClothingPlanDialog } from './clothing-plan-dialog'
 import { GenerateBar } from './generate-bar'
@@ -39,6 +42,7 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
   const [loadingHistoryId, setLoadingHistoryId] = useState<string | null>(null)
   const [submittedCount, setSubmittedCount] = useState<number | null>(null)
   const [downloadBusy, setDownloadBusy] = useState(false)
+  const [collectionUndo, setCollectionUndo] = useState<PersonalApplication | null>(null)
   const revision = useRef(0)
   const analysisRequest = useRef<AbortController | null>(null)
   const draftPlan = useRef<ClothingPlan | null>(null)
@@ -46,6 +50,28 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
   const counts: Record<string, number> = settings.mode === 'product' ? settings.counts : { 'clothing-model': settings.modelCount }
   const expectedCount = Object.values(counts).reduce((sum, count) => sum + count, 0)
   useWorkbenchHandoff({ ready: aiEnabled !== null, onHistory: loadHistory, onReference: useReference, onError: message => setNotice({ kind: 'error', message }) })
+
+  function currentPreset(): CreationPreset {
+    return { mode: 'commerce', taskType: 'clothing-set', model: settings.model, ...(settings.endpointId ? { endpointId: settings.endpointId } : {}), aspectRatio: settings.aspectRatio, resolution: settings.resolution, count: expectedCount, clothingMode: settings.mode, clothingStyle: settings.style, moduleCounts: { ...counts }, platform: settings.platform, outputLanguage: settings.outputLanguage } as CreationPreset
+  }
+  function applyCollection(application: PersonalApplication, restore = false) {
+    if (planning || isGenerating || isSubmitting) throw new Error('当前任务进行中，请完成后再应用')
+    if (application.text.length > 2000) throw new Error('服装补充需求最多 2000 字')
+    const config = application.config
+    if (config && (config.mode !== 'commerce' || config.taskType !== 'clothing-set')) throw new Error('该预设属于其他工具，请从“我的提示词”页面应用')
+    const endpoint = config ? resolvePresetEndpoint(config, endpoints) : null
+    if (!restore) setCollectionUndo({ text: settings.requirements, config: currentPreset(), title: '应用前的配置' })
+    const patch: Partial<ClothingSettingsValue> = {}
+    if (restore || !config || application.text.trim()) patch.requirements = application.text
+    if (config && endpoint) {
+      Object.assign(patch, { endpointId: endpoint.id, model: endpoint.model, aspectRatio: config.aspectRatio, resolution: config.resolution, mode: config.clothingMode ?? 'product', style: config.clothingStyle ?? 'studio', platform: config.platform ?? 'smart', outputLanguage: config.outputLanguage ?? 'none' })
+      if (config.clothingMode === 'model') patch.modelCount = config.count
+      else patch.counts = { ...config.moduleCounts }
+    }
+    change(patch); setPanelOpen(true); setNotice({ kind: 'success', message: restore ? '已撤销应用' : `已应用“${application.title}”，请选择素材并确认规划` })
+  }
+  usePersonalPromptHandoff({ ready: aiEnabled !== null && !planning && !isGenerating && !isSubmitting, onApply: application => applyCollection(application), onError: message => setNotice({ kind: 'error', message }) })
+
 
   useEffect(() => {
     const controller = new AbortController()
@@ -208,7 +234,7 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
   }
   return <div className="workbench-page"><div className={`workbench-shell mode-commerce clothing-workbench config-${side} ${panelOpen ? 'panel-open' : ''}`}>
     <WorkbenchRail mode="commerce" task="clothing-set" onChangeMode={mode => router.replace(mode === 'general' ? '/workbench?mode=general' : '/commerce')} onChangeTask={task => router.replace(`/workbench?mode=commerce&task=${task}`)} />
-    <WorkbenchHeader mode="commerce" task="clothing-set" configSide={side} panelOpen={panelOpen} onShowDetails={() => setDetailsOpen(true)} historyOpen={historyOpen} onToggleHistory={() => setHistoryOpen(value => !value)} onChangeSide={setSide} onTogglePanel={() => setPanelOpen(value => !value)} />
+    <WorkbenchHeader collectionTools={<CreationLibraryTools config={currentPreset()} prompt={settings.requirements} disabled={isGenerating || isSubmitting || planning} onApply={application => applyCollection(application)} onUndo={collectionUndo ? () => { try { applyCollection(collectionUndo, true); setCollectionUndo(null) } catch (reason) { setNotice({ kind: 'error', message: reason instanceof Error ? reason.message : '撤销失败' }) } } : undefined} />} mode="commerce" task="clothing-set" configSide={side} panelOpen={panelOpen} onShowDetails={() => setDetailsOpen(true)} historyOpen={historyOpen} onToggleHistory={() => setHistoryOpen(value => !value)} onChangeSide={setSide} onTogglePanel={() => setPanelOpen(value => !value)} />
     <button type="button" className="clothing-panel-backdrop" hidden={!panelOpen} onClick={() => setPanelOpen(false)} aria-label="关闭服装设置" tabIndex={-1} />
     <aside id="creation-settings" className="configuration-panel creator-sidebar commerce-settings" aria-label="服装创作设置" role={mobile && panelOpen ? 'dialog' : undefined} aria-modal={mobile && panelOpen ? true : undefined}><div className="configuration-scroll"><div className="creator-sheet-head"><span>服装组图设置</span><button type="button" aria-label="收起服装设置" onClick={() => setPanelOpen(false)}><X size={18} aria-hidden="true" /></button></div><ClothingSettings value={settings} onChange={change} endpoints={endpoints} />{!canAnalyze && <p className="clothing-field-help">当前使用手动规划，可逐张编辑拍摄要求；配置支持识图的 Prompt 服务后可进行 AI 分析。</p>}</div><GenerateBar title="服装组图" buttonLabel="查看生成规划" busyLabel={planning ? '正在分析服装…' : undefined} expectedCount={expectedCount} aspectRatio={settings.aspectRatio} resolution={settings.resolution} notice={notice} isSubmitting={isSubmitting || planning} isGenerating={isGenerating} aiEnabled={aiEnabled} onSubmit={() => void prepare()} /></aside>
     <ResultWorkspace mode="commerce" task="clothing-set" aspectRatio={settings.aspectRatio} resolution={settings.resolution} expectedCount={expectedCount} generatingCount={submittedCount} resultHistory={resultHistory} activeResultIndex={activeResultIndex} activeResult={activeResult} generationTask={generationTask} isGenerating={isGenerating} isSubmitting={isSubmitting} aiEnabled={aiEnabled} historyOpen={historyOpen} historyTask={historyTask} loadingHistoryConfigId={loadingHistoryId} isRegeneratingHistory={!!loadingHistoryId} onToggleHistory={() => setHistoryOpen(value => !value)} onSelectHistory={setHistoryTask} onExitHistoryView={() => setHistoryTask(null)} onLoadHistoryConfig={record => void loadHistory(record)} onRegenerateFromHistory={record => void loadHistory(record, true)} onDeleteHistoryTask={deleteRecord} onUseImageAsReference={(path, source) => void useReference(path, source)} onSetActiveResultIndex={setActiveResultIndex} onRegenerate={() => void prepare()} onDownloadAll={() => void downloadAll()} downloadAllBusy={downloadBusy} onConfigure={() => { setPanelOpen(true); document.getElementById('creation-settings')?.scrollIntoView({ block: 'nearest' }) }} />

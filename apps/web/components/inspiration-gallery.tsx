@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { apiBaseUrl } from '@/lib/api'
 import { copyText } from '@/lib/clipboard'
 import { InfoDialog } from './info-dialog'
+import { SavePersonalPrompt } from './save-personal-prompt'
 import { type InspirationPrompt, useInspirationPrompts } from './workbench/use-inspiration-prompts'
 
 interface InspirationGalleryProps {
@@ -23,6 +24,7 @@ interface InspirationCardProps extends InspirationGalleryProps {
 export function InspirationCard({ item, copied, onInspect, onCopy, onUsePrompt }: InspirationCardProps) {
   const imageUrl = item.imageUrl.startsWith('/') ? `${apiBaseUrl}${item.imageUrl}` : item.imageUrl
   return <article className="inspire-card">
+    <SavePersonalPrompt iconOnly className="inspire-personal-save" seed={{ title: item.title, prompt: item.prompt, source: item.source || '发现灵感', favorite: true }} />
     <button type="button" className="inspire-cover" aria-label={`查看${item.title}的提示词`} aria-haspopup="dialog" onClick={() => onInspect(item)} style={item.width && item.height ? { aspectRatio: `${item.width} / ${item.height}` } : undefined}>
       {item.imageUrl ? <img src={imageUrl} alt={`${item.title}案例图`} loading="lazy" /> : <span className="inspire-cover-placeholder" />}
       <span className="inspire-category-tag">{item.category}</span>

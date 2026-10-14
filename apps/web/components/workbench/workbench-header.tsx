@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 import { Folder, History, LayoutPanelLeft, PanelRight, SlidersHorizontal, ListFilter } from 'lucide-react'
@@ -11,6 +12,7 @@ import type { CommerceTaskType } from '@/lib/contracts'
 import { taskMeta, type ConfigSide, type WorkbenchMode } from './shared'
 
 interface WorkbenchHeaderProps {
+  collectionTools?: ReactNode
   mode: WorkbenchMode
   task: CommerceTaskType
   configSide: ConfigSide
@@ -24,7 +26,7 @@ interface WorkbenchHeaderProps {
 
 /** 当前创作上下文与画布辅助操作。 */
 export function WorkbenchHeader({
-  mode, task, configSide, panelOpen, historyOpen, onShowDetails, onToggleHistory, onChangeSide, onTogglePanel,
+  collectionTools, mode, task, configSide, panelOpen, historyOpen, onShowDetails, onToggleHistory, onChangeSide, onTogglePanel,
 }: WorkbenchHeaderProps) {
   const inCommerce = mode === 'commerce'
 
@@ -35,6 +37,7 @@ export function WorkbenchHeader({
       </div>
 
       <div className="workbench-nav-actions">
+        {collectionTools}
         <button type="button" className="studio-secondary header-details" aria-label="参数详情" title="参数详情" onClick={onShowDetails}><ListFilter size={16} />参数详情</button>
         <Link className="studio-secondary header-assets" href="/assets" aria-label="我的资产" title="我的资产"><Folder size={16} />我的资产</Link>
         <button type="button" className={`studio-secondary history-top-trigger ${historyOpen ? 'is-active' : ''}`} aria-label="历史记录" title="历史记录" aria-expanded={historyOpen} onClick={onToggleHistory}><History size={16} />历史记录</button>

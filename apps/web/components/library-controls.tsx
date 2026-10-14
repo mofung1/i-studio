@@ -12,6 +12,6 @@ export function LibrarySelect({ label, value, options, onChange, disabled = fals
     <SelectContent>{options.map(([id, title]) => <SelectItem value={id} key={id}>{title}</SelectItem>)}</SelectContent>
   </Select>
 }
-export function LibraryDialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
-  return <InfoDialog title={title} onClose={onClose} hideActions><div className="library-dialog-body">{children}</div></InfoDialog>
+export function LibraryDialog({ title, children, onClose, portalContainer }: { title: string; children: ReactNode; onClose: () => void; portalContainer?: HTMLElement | null }) {
+  return <InfoDialog title={title} onClose={onClose} hideActions portalContainer={portalContainer}><div className="library-dialog-body">{children}</div></InfoDialog>
 }
