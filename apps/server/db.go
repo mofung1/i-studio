@@ -232,6 +232,10 @@ INSERT INTO inspiration_categories(id,name) SELECT 'category_'||md5(category),ca
 		return err
 	}
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS site_settings (id BOOLEAN PRIMARY KEY DEFAULT true CHECK (id), name TEXT NOT NULL, logo_key TEXT NOT NULL DEFAULT '');`)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(promptReverseMigration)
 	return err
 }
 

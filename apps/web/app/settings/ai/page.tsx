@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Check, LoaderCircle, Pencil, Plus, RotateCcw, Save, Settings2, Trash2, X, Zap } from 'lucide-react'
+import { Check, LoaderCircle, Pencil, Plus, RotateCcw, Save, ScanText, Settings2, Trash2, X, Zap } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
 import { PromptTemplateBrowser } from '@/components/prompt-template-browser'
 import { promptGroupLabel } from '@/lib/prompt-groups'
 import { SiteSettingsPanel } from '@/components/site-settings-panel'
+import { PromptReverseSettingsPanel } from '@/components/prompt-reverse-settings-panel'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import { getAccessToken } from '@/lib/api'
 import { settingsRequest, type AIEndpoint, type AIProtocol, type EndpointInput, type EndpointPurpose, type PromptTemplate, type AIConnectionTest } from '@/lib/ai-settings'
@@ -23,8 +24,9 @@ function newEndpoint(purpose: EndpointPurpose): EndpointInput {
 function errorMessage(error: unknown) { return error instanceof Error ? error.message : '请求失败，请重试' }
 
 export default function AISettingsPage() {
-  const [view, setView] = useState<'services' | 'prompts' | 'site'>('services')
+  const [view, setView] = useState<'services' | 'prompts' | 'reverse' | 'site'>('services')
   const [siteDirty, setSiteDirty] = useState(false)
+  const [reverseSaving, setReverseSaving] = useState(false)
   const [endpoints, setEndpoints] = useState<AIEndpoint[]>([])
   const [templates, setTemplates] = useState<PromptTemplate[]>([])
   const [canManage, setCanManage] = useState(false)
@@ -52,6 +54,7 @@ export default function AISettingsPage() {
     }
   }, [])
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'reverse') setView('reverse')
     if (!getAccessToken()) { setLoggedIn(false); setLoading(false); return }
     load().catch(error => setMessage(errorMessage(error))).finally(() => setLoading(false))
   }, [load])
@@ -109,10 +112,13 @@ export default function AISettingsPage() {
   }
 
   function switchView(next: typeof view) {
-    if (next === view || busy) return
-    if (((view === 'prompts' && promptDirty) || (view === 'site' && siteDirty)) && !window.confirm('当前配置尚未保存，仍要切换设置分类？')) return
+    if (next === view) return true
+    if (busy || reverseSaving) return false
+    if (((view === 'prompts' && promptDirty) || ((view === 'site' || view === 'reverse') && siteDirty)) && !window.confirm('当前配置尚未保存，仍要切换设置分类？')) return false
     setSiteDirty(false)
+    setSaved(''); setMessage('')
     setView(next)
+    return true
   }
 
   useEffect(() => {
@@ -125,13 +131,19 @@ export default function AISettingsPage() {
   return <StudioShell section="settings" title="设置">
     <main className="ai-settings">
       {!loggedIn ? <p>请先<Link href="/login?next=%2Fsettings%2Fai">登录</Link>后管理网站与 AI 配置。</p> : loading ? <div className="settings-loading" role="status"><LoaderCircle className="settings-spinner" size={20} />正在读取配置</div> : <>
-        <div className="settings-tabs" role="tablist" aria-label="设置分类">
-          <button id="services-tab" role="tab" aria-selected={view === 'services'} aria-controls="services-panel" onClick={() => switchView('services')}><Settings2 size={16} />AI 服务</button>
-          {canManage && <><button id="prompts-tab" role="tab" aria-selected={view === 'prompts'} aria-controls="prompts-panel" onClick={() => switchView('prompts')}><Pencil size={16} />Prompt 配置</button><button id="site-tab" role="tab" aria-selected={view === 'site'} aria-controls="site-panel" onClick={() => switchView('site')}><Settings2 size={16} />网站配置</button></>}
+        <div className="settings-tabs" role="tablist" aria-label="设置分类" onKeyDown={event => {
+          if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return
+          const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+          const index = tabs.indexOf(document.activeElement as HTMLButtonElement)
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
+          event.preventDefault(); tabs[next]?.focus()
+        }}>
+          <button id="services-tab" role="tab" disabled={reverseSaving} aria-selected={view === 'services'} aria-controls="services-panel" onClick={() => switchView('services')}><Settings2 size={16} />AI 服务</button>
+          {canManage && <><button id="prompts-tab" role="tab" disabled={reverseSaving} aria-selected={view === 'prompts'} aria-controls="prompts-panel" onClick={() => switchView('prompts')}><Pencil size={16} />Prompt 配置</button><button id="reverse-tab" role="tab" disabled={reverseSaving} aria-selected={view === 'reverse'} aria-controls="reverse-panel" onClick={() => switchView('reverse')}><ScanText size={16} aria-hidden="true" />图片反推</button><button id="site-tab" role="tab" disabled={reverseSaving} aria-selected={view === 'site'} aria-controls="site-panel" onClick={() => switchView('site')}><Settings2 size={16} />网站配置</button></>}
         </div>
         {message && !editing && <p className="settings-error" role="alert">{message}</p>}
         {saved && !(view === 'prompts' && promptDirty) && <p className="settings-saved" role="status">{saved}</p>}
-        {view === 'site' ? <SiteSettingsPanel onDirtyChange={setSiteDirty} /> : view === 'services' ? <div id="services-panel" role="tabpanel" aria-labelledby="services-tab">
+        {view === 'site' ? <SiteSettingsPanel onDirtyChange={setSiteDirty} /> : view === 'reverse' ? <PromptReverseSettingsPanel endpoints={endpoints} onDirtyChange={setSiteDirty} onSavingChange={setReverseSaving} onOpenServices={() => switchView('services')} onOpenTemplates={() => { if (switchView('prompts')) selectTemplate('reverse.scene') }} /> : view === 'services' ? <div id="services-panel" role="tabpanel" aria-labelledby="services-tab">
           {(['prompt', 'image'] as const).map(purpose => <section className="endpoint-section" key={purpose}>
             <div className="endpoint-section-head"><h2>{purpose === 'prompt' ? 'Prompt AI' : 'Image AI'}</h2>{canManage && <button className="settings-command" onClick={() => edit(undefined, purpose)}><Plus size={16} />添加服务</button>}</div>
             {!endpoints.some(endpoint => endpoint.purpose === purpose) ? <p className="settings-empty">尚未配置{purpose === 'prompt' ? '提示词' : '生图'} AI 服务</p> : <div className="endpoint-list">

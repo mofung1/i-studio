@@ -20,3 +20,9 @@ apps/server/storage/uploads/
 
 # 真实电商效果测试的原图与对照结果，仅保存在本地。
 artifacts/commerce-eval-*/
+
+# 真实识图测试的本地素材、私有任务结果及页面截图。
+artifacts/prompt-reverse-eval-*/
+
+# 配置界面验证截图，仅保存在本地。
+artifacts/reverse-settings-ui-*/

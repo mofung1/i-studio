@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 
 import { apiBaseUrl } from '@/lib/api'
+import { copyText } from '@/lib/clipboard'
 import { InfoDialog } from './info-dialog'
 import { type InspirationPrompt, useInspirationPrompts } from './workbench/use-inspiration-prompts'
 
@@ -47,14 +48,16 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
   const { prompts, categories, category, searchInput, query, allTotal, isLoading, error, hasMore, sentinelRef, changeCategory, setSearchInput, clearSearch, reload } = useInspirationPrompts()
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [selectedPrompt, setSelectedPrompt] = useState<InspirationPrompt | null>(null)
+  const [copyError, setCopyError] = useState('')
 
   async function copyPrompt(item: InspirationPrompt) {
+    setCopyError('')
     try {
-      await navigator.clipboard.writeText(item.prompt)
+      await copyText(item.prompt)
       setCopiedId(item.id)
       window.setTimeout(() => setCopiedId((current) => current === item.id ? null : current), 2000)
     } catch {
-      // The full prompt remains selectable in the details dialog.
+      setCopyError('浏览器未允许复制，可选中下方提示词后手动复制。'); setSelectedPrompt(item)
     }
   }
 
@@ -92,6 +95,7 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
     </section>
 
     {selectedPrompt && <InfoDialog title={selectedPrompt.title} subtitle={[selectedPrompt.category, selectedPrompt.source].filter(Boolean).join(' · ')} onClose={() => setSelectedPrompt(null)} hideActions>
+      {copyError && <p className="settings-error" role="alert">{copyError}</p>}
       <p className="inspiration-dialog-prompt">{selectedPrompt.prompt}</p>
       <div className="inspiration-dialog-actions">
         <button type="button" className="studio-secondary" onClick={() => void copyPrompt(selectedPrompt)}><Copy size={15} />{copiedId === selectedPrompt.id ? '已复制' : '复制提示词'}</button>

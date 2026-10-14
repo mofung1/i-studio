@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, ChevronLeft, ChevronRight, Clock3, Download, Image as ImageIcon, Loader2, Maximize2, SlidersHorizontal, Trash2, X } from 'lucide-react'
+import { AlertTriangle, ChevronLeft, ChevronRight, Clock3, Download, Image as ImageIcon, Loader2, Maximize2, ScanText, SlidersHorizontal, Trash2, X } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -10,6 +10,7 @@ import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authent
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { InfoDialog } from '@/components/info-dialog'
 import { StudioShell } from '@/components/studio-shell'
+import { usePromptReverse } from '@/components/prompt-reverse-provider'
 import { FailureNotice } from '@/components/workbench/failure-notice'
 import { apiBaseUrl, deleteGeneratedAsset, deleteGenerationTask, getAccessToken, readApiError } from '@/lib/api'
 import { languageOptions, modelOptions, moduleLabel, optionLabel, platformOptions, styleOptions } from '@/components/workbench/shared'
@@ -95,6 +96,7 @@ function parameterRows(task: GeneratedTask) {
 
 export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
   const router = useRouter()
+  const { openReverse } = usePromptReverse()
   const [tasks, setTasks] = useState<GeneratedTask[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -410,7 +412,11 @@ export function AssetLibrary({ view }: { view: 'images' | 'tasks' }) {
             <span className="library-lightbox-counter">{selectedImage.index + 1} / {selectedImage.task.resultImages?.length ?? 0}</span>
           </>
         )}
-        <div><span>{taskTitle(selectedImage.task)}</span><button type="button" onClick={() => void downloadProtectedAsset(selectedImage.path, `istudio-${selectedImage.task.id.slice(0, 8)}-${selectedImage.index + 1}.png`).catch(() => setError('下载失败'))}><Download size={15} />下载</button></div>
+        <div className="library-preview-toolbar"><span>{taskTitle(selectedImage.task)}</span><div className="library-preview-commands">
+          {(selectedImage.task.input.prompt || selectedImage.task.input.requirements) && <button type="button" onClick={() => { const task = selectedImage.task; closePreview(); setDetailsTask(task) }}><SlidersHorizontal size={15} aria-hidden="true" />原提示词</button>}
+          <button type="button" onClick={() => { const assetId = selectedImage.path.match(/^\/v1\/assets\/([^/]+)\/content$/)?.[1]; if (!assetId) { setError('这张图片暂时无法反推，请下载后上传'); return }; const name = taskTitle(selectedImage.task); closePreview(); openReverse({ assetId, imageName: name }) }}><ScanText size={15} aria-hidden="true" />图片反推</button>
+          <button type="button" onClick={() => void downloadProtectedAsset(selectedImage.path, `istudio-${selectedImage.task.id.slice(0, 8)}-${selectedImage.index + 1}.png`).catch(() => setError('下载失败'))}><Download size={15} aria-hidden="true" />下载</button>
+        </div></div>
       </div>
     </div>}
     </main>

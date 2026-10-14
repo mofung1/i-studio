@@ -1,7 +1,7 @@
 'use client'
 
 import { AlertTriangle, Check, ChevronDown, ChevronUp, Loader2, RotateCcw, Sparkles } from 'lucide-react'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
 interface PromptEditorProps {
   value: string
@@ -17,6 +17,7 @@ interface PromptEditorProps {
   maxLength?: number
   compact?: boolean
   collapsed?: boolean
+  actions?: ReactNode
 }
 
 /** 提示词输入：比普通字段更醒目，带自增高、字数、AI 优化/帮写与状态提示。 */
@@ -32,6 +33,7 @@ export function PromptEditor({
   maxLength = 10000,
   compact = false,
   collapsed = false,
+  actions,
 }: PromptEditorProps) {
   const [expanded, setExpanded] = useState(false)
   const [isEnhancing, setIsEnhancing] = useState(false)
@@ -42,6 +44,8 @@ export function PromptEditor({
   // 记住改写前的原文，随时可以撤销
   const [previousValue, setPreviousValue] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const currentValue = useRef(value)
+  currentValue.current = value
   const hintId = useId()
   const textareaId = useId()
 
@@ -73,6 +77,7 @@ export function PromptEditor({
     const original = value
     try {
       const next = await enhance(value)
+      if (currentValue.current !== original) { setError('描述已更改，优化结果未覆盖当前编辑，请确认后再优化'); return }
       if (next.trim()) {
         setPreviousValue(original)
         onChange(next)
@@ -117,6 +122,7 @@ export function PromptEditor({
       <div className="prompt-editor-bar">
         {(!compact || expanded || overLimit) && <span className={`prompt-count ${overLimit ? 'is-over' : ''}`}>{value.length}/{maxLength}</span>}
         <div className="prompt-editor-actions">
+          {actions}
           {previousValue !== null && (
             <button className="prompt-undo" type="button" onClick={undo} title="恢复到改写前的描述">
               <RotateCcw size={13} aria-hidden="true" />撤销

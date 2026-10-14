@@ -82,8 +82,7 @@ export function InspirationCategoryManager() {
   if (loggedIn === null) return <div className="settings-loading" role="status">正在读取账号状态</div>
   if (!loggedIn) return <main className="inspiration-manager-login"><p>登录后即可管理灵感分类。</p><Link className="studio-primary" href="/login?next=%2Finspire%2Fcategories">登录</Link></main>
 
-  return <main className="inspiration-category-manager">
-    <div className="inspiration-category-heading"><div><h1>分类管理</h1><p>分类可直接用于新增提示词。改名会同步更新相关提示词，空分类也会保留。</p></div><Link className="studio-secondary" href="/inspire/manage"><Pencil size={16} aria-hidden="true" />管理提示词</Link></div>
+  return <main className="inspiration-category-manager" aria-label="灵感分类管理">
     <form className="inspiration-category-create" onSubmit={event => void save(event)}><label htmlFor="inspiration-new-category">新增分类</label><div><input ref={inputRef} id="inspiration-new-category" maxLength={80} required placeholder="例如：产品摄影" value={name} disabled={!!busy} onChange={event => setName(event.target.value)} /><button type="submit" className="settings-primary" disabled={!!busy || !name.trim()}>{busy === 'add' ? <LoaderCircle size={16} className="settings-spinner" aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}新增分类</button></div></form>
     <label className="inspiration-manager-search inspiration-category-search"><Search size={16} aria-hidden="true" /><input type="search" aria-label="搜索灵感分类" placeholder="搜索分类名称" value={search} onChange={event => setSearch(event.target.value)} /></label>
     {error && <p className="settings-error" role="alert">{error}</p>}{notice && <p className="settings-saved" role="status">{notice}</p>}

@@ -1,7 +1,9 @@
 'use client'
 
-import { ChevronDown, ChevronUp, Loader2, SlidersHorizontal, X } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { ChevronDown, ChevronUp, Loader2, RotateCcw, ScanText, SlidersHorizontal, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { usePromptReverse } from '@/components/prompt-reverse-provider'
+import { applyReverseText } from '@/lib/prompt-reverse'
 
 import type { GenerationModel } from '@/lib/contracts'
 
@@ -123,6 +125,9 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   } = props
 
   const isGeneral = mode === 'general'
+  const { openReverse } = usePromptReverse()
+  const [reverseUndo, setReverseUndo] = useState<{ before: string; after: string; beforeFiles: File[]; afterFiles: File[] } | null>(null)
+  useEffect(() => { if (reverseUndo && (props.prompt !== reverseUndo.after || props.referenceFiles !== reverseUndo.afterFiles)) setReverseUndo(null) }, [props.prompt, props.referenceFiles, reverseUndo])
   const configToggleRef = useRef<HTMLButtonElement>(null)
   const wasCollapsed = useRef(Boolean(props.generalConfigCollapsed))
 
@@ -251,6 +256,17 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 enhanceDisabledReason={!prompt.trim() && (!promptEnhanceEnabled || enhanceImages.length === 0) ? (promptEnhanceEnabled ? enhanceBlockedReason : '请先输入画面描述') : undefined}
                 helper={enhanceHelper}
                 enhanceLabel="AI 优化"
+                actions={<>
+                  {reverseUndo && <button type="button" className="prompt-undo" onClick={() => { onSetPrompt(reverseUndo.before); onSetReferenceFiles(reverseUndo.beforeFiles); setReverseUndo(null) }}><RotateCcw size={13} aria-hidden="true" />撤销反推</button>}
+                  <button type="button" className="prompt-enhance" onClick={() => openReverse({ files: referenceFiles, currentPrompt: prompt, onApply: ({ text, referenceFile, action }) => {
+                    const alreadyIncluded = referenceFile && referenceFiles.includes(referenceFile)
+                    if (referenceFile && !alreadyIncluded && referenceFiles.length >= maxFiles) throw new Error('参考图已达上限，请先移除一张再应用')
+                    const nextPrompt = applyReverseText(prompt, text, action)
+                    if (nextPrompt.length > 10000) throw new Error('追加后的描述超过 10000 字，请选择替换或精简后再应用')
+                    const nextFiles = referenceFile && !alreadyIncluded ? [...referenceFiles, referenceFile] : referenceFiles
+                    setReverseUndo({ before: prompt, after: nextPrompt, beforeFiles: referenceFiles, afterFiles: nextFiles }); onSetPrompt(nextPrompt); onSetReferenceFiles(nextFiles)
+                  } })}><ScanText size={14} aria-hidden="true" />图片反推</button>
+                </>}
                 compact
                 collapsed={props.generalConfigCollapsed}
               />
