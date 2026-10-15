@@ -174,6 +174,8 @@ func (s *server) adminHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	switch {
+	case path == "storage":
+		s.adminStorage(w, r)
 	case path == "settings":
 		s.adminSettings(w, r)
 	case path == "models" || strings.HasPrefix(path, "models/"):

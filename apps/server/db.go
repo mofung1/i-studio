@@ -123,6 +123,9 @@ func isActiveTask(status string) bool {
 // deleteTaskRecords 删除一条生成任务；返回该任务生成图片对应的存储 key（由调用方删除文件）。
 // 任务本身不保留，结果图对应的资产记录一并清理，避免资产库留下孤儿数据。
 func deleteTaskRecords(q sqlQueryer, userID, taskID string) ([]string, error) {
+	if _, err := q.Exec("SELECT id FROM users WHERE id=$1 FOR UPDATE", userID); err != nil {
+		return nil, err
+	}
 	var status string
 	if err := q.QueryRow("SELECT status FROM generation_tasks WHERE id=$1 AND user_id=$2 FOR UPDATE", taskID, userID).Scan(&status); err != nil {
 		return nil, err
@@ -130,27 +133,34 @@ func deleteTaskRecords(q sqlQueryer, userID, taskID string) ([]string, error) {
 	if isActiveTask(status) {
 		return nil, errTaskActive
 	}
-	rows, err := q.Query("SELECT storage_key FROM assets WHERE user_id=$1 AND task_id=$2", userID, taskID)
+	rows, err := q.Query("SELECT id FROM assets WHERE user_id=$1 AND task_id=$2 ORDER BY id", userID, taskID)
 	if err != nil {
 		return nil, err
 	}
-	keys := []string{}
+	ids := []string{}
 	for rows.Next() {
-		var key string
-		if err := rows.Scan(&key); err != nil {
+		var id string
+		if err = rows.Scan(&id); err != nil {
 			rows.Close()
 			return nil, err
 		}
-		if key != "" {
-			keys = append(keys, key)
-		}
+		ids = append(ids, id)
 	}
 	err = rows.Err()
 	rows.Close()
 	if err != nil {
 		return nil, err
 	}
-
+	keys := []string{}
+	for _, id := range ids {
+		key, err := deleteAssetRecordExcept(q, userID, id, taskID)
+		if err != nil {
+			return nil, err
+		}
+		if key != "" {
+			keys = append(keys, key)
+		}
+	}
 	result, err := q.Exec("DELETE FROM generation_tasks WHERE id=$1 AND user_id=$2", taskID, userID)
 	if err != nil {
 		return nil, err
@@ -158,21 +168,38 @@ func deleteTaskRecords(q sqlQueryer, userID, taskID string) ([]string, error) {
 	if affected, err := result.RowsAffected(); err == nil && affected == 0 {
 		return nil, sql.ErrNoRows
 	}
-	if _, err := q.Exec("DELETE FROM assets WHERE user_id=$1 AND task_id=$2", userID, taskID); err != nil {
-		return nil, err
-	}
+
 	return keys, nil
 }
 
 // deleteAssetRecord 删除一张资产，并从所属任务的结果里移除它，避免历史记录出现打不开的缩略图。
 func deleteAssetRecord(q sqlQueryer, userID, assetID string) (string, error) {
+	return deleteAssetRecordExcept(q, userID, assetID, "")
+}
+func deleteAssetRecordExcept(q sqlQueryer, userID, assetID, exceptTask string) (string, error) {
+	if _, err := q.Exec("SELECT id FROM users WHERE id=$1 FOR UPDATE", userID); err != nil {
+		return "", err
+	}
 	var key string
-	if err := q.QueryRow("SELECT storage_key FROM assets WHERE id=$1 AND user_id=$2", assetID, userID).Scan(&key); err != nil {
+	if err := q.QueryRow("SELECT storage_key FROM assets WHERE id=$1 AND user_id=$2 FOR UPDATE", assetID, userID).Scan(&key); err != nil {
 		return "", err
 	}
-	if _, err := q.Exec("DELETE FROM assets WHERE id=$1 AND user_id=$2", assetID, userID); err != nil {
+	references, active, err := assetReferences(q, userID, assetID, exceptTask)
+	if err != nil {
 		return "", err
 	}
+	if active > 0 {
+		return "", errTaskActive
+	}
+	if references > 0 {
+		if _, err = q.Exec("UPDATE assets SET hidden_at=COALESCE(hidden_at,now()) WHERE id=$1 AND user_id=$2", assetID, userID); err != nil {
+			return "", err
+		}
+		key = "" // Keep bytes required to restore historical inputs.
+	} else if _, err = q.Exec("DELETE FROM assets WHERE id=$1 AND user_id=$2", assetID, userID); err != nil {
+		return "", err
+	}
+
 	path := "/v1/assets/" + assetID + "/content"
 	// 两个数组按同一个原始位置过滤，删除中间一张后模块归属仍与图片逐项对应。
 	if _, err := q.Exec(`UPDATE generation_tasks t SET
@@ -186,6 +213,12 @@ func deleteAssetRecord(q sqlQueryer, userID, assetID string) (string, error) {
 		WHERE t.user_id=$2 AND t.result_images ? $1`, path, userID); err != nil {
 		return key, err
 	}
+	if key != "" {
+		if _, err := q.Exec("INSERT INTO storage_deletions(storage_key) VALUES($1) ON CONFLICT DO NOTHING", key); err != nil {
+			return "", err
+		}
+	}
+
 	return key, nil
 }
 
@@ -236,6 +269,10 @@ INSERT INTO inspiration_categories(id,name) SELECT 'category_'||md5(category),ca
 		return err
 	}
 	_, err = db.Exec(promptReverseMigration)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(storageProfilesMigration)
 	if err != nil {
 		return err
 	}

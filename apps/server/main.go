@@ -102,6 +102,7 @@ func main() {
 		panic(fmt.Errorf("auth signing key initialization failed: %w", err))
 	}
 	s := &server{users: map[string]user{}, tasks: map[string]task{}, secret: secret, db: db, storageRoot: root, storage: newLocalStorage(root)}
+	s.storage = &profileStorage{server: s, local: s.storage}
 	if err := s.syncEnvironmentAdmin(); err != nil {
 		panic(fmt.Errorf("administrator configuration failed: %w", err))
 	}
@@ -119,6 +120,7 @@ func main() {
 	s.promptClient = &dynamicPromptClient{server: s}
 	s.queue = newTaskQueue(s)
 	s.startPromptReverseWorkers()
+	s.startStorageMaintenance()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/health", s.health)
 	mux.HandleFunc("/v1/admin/", s.adminHandler)
@@ -461,7 +463,7 @@ func (s *server) deleteTask(w http.ResponseWriter, r *http.Request, id string) {
 		}
 		for _, key := range keys {
 			if s.storage != nil {
-				_ = s.storage.Delete(key)
+				_ = s.deleteAssetFiles(key)
 			}
 		}
 		s.json(w, http.StatusOK, map[string]any{"deleted": id, "assets": len(keys)})
@@ -568,6 +570,10 @@ func (s *server) updateTaskResult(id, status string, images []string, modules []
 }
 
 func (s *server) assetContent(w http.ResponseWriter, r *http.Request) {
+	if strings.HasSuffix(r.URL.Path, "/metadata") {
+		s.assetMetadata(w, r)
+		return
+	}
 	if strings.HasSuffix(r.URL.Path, "/thumbnail") {
 		s.assetThumbnail(w, r)
 		return
@@ -593,6 +599,9 @@ func (s *server) assetContent(w http.ResponseWriter, r *http.Request) {
 	var key, mime, name string
 	if err := s.db.QueryRow("SELECT storage_key,mime,filename FROM assets WHERE id=$1 AND user_id=$2", id, uid).Scan(&key, &mime, &name); err != nil {
 		s.error(w, 404, "ASSET_NOT_FOUND", "资产不存在")
+		return
+	}
+	if s.redirectStoredObject(w, r, key) {
 		return
 	}
 	file, err := s.storage.Open(key)
@@ -634,6 +643,10 @@ func (s *server) deleteAsset(w http.ResponseWriter, r *http.Request, id string) 
 	}
 	defer tx.Rollback()
 	key, err := deleteAssetRecord(tx, userID, id)
+	if err == errTaskActive {
+		s.error(w, 409, "ASSET_IN_USE", "素材正在用于生成，请等待任务完成后再删除")
+		return
+	}
 	if err == sql.ErrNoRows {
 		s.error(w, http.StatusNotFound, "ASSET_NOT_FOUND", "资产不存在")
 		return
@@ -647,7 +660,7 @@ func (s *server) deleteAsset(w http.ResponseWriter, r *http.Request, id string) 
 		return
 	}
 	if key != "" && s.storage != nil {
-		_ = s.storage.Delete(key)
+		_ = s.deleteAssetFiles(key)
 	}
 	s.json(w, http.StatusOK, map[string]any{"deleted": id})
 }
@@ -689,7 +702,7 @@ func (s *server) projects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := s.db.Query(`SELECT p.id,p.name,p.created_at,p.updated_at,p.archived,
-		(SELECT COUNT(*) FROM assets a WHERE a.project_id=p.id),
+		(SELECT COUNT(*) FROM assets a WHERE a.project_id=p.id AND a.hidden_at IS NULL),
 		(SELECT COUNT(*) FROM generation_tasks t WHERE t.user_id=p.user_id AND (t.project_id=p.id OR EXISTS(SELECT 1 FROM assets a WHERE a.task_id=t.id AND a.user_id=p.user_id AND a.project_id=p.id)))
 		FROM projects p WHERE p.user_id=$1 ORDER BY p.updated_at DESC`, uid)
 	if err != nil {
@@ -721,7 +734,7 @@ func (s *server) assets(w http.ResponseWriter, r *http.Request) {
 			s.json(w, 200, map[string]any{"assets": []any{}})
 			return
 		}
-		rows, err := s.db.Query("SELECT id,project_id,filename,mime,size_bytes,width,height,hash,created_at FROM assets WHERE user_id=$1 ORDER BY created_at DESC", uid)
+		rows, err := s.db.Query("SELECT id,project_id,filename,mime,size_bytes,width,height,hash,created_at FROM assets WHERE user_id=$1 AND hidden_at IS NULL ORDER BY created_at DESC", uid)
 		if err != nil {
 			s.error(w, 500, "ASSET_STORAGE_ERROR", "资产查询失败")
 			return
@@ -788,26 +801,68 @@ func (s *server) assets(w http.ResponseWriter, r *http.Request) {
 	if config, _, decodeErr := image.DecodeConfig(bytes.NewReader(data)); decodeErr == nil {
 		width, height = config.Width, config.Height
 	}
-	if err := s.storage.Save(key, bytes.NewReader(data)); err != nil {
+	projectID := r.FormValue("projectId")
+	if projectID != "" && !s.userOwnsProject(uid, projectID) {
+		s.error(w, 400, "PROJECT_NOT_FOUND", "所属项目不存在")
+		return
+	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		s.error(w, 500, "ASSET_STORAGE_ERROR", "资产记录保存失败")
+		return
+	}
+	defer tx.Rollback()
+	// The account lock serializes deduplication, deletion and generation reservations.
+	if _, err = tx.Exec("SELECT id FROM users WHERE id=$1 FOR UPDATE", uid); err != nil {
+		s.error(w, 500, "ASSET_STORAGE_ERROR", "资产记录保存失败")
+		return
+	}
+	digest := hex.EncodeToString(hash[:])
+	var existingID string
+	err = tx.QueryRow("SELECT id FROM assets WHERE user_id=$1 AND hash=$2 AND task_id IS NULL ORDER BY created_at,id LIMIT 1 FOR UPDATE", uid, digest).Scan(&existingID)
+	if err == nil {
+		if _, err = tx.Exec("UPDATE assets SET hidden_at=NULL WHERE id=$1", existingID); err != nil {
+			s.error(w, 500, "ASSET_STORAGE_ERROR", "素材恢复失败")
+			return
+		}
+		if err = tx.Commit(); err != nil {
+			s.error(w, 500, "ASSET_STORAGE_ERROR", "素材恢复失败")
+			return
+		}
+		s.json(w, 200, map[string]any{"asset": map[string]any{"id": existingID}, "reused": true})
+		return
+	}
+	if err != sql.ErrNoRows {
+		s.error(w, 500, "ASSET_STORAGE_ERROR", "素材查询失败")
+		return
+	}
+	key = s.newStorageKey(key)
+	if err = s.storage.Save(key, bytes.NewReader(data)); err != nil {
 		s.error(w, 500, "ASSET_STORAGE_ERROR", "图片保存失败")
 		return
 	}
-	projectID := r.FormValue("projectId")
-	if s.db != nil {
-		if projectID != "" && !s.userOwnsProject(uid, projectID) {
+	committed := false
+	defer func() {
+		if !committed {
 			_ = s.storage.Delete(key)
-			s.error(w, 400, "PROJECT_NOT_FOUND", "所属项目不存在")
-			return
 		}
-		if _, err := s.db.Exec("INSERT INTO assets (id,user_id,project_id,filename,storage_key,mime,size_bytes,width,height,hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)", id, uid, nullableString(projectID), filepath.Base(header.Filename), key, expectedMime, int64(len(data)), width, height, hex.EncodeToString(hash[:])); err != nil {
-			_ = s.storage.Delete(key)
-			s.error(w, 500, "ASSET_STORAGE_ERROR", "资产记录保存失败")
+	}()
+	if _, err = tx.Exec("INSERT INTO assets (id,user_id,project_id,filename,storage_key,mime,size_bytes,width,height,hash) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)", id, uid, nullableString(projectID), filepath.Base(header.Filename), key, expectedMime, int64(len(data)), width, height, digest); err != nil {
+		s.error(w, 500, "ASSET_STORAGE_ERROR", "资产记录保存失败")
+		return
+	}
+	if projectID != "" {
+		if _, err = tx.Exec("UPDATE projects SET updated_at=now() WHERE id=$1 AND user_id=$2", projectID, uid); err != nil {
+			s.error(w, 500, "ASSET_STORAGE_ERROR", "项目更新失败")
 			return
-		}
-		if projectID != "" {
-			_, _ = s.db.Exec("UPDATE projects SET updated_at=now() WHERE id=$1 AND user_id=$2", projectID, uid)
 		}
 	}
+	if err = tx.Commit(); err != nil {
+		s.error(w, 500, "ASSET_STORAGE_ERROR", "资产记录保存失败")
+		return
+	}
+	committed = true
+
 	s.json(w, 201, map[string]any{"asset": map[string]any{"id": id, "filename": filepath.Base(header.Filename), "mime": expectedMime, "sizeBytes": len(data), "width": width, "height": height, "hash": hex.EncodeToString(hash[:]), "projectId": projectID}})
 }
 

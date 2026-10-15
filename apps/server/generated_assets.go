@@ -41,7 +41,7 @@ func (s *server) persistGeneratedImages(taskID string, urls []string) ([]string,
 			return paths, fmt.Errorf("unsupported generated image type %q", mime)
 		}
 		assetID := randomID()
-		key := generatedImageStorageKey(generationDate, randomID(), ext)
+		key := s.newStorageKey(generatedImageStorageKey(generationDate, randomID(), ext))
 		if err := s.storage.Save(key, bytes.NewReader(data)); err != nil {
 			return paths, err
 		}

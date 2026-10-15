@@ -1,3 +1,4 @@
+import { storedImage } from './creation-images'
 import { apiBaseUrl, getAccessToken, readApiError } from './api'
 import type { HistoryTask } from '@/components/workbench/use-task-history'
 
@@ -56,4 +57,12 @@ export async function downloadLibraryAssets(ids: string[]) {
   const anchor = document.createElement('a')
   anchor.href = url; anchor.download = 'istudio-assets.zip'; anchor.click()
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/** Resolve metadata only; image bytes stay in storage until actually needed. */
+export async function loadStoredImage(path: string) {
+  const id = /^\/v1\/assets\/([^/]+)\/content$/.exec(path)?.[1]
+  if (!id) throw new Error('这张图片暂不支持用作素材')
+  const data = await libraryRequest<{ asset: LibraryAsset }>(`assets/${encodeURIComponent(id)}/metadata`)
+  return storedImage(data.asset)
 }

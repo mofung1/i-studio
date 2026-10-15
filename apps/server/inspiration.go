@@ -1,12 +1,11 @@
 package main
 
 import (
+	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type inspirationPromptRow struct {
@@ -135,7 +134,7 @@ func (s *server) inspirationCategories(w http.ResponseWriter, r *http.Request) {
 // 配置了 CDN_BASE_URL 时直接返回 CDN 全址（图片已上传到 CDN），
 // 否则走本地服务接口 /v1/inspiration/images/{key}。
 func inspirationImageURL(imageKey string) string {
-	if cdn := strings.TrimRight(env("CDN_BASE_URL", ""), "/"); cdn != "" {
+	if cdn := strings.TrimRight(env("CDN_BASE_URL", ""), "/"); cdn != "" && !strings.HasPrefix(imageKey, "@storage/") {
 		return cdn + "/" + imageKey
 	}
 	return "/v1/inspiration/images/" + imageKey
@@ -151,19 +150,22 @@ func (s *server) inspirationImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// image_key 只存文件名，本地文件统一放在 storage_root/inspiration/ 下
-	path := filepath.Join(s.storageRoot, "inspiration", key)
-	file, err := os.Open(path)
+	storageKey := key
+	if !strings.HasPrefix(key, "@storage/") && !strings.HasPrefix(key, "inspiration/") {
+		storageKey = "inspiration/" + key
+	}
+	if s.redirectStoredObject(w, r, storageKey) {
+		return
+	}
+	file, err := s.storage.Open(storageKey)
 	if err != nil {
 		s.error(w, 404, "INSPIRATION_IMAGE_NOT_FOUND", "图片不存在")
 		return
 	}
 	defer file.Close()
-
-	mime := inspirationImageMime(filepath.Ext(path))
-	w.Header().Set("Content-Type", mime)
+	w.Header().Set("Content-Type", inspirationImageMime(filepath.Ext(key)))
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	http.ServeContent(w, r, filepath.Base(path), time.Time{}, file)
+	_, _ = io.Copy(w, file)
 }
 
 func inspirationImageMime(ext string) string {

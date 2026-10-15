@@ -1,3 +1,5 @@
+import { appendCreationImages, isStoredImage, type CreationImage } from './creation-images'
+
 export const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:4000'
 
 export interface ApiErrorPayload {
@@ -18,7 +20,19 @@ export async function readApiError(response: Response, fallback: string) {
   }
 }
 
-export async function uploadAsset(file: File, token: string) {
+let uploadSession = ''
+let uploadedFiles = new WeakMap<File, string>()
+
+export async function uploadAsset(file: CreationImage, token: string) {
+  if (isStoredImage(file)) return file.assetId
+  if (uploadSession !== token) { uploadedFiles = new WeakMap(); uploadSession = token }
+  const existing = uploadedFiles.get(file)
+  if (existing) {
+    const response = await fetch(`${apiBaseUrl}/v1/assets/${encodeURIComponent(existing)}/metadata`, { headers: { Authorization: `Bearer ${token}` } })
+    if (response.ok) return existing
+    if (response.status !== 404) throw new Error(await readApiError(response, '素材状态确认失败，请重试'))
+    uploadedFiles.delete(file)
+  }
   const body = new FormData()
   body.append('file', file)
 
@@ -31,6 +45,7 @@ export async function uploadAsset(file: File, token: string) {
 
   const payload = await response.json() as { asset?: { id?: string } }
   if (!payload.asset?.id) throw new Error('图片上传响应不完整')
+  if (uploadSession === token) uploadedFiles.set(file, payload.asset.id)
   return payload.asset.id
 }
 
@@ -40,7 +55,7 @@ export interface PromptEnhanceInput {
   target: PromptEnhanceTarget
   /** 用户当前输入；与 files 至少有一个 */
   text: string
-  files?: File[]
+  files?: CreationImage[]
   context?: {
     taskType?: string
     platform?: string
@@ -109,7 +124,7 @@ export async function enhancePrompt({ target, text, files = [], context }: Promp
   if (context?.outputLanguage) body.append('outputLanguage', context.outputLanguage)
   if (context?.recreateStrength) body.append('recreateStrength', context.recreateStrength)
   for (const item of context?.enhancements ?? []) body.append('enhancements', item)
-  for (const file of files) body.append('images', file)
+  appendCreationImages(body, 'images', files)
 
   const token = getAccessToken()
   const response = await fetch(`${apiBaseUrl}/v1/prompts/enhance`, {

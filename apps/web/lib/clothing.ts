@@ -1,3 +1,4 @@
+import { appendCreationImages, type CreationImage } from '@/lib/creation-images'
 import { apiBaseUrl, getAccessToken, readApiError } from './api'
 import { clothingShotSchema, type ClothingMode, type ClothingPlan, type ClothingStyle } from './contracts'
 
@@ -43,19 +44,19 @@ export interface ClothingAnalysisInput {
   aspectRatio: string
   platform: string
   outputLanguage: string
-  garmentFiles: File[]
-  modelFiles: File[]
-  sceneFiles: File[]
+  garmentFiles: CreationImage[]
+  modelFiles: CreationImage[]
+  sceneFiles: CreationImage[]
 }
 export async function analyzeClothing(input: ClothingAnalysisInput, signal: AbortSignal): Promise<ClothingPlan> {
   const body = new FormData()
   body.append('clothingMode', input.mode); body.append('clothingStyle', input.style)
   body.append('moduleCounts', JSON.stringify(input.counts)); body.append('requirements', input.requirements)
   body.append('aspectRatio', input.aspectRatio); body.append('platform', input.platform); body.append('outputLanguage', input.outputLanguage)
-  input.garmentFiles.forEach(file => body.append('garmentImages', file))
+  appendCreationImages(body, 'garmentImages', input.garmentFiles)
   if (input.mode === 'model') {
-    input.modelFiles.forEach(file => body.append('modelImage', file))
-    input.sceneFiles.forEach(file => body.append('sceneImage', file))
+    appendCreationImages(body, 'modelImage', input.modelFiles)
+    appendCreationImages(body, 'sceneImage', input.sceneFiles)
   }
   const response = await fetch(`${apiBaseUrl}/v1/clothing/plan`, { method: 'POST', headers: { Authorization: `Bearer ${getAccessToken()}` }, body, signal })
   if (!response.ok) throw new Error(await readApiError(response, '服装分析失败，请重试或使用手动规划'))

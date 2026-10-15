@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -99,7 +97,7 @@ func (s *server) promptEnhance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	images, err := readPromptImages(r)
+	images, _, err := s.readImageSources(r, "images", maxPromptImages, maxPromptImageSize)
 	if err != nil {
 		s.error(w, http.StatusBadRequest, "PROMPT_IMAGE_INVALID", err.Error())
 		return
@@ -143,47 +141,6 @@ func (s *server) promptEnhance(w http.ResponseWriter, r *http.Request) {
 		"model":    s.promptClient.modelName(),
 		"fallback": false,
 	})
-}
-
-func readPromptImages(r *http.Request) ([]promptImage, error) {
-	files := r.MultipartForm.File["images"]
-	if len(files) > maxPromptImages {
-		files = files[:maxPromptImages]
-	}
-	images := make([]promptImage, 0, len(files))
-	for _, header := range files {
-		if header.Size > maxPromptImageSize {
-			return nil, errPromptImageTooLarge
-		}
-		file, err := header.Open()
-		if err != nil {
-			return nil, errPromptImageUnreadable
-		}
-		data, err := io.ReadAll(io.LimitReader(file, maxPromptImageSize+1))
-		_ = file.Close()
-		if err != nil || len(data) == 0 {
-			return nil, errPromptImageUnreadable
-		}
-		if len(data) > maxPromptImageSize {
-			return nil, errPromptImageTooLarge
-		}
-		images = append(images, promptImage{Mime: promptImageMime(header.Header.Get("Content-Type")), Data: base64.StdEncoding.EncodeToString(data)})
-	}
-	return images, nil
-}
-
-// promptImageMime 只接受模型支持、且上传区允许的几种格式。
-func promptImageMime(contentType string) string {
-	switch strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0])) {
-	case "image/png":
-		return "image/png"
-	case "image/webp":
-		return "image/webp"
-	case "image/gif":
-		return "image/gif"
-	default:
-		return "image/jpeg"
-	}
 }
 
 // 前端传的是枚举值，这里翻译成模型能直接理解的中文业务语义。
