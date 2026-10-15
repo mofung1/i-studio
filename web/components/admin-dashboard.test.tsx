@@ -6,6 +6,35 @@ import { adminRequest } from '@/lib/admin'
 import { AdminDashboard } from './admin-dashboard'
 
 vi.mock('@/lib/admin', () => ({ adminRequest: vi.fn() }))
+vi.mock('./library-controls', async (original) => ({
+  ...(await original<object>()),
+  LibrarySelect: ({
+    label,
+    value,
+    options,
+    disabled,
+    onChange,
+  }: {
+    label: string
+    value: string
+    options: Array<[string, string]>
+    disabled?: boolean
+    onChange: (value: string) => void
+  }) => (
+    <select
+      aria-label={label}
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      {options.map(([id, title]) => (
+        <option key={id} value={id}>
+          {title}
+        </option>
+      ))}
+    </select>
+  ),
+}))
 vi.mock('./account-provider', () => ({
   useAdminAccount: () => ({ account: { creditName: '创作币' }, refresh: vi.fn() }),
 }))
@@ -169,4 +198,88 @@ it('refreshes the dashboard with a single read', async () => {
   request.mockClear()
   await act(async () => button('刷新').click())
   expect(request).toHaveBeenCalledTimes(1)
+})
+
+function taskPage(path: string) {
+  const params = new URL(`http://fixture/${path}`).searchParams
+  const page = Number(params.get('page'))
+  const pageSize = Number(params.get('pageSize'))
+  const total = 45
+  return {
+    page,
+    pageSize,
+    total,
+    totalPages: Math.ceil(total / pageSize),
+    tasks: Array.from(
+      { length: Math.min(pageSize, total - (page - 1) * pageSize) },
+      (_, index) => ({
+        id: `task-${(page - 1) * pageSize + index + 1}`,
+        username: 'customer',
+        modelName: '测试模型',
+        status: 'succeeded',
+        reserved: 125,
+        charged: 125,
+        refunded: 0,
+        settled: true,
+        errorMessage: '',
+        createdAt: '2026-10-16T00:00:00Z',
+      }),
+    ),
+  }
+}
+const nextTaskPage = () =>
+  container.querySelector<HTMLButtonElement>('button[aria-label="下一页任务"]')!
+const previousTaskPage = () =>
+  container.querySelector<HTMLButtonElement>('button[aria-label="上一页任务"]')!
+async function flushTaskRequest() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0)
+  })
+}
+
+it('requests backend pages and resets to page one when changing page size', async () => {
+  request.mockImplementation(async (path) => taskPage(path))
+  await act(async () => root.render(<AdminDashboard view="tasks" />))
+  await flushTaskRequest()
+  expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=20')
+  expect(container.textContent).toContain('共 45 条任务 · 第 1 / 3 页')
+  expect(previousTaskPage().disabled).toBe(true)
+  await act(async () => nextTaskPage().click())
+  expect(nextTaskPage().disabled).toBe(true)
+  await flushTaskRequest()
+  expect(request).toHaveBeenLastCalledWith('tasks?page=2&pageSize=20')
+  expect(container.textContent).toContain('task-21')
+  expect(container.textContent).not.toContain('task-1')
+  const size = container.querySelector<HTMLSelectElement>('select[aria-label="每页任务条数"]')!
+  await act(async () => {
+    size.value = '50'
+    size.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await flushTaskRequest()
+  expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=50')
+  expect(container.textContent).toContain('共 45 条任务 · 第 1 / 1 页')
+  expect(nextTaskPage().disabled).toBe(true)
+  expect(previousTaskPage().disabled).toBe(true)
+})
+
+it('allows retrying a failed page without getting stuck loading', async () => {
+  let failed = false
+  request.mockImplementation(async (path) => {
+    if (path.includes('page=2') && !failed) {
+      failed = true
+      throw new Error('分页请求失败')
+    }
+    return taskPage(path)
+  })
+  await act(async () => root.render(<AdminDashboard view="tasks" />))
+  await flushTaskRequest()
+  await act(async () => nextTaskPage().click())
+  await flushTaskRequest()
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('分页请求失败')
+  expect(nextTaskPage().disabled).toBe(false)
+  await act(async () => nextTaskPage().click())
+  await flushTaskRequest()
+  expect(container.textContent).toContain('共 45 条任务 · 第 2 / 3 页')
+  expect(container.querySelector('[role="alert"]')).toBeNull()
+  expect(nextTaskPage().disabled).toBe(false)
 })

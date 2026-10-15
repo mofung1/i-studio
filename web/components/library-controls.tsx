@@ -50,14 +50,22 @@ export function LibraryDialog({
   children,
   onClose,
   portalContainer,
+  footer,
 }: {
   title: string
   children: ReactNode
   onClose: () => void
   portalContainer?: HTMLElement | null
+  footer?: ReactNode
 }) {
   return (
-    <InfoDialog title={title} onClose={onClose} hideActions portalContainer={portalContainer}>
+    <InfoDialog
+      title={title}
+      onClose={onClose}
+      hideActions
+      portalContainer={portalContainer}
+      footer={footer}
+    >
       <div className="library-dialog-body">{children}</div>
     </InfoDialog>
   )

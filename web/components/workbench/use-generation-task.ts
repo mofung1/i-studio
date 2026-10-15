@@ -9,6 +9,7 @@ import { generationInputSchema, type GenerationInput } from '@/lib/contracts'
 import { displayedUnitPrice, fetchGenerationQuote } from '../generation-cost'
 import { refreshAccount } from '@/lib/credits'
 import { apiBaseUrl, getAccessToken, readApiError, uploadAsset } from '@/lib/api'
+import { useAccount } from '@/components/account-provider'
 
 export type InlineGenerationTask = {
   id: string
@@ -60,6 +61,9 @@ export type SubmitParams = {
 }
 
 export function useGenerationTask(scopeKey = 'default') {
+  const { account } = useAccount()
+  const owner = account.user?.id ?? ''
+  const [resultOwner, setResultOwner] = useState(owner)
   // 历史生成结果列表；即使任务失败，只要有部分图片也保留结果，支持切换查看
   const [resultHistory, setResultHistory] = useState<InlineGenerationTask[]>([])
   const [activeResultIndex, setActiveResultIndex] = useState(0)
@@ -102,6 +106,7 @@ export function useGenerationTask(scopeKey = 'default') {
 
   // 通用生图和电商生图使用不同的结果作用域，切换工作台时不能沿用另一类结果。
   useEffect(() => {
+    setResultOwner(owner)
     setResultHistory([])
     setActiveResultIndex(0)
     setGenerationTask(null)
@@ -159,7 +164,7 @@ export function useGenerationTask(scopeKey = 'default') {
       controller.abort()
       submissionId.current += 1
     }
-  }, [scopeKey])
+  }, [scopeKey, owner])
 
   useEffect(() => {
     if (notice?.kind !== 'success') return
@@ -238,7 +243,7 @@ export function useGenerationTask(scopeKey = 'default') {
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [scopeKey, recoveryRevision])
+  }, [scopeKey, recoveryRevision, owner])
 
   // 轮询任务状态，结束后把成功结果追加到历史并切到最新
   useEffect(() => {
@@ -292,7 +297,7 @@ export function useGenerationTask(scopeKey = 'default') {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [generationTask?.id, generationTask?.status, generationTaskScope, scopeKey])
+  }, [generationTask?.id, generationTask?.status, generationTaskScope, scopeKey, owner])
 
   const submit = useCallback(
     async ({
@@ -312,7 +317,7 @@ export function useGenerationTask(scopeKey = 'default') {
       }
 
       const requestId = ++submissionId.current
-      const isCurrent = () => requestId === submissionId.current
+      const isCurrent = () => requestId === submissionId.current && token === getAccessToken()
       submittingRef.current = true
       setIsSubmitting(true)
       setNotice(null)
@@ -442,13 +447,13 @@ export function useGenerationTask(scopeKey = 'default') {
   )
 
   return {
-    generationTask,
-    resultHistory,
+    generationTask: resultOwner === owner ? generationTask : null,
+    resultHistory: resultOwner === owner ? resultHistory : [],
     activeResultIndex,
-    activeResult,
-    isSubmitting,
-    isGenerating,
-    notice,
+    activeResult: resultOwner === owner ? activeResult : null,
+    isSubmitting: resultOwner === owner && isSubmitting,
+    isGenerating: resultOwner === owner && isGenerating,
+    notice: resultOwner === owner ? notice : null,
     setNotice,
     setActiveResultIndex,
     submit,

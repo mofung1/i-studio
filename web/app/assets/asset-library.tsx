@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { downloadProtectedAsset } from '@/components/authenticated-image'
+import { AccountBoundary } from '@/components/account-access'
 import { AssetGrid } from '@/components/assets/asset-grid'
 import { TaskGrid } from '@/components/assets/task-grid'
 import { AssetPreview } from '@/components/assets/asset-preview'
@@ -66,6 +67,19 @@ const toolOptions: Array<[string, string]> = [
 ]
 
 export function AssetLibrary({ view }: { view: 'images' | 'tasks' | 'uploads' }) {
+  return (
+    <AccountBoundary
+      section="assets"
+      title="我的资产"
+      description="登录后查看生成作品、上传素材和创作记录，继续管理你的图片。"
+      returnTo={`/assets?view=${view}`}
+    >
+      <AssetLibraryContent view={view} />
+    </AccountBoundary>
+  )
+}
+
+function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { openReverse } = usePromptReverse()

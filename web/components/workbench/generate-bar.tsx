@@ -4,6 +4,8 @@ import { Check, Loader2, Sparkles } from 'lucide-react'
 
 import { GenerationCost, useGenerationCost } from '../generation-cost'
 import type { GenerationNotice } from './use-generation-task'
+import { useAccount } from '../account-provider'
+import { LoginLink } from '../login-link'
 
 interface GenerateBarProps {
   modelId?: string
@@ -36,6 +38,7 @@ export function GenerateBar({
   buttonLabel,
   busyLabel,
 }: GenerateBarProps) {
+  const { account, loading } = useAccount()
   const cost = useGenerationCost(modelId, expectedCount)
   const costBlocked = cost.authenticated && (!cost.quote || !cost.quote.canAfford)
   const label = isSubmitting
@@ -76,22 +79,34 @@ export function GenerateBar({
           {notice.message}
         </p>
       )}
-      <button
-        className="generate-button"
-        type="button"
-        disabled={
-          isSubmitting || isGenerating || aiEnabled === null || aiEnabled === false || costBlocked
-        }
-        title={hint}
-        onClick={onSubmit}
-      >
-        {isSubmitting || isGenerating ? (
-          <Loader2 size={17} className="animate-spin" aria-hidden="true" />
-        ) : (
+      {!account.authenticated && !loading ? (
+        <LoginLink className="generate-button">
           <Sparkles size={17} aria-hidden="true" />
-        )}
-        {label}
-      </button>
+          登录后开始创作
+        </LoginLink>
+      ) : (
+        <button
+          className="generate-button"
+          type="button"
+          disabled={
+            loading ||
+            isSubmitting ||
+            isGenerating ||
+            aiEnabled === null ||
+            aiEnabled === false ||
+            costBlocked
+          }
+          title={hint}
+          onClick={onSubmit}
+        >
+          {isSubmitting || isGenerating ? (
+            <Loader2 size={17} className="animate-spin" aria-hidden="true" />
+          ) : (
+            <Sparkles size={17} aria-hidden="true" />
+          )}
+          {loading ? '正在确认登录状态…' : label}
+        </button>
+      )}
     </footer>
   )
 }

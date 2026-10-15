@@ -568,11 +568,6 @@
   font-weight: 600;
   letter-spacing: -0.3px;
 }
-.reverse-settings-scope {
-  flex: 0 0 auto;
-  color: var(--foreground-3);
-  font-size: 12px;
-}
 .reverse-config-section {
   display: grid;
   grid-template-columns: 210px minmax(0, 1fr);
@@ -898,39 +893,6 @@
   border-color: var(--line-strong);
   background: var(--control-bg);
 }
-.reverse-template-entry {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--border-soft);
-}
-.reverse-template-entry > svg {
-  flex: 0 0 auto;
-  color: var(--foreground-3);
-}
-.reverse-template-entry > div {
-  flex: 1;
-  min-width: 0;
-}
-.reverse-template-entry h3 {
-  margin: 0 0 5px;
-  color: var(--foreground-2);
-  font-size: 13px;
-  font-weight: 550;
-}
-.reverse-template-entry p {
-  margin: 0;
-  color: var(--foreground-3);
-  font-size: 12px;
-  line-height: 1.7;
-}
-.reverse-template-entry button {
-  flex: 0 0 auto;
-  min-height: 40px;
-  border-radius: 7px;
-  white-space: nowrap;
-}
 .reverse-config-footer {
   position: sticky;
   bottom: 0;
@@ -1034,9 +996,6 @@
     gap: 12px;
     padding: 20px 18px;
   }
-  .reverse-settings-scope {
-    font-size: 12px;
-  }
   .reverse-config-section {
     padding: 20px 18px;
   }
@@ -1056,16 +1015,6 @@
   .reverse-number-control,
   .reverse-analysis-fields .reverse-number-control {
     flex-basis: 112px;
-  }
-  .reverse-template-entry {
-    flex-wrap: wrap;
-    padding: 18px;
-  }
-  .reverse-template-entry > div {
-    flex-basis: calc(100% - 30px);
-  }
-  .reverse-template-entry button {
-    margin-left: 30px;
   }
   .reverse-config-footer {
     align-items: stretch;

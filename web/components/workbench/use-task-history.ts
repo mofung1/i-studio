@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 import type { ClothingMode, ClothingShot, ClothingStyle } from '@/lib/contracts'
+import { useAccount } from '@/components/account-provider'
 
 /** 历史任务的输入参数，字段与 /v1/generation/tasks 返回的 input 一致 */
 export interface HistoryTaskInput {
@@ -87,6 +88,8 @@ export function useTaskHistory({
   enabled = true,
   refreshKey = 0,
 }: UseTaskHistoryOptions) {
+  const { account } = useAccount()
+  const owner = account.user?.id ?? ''
   const [tasks, setTasks] = useState<HistoryTask[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -147,15 +150,17 @@ export function useTaskHistory({
   )
 
   useEffect(() => {
-    if (!enabled) return
     setTasks([])
     setNextCursor('')
+    setError('')
+    setIsLoading(false)
+    if (!enabled || !account.authenticated) return
     void load()
     return () => {
       requestId.current += 1
       controllerRef.current?.abort()
     }
-  }, [enabled, load, refreshKey])
+  }, [enabled, load, refreshKey, owner, account.authenticated])
 
   const reload = useCallback(() => {
     void load()
@@ -164,5 +169,12 @@ export function useTaskHistory({
   const loadMore = useCallback(() => {
     if (nextCursor && !isLoading) void load(nextCursor)
   }, [isLoading, load, nextCursor])
-  return { tasks, isLoading, error, reload, hasMore: !!nextCursor, loadMore }
+  return {
+    tasks: account.authenticated ? tasks : [],
+    isLoading,
+    error,
+    reload,
+    hasMore: !!nextCursor,
+    loadMore,
+  }
 }

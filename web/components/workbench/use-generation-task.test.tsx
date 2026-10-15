@@ -3,6 +3,10 @@ import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useGenerationTask } from './use-generation-task'
+const session = vi.hoisted(() => ({ owner: 'fixture-account' }))
+vi.mock('@/components/account-provider', () => ({
+  useAccount: () => ({ account: { user: session.owner ? { id: session.owner } : undefined } }),
+}))
 let hook: ReturnType<typeof useGenerationTask>
 let root: Root
 function Harness() {
@@ -33,6 +37,7 @@ const submit = () =>
   })
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  session.owner = 'fixture-account'
   localStorage.clear()
   sessionStorage.clear()
   localStorage.setItem('istudio-access-token', 'fixture-account-token')
@@ -104,4 +109,33 @@ it('blocks a new generation before uploading or submitting when balance is insuf
   await act(async () => submit())
   expect(hook.notice?.message).toContain('创作币不足')
   expect(fetch.mock.calls.some(([url]) => url.endsWith('/generation/tasks'))).toBe(false)
+})
+it('clears visible generated images when the account signs out', async () => {
+  sessionStorage.setItem('istudio-pending-generation:general', 'completed-task')
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            task: {
+              id: 'completed-task',
+              status: 'succeeded',
+              input: { mode: 'general' },
+              resultImages: ['/private-image'],
+            },
+          }),
+        ),
+    ),
+  )
+  await act(async () => root.render(<Harness />))
+  expect(hook.resultHistory).toHaveLength(1)
+  await act(async () => {
+    session.owner = ''
+    localStorage.clear()
+    root.render(<Harness />)
+  })
+  expect(hook.resultHistory).toHaveLength(0)
+  expect(hook.activeResult).toBeNull()
+  expect(hook.generationTask).toBeNull()
 })

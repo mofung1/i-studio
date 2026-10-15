@@ -1,9 +1,9 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { Coins, RefreshCw } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
 import { useAccount } from '@/components/account-provider'
+import { AccountAccess } from '@/components/account-access'
 import { settingsRequest } from '@/lib/ai-settings'
 import { getAccessToken } from '@/lib/api'
 import { formatCredits } from '@/lib/credits'
@@ -31,7 +31,7 @@ const kinds: Record<string, string> = {
   settlement: '生成结算',
 }
 export default function AccountPage() {
-  const { account, loading, refresh } = useAccount()
+  const { account, refresh } = useAccount()
   const owner = account.user?.id ?? ''
   const [snapshot, setSnapshot] = useState<{ owner: string; data: AccountDetail } | null>(null)
   const data = snapshot?.owner === owner ? snapshot.data : null
@@ -81,35 +81,29 @@ export default function AccountPage() {
       section="settings"
       title="个人中心"
       actions={
-        <button
-          className="studio-secondary"
-          disabled={busy || !account.authenticated}
-          onClick={() => void load()}
-        >
-          <RefreshCw size={15} />
-          刷新余额
-        </button>
+        account.authenticated ? (
+          <button
+            className="studio-secondary"
+            disabled={busy || !account.authenticated}
+            onClick={() => void load()}
+          >
+            <RefreshCw size={15} />
+            刷新余额
+          </button>
+        ) : (
+          false
+        )
       }
     >
-      <main className="ops-page">
-        {loading ? (
-          <p role="status">正在读取账户…</p>
-        ) : !account.authenticated ? (
-          <div className="ops-empty">
-            <h1>登录后查看余额和使用记录</h1>
-            <Link className="settings-primary" href="/login?next=%2Faccount">
-              登录 / 注册
-            </Link>
-          </div>
+      <main className="ops-page account-page">
+        {!account.authenticated ? (
+          <AccountAccess
+            title="登录后查看个人中心"
+            description="查看账户余额、生成消费和每一笔余额变动。"
+            returnTo="/account"
+          />
         ) : (
           <>
-            <div className="ops-heading">
-              <div>
-                <p className="ops-eyebrow">我的账户</p>
-                <h1>{account.user?.username}</h1>
-                <p>创作消费与余额变动，都在这里。</p>
-              </div>
-            </div>
             {error && (
               <p role="alert" className="settings-error">
                 {error}
@@ -166,7 +160,13 @@ export default function AccountPage() {
                   </tbody>
                 </table>
                 {!data?.ledger.length && (
-                  <p className="ops-empty">暂无余额变动；需要增加余额时请联系网站管理员。</p>
+                  <p className="ops-empty" role={busy ? 'status' : undefined}>
+                    {busy
+                      ? '正在读取余额流水…'
+                      : error
+                        ? '余额流水读取失败，请刷新重试。'
+                        : '暂无余额变动；需要增加余额时请联系网站管理员。'}
+                  </p>
                 )}
               </div>
             </section>

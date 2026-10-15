@@ -399,7 +399,8 @@ export function InspirationPromptManager() {
                 </button>
                 <button
                   type="button"
-                  className="settings-command"
+                  className="settings-command admin-action"
+                  data-tone="danger"
                   aria-label={`删除 ${item.title}`}
                   onClick={() => {
                     setDeleteError('')

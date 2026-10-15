@@ -4,6 +4,16 @@ import { formatCredits } from '@/lib/credits'
 
 import type { AdminTask as Task } from '@/lib/admin'
 import { AdminTable as Table } from './table'
+import { AdminStatusBadge, type AdminTone } from './status-badge'
+const statusTones: Record<string, AdminTone> = {
+  queued: 'warning',
+  processing: 'warning',
+  waiting_provider: 'warning',
+  succeeded: 'success',
+  failed: 'danger',
+  cancelled: 'neutral',
+  expired: 'danger',
+}
 const statusLabels: Record<string, string> = {
   queued: '排队中',
   processing: '生成中',
@@ -13,13 +23,20 @@ const statusLabels: Record<string, string> = {
   cancelled: '已取消',
   expired: '已过期',
 }
-export function AdminTaskTable({ tasks }: { tasks: Task[] }) {
+export function AdminTaskTable({ tasks, loading = false }: { tasks: Task[]; loading?: boolean }) {
   return (
-    <section className="ops-card">
+    <section className="ops-card" aria-busy={loading}>
       <Table
         headings={['时间 / 任务', '用户 / 模型', '状态', '预留', '实扣', '退回', '说明']}
-        empty={!tasks.length}
+        empty={!loading && !tasks.length}
       >
+        {loading && !tasks.length && (
+          <tr>
+            <td colSpan={7} className="ops-empty">
+              正在读取任务…
+            </td>
+          </tr>
+        )}
         {tasks.map((task) => (
           <tr key={task.id}>
             <td>
@@ -31,7 +48,9 @@ export function AdminTaskTable({ tasks }: { tasks: Task[] }) {
               <small>{task.modelName || '历史任务'}</small>
             </td>
             <td>
-              {statusLabels[task.status] ?? task.status}
+              <AdminStatusBadge tone={statusTones[task.status] ?? 'neutral'}>
+                {statusLabels[task.status] ?? task.status}
+              </AdminStatusBadge>
               {!task.settled && <small>等待结算</small>}
             </td>
             <td>{formatCredits(task.reserved)}</td>

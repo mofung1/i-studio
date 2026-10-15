@@ -4,6 +4,8 @@ import { BookMarked, Plus, RotateCcw, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { LibraryDialog } from '@/components/library-controls'
+import { AccountAccess } from '@/components/account-access'
+import { useAccount } from '@/components/account-provider'
 import { PersonalPromptEditor } from '@/components/personal-prompt-editor'
 import { PersonalPromptApply } from '@/components/personal-prompt-apply'
 import { getAccessToken } from '@/lib/api'
@@ -28,6 +30,8 @@ export function CreationLibraryTools({
   disabled?: boolean
   onApply: (application: PersonalApplication) => void | Promise<void>
 }) {
+  const { account } = useAccount()
+  const owner = account.user?.id ?? ''
   const [open, setOpen] = useState(false)
   const [kind, setKind] = useState<'prompt' | 'preset'>('prompt')
   const [search, setSearch] = useState('')
@@ -41,7 +45,7 @@ export function CreationLibraryTools({
   const [saved, setSaved] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const scope = useRef('')
-  scope.current = `${kind}:${query}:${open}:${config.mode}:${config.taskType ?? ''}`
+  scope.current = `${owner}:${kind}:${query}:${open}:${config.mode}:${config.taskType ?? ''}`
   const presetFilter =
     kind === 'preset'
       ? {
@@ -54,30 +58,39 @@ export function CreationLibraryTools({
     return () => window.clearTimeout(timer)
   }, [search])
   useEffect(() => {
-    if (!open || !getAccessToken()) return
-    const controller = new AbortController()
-    setLoading(true)
     setItems([])
     setCursor('')
     setError('')
+    if (!open || !account.authenticated) {
+      setLoading(false)
+      return
+    }
+    const token = getAccessToken()
+    const controller = new AbortController()
+    setLoading(true)
     void libraryRequest<{ items: PersonalPrompt[]; nextCursor: string }>(
       `personal/prompts?${new URLSearchParams({ kind, q: query, limit: '30', ...presetFilter })}`,
       { signal: controller.signal },
     )
       .then((data) => {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && token === getAccessToken()) {
           setItems(data.items)
           setCursor(data.nextCursor)
         }
       })
       .catch((reason) => {
-        if (!controller.signal.aborted) setError(reason.message)
+        if (!controller.signal.aborted && token === getAccessToken()) setError(reason.message)
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [open, kind, query, attempt, config.mode, config.taskType])
+  }, [open, kind, query, attempt, config.mode, config.taskType, owner, account.authenticated])
+  useEffect(() => {
+    setSaving(false)
+    setApplying(null)
+    setSaved(false)
+  }, [owner])
   async function more() {
     if (!cursor || loading) return
     const current = scope.current
@@ -124,15 +137,14 @@ export function CreationLibraryTools({
           <RotateCcw size={16} />
         </button>
       )}
-      {open && !saving && !applying && (
+      {open && ((!saving && !applying) || !account.authenticated) && (
         <LibraryDialog title="提示词与创作预设" onClose={() => setOpen(false)}>
-          {!getAccessToken() ? (
-            <p className="library-count">
-              登录后使用自己的提示词与预设。
-              <Link href="/login" onClick={() => setOpen(false)}>
-                登录
-              </Link>
-            </p>
+          {!account.authenticated ? (
+            <AccountAccess
+              compact
+              title="登录后使用提示词与预设"
+              description="保存常用描述和创作配置，随时应用到当前作品。"
+            />
           ) : (
             <>
               <div className="creation-library-tabs">
@@ -199,7 +211,7 @@ export function CreationLibraryTools({
           )}
         </LibraryDialog>
       )}
-      {open && saving && (
+      {open && account.authenticated && saving && (
         <PersonalPromptEditor
           seed={{ prompt, config }}
           onClose={() => setSaving(false)}
@@ -211,7 +223,7 @@ export function CreationLibraryTools({
           }}
         />
       )}
-      {open && applying && (
+      {open && account.authenticated && applying && (
         <PersonalPromptApply
           item={applying}
           onClose={() => setApplying(null)}

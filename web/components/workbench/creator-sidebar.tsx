@@ -359,7 +359,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                   onChange={onSetReferenceFiles}
                   labelFor={(index) => `参考 ${index + 1}`}
                   emptyTitle="添加参考图片"
-                  emptyHint="点击添加"
+                  emptyHint="选择本地图片或素材库"
                   acceptedHint={`JPG / PNG / WebP · 最多 ${maxFiles} 张`}
                   collapseAt={2}
                 />
@@ -478,7 +478,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 onChange={onSetProductFiles}
                 labelFor={(index) => (index === 0 ? '主图' : `素材 ${index + 1}`)}
                 emptyTitle="上传商品原图"
-                emptyHint="拖拽或点击上传"
+                emptyHint="拖入图片，或打开素材选择器"
                 acceptedHint={`JPG / PNG / WebP · 最多 ${maxFiles} 张`}
               />
             </fieldset>
@@ -497,8 +497,8 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 onChange={onSetReferenceFiles}
                 labelFor={() => '参考图'}
                 emptyTitle="添加参考爆款图"
-                emptyHint="拖拽或点击上传"
-                acceptedHint="JPG / PNG · 仅 1 张"
+                emptyHint="选择本地图片或素材库"
+                acceptedHint="JPG / PNG / WebP · 仅 1 张"
               />
             </fieldset>
           )}

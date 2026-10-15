@@ -1,6 +1,7 @@
 package studio
 
 import (
+	"database/sql"
 	"net/http"
 )
 
@@ -24,7 +25,22 @@ func (s *Service) adminTasks(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	rows, err := s.db.Query(`SELECT t.id,u.username,t.status,t.created_at,COALESCE(t.error_message,''),COALESCE(c.model_name,''),COALESCE(c.unit_price*c.quantity,0),COALESCE(c.charged,0),COALESCE(c.refunded,0),COALESCE(c.settled,true) FROM generation_tasks t JOIN users u ON u.id=t.user_id LEFT JOIN generation_charges c ON c.task_id=t.id ORDER BY t.created_at DESC LIMIT 100`)
+	page := max(1, parseQueryInt(r.URL.Query().Get("page"), 1))
+	pageSize := clampInt(parseQueryInt(r.URL.Query().Get("pageSize"), 20), 1, 100)
+	tx, err := s.db.BeginTx(r.Context(), &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
+		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
+		return
+	}
+	defer tx.Rollback()
+	var total int
+	if err = tx.QueryRowContext(r.Context(), `SELECT count(*) FROM generation_tasks t JOIN users u ON u.id=t.user_id`).Scan(&total); err != nil {
+		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
+		return
+	}
+	totalPages := max(1, (total+pageSize-1)/pageSize)
+	page = min(page, totalPages)
+	rows, err := tx.QueryContext(r.Context(), `SELECT t.id,u.username,t.status,t.created_at,COALESCE(t.error_message,''),COALESCE(c.model_name,''),COALESCE(c.unit_price*c.quantity,0),COALESCE(c.charged,0),COALESCE(c.refunded,0),COALESCE(c.settled,true) FROM generation_tasks t JOIN users u ON u.id=t.user_id LEFT JOIN generation_charges c ON c.task_id=t.id ORDER BY t.created_at DESC,t.id DESC LIMIT $1 OFFSET $2`, pageSize, (page-1)*pageSize)
 	if err != nil {
 		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
 		return
@@ -44,7 +60,15 @@ func (s *Service) adminTasks(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
 		return
 	}
-	s.json(w, 200, map[string]any{"tasks": items})
+	if err = rows.Close(); err != nil {
+		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
+		return
+	}
+	if err = tx.Commit(); err != nil {
+		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
+		return
+	}
+	s.json(w, 200, map[string]any{"tasks": items, "page": page, "pageSize": pageSize, "total": total, "totalPages": totalPages})
 }
 
 func (s *Service) adminAudit(w http.ResponseWriter, r *http.Request) {

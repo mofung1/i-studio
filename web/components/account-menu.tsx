@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { useAccount } from './account-provider'
+import { LoginLink } from './login-link'
 import { formatCredits, refreshAccount } from '@/lib/credits'
 
 export function AccountMenu() {
   const router = useRouter()
-  const { account } = useAccount()
+  const { account, loading } = useAccount()
   const username = account.authenticated ? (account.user?.username ?? '') : ''
   const [menuOpen, setMenuOpen] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
@@ -46,19 +47,21 @@ export function AccountMenu() {
     router.refresh()
   }
 
+  if (!username && loading) {
+    return (
+      <span className="studio-account account-menu-loading" role="status">
+        账户加载中…
+      </span>
+    )
+  }
   if (!username) {
     return (
-      <Link
-        className="studio-account"
-        href="/login"
-        aria-label="登录我的工作台"
-        title="登录我的工作台"
-      >
+      <LoginLink className="studio-account" aria-label="登录我的工作台" title="登录我的工作台">
         <span className="avatar-button">
           <UserRound size={16} aria-hidden="true" />
         </span>
         <span className="studio-account-name">登录</span>
-      </Link>
+      </LoginLink>
     )
   }
 

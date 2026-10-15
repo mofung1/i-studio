@@ -1,0 +1,538 @@
+/* Operator-only colors; the public studio keeps its monochrome controls. */
+.admin-shell {
+  --admin-success: #15803d;
+  --admin-success-hover: #166534;
+  --admin-success-text: #166534;
+  --admin-success-soft: #f0fdf4;
+  --admin-success-line: #bbdfc6;
+  --admin-danger-text: #b42318;
+  --admin-danger-soft: #fff1f0;
+  --admin-danger-line: #f3c6c2;
+  --admin-warning-text: #925a0b;
+  --admin-warning-soft: #fffbeb;
+  --admin-warning-line: #efdab0;
+}
+html[data-theme='dark'] .admin-shell {
+  --admin-success-text: #86efac;
+  --admin-success-soft: #172c22;
+  --admin-success-line: #315b41;
+  --admin-danger-text: #fca5a5;
+  --admin-danger-soft: #351f24;
+  --admin-danger-line: #704048;
+  --admin-warning-text: #fcd580;
+  --admin-warning-soft: #302a1d;
+  --admin-warning-line: #665435;
+}
+.admin-shell [data-tone='success'] {
+  --admin-tone-text: var(--admin-success-text);
+  --admin-tone-soft: var(--admin-success-soft);
+  --admin-tone-line: var(--admin-success-line);
+}
+.admin-shell [data-tone='danger'] {
+  --admin-tone-text: var(--admin-danger-text);
+  --admin-tone-soft: var(--admin-danger-soft);
+  --admin-tone-line: var(--admin-danger-line);
+}
+.admin-shell [data-tone='warning'] {
+  --admin-tone-text: var(--admin-warning-text);
+  --admin-tone-soft: var(--admin-warning-soft);
+  --admin-tone-line: var(--admin-warning-line);
+}
+.admin-shell [data-tone='neutral'] {
+  --admin-tone-text: var(--foreground-3);
+  --admin-tone-soft: var(--control-bg);
+  --admin-tone-line: var(--border);
+}
+.admin-shell .admin-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 8px;
+  border: 1px solid var(--admin-tone-line);
+  border-radius: 6px;
+  background: var(--admin-tone-soft);
+  color: var(--admin-tone-text);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.admin-shell .admin-status-dot {
+  flex: 0 0 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.admin-shell .settings-primary {
+  background: var(--admin-success);
+  border-color: var(--admin-success);
+  color: #fff;
+}
+.admin-shell .settings-primary:hover:not(:disabled) {
+  background: var(--admin-success-hover);
+  border-color: var(--admin-success-hover);
+  color: #fff;
+}
+.admin-shell .admin-action[data-tone] {
+  background: var(--admin-tone-soft);
+  border-color: var(--admin-tone-line);
+  color: var(--admin-tone-text);
+}
+.admin-shell .admin-action[data-tone]:hover:not(:disabled) {
+  background: var(--admin-tone-soft);
+  border-color: var(--admin-tone-text);
+  color: var(--admin-tone-text);
+}
+.admin-shell :is(.settings-switch, .settings-checks) input {
+  accent-color: var(--admin-success);
+}
+.admin-shell .admin-switch-label {
+  color: var(--admin-tone-text);
+  white-space: nowrap;
+}
+.admin-shell .settings-error {
+  color: var(--admin-danger-text);
+}
+.admin-shell .settings-saved,
+.admin-shell .connection-result {
+  color: var(--admin-success-text);
+  border-color: var(--admin-success-line);
+  background: var(--admin-success-soft);
+}
+.admin-shell .prompt-dirty-status {
+  color: var(--admin-warning-text);
+  border-color: var(--admin-warning-line);
+  background: var(--admin-warning-soft);
+}
+.admin-shell .prompt-template-item .prompt-template-status,
+.admin-shell .inspiration-manager-badge {
+  color: var(--admin-success-text);
+  border-color: var(--admin-success-line);
+  background: var(--admin-success-soft);
+}
+.admin-shell .prompt-template-item .prompt-template-status.is-disabled,
+.admin-shell .inspiration-manager-badge.is-disabled {
+  color: var(--admin-danger-text);
+  border-color: var(--admin-danger-line);
+  background: var(--admin-danger-soft);
+}
+.admin-shell .ai-settings {
+  min-height: auto;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+}
+.admin-shell .admin-settings-heading {
+  margin-bottom: 24px;
+}
+.admin-settings-heading h1 {
+  margin: 0 0 8px;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+  line-height: 1.4;
+}
+.admin-settings-heading p,
+.admin-shell .admin-service-heading p,
+.admin-shell .reverse-settings-heading p,
+.admin-field-hint {
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.admin-shell .ai-settings > .settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+  margin: 0 0 20px;
+  padding: 5px;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+}
+.admin-shell .settings-tabs button {
+  min-height: 68px;
+  padding: 12px 16px;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-align: left;
+}
+.admin-shell .settings-tabs button > svg {
+  display: block;
+  flex-shrink: 0;
+  width: 19px;
+  height: 19px;
+}
+.admin-shell .settings-tabs button > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  font-size: 13px;
+}
+.admin-shell .settings-tabs small {
+  color: var(--foreground-3);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.admin-shell .settings-tabs button[aria-selected='true'] {
+  color: var(--foreground);
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
+}
+.admin-shell .settings-tabs button:hover:not([aria-selected='true']) {
+  background: var(--control-hover);
+}
+.admin-shell .ai-settings > #services-panel {
+  gap: 20px;
+}
+.admin-shell .ai-settings #services-panel > .endpoint-section {
+  padding: 0;
+  border-color: var(--border);
+}
+.admin-shell .endpoint-section-head {
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  margin: 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.admin-shell .admin-service-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 280px;
+}
+.admin-shell .admin-service-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--foreground-2);
+  background: var(--surface-subtle);
+}
+.admin-shell .admin-service-heading h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.admin-shell .admin-service-heading p {
+  font-size: 12px;
+}
+.admin-shell .ai-settings .endpoint-list {
+  padding: 16px;
+  margin: 0;
+  gap: 12px;
+  border-top: 0;
+}
+.admin-shell .ai-settings .endpoint-row {
+  align-items: flex-start;
+  padding: 18px;
+  gap: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.admin-shell .ai-settings .endpoint-row:last-child {
+  border-bottom: 1px solid var(--border);
+}
+.admin-shell .ai-settings .endpoint-row:hover {
+  border-color: var(--line-strong);
+  box-shadow: none;
+}
+.admin-shell .endpoint-details {
+  flex: 1;
+}
+.admin-shell .endpoint-name {
+  gap: 10px;
+}
+.admin-shell .endpoint-name .settings-switch {
+  min-height: 28px;
+}
+.admin-shell .endpoint-meta {
+  margin-top: 9px;
+  gap: 8px;
+  font-size: 12px;
+}
+.admin-shell .endpoint-url {
+  margin-top: 9px;
+}
+.admin-shell .endpoint-actions {
+  justify-content: flex-end;
+  max-width: 340px;
+  gap: 6px;
+}
+.admin-shell .ai-settings .endpoint-actions button {
+  min-height: 38px;
+  border-radius: 7px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.admin-shell .ai-settings .endpoint-actions .settings-icon {
+  width: 38px;
+  height: 38px;
+}
+.admin-shell .ai-settings .endpoint-actions .admin-action[data-tone] {
+  background: var(--admin-tone-soft);
+  border: 1px solid var(--admin-tone-line);
+  color: var(--admin-tone-text);
+}
+.admin-shell .ai-settings .endpoint-actions .admin-action[data-tone]:hover:not(:disabled) {
+  border-color: var(--admin-tone-text);
+}
+.admin-shell .endpoint-details .connection-result {
+  padding: 8px 10px;
+  border: 1px solid var(--admin-success-line);
+  border-radius: 6px;
+}
+.admin-shell .endpoint-section .settings-empty {
+  padding: 28px 24px;
+  margin: 0;
+  background: transparent;
+}
+.admin-shell .endpoint-dialog .endpoint-section-head {
+  padding: 0 0 18px;
+  margin-bottom: 20px;
+}
+.admin-shell .endpoint-dialog .settings-checks {
+  flex-wrap: wrap;
+}
+.admin-shell .admin-field-hint {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  font-size: 12px;
+}
+.admin-shell :is(.reverse-settings, .site-settings-panel, .ai-settings > .prompt-settings) {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  border-color: var(--border);
+}
+.admin-shell .reverse-settings-heading {
+  align-items: flex-start;
+}
+.admin-shell .reverse-settings-heading h2 {
+  margin-bottom: 6px;
+  font-size: 17px;
+}
+.admin-shell .reverse-config-section {
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 28px;
+  padding: 24px;
+}
+.admin-shell .reverse-config-controls {
+  max-width: 780px;
+}
+.admin-shell .reverse-service-summary {
+  padding: 12px;
+  color: var(--admin-success-text);
+  border: 1px solid var(--admin-success-line);
+  background: var(--admin-success-soft);
+}
+.admin-shell :is(.reverse-service-mark, .reverse-service-capability) {
+  color: var(--admin-success-text);
+}
+.admin-shell .reverse-service-mark {
+  border-color: var(--admin-success-line);
+  background: transparent;
+}
+.admin-shell .reverse-service-unavailable {
+  color: var(--admin-warning-text);
+  border-color: var(--admin-warning-line);
+  background: var(--admin-warning-soft);
+}
+.admin-shell .reverse-config-state {
+  color: var(--admin-tone-text);
+}
+.admin-shell .reverse-unsaved-dot {
+  background: currentColor;
+}
+.admin-shell .reverse-template-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 780px;
+}
+.admin-shell .reverse-template-options > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+.admin-shell .reverse-template-options > button:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--surface-subtle);
+}
+.admin-shell .reverse-template-options strong {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-shell .reverse-template-options > button > span:not(.admin-status) {
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.admin-shell .site-settings-panel {
+  padding: 24px;
+}
+.admin-shell .site-settings-heading {
+  margin-bottom: 24px;
+}
+.admin-shell .site-settings-heading h2 {
+  font-size: 17px;
+}
+.admin-shell .site-settings-heading p {
+  font-size: 13px;
+}
+.admin-shell .site-settings-fields {
+  grid-template-columns: minmax(0, 1.3fr) minmax(240px, 0.7fr);
+  gap: 32px;
+}
+.admin-shell .site-brand-preview {
+  background: var(--surface-subtle);
+  border-color: var(--border);
+}
+.admin-shell .site-brand-preview-content strong {
+  font-size: 24px;
+}
+.admin-shell .ai-settings > .prompt-settings {
+  padding: 24px;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 20px 24px;
+}
+.admin-shell .prompt-settings-intro p {
+  margin-bottom: 0;
+}
+.admin-shell .prompt-template-status {
+  flex: 0 0 auto;
+}
+.admin-shell :is(button, a, input, textarea):focus-visible {
+  outline: 2px solid var(--admin-success);
+  outline-offset: 3px;
+}
+.admin-shell .prompt-template-search input:focus-visible {
+  outline: none;
+}
+.admin-shell .prompt-template-search:focus-within {
+  border-color: var(--admin-success);
+  box-shadow: 0 0 0 2px var(--admin-success-soft);
+}
+.admin-shell .reverse-number-control input:focus-visible {
+  outline: none;
+}
+.admin-shell .reverse-number-control:focus-within {
+  outline: 2px solid var(--admin-success);
+  outline-offset: 2px;
+}
+@media (max-width: 1200px) {
+  .admin-shell .ai-settings .endpoint-row {
+    flex-wrap: wrap;
+  }
+  .admin-shell .endpoint-details {
+    flex-basis: 100%;
+  }
+  .admin-shell .endpoint-actions {
+    justify-content: flex-start;
+    max-width: none;
+  }
+  .admin-shell .settings-tabs button {
+    padding: 10px;
+    gap: 8px;
+  }
+  .admin-shell .reverse-config-section {
+    grid-template-columns: 155px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .admin-shell .ai-settings > .prompt-settings {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+@media (max-width: 1000px) {
+  .admin-shell .settings-tabs small {
+    display: none;
+  }
+  .admin-shell .settings-tabs button {
+    min-height: 48px;
+  }
+  .admin-shell .reverse-config-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .admin-shell .reverse-config-label p {
+    max-width: none;
+  }
+  .admin-shell .site-settings-fields,
+  .admin-shell .ai-settings > .prompt-settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-shell .ai-settings .prompt-settings nav {
+    padding-right: 0;
+    border-right: 0;
+  }
+  .admin-shell .ai-settings .prompt-template-browser .prompt-template-tree {
+    max-height: 310px;
+  }
+}
+@media (max-width: 600px) {
+  .admin-shell .admin-settings-heading {
+    margin-bottom: 18px;
+  }
+  .admin-settings-heading h1 {
+    font-size: 22px;
+  }
+  .admin-shell .ai-settings > .settings-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 16px;
+  }
+  .admin-shell .settings-tabs button {
+    padding: 10px 12px;
+  }
+  .admin-shell
+    :is(
+      .endpoint-section-head,
+      .reverse-settings-heading,
+      .reverse-config-section,
+      .reverse-config-footer,
+      .site-settings-panel,
+      .ai-settings > .prompt-settings
+    ) {
+    padding: 18px;
+  }
+  .admin-shell .ai-settings .endpoint-list {
+    padding: 12px;
+  }
+  .admin-shell .reverse-template-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-shell .reverse-settings-heading {
+    flex-wrap: wrap;
+  }
+  .admin-shell .reverse-config-footer {
+    gap: 12px;
+  }
+}

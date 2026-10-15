@@ -16,6 +16,8 @@ import { useState } from 'react'
 
 import { AuthenticatedImage } from '@/components/authenticated-image'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { AccountAccess } from '@/components/account-access'
+import { useAccount } from '@/components/account-provider'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 import { splitFailureMessage } from '@/lib/failure-message'
@@ -81,6 +83,7 @@ export function HistoryDrawer({
   onRegenerate,
   onDelete,
 }: HistoryDrawerProps) {
+  const { account } = useAccount()
   const [scope, setScope] = useState<'type' | 'all'>('type')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmTarget, setConfirmTarget] = useState<HistoryTask | null>(null)
@@ -133,35 +136,44 @@ export function HistoryDrawer({
           </button>
         </header>
 
-        <div className="history-drawer-filter" role="group" aria-label="历史记录范围">
-          <button
-            type="button"
-            aria-pressed={scope === 'type'}
-            className={scope === 'type' ? 'is-active' : ''}
-            onClick={() => setScope('type')}
-          >
-            {mode === 'general' ? '通用生图' : typeLabel}
-          </button>
-          <button
-            type="button"
-            aria-pressed={scope === 'all'}
-            className={scope === 'all' ? 'is-active' : ''}
-            onClick={() => setScope('all')}
-          >
-            全部记录
-          </button>
-          <button
-            type="button"
-            className="history-refresh"
-            title="刷新"
-            aria-label="刷新历史记录"
-            onClick={reload}
-          >
-            <RotateCcw size={14} />
-          </button>
-        </div>
+        {account.authenticated && (
+          <div className="history-drawer-filter" role="group" aria-label="历史记录范围">
+            <button
+              type="button"
+              aria-pressed={scope === 'type'}
+              className={scope === 'type' ? 'is-active' : ''}
+              onClick={() => setScope('type')}
+            >
+              {mode === 'general' ? '通用生图' : typeLabel}
+            </button>
+            <button
+              type="button"
+              aria-pressed={scope === 'all'}
+              className={scope === 'all' ? 'is-active' : ''}
+              onClick={() => setScope('all')}
+            >
+              全部记录
+            </button>
+            <button
+              type="button"
+              className="history-refresh"
+              title="刷新"
+              aria-label="刷新历史记录"
+              onClick={reload}
+            >
+              <RotateCcw size={14} />
+            </button>
+          </div>
+        )}
 
         <div className="history-drawer-body">
+          {!account.authenticated && (
+            <AccountAccess
+              compact
+              title="登录后查看创作记录"
+              description="生成结果与创作参数会保存在你的账户中。"
+            />
+          )}
           {error && (
             <p className="history-drawer-error" role="alert">
               <AlertTriangle size={14} aria-hidden="true" />
@@ -174,7 +186,7 @@ export function HistoryDrawer({
               正在加载…
             </p>
           )}
-          {!isLoading && !error && tasks.length === 0 && (
+          {account.authenticated && !isLoading && !error && tasks.length === 0 && (
             <div className="history-drawer-empty">
               <History size={20} aria-hidden="true" />
               <strong>还没有历史记录</strong>

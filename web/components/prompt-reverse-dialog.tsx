@@ -2,7 +2,8 @@
 
 import { SavePersonalPrompt } from './save-personal-prompt'
 
-import Link from 'next/link'
+import { AccountAccess } from './account-access'
+import { useAccount } from './account-provider'
 import { useRouter } from 'next/navigation'
 import {
   Check,
@@ -90,7 +91,8 @@ export function PromptReverseDialog({
   const [pendingHistoryId, setPendingHistoryId] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
   const [configurationAttempt, setConfigurationAttempt] = useState(0)
-  const loggedIn = typeof window !== 'undefined' && !!getAccessToken()
+  const { account } = useAccount()
+  const loggedIn = account.authenticated
   const active = isReverseActive(task)
   const changed = !!task && (task.mode !== mode || task.requirements !== requirements.trim())
   const ready = !!task?.result && !active && !changed && !!drafts[language].trim()
@@ -154,7 +156,7 @@ export function PromptReverseDialog({
       requestNonce.current = null
     }
     const controller = new AbortController()
-    if (getAccessToken()) {
+    if (loggedIn) {
       setLoading(true)
       Promise.all([
         reverseRequest<ReverseConfiguration>('prompt-reverse-settings', {
@@ -211,7 +213,7 @@ export function PromptReverseDialog({
       controller.abort()
       document.body.style.overflow = oldOverflow
     }
-  }, [open, request.revision, configurationAttempt])
+  }, [open, request.revision, configurationAttempt, loggedIn, account.user?.id])
 
   useEffect(() => {
     if (!task?.result || draftTask.current === task.id) return
@@ -523,17 +525,12 @@ export function PromptReverseDialog({
           </button>
         </header>
         {!loggedIn ? (
-          <div className="reverse-login">
-            <ScanText size={32} aria-hidden="true" />
-            <p>登录后即可上传图片，提炼提示词并保存分析结果。</p>
-            <Link
-              className="studio-primary"
-              href="/login?next=%2Fworkbench%3Fmode%3Dgeneral"
-              onClick={onClose}
-            >
-              登录并开始
-            </Link>
-          </div>
+          <AccountAccess
+            compact
+            title="登录后开始图片反推"
+            description="从图片中提炼画面描述或风格提示词，保留分析结果继续创作。"
+            onLogin={onClose}
+          />
         ) : (
           <>
             {error && (

@@ -3,7 +3,9 @@
 import { BookMarked, Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { PersonalPromptEditor, type PersonalPromptSeed } from './personal-prompt-editor'
-import { getAccessToken } from '@/lib/api'
+import { AccountAccess } from './account-access'
+import { useAccount } from './account-provider'
+import { LibraryDialog } from './library-controls'
 
 export function SavePersonalPrompt({
   seed,
@@ -18,9 +20,9 @@ export function SavePersonalPrompt({
   className?: string
   iconOnly?: boolean
 }) {
+  const { account } = useAccount()
   const [open, setOpen] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
   useEffect(() => setSaved(false), [seed.prompt, seed.title])
   return (
     <>
@@ -31,11 +33,6 @@ export function SavePersonalPrompt({
         aria-label={saved ? '已保存到我的提示词' : '保存到我的提示词'}
         title={saved ? '已保存到我的提示词' : '保存到我的提示词'}
         onClick={() => {
-          if (!getAccessToken()) {
-            setError('登录后可保存到自己的提示词库')
-            return
-          }
-          setError('')
           setOpen(true)
         }}
       >
@@ -46,12 +43,20 @@ export function SavePersonalPrompt({
         )}
         {!iconOnly && (saved ? '已保存' : '存为私有提示词')}
       </button>
-      {error && (
-        <span className="personal-inline-error" role="alert">
-          {error}
-        </span>
+      {open && !account.authenticated && (
+        <LibraryDialog
+          title="保存到我的提示词"
+          onClose={() => setOpen(false)}
+          portalContainer={portalContainer}
+        >
+          <AccountAccess
+            compact
+            title="登录后保存私有提示词"
+            description="收藏当前描述，下次创作时可以直接使用。"
+          />
+        </LibraryDialog>
       )}
-      {open && (
+      {open && account.authenticated && (
         <PersonalPromptEditor
           portalContainer={portalContainer}
           seed={seed}

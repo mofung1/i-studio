@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 import { formatCredits, type GenerationQuote } from '@/lib/credits'
 import { useAccount } from './account-provider'
+import { LoginLink } from './login-link'
 const displayedPrices = new Map<string, number>()
 export function displayedUnitPrice(modelId: string) {
   return displayedPrices.get(modelId)
@@ -20,11 +21,11 @@ export async function fetchGenerationQuote(
   return response.json() as Promise<GenerationQuote>
 }
 export function useGenerationCost(modelId: string | undefined, count: number) {
-  const { account } = useAccount()
+  const { account, loading } = useAccount()
   const [quote, setQuote] = useState<GenerationQuote | null>(null)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
-  const key = `${modelId}:${count}:${account.available}`
+  const key = `${account.user?.id ?? ''}:${modelId}:${count}:${account.available}`
   const [loadedKey, setLoadedKey] = useState('')
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1)
@@ -57,17 +58,29 @@ export function useGenerationCost(modelId: string | undefined, count: number) {
       clearTimeout(timer)
     }
   }, [modelId, count, account.authenticated, key, revision])
-  return { quote: loadedKey === key ? quote : null, error, authenticated: account.authenticated }
+  return {
+    quote: loadedKey === key ? quote : null,
+    error,
+    authenticated: account.authenticated,
+    loading,
+  }
 }
 export function GenerationCost({
   quote,
   error,
   authenticated,
+  loading,
 }: ReturnType<typeof useGenerationCost>) {
+  if (loading)
+    return (
+      <div className="creation-credit-estimate" role="status">
+        正在读取账户信息…
+      </div>
+    )
   if (!authenticated)
     return (
       <div className="creation-credit-estimate">
-        <Link href="/login?next=%2Fworkbench">登录后查看余额与费用</Link>
+        <LoginLink>登录后查看余额与费用</LoginLink>
       </div>
     )
   if (error)

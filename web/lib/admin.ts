@@ -50,5 +50,13 @@ export interface AdminAudit {
   createdAt: string
 }
 
+export interface AdminTaskPage {
+  tasks: AdminTask[]
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
 export const adminRequest = <T>(path: string, method = 'GET', body?: unknown) =>
   settingsRequest<T>(`admin/${path}`, method, body)

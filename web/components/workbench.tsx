@@ -11,6 +11,7 @@ import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
 import { apiBaseUrl, deleteGenerationTask, getAccessToken } from '@/lib/api'
 
 import { InfoDialog } from './info-dialog'
+import { useAccount } from './account-provider'
 import { CreatorSidebar } from './workbench/creator-sidebar'
 import { ClothingWorkbench } from './workbench/clothing-workbench'
 import {
@@ -65,14 +66,17 @@ interface WorkbenchProps {
 }
 
 export function Workbench(props: WorkbenchProps) {
+  const { account } = useAccount()
+  const owner = account.user?.id ?? 'guest'
   return props.initialMode === 'commerce' && props.initialTask === 'clothing-set' ? (
     <ClothingWorkbench
+      key={owner}
       initialModel={props.initialModel}
       initialAspectRatio={props.initialAspectRatio}
       initialResolution={props.initialResolution}
     />
   ) : (
-    <StandardWorkbench {...props} />
+    <StandardWorkbench key={owner} {...props} />
   )
 }
 
