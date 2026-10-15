@@ -128,6 +128,9 @@ func (s *server) promptReverseTasks(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
+	if !s.requireAuxiliaryUser(w, r) {
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, 16<<20)
 	if err := r.ParseMultipartForm(4 << 20); err != nil {
 		s.error(w, 400, "REVERSE_IMAGE_INVALID", "请选择不超过 10 MB 的 JPG、PNG 或 WebP 图片")

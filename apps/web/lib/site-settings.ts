@@ -20,7 +20,7 @@ export async function saveSiteBranding(name: string, logo: File | null, removeLo
   body.append('name', name.trim())
   if (logo) body.append('logo', logo)
   body.append('removeLogo', String(removeLogo))
-  const response = await fetch(`${apiBaseUrl}/v1/site-settings`, {
+  const response = await fetch(`${apiBaseUrl}/v1/admin/site-settings`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${getAccessToken()}` },
     body,

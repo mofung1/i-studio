@@ -30,7 +30,8 @@ export interface PromptTemplate {
 }
 export interface AIConnectionTest { success: boolean; model: string; responseTimeMs: number; message: string }
 export async function settingsRequest<T>(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}/v1/${path}`, {
+  const adminPath = /^(ai-endpoints|prompt-templates|prompt-reverse-settings|site-settings|inspiration\/)/.test(path) ? `admin/${path}` : path
+  const response = await fetch(`${apiBaseUrl}/v1/${adminPath}`, {
     method,
     headers: { Authorization: `Bearer ${getAccessToken()}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),

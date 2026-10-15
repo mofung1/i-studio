@@ -73,7 +73,7 @@ export function presetDescription(config: Partial<CreationPreset>) {
   return [config.mode === 'commerce' ? labels[config.taskType ?? ''] : 'AI 生图', config.model, config.aspectRatio, config.resolution, config.count ? `${config.count} 张` : ''].filter(Boolean).join(' · ')
 }
 export function resolvePresetEndpoint(config: CreationPreset, endpoints: Array<{ id: string; model: string }>) {
-  const endpoint = endpoints.find(item => item.id === config.endpointId && item.model === config.model) ?? endpoints.find(item => item.model === config.model)
-  if (!endpoint) throw new Error(`预设模型 ${config.model} 暂不可用，请先在设置中启用对应生图服务`)
+  const endpoint = endpoints.find(item => item.id === config.endpointId && (item.id.startsWith('model_') || item.model === config.model)) ?? endpoints.find(item => item.model === config.model)
+  if (!endpoint) throw new Error(`预设模型 ${config.model} 暂不可用，请联系管理员确认模型上架状态`)
   return endpoint
 }

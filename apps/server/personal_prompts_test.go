@@ -13,7 +13,7 @@ func personalHTTP(t *testing.T, s *server, method, path, uid, body string) *http
 	r := httptest.NewRequest(method, path, strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
 	if uid != "" {
-		r.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid}))
+		r.Header.Set("Authorization", "Bearer "+s.testToken(user{ID: uid}))
 	}
 	w := httptest.NewRecorder()
 	if strings.HasPrefix(path, "/v1/personal/prompts/") {

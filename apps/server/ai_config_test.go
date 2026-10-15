@@ -176,7 +176,7 @@ func TestAISettingsAuthorizationAndRestoreDefault(t *testing.T) {
 	request := func(method, path, body, uid string) *http.Request {
 		r := httptest.NewRequest(method, path, strings.NewReader(body))
 		if uid != "" {
-			r.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid}))
+			r.Header.Set("Authorization", "Bearer "+s.testAdminToken(user{ID: uid}))
 		}
 		return r
 	}
@@ -193,7 +193,7 @@ func TestAISettingsAuthorizationAndRestoreDefault(t *testing.T) {
 	w := httptest.NewRecorder()
 	s.aiEndpoints(w, request("GET", "/v1/ai-endpoints", "", "other"))
 	if w.Code != 200 || !strings.Contains(w.Body.String(), `"canManage":true`) || strings.Contains(w.Body.String(), input.APIKey) {
-		t.Fatal("signed-in user cannot manage settings or unmasked key leaked")
+		t.Fatal("explicit administrator cannot manage settings or unmasked key leaked")
 	}
 	w = httptest.NewRecorder()
 	s.promptTemplates(w, request("PUT", "/v1/prompt-templates", `{"key":"rewrite","content":"Custom system","enabled":true}`, "other"))
@@ -224,7 +224,7 @@ func TestPromptVisionGuardBlocksImagesBeforeClient(t *testing.T) {
 	client := &fakePromptClient{reply: "result"}
 	s.promptClient = client
 	w := httptest.NewRecorder()
-	s.promptEnhance(w, newPromptRequest(t, s.token(user{ID: "admin"}), "image description", 1))
+	s.promptEnhance(w, newPromptRequest(t, s.testAdminToken(user{ID: "admin"}), "image description", 1))
 	if w.Code != 400 || !strings.Contains(w.Body.String(), "PROMPT_VISION_UNSUPPORTED") || client.images != 0 {
 		t.Fatal("non-vision endpoint accepted images")
 	}
@@ -320,7 +320,7 @@ func TestAIConnectionTestCallsActualProtocolAndRedactsErrors(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := httptest.NewRequest("POST", "/v1/ai-endpoints/"+e.ID+"/test", nil)
-	r.Header.Set("Authorization", "Bearer "+s.token(user{ID: "admin"}))
+	r.Header.Set("Authorization", "Bearer "+s.testAdminToken(user{ID: "admin"}))
 	w := httptest.NewRecorder()
 	s.aiEndpointByID(w, r)
 	if count != 1 || !strings.Contains(w.Body.String(), "401") || strings.Contains(w.Body.String(), input.APIKey) || !strings.Contains(w.Body.String(), "\"success\":false") {

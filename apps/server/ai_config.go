@@ -517,12 +517,7 @@ func (a *aiConfigStore) public(e endpointConfig) (map[string]any, error) {
 
 // Instance settings are shared and editable by every signed-in account.
 func (s *server) requireSettingsUser(w http.ResponseWriter, r *http.Request) bool {
-	_, ok := s.authenticatedUserID(r)
-	if !ok {
-		s.error(w, 401, "AUTH_REQUIRED", "请先登录")
-		return false
-	}
-	return true
+	return s.requireAdmin(w, r)
 }
 
 func (a *aiConfigStore) migrateLegacy() error {

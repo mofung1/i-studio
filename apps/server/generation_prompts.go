@@ -192,7 +192,8 @@ func (s *server) formatPrompt(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	if !s.requireSettingsUser(w, r) {
+	if _, ok := s.authenticatedUserID(r); !ok {
+		s.error(w, 401, "AUTH_REQUIRED", "请先登录")
 		return
 	}
 	var input struct {

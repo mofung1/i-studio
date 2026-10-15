@@ -15,7 +15,7 @@ func saveTestTemplate(t *testing.T, s *server, key, content string, enabled, res
 	t.Helper()
 	body, _ := json.Marshal(map[string]any{"key": key, "content": content, "enabled": enabled, "restoreDefault": restore})
 	r := httptest.NewRequest(http.MethodPut, "/v1/prompt-templates", strings.NewReader(string(body)))
-	r.Header.Set("Authorization", "Bearer "+s.token(user{ID: "any-signed-in-user"}))
+	r.Header.Set("Authorization", "Bearer "+s.testAdminToken(user{ID: "template-admin"}))
 	w := httptest.NewRecorder()
 	s.promptTemplates(w, r)
 	return w
@@ -239,7 +239,7 @@ func TestLocalFormattingUsesSavedTemplateWithoutCallingAI(t *testing.T) {
 	if w := call(""); w.Code != 401 {
 		t.Fatal("local formatting lacks authentication")
 	}
-	w := call(s.token(user{ID: "member"}))
+	w := call(s.testToken(user{ID: "member"}))
 	var data struct{ Text string }
 	_ = json.Unmarshal(w.Body.Bytes(), &data)
 	if w.Code != 200 || data.Text != "整理：主题中保留{{style}}字样；风格：棚拍设定" || client.lastText != "" {
@@ -251,7 +251,7 @@ func TestLocalFormattingUsesSavedTemplateWithoutCallingAI(t *testing.T) {
 	if w := saveTestTemplate(t, s, "general.format", "整理：{{prompt}}", false, false); w.Code != 200 {
 		t.Fatal(w.Body.String())
 	}
-	w = call(s.token(user{ID: "member"}))
+	w = call(s.testToken(user{ID: "member"}))
 	_ = json.Unmarshal(w.Body.Bytes(), &data)
 	if data.Text != "主题中保留{{style}}字样" {
 		t.Fatal("disabled local formatter discarded the original")
@@ -284,15 +284,22 @@ func TestClothingPlannerUsesCustomTemplateAndFixedResponseContract(t *testing.T)
 	capture := &planPromptCapture{}
 	s.promptClient = capture
 	w := httptest.NewRecorder()
-	s.clothingPlanHandler(w, clothingAnalysisRequest(t, s.token(user{ID: "member"}), "model", true, false))
+	s.clothingPlanHandler(w, clothingAnalysisRequest(t, s.testToken(user{ID: "member"}), "model", true, false))
 	if w.Code != 200 || !strings.Contains(capture.system, "自定义服装分析视角") || !strings.Contains(capture.system, "只返回 JSON") || !strings.Contains(capture.user, "自定义首张站姿") {
 		t.Fatal("configured planner or fixed protocol was lost", w.Body.String())
 	}
 	w = httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/v1/generation/capabilities", nil)
-	r.Header.Set("Authorization", "Bearer "+s.token(user{ID: "member"}))
+	r.Header.Set("Authorization", "Bearer "+s.testToken(user{ID: "member"}))
 	s.capabilities(w, r)
+	if w.Code != 200 || strings.Contains(w.Body.String(), "自定义首张站姿") {
+		t.Fatal("private defaults leaked through capabilities", w.Body.String())
+	}
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest("POST", "/v1/clothing/manual-plan", strings.NewReader(`{"mode":"model","counts":{"clothing-model":1},"requirements":""}`))
+	r.Header.Set("Authorization", "Bearer "+s.testToken(user{ID: "member"}))
+	s.manualClothingPlan(w, r)
 	if w.Code != 200 || !strings.Contains(w.Body.String(), "自定义首张站姿") {
-		t.Fatal("manual planner defaults absent from capabilities", w.Body.String())
+		t.Fatal("manual shot plan lost saved defaults", w.Body.String())
 	}
 }

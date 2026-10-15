@@ -77,8 +77,7 @@ func (s *server) promptEnhance(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	if _, ok := s.authenticatedUserID(r); !ok {
-		s.error(w, http.StatusUnauthorized, "AUTH_REQUIRED", "请先登录")
+	if !s.requireAuxiliaryUser(w, r) {
 		return
 	}
 	if s.promptClient == nil || (s.ai != nil && !s.ai.hasAny("prompt")) {

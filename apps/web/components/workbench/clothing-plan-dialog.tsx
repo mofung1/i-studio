@@ -1,10 +1,12 @@
 'use client'
 
+import { GenerationCost, useGenerationCost } from '../generation-cost'
 import { LoaderCircle, Sparkles, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { ClothingPlan } from '@/lib/contracts'
 
 interface ClothingPlanDialogProps {
+  modelId: string
   plan: ClothingPlan
   busy: boolean
   canAnalyze: boolean
@@ -18,7 +20,8 @@ interface ClothingPlanDialogProps {
   onConfirm: () => void
 }
 
-export function ClothingPlanDialog({ plan, busy, canAnalyze, message, contextLabel, requirements, onChange, onAnalyze, onManual, onClose, onConfirm }: ClothingPlanDialogProps) {
+export function ClothingPlanDialog({ modelId, plan, busy, canAnalyze, message, contextLabel, requirements, onChange, onAnalyze, onManual, onClose, onConfirm }: ClothingPlanDialogProps) {
+  const cost = useGenerationCost(modelId, plan.shots.length)
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => { ref.current?.showModal() }, [])
   const valid = plan.shots.every(shot => shot.label.trim() && shot.description.trim())
@@ -40,6 +43,6 @@ export function ClothingPlanDialog({ plan, busy, canAnalyze, message, contextLab
       </section>)}
     </fieldset>
     </div>
-    <footer className="clothing-plan-footer"><span>每张规划生成一张独立图片</span><div><button type="button" className="settings-command" onClick={onClose}>返回设置</button><button type="button" className="settings-primary" disabled={busy || !valid} onClick={onConfirm}>确认生成 {plan.shots.length} 张</button></div></footer>
+    <footer className="clothing-plan-footer"><GenerationCost {...cost} /><div><button type="button" className="settings-command" onClick={onClose}>返回设置</button><button type="button" className="settings-primary" disabled={busy || !valid || (cost.authenticated && (!cost.quote || !cost.quote.canAfford))} onClick={onConfirm}>确认生成 {plan.shots.length} 张</button></div></footer>
   </dialog>
 }

@@ -29,7 +29,7 @@ export function TopNavigation() {
         <Link href="/commerce" onClick={() => setNavOpen(false)}>电商工具</Link>
         <Link href="/inspire" onClick={() => setNavOpen(false)}>灵感</Link>
         <Link href="/assets" onClick={() => setNavOpen(false)}>资产库</Link>
-        <Link href="/settings/ai" onClick={() => setNavOpen(false)}>设置</Link>
+        <Link href="/account" onClick={() => setNavOpen(false)}>个人中心</Link>
       </nav>
       <div className="nav-actions">
         <AccountMenu />

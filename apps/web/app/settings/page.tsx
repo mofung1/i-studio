@@ -1,2 +1,2 @@
 import { redirect } from 'next/navigation'
-export default function SettingsPage() { redirect('/settings/ai') }
+export default function Page() { redirect('/account') }

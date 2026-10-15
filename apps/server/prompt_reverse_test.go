@@ -107,7 +107,7 @@ func reverseHTTP(t *testing.T, s *server, method, path, uid string, fields map[s
 	}
 	r := httptest.NewRequest(method, path, &body)
 	if uid != "" {
-		r.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid}))
+		r.Header.Set("Authorization", "Bearer "+s.testToken(user{ID: uid}))
 	}
 	if contentType != "" {
 		r.Header.Set("Content-Type", contentType)
@@ -393,7 +393,7 @@ func TestReverseSettingsValidationAndPersistence(t *testing.T) {
 	request := func(input string, uid string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest("PUT", "/v1/prompt-reverse-settings", strings.NewReader(input))
 		if uid != "" {
-			r.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid}))
+			r.Header.Set("Authorization", "Bearer "+s.testAdminToken(user{ID: uid}))
 		}
 		w := httptest.NewRecorder()
 		s.promptReverseSettingsHandler(w, r)

@@ -141,7 +141,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
     }
     wasCollapsed.current = Boolean(props.generalConfigCollapsed)
   }, [isGeneral, props.generalConfigCollapsed])
-  const currentModel = optionLabel(modelOptions, props.imageEndpoints.find((endpoint) => endpoint.id === props.endpointId)?.model ?? model)
+  const currentModel = props.imageEndpoints.find((endpoint) => endpoint.id === props.endpointId)?.name ?? optionLabel(modelOptions, model)
   const generationStatus = isSubmitting ? '正在提交'
     : COMPACT_STATUS_LABELS[props.generationStatus ?? ''] ?? (isGenerating ? '正在生成' : '待生成')
   const assetLabel = isGeneral ? '参考图片' : ASSET_LABELS[task]
@@ -382,7 +382,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           onSetEnhancements={onSetEnhancements}
         />}
         {isGeneral && !props.generalConfigCollapsed && <button ref={configToggleRef} type="button" className="general-config-fold" aria-label="收起创作配置" aria-expanded="true" aria-controls="creation-settings-body" onClick={props.onToggleGeneralConfig}><ChevronDown size={16} aria-hidden="true" />收起</button>}
-        {isGeneral && (<GenerateBar
+        {isGeneral && (<GenerateBar modelId={props.endpointId}
         title={title}
         expectedCount={expectedCount}
         aspectRatio={aspectRatio}
@@ -397,7 +397,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         {isGeneral && notice && <p className={`form-notice ${notice.kind}`} role="status">{notice.message}</p>}
         </div>
       </div>
-      {!isGeneral && (<GenerateBar
+      {!isGeneral && (<GenerateBar modelId={props.endpointId}
         title={title}
         expectedCount={expectedCount}
         aspectRatio={aspectRatio}

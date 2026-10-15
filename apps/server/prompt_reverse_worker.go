@@ -53,6 +53,11 @@ func (s *server) claimReverseJob() (reverseJob, error) {
 }
 
 func (s *server) processReverseJob(job reverseJob) {
+	var accountActive bool
+	if s.db.QueryRow("SELECT status='active' FROM users WHERE id=$1", job.UserID).Scan(&accountActive) != nil || !accountActive {
+		s.finishReverseJob(job, nil, "账号已停用，分析任务已终止")
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(job.Settings.TimeoutSeconds)*time.Second)
 	defer cancel()
 	s.reverseCancels.Store(job.ID, func() { cancel() })

@@ -2,9 +2,11 @@
 
 import { Check, Loader2, Sparkles } from 'lucide-react'
 
+import { GenerationCost, useGenerationCost } from '../generation-cost'
 import type { GenerationNotice } from './use-generation-task'
 
 interface GenerateBarProps {
+  modelId?: string
   title: string
   /** 本次预计出图张数 */
   expectedCount: number
@@ -21,8 +23,10 @@ interface GenerateBarProps {
 
 /** 固定在创作区底部的生成区，不随参数滚动消失。 */
 export function GenerateBar({
-  title, expectedCount, aspectRatio, resolution, notice, isSubmitting, isGenerating, aiEnabled, onSubmit, buttonLabel, busyLabel,
+  modelId, title, expectedCount, aspectRatio, resolution, notice, isSubmitting, isGenerating, aiEnabled, onSubmit, buttonLabel, busyLabel,
 }: GenerateBarProps) {
+  const cost = useGenerationCost(modelId, expectedCount)
+  const costBlocked = cost.authenticated && (!cost.quote || !cost.quote.canAfford)
   const label = isSubmitting
     ? busyLabel ?? '正在提交…'
     : isGenerating
@@ -44,6 +48,7 @@ export function GenerateBar({
         <span className="dot" aria-hidden="true" />
         <span>{aspectRatio} · {resolution}</span>
       </div>
+      <GenerationCost {...cost} />
       {notice && (
         <p className={`form-notice ${notice.kind}`} role="status">
           {notice.kind === 'success' && <Check size={15} aria-hidden="true" />}
@@ -53,7 +58,7 @@ export function GenerateBar({
       <button
         className="generate-button"
         type="button"
-        disabled={isSubmitting || isGenerating || aiEnabled === null}
+        disabled={isSubmitting || isGenerating || aiEnabled === null || aiEnabled === false || costBlocked}
         title={hint}
         onClick={onSubmit}
       >

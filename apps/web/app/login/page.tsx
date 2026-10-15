@@ -5,7 +5,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { ArrowLeft, LockKeyhole, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { type FormEvent, Suspense, useRef, useState } from 'react'
+import { type FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { apiBaseUrl } from '@/lib/api'
 import { safeReturnPath } from '@/lib/navigation'
 
@@ -13,6 +13,8 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [registrationEnabled, setRegistrationEnabled] = useState(false)
+  useEffect(() => { fetch(`${apiBaseUrl}/v1/operation-settings`).then(response => response.ok ? response.json() : Promise.reject()).then(data => setRegistrationEnabled(data.registrationEnabled === true)).catch(() => setRegistrationEnabled(false)) }, [])
   const [register, setRegister] = useState(false)
   const [notice, setNotice] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,7 +50,7 @@ function LoginForm() {
       </div></label>
       {notice && <p className="auth-notice" role="alert">{notice}</p>}
       <button className="auth-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? '提交中…' : register ? '创建并登录' : '登录'}</button>
-      <button className="auth-switch" type="button" disabled={isSubmitting} onClick={() => { setRegister(!register); setNotice('') }}>{register ? '已有账号？登录' : '没有账号？创建账号'}</button>
+      {registrationEnabled ? <button className="auth-switch" type="button" disabled={isSubmitting} onClick={() => { setRegister(!register); setNotice('') }}>{register ? '已有账号？登录' : '没有账号？创建账号'}</button>: <p className="auth-registration-closed">暂未开放注册</p>}
     </form>
   </main>
 }

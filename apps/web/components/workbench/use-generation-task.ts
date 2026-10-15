@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { generationInputSchema, type GenerationInput } from '@/lib/contracts'
 
+import { displayedUnitPrice, fetchGenerationQuote } from '../generation-cost'
+import { refreshAccount } from '@/lib/credits'
 import { apiBaseUrl, getAccessToken, readApiError, uploadAsset } from '@/lib/api'
 
 export type InlineGenerationTask = {
@@ -58,12 +60,16 @@ export function useGenerationTask(scopeKey = 'default') {
   const [generationTask, setGenerationTask] = useState<InlineGenerationTask | null>(null)
   const [generationTaskScope, setGenerationTaskScope] = useState(scopeKey)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [recoveryRevision, setRecoveryRevision] = useState(0)
   const [notice, setNotice] = useState<GenerationNotice | null>(null)
+  const preparedSubmission = useRef<{ key: string; input: GenerationInput; expected: number } | null>(null)
   const submissionId = useRef(0)
   const submittingRef = useRef(false)
 
   const isGenerating = Boolean(generationTask && !terminalStatuses.has(generationTask.status))
   const activeResult = resultHistory[activeResultIndex] ?? null
+
+  useEffect(() => { if (generationTask && terminalStatuses.has(generationTask.status)) refreshAccount() }, [generationTask?.id, generationTask?.status])
 
   const reset = useCallback(() => {
     setGenerationTask(null)
@@ -84,6 +90,7 @@ export function useGenerationTask(scopeKey = 'default') {
     setResultHistory([])
     setActiveResultIndex(0)
     setGenerationTask(null)
+    preparedSubmission.current = null
     setGenerationTaskScope(scopeKey)
     setNotice(null)
     setIsSubmitting(false)
@@ -136,6 +143,43 @@ export function useGenerationTask(scopeKey = 'default') {
     return () => window.clearTimeout(timer)
   }, [notice])
 
+  // Recover uncertain creation responses without depending on the current form or balance.
+  useEffect(() => {
+    const token = getAccessToken()
+    if (!token) return
+    const key = `istudio-pending-submit:${token.slice(-16)}:${scopeKey}`
+    let cancelled = false
+    let timer = 0
+    const controller = new AbortController()
+    async function recover() {
+      let pending = preparedSubmission.current
+      if (!pending) { try { pending = JSON.parse(sessionStorage.getItem(key) ?? 'null') } catch { return } }
+      if (!pending || cancelled) return
+      if (submittingRef.current) { timer = window.setTimeout(recover, 3000); return }
+      setIsSubmitting(true)
+      try {
+        const response = await fetch(`${apiBaseUrl}/v1/generation/tasks`, { method: 'POST', signal: controller.signal, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'Idempotency-Key': pending.key, 'X-Expected-Unit-Price': String(pending.expected) }, body: JSON.stringify(pending.input) })
+        if (cancelled) return
+        if (!response.ok && response.status >= 500) throw new Error('正在核对上次提交，请稍候')
+        if (!response.ok) {
+          preparedSubmission.current = null; sessionStorage.removeItem(key)
+          setNotice({ kind: 'error', message: await readApiError(response, '请重新提交创作') }); setIsSubmitting(false); refreshAccount(); return
+        }
+        const data = await response.json() as { task: InlineGenerationTask }
+        if (!data.task?.id) throw new Error('任务响应不完整，正在重试查询')
+        preparedSubmission.current = null; sessionStorage.removeItem(key)
+        pendingTaskId(scopeKey, data.task.id); setGenerationTask(data.task); setGenerationTaskScope(scopeKey)
+        setIsSubmitting(false); setNotice(null); refreshAccount()
+      } catch {
+        if (cancelled) return
+        setNotice({ kind: 'error', message: '连接中断，正在核对上次提交；恢复连接后会自动继续。' })
+        timer = window.setTimeout(recover, 5000)
+      }
+    }
+    void recover()
+    return () => { cancelled = true; window.clearTimeout(timer); controller.abort() }
+  }, [scopeKey, recoveryRevision])
+
   // 轮询任务状态，结束后把成功结果追加到历史并切到最新
   useEffect(() => {
     if (generationTaskScope !== scopeKey || !generationTask || terminalStatuses.has(generationTask.status)) return
@@ -153,6 +197,7 @@ export function useGenerationTask(scopeKey = 'default') {
         if (!response.ok) throw new Error(await readApiError(response, '任务状态获取失败'))
         const data = await response.json() as { task: InlineGenerationTask }
         if (cancelled) return
+        if (!data.task?.id || !data.task.status) throw new Error('任务响应不完整')
         setNotice(current => current === pollingNotice ? null : current)
         setGenerationTask(data.task)
         if (terminalStatuses.has(data.task.status) && pendingTaskId(scopeKey) === data.task.id) pendingTaskId(scopeKey, null)
@@ -196,6 +241,13 @@ export function useGenerationTask(scopeKey = 'default') {
     setGenerationTask(null)
     setGenerationTaskScope(scopeKey)
     try {
+      // Reconcile an uncertain accepted request before creating another intent.
+      const storageKey = `istudio-pending-submit:${token.slice(-16)}:${scopeKey}`
+      if (!preparedSubmission.current) { try { preparedSubmission.current = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null') } catch { /* Ignore invalid session data. */ } }
+      const prepared = preparedSubmission.current
+      let validatedInput: GenerationInput
+      if (prepared) { validatedInput = prepared.input }
+      else {
       const draftResult = generationInputSchema.safeParse(buildPayload(
         productFiles.map((_, index) => `pending-product-${index}`),
         referenceFiles.map((_, index) => `pending-reference-${index}`),
@@ -205,6 +257,12 @@ export function useGenerationTask(scopeKey = 'default') {
         const firstIssue = draftResult.error.issues[0]
         throw new Error(firstIssue?.message ?? '请完成必填配置')
       }
+      const modelId = draftResult.data.endpointId ?? ''
+      if (!modelId) throw new Error('请选择可用的生图模型')
+      const quotedPrice = displayedUnitPrice(modelId)
+      const quote = await fetchGenerationQuote(modelId, draftResult.data.count ?? 1)
+      if (quotedPrice !== undefined && quote.unitPriceMinor !== quotedPrice) { refreshAccount(); throw new Error('模型价格已变更，请确认最新费用后重新提交') }
+      if (!quote.canAfford) { refreshAccount(); throw new Error(`${quote.creditName}不足，请前往个人中心查看余额`) }
       const [productAssetIds, referenceAssetIds, modelAssetId, sceneAssetId] = await Promise.all([
         Promise.all(productFiles.map((file) => uploadAsset(file, token))),
         Promise.all(referenceFiles.map((file) => uploadAsset(file, token))),
@@ -219,10 +277,15 @@ export function useGenerationTask(scopeKey = 'default') {
         throw new Error(firstIssue?.message ?? '请完成必填配置')
       }
 
-      const validatedInput: GenerationInput = result.data
+      validatedInput = result.data
+      preparedSubmission.current = { key: crypto.randomUUID(), input: validatedInput, expected: quote.unitPriceMinor }
+      try { sessionStorage.setItem(storageKey, JSON.stringify(preparedSubmission.current)) } catch { /* The in-memory intent still prevents duplicate submissions. */ }
+      }
+      const intent = preparedSubmission.current!
+
       const response = await fetch(`${apiBaseUrl}/v1/generation/tasks`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}`, 'Idempotency-Key': intent.key, 'X-Expected-Unit-Price': String(intent.expected) },
         body: JSON.stringify(validatedInput),
       })
       if (!isCurrent() && !response.ok) return
@@ -230,14 +293,15 @@ export function useGenerationTask(scopeKey = 'default') {
         onAuthRequired()
         return
       }
-      if (!response.ok) throw new Error(await readApiError(response, '任务创建失败'))
+      if (!response.ok) { if (response.status < 500) { preparedSubmission.current = null; sessionStorage.removeItem(storageKey) }; refreshAccount(); throw new Error(await readApiError(response, '任务创建失败；再次提交会核对原任务，不重复扣费')) }
       const data = await response.json() as { task: InlineGenerationTask; message: string }
+      preparedSubmission.current = null; sessionStorage.removeItem(storageKey); refreshAccount()
       if (isCurrent() || !pendingTaskId(scopeKey)) pendingTaskId(scopeKey, data.task.id)
       if (!isCurrent()) return
       setGenerationTask(data.task)
       onSubmitted?.()
     } catch (error) {
-      if (isCurrent()) setNotice({ kind: 'error', message: error instanceof Error ? error.message : '任务创建失败，请稍后重试' })
+      if (isCurrent()) { setNotice({ kind: 'error', message: error instanceof Error ? error.message : '任务创建失败，请稍后重试' }); if (preparedSubmission.current) setRecoveryRevision(value => value + 1) }
     } finally {
       if (isCurrent()) {
         submittingRef.current = false

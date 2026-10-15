@@ -60,7 +60,7 @@ func newPromptRequest(t *testing.T, token string, text string, imageCount int) *
 func TestPromptEnhanceRequiresTextOrImage(t *testing.T) {
 	client := &fakePromptClient{model: "deepseek-flash", reply: "改写结果"}
 	s := &server{secret: []byte("test-secret"), promptClient: client}
-	token := s.token(user{ID: "user-1", Username: "demo"})
+	token := s.testToken(user{ID: "user-1", Username: "demo"})
 
 	recorder := httptest.NewRecorder()
 	s.promptEnhance(recorder, newPromptRequest(t, token, "", 0))
@@ -82,7 +82,7 @@ func TestPromptEnhanceRequiresTextOrImage(t *testing.T) {
 func TestPromptEnhanceAcceptsTextOrImage(t *testing.T) {
 	client := &fakePromptClient{model: "deepseek-flash", reply: "  改写后的提示词  "}
 	s := &server{secret: []byte("test-secret"), promptClient: client}
-	token := s.token(user{ID: "user-1", Username: "demo"})
+	token := s.testToken(user{ID: "user-1", Username: "demo"})
 
 	recorder := httptest.NewRecorder()
 	s.promptEnhance(recorder, newPromptRequest(t, token, "一支绿色保温杯", 0))
@@ -124,7 +124,7 @@ func TestPromptEnhanceAuthAndConfig(t *testing.T) {
 	}
 
 	unconfigured := &server{secret: []byte("test-secret")}
-	token := unconfigured.token(user{ID: "user-1", Username: "demo"})
+	token := unconfigured.testToken(user{ID: "user-1", Username: "demo"})
 	recorder = httptest.NewRecorder()
 	unconfigured.promptEnhance(recorder, newPromptRequest(t, token, "文案", 0))
 	if recorder.Code != http.StatusServiceUnavailable {
@@ -135,7 +135,7 @@ func TestPromptEnhanceAuthAndConfig(t *testing.T) {
 func TestPromptEnhanceUpstreamFailure(t *testing.T) {
 	client := &fakePromptClient{err: context.DeadlineExceeded}
 	s := &server{secret: []byte("test-secret"), promptClient: client}
-	token := s.token(user{ID: "user-1", Username: "demo"})
+	token := s.testToken(user{ID: "user-1", Username: "demo"})
 
 	recorder := httptest.NewRecorder()
 	s.promptEnhance(recorder, newPromptRequest(t, token, "文案", 0))
