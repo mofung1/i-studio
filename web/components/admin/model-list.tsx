@@ -12,11 +12,13 @@ export function AdminModelList({
   endpoints,
   unit,
   onEdit,
+  loading = false,
 }: {
   models: Model[]
   endpoints: AIEndpoint[]
   unit: string
   onEdit: (model: Model) => void
+  loading?: boolean
 }) {
   return (
     <>
@@ -29,6 +31,7 @@ export function AdminModelList({
         <Table
           headings={['模型名称', '服务通道', `单价 / 张（${unit}）`, '状态', '操作']}
           empty={!models.length}
+          loading={loading}
         >
           {models.map((model) => (
             <tr key={model.id}>
@@ -46,7 +49,11 @@ export function AdminModelList({
                 </AdminStatusBadge>
               </td>
               <td>
-                <button className="settings-command" onClick={() => onEdit(model)}>
+                <button
+                  className="settings-command"
+                  disabled={loading}
+                  onClick={() => onEdit(model)}
+                >
                   <Pencil size={14} />
                   编辑
                 </button>

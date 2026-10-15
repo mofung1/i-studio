@@ -11,6 +11,9 @@ import type {
   AdminTask as Task,
   AdminAudit as Audit,
   AdminTaskPage,
+  AdminUserPage,
+  AdminAuditPage,
+  AdminModelPage,
 } from '@/lib/admin'
 import { AdminTable as Table } from './admin/table'
 import { adminRequest as request } from '@/lib/admin'
@@ -23,6 +26,7 @@ import { AdminModelEditor } from './admin/model-editor'
 import { AdminBalanceEditor } from './admin/balance-editor'
 import { AdminPagination } from './admin/pagination'
 import { AdminStatusBadge } from './admin/status-badge'
+import { InfoDialog } from './info-dialog'
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : '请求失败，请重试')
 
@@ -36,10 +40,10 @@ export function AdminDashboard({
   const [endpoints, setEndpoints] = useState<AIEndpoint[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
-  const [taskPage, setTaskPage] = useState(1)
-  const [taskPageSize, setTaskPageSize] = useState(20)
-  const [taskRevision, setTaskRevision] = useState(0)
-  const [taskPagination, setTaskPagination] = useState({
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [revision, setRevision] = useState(0)
+  const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 20,
     total: 0,
@@ -61,7 +65,14 @@ export function AdminDashboard({
   const [note, setNote] = useState('')
   const [adjustmentKey, setAdjustmentKey] = useState('')
   const loadVersion = useRef(0)
+  const editorHost = useRef<HTMLElement>(null)
+  const listRegion = useRef<HTMLDivElement>(null)
   const unit = account.creditName
+  const isList = ['models', 'users', 'tasks', 'audit'].includes(view)
+  useEffect(() => {
+    const scroll = listRegion.current?.querySelector('.ops-table-scroll')
+    if (scroll) scroll.scrollTop = 0
+  }, [pagination.page, pagination.pageSize, query])
   const load = useCallback(async () => {
     const version = ++loadVersion.current
     const current = () => version === loadVersion.current
@@ -71,17 +82,27 @@ export function AdminDashboard({
     }
     if (view === 'models') {
       const [catalog, services] = await Promise.all([
-        request<{ models: Model[] }>('models'),
+        request<AdminModelPage>(
+          `models?${new URLSearchParams({ page: String(page), pageSize: String(pageSize) })}`,
+        ),
         request<{ endpoints: AIEndpoint[] }>('ai-endpoints'),
       ])
       if (current()) {
         setModels(catalog.models)
         setEndpoints(services.endpoints.filter((item) => item.purpose === 'image'))
+        setPagination(catalog)
+        if (catalog.page !== page) setPage(catalog.page)
       }
     }
     if (view === 'users') {
-      const data = await request<{ users: Member[] }>(`users?q=${encodeURIComponent(query)}`)
-      if (current()) setMembers(data.users)
+      const data = await request<AdminUserPage>(
+        `users?${new URLSearchParams({ q: query, page: String(page), pageSize: String(pageSize) })}`,
+      )
+      if (current()) {
+        setMembers(data.users)
+        setPagination(data)
+        if (data.page !== page) setPage(data.page)
+      }
     }
     if (view === 'operations') {
       const settings = await request<Operations>('settings')
@@ -92,19 +113,25 @@ export function AdminDashboard({
     }
     if (view === 'tasks') {
       const data = await request<AdminTaskPage>(
-        `tasks?${new URLSearchParams({ page: String(taskPage), pageSize: String(taskPageSize) })}`,
+        `tasks?${new URLSearchParams({ page: String(page), pageSize: String(pageSize) })}`,
       )
       if (current()) {
         setTasks(data.tasks)
-        setTaskPagination(data)
-        if (data.page !== taskPage) setTaskPage(data.page)
+        setPagination(data)
+        if (data.page !== page) setPage(data.page)
       }
     }
     if (view === 'audit') {
-      const data = await request<{ audit: Audit[] }>('audit')
-      if (current()) setAudit(data.audit)
+      const data = await request<AdminAuditPage>(
+        `audit?${new URLSearchParams({ page: String(page), pageSize: String(pageSize) })}`,
+      )
+      if (current()) {
+        setAudit(data.audit)
+        setPagination(data)
+        if (data.page !== page) setPage(data.page)
+      }
     }
-  }, [view, query, taskPage, taskPageSize, taskRevision])
+  }, [view, query, page, pageSize, revision])
   useEffect(() => {
     let current = true
     setLoading(true)
@@ -127,6 +154,19 @@ export function AdminDashboard({
       clearTimeout(timer)
     }
   }, [load, view])
+  async function refresh() {
+    if (loading || busy) return
+    setLoading(true)
+    setError('')
+    setSuccess('')
+    try {
+      await load()
+    } catch (error) {
+      setError(errorText(error))
+    } finally {
+      setLoading(false)
+    }
+  }
   async function action(run: () => Promise<unknown>, message = '已保存') {
     if (busy) return false
     setBusy(true)
@@ -219,7 +259,7 @@ export function AdminDashboard({
     audit: ['操作日志', '记录管理员的配置、权限和余额变更。'],
   }[view]
   return (
-    <main className="ops-page">
+    <main ref={editorHost} className={`ops-page${isList ? ' admin-list-page' : ''}`}>
       <div className="ops-heading">
         <div>
           <p className="ops-eyebrow">平台管理</p>
@@ -240,14 +280,14 @@ export function AdminDashboard({
           <button
             className="settings-command"
             disabled={busy || loading}
-            onClick={() => void action(async () => {}, '已刷新')}
+            onClick={() => void refresh()}
           >
             <RefreshCw size={15} />
             刷新
           </button>
         </div>
       </div>
-      {error && (
+      {error && !editing && !adjusting && (
         <p className="settings-error" role="alert">
           {error}
         </p>
@@ -265,148 +305,200 @@ export function AdminDashboard({
             type="search"
             placeholder="输入用户名"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setPage(1)
+            }}
             maxLength={80}
           />
         </form>
       )}
-      {view === 'tasks' ? (
-        <>
+      <div ref={listRegion} className={isList ? 'admin-list-region' : undefined}>
+        {view === 'tasks' ? (
           <AdminTaskTable tasks={tasks} loading={loading} />
-          <AdminPagination
-            {...taskPagination}
-            pageSize={taskPageSize}
-            loading={loading || busy}
-            onPageChange={(page) => {
-              if (page === taskPagination.page) return
-              setLoading(true)
-              setTaskPage(page)
-              setTaskRevision((value) => value + 1)
-            }}
-            onPageSizeChange={(size) => {
-              setLoading(true)
-              setTaskPage(1)
-              setTaskPageSize(size)
-            }}
-          />
-        </>
-      ) : loading ? (
-        <p role="status">正在读取…</p>
-      ) : (
-        <>
-          {view === 'overview' && <AdminOverview overview={overview} unit={unit} />}
-          {view === 'models' && (
-            <AdminModelList models={models} endpoints={endpoints} unit={unit} onEdit={edit} />
-          )}
-          {view === 'users' && (
-            <>
-              <section className="ops-card">
-                <Table
-                  headings={['账号', '角色', '可用余额', '预留余额', '状态', '操作']}
-                  empty={!members.length}
-                >
-                  {members.map((member) => (
-                    <tr key={member.id}>
-                      <td>
-                        <strong>{member.username}</strong>
-                      </td>
-                      <td>用户</td>
-                      <td>
-                        {formatCredits(member.available)} {unit}
-                      </td>
-                      <td>{formatCredits(member.held)}</td>
-                      <td>
-                        <AdminStatusBadge tone={member.status === 'active' ? 'success' : 'danger'}>
-                          {member.status === 'active' ? '已启用' : '已停用'}
-                        </AdminStatusBadge>
-                      </td>
-                      <td>
-                        <div className="ops-row-actions">
-                          <button
-                            className="settings-command"
-                            disabled={busy}
-                            onClick={() => {
-                              setAdjusting(member)
-                              setAmount('')
-                              setNote('')
-                              setAdjustmentKey(crypto.randomUUID())
-                              setError('')
-                            }}
+        ) : loading && !isList ? (
+          <p role="status">正在读取…</p>
+        ) : (
+          <>
+            {view === 'overview' && <AdminOverview overview={overview} unit={unit} />}
+            {view === 'models' && (
+              <AdminModelList
+                models={models}
+                endpoints={endpoints}
+                unit={unit}
+                onEdit={edit}
+                loading={loading}
+              />
+            )}
+            {view === 'users' && (
+              <>
+                <section className="ops-card">
+                  <Table
+                    headings={['账号', '角色', '可用余额', '预留余额', '状态', '操作']}
+                    empty={!members.length}
+                    loading={loading}
+                  >
+                    {members.map((member) => (
+                      <tr key={member.id}>
+                        <td>
+                          <strong>{member.username}</strong>
+                        </td>
+                        <td>用户</td>
+                        <td>
+                          {formatCredits(member.available)} {unit}
+                        </td>
+                        <td>{formatCredits(member.held)}</td>
+                        <td>
+                          <AdminStatusBadge
+                            tone={member.status === 'active' ? 'success' : 'danger'}
                           >
-                            调整余额
-                          </button>
-                          <button
-                            className="settings-command admin-action"
-                            data-tone={member.status === 'active' ? 'danger' : 'success'}
-                            disabled={busy}
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `${member.status === 'active' ? '停用' : '启用'}账号 ${member.username}？`,
+                            {member.status === 'active' ? '已启用' : '已停用'}
+                          </AdminStatusBadge>
+                        </td>
+                        <td>
+                          <div className="ops-row-actions">
+                            <button
+                              className="settings-command"
+                              disabled={busy || loading}
+                              onClick={() => {
+                                setAdjusting(member)
+                                setAmount('')
+                                setNote('')
+                                setAdjustmentKey(crypto.randomUUID())
+                                setError('')
+                              }}
+                            >
+                              调整余额
+                            </button>
+                            <button
+                              className="settings-command admin-action"
+                              data-tone={member.status === 'active' ? 'danger' : 'success'}
+                              disabled={busy || loading}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    `${member.status === 'active' ? '停用' : '启用'}账号 ${member.username}？`,
+                                  )
                                 )
-                              )
-                                void action(() =>
-                                  request(`users/${member.id}`, 'PUT', {
-                                    role: member.role,
-                                    status: member.status === 'active' ? 'disabled' : 'active',
-                                  }),
-                                )
-                            }}
-                          >
-                            {member.status === 'active' ? '停用' : '启用'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </Table>
-              </section>
-            </>
-          )}
-          {view === 'operations' && ops && (
-            <AdminOperationsForm
-              ops={ops}
-              gift={gift}
-              busy={busy}
-              onChange={setOps}
-              onGiftChange={setGift}
-              onSubmit={saveOperations}
-            />
-          )}
-          {view === 'audit' && <AdminAuditTable audit={audit} />}
-        </>
+                                  void action(() =>
+                                    request(`users/${member.id}`, 'PUT', {
+                                      role: member.role,
+                                      status: member.status === 'active' ? 'disabled' : 'active',
+                                    }),
+                                  )
+                              }}
+                            >
+                              {member.status === 'active' ? '停用' : '启用'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </Table>
+                </section>
+              </>
+            )}
+            {view === 'operations' && ops && (
+              <AdminOperationsForm
+                ops={ops}
+                gift={gift}
+                busy={busy}
+                onChange={setOps}
+                onGiftChange={setGift}
+                onSubmit={saveOperations}
+              />
+            )}
+            {view === 'audit' && <AdminAuditTable audit={audit} loading={loading} />}
+          </>
+        )}
+      </div>
+      {isList && (
+        <AdminPagination
+          {...pagination}
+          label={
+            {
+              models: '模型',
+              users: '用户',
+              tasks: '任务',
+              audit: '日志',
+              overview: '',
+              operations: '',
+            }[view]
+          }
+          unit={view === 'users' ? '位' : view === 'models' ? '个' : '条'}
+          pageSize={pageSize}
+          loading={loading || busy}
+          onPageChange={(next) => {
+            if (next === pagination.page) return
+            setLoading(true)
+            setPage(next)
+            setRevision((value) => value + 1)
+          }}
+          onPageSizeChange={(size) => {
+            setLoading(true)
+            setPage(1)
+            setPageSize(size)
+          }}
+        />
       )}
       {editing && (
-        <AdminModelEditor
-          editing={editing}
-          endpoints={endpoints}
-          unit={unit}
-          price={price}
-          busy={busy}
-          onChange={setEditing}
-          onPriceChange={setPrice}
-          onClose={() => setEditing(null)}
-          onSubmit={saveModel}
-        />
+        <InfoDialog
+          title={editing.id ? '编辑模型' : '添加模型'}
+          hideActions
+          onClose={() => {
+            if (!busy) setEditing(null)
+          }}
+          portalContainer={editorHost.current}
+        >
+          {error && (
+            <p className="settings-error" role="alert">
+              {error}
+            </p>
+          )}
+          <AdminModelEditor
+            editing={editing}
+            endpoints={endpoints}
+            unit={unit}
+            price={price}
+            busy={busy}
+            onChange={setEditing}
+            onPriceChange={setPrice}
+            onClose={() => setEditing(null)}
+            onSubmit={saveModel}
+          />
+        </InfoDialog>
       )}
       {adjusting && (
-        <AdminBalanceEditor
-          adjusting={adjusting}
-          amount={amount}
-          note={note}
-          unit={unit}
-          busy={busy}
-          onAmountChange={(value) => {
-            setAmount(value)
-            setAdjustmentKey(crypto.randomUUID())
+        <InfoDialog
+          title={`调整 ${adjusting.username} 的余额`}
+          hideActions
+          onClose={() => {
+            if (!busy) setAdjusting(null)
           }}
-          onNoteChange={(value) => {
-            setNote(value)
-            setAdjustmentKey(crypto.randomUUID())
-          }}
-          onClose={() => setAdjusting(null)}
-          onSubmit={adjust}
-        />
+          portalContainer={editorHost.current}
+        >
+          {error && (
+            <p className="settings-error" role="alert">
+              {error}
+            </p>
+          )}
+          <AdminBalanceEditor
+            amount={amount}
+            note={note}
+            unit={unit}
+            busy={busy}
+            onAmountChange={(value) => {
+              setAmount(value)
+              setAdjustmentKey(crypto.randomUUID())
+            }}
+            onNoteChange={(value) => {
+              setNote(value)
+              setAdjustmentKey(crypto.randomUUID())
+            }}
+            onClose={() => setAdjusting(null)}
+            onSubmit={adjust}
+          />
+        </InfoDialog>
       )}
     </main>
   )

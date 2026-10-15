@@ -1,7 +1,6 @@
 package studio
 
 import (
-	"database/sql"
 	"net/http"
 )
 
@@ -25,22 +24,13 @@ func (s *Service) adminTasks(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	page := max(1, parseQueryInt(r.URL.Query().Get("page"), 1))
-	pageSize := clampInt(parseQueryInt(r.URL.Query().Get("pageSize"), 20), 1, 100)
-	tx, err := s.db.BeginTx(r.Context(), &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	tx, page, err := s.beginAdminPage(r, `SELECT count(*) FROM generation_tasks t JOIN users u ON u.id=t.user_id`)
 	if err != nil {
 		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
 		return
 	}
 	defer tx.Rollback()
-	var total int
-	if err = tx.QueryRowContext(r.Context(), `SELECT count(*) FROM generation_tasks t JOIN users u ON u.id=t.user_id`).Scan(&total); err != nil {
-		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
-		return
-	}
-	totalPages := max(1, (total+pageSize-1)/pageSize)
-	page = min(page, totalPages)
-	rows, err := tx.QueryContext(r.Context(), `SELECT t.id,u.username,t.status,t.created_at,COALESCE(t.error_message,''),COALESCE(c.model_name,''),COALESCE(c.unit_price*c.quantity,0),COALESCE(c.charged,0),COALESCE(c.refunded,0),COALESCE(c.settled,true) FROM generation_tasks t JOIN users u ON u.id=t.user_id LEFT JOIN generation_charges c ON c.task_id=t.id ORDER BY t.created_at DESC,t.id DESC LIMIT $1 OFFSET $2`, pageSize, (page-1)*pageSize)
+	rows, err := tx.QueryContext(r.Context(), `SELECT t.id,u.username,t.status,t.created_at,COALESCE(t.error_message,''),COALESCE(c.model_name,''),COALESCE(c.unit_price*c.quantity,0),COALESCE(c.charged,0),COALESCE(c.refunded,0),COALESCE(c.settled,true) FROM generation_tasks t JOIN users u ON u.id=t.user_id LEFT JOIN generation_charges c ON c.task_id=t.id ORDER BY t.created_at DESC,t.id DESC LIMIT $1 OFFSET $2`, page.PageSize, page.offset())
 	if err != nil {
 		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
 		return
@@ -68,7 +58,7 @@ func (s *Service) adminTasks(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
 		return
 	}
-	s.json(w, 200, map[string]any{"tasks": items, "page": page, "pageSize": pageSize, "total": total, "totalPages": totalPages})
+	s.json(w, 200, page.response("tasks", items))
 }
 
 func (s *Service) adminAudit(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +66,13 @@ func (s *Service) adminAudit(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	rows, err := s.db.Query(`SELECT a.id,COALESCE(u.username,a.actor_id),a.action,a.target_id,a.detail,a.created_at FROM admin_audit a LEFT JOIN admin_users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 100`)
+	tx, page, err := s.beginAdminPage(r, "SELECT count(*) FROM admin_audit")
+	if err != nil {
+		s.error(w, 500, "AUDIT_UNAVAILABLE", "日志读取失败")
+		return
+	}
+	defer tx.Rollback()
+	rows, err := tx.QueryContext(r.Context(), `SELECT a.id,COALESCE(u.username,a.actor_id),a.action,a.target_id,a.detail,a.created_at FROM admin_audit a LEFT JOIN admin_users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT $1 OFFSET $2`, page.PageSize, page.offset())
 	if err != nil {
 		s.error(w, 500, "AUDIT_UNAVAILABLE", "审计读取失败")
 		return
@@ -95,5 +91,12 @@ func (s *Service) adminAudit(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 500, "AUDIT_UNAVAILABLE", "审计读取失败")
 		return
 	}
-	s.json(w, 200, map[string]any{"audit": items})
+	if err = rows.Close(); err == nil {
+		err = tx.Commit()
+	}
+	if err != nil {
+		s.error(w, 500, "AUDIT_UNAVAILABLE", "日志读取失败")
+		return
+	}
+	s.json(w, 200, page.response("audit", items))
 }

@@ -1,5 +1,8 @@
 /* Operator-only colors; the public studio keeps its monochrome controls. */
 .admin-shell {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   --admin-success: #15803d;
   --admin-success-hover: #166534;
   --admin-success-text: #166534;
@@ -11,6 +14,89 @@
   --admin-warning-text: #925a0b;
   --admin-warning-soft: #fffbeb;
   --admin-warning-line: #efdab0;
+}
+.admin-shell .admin-rail {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.admin-shell .admin-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.admin-shell .admin-content:has(> .admin-list-page) {
+  overflow: hidden;
+}
+.admin-shell .admin-list-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+.admin-shell
+  .admin-list-page
+  > :not(.admin-list-region, .inspiration-manager-list, .inspiration-category-list) {
+  flex-shrink: 0;
+}
+.admin-shell .admin-list-page .ops-heading {
+  margin-bottom: 20px;
+}
+.admin-shell .admin-list-region {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  gap: 12px;
+  overflow: hidden;
+}
+.admin-shell .admin-list-region > .ops-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+.admin-shell .admin-list-region .ops-table-scroll {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.admin-shell .admin-list-region .ops-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-subtle);
+  box-shadow: 0 1px 0 var(--border);
+}
+.admin-shell .ops-table-scroll:focus-visible {
+  outline: 2px solid var(--admin-success);
+  outline-offset: -2px;
+}
+.admin-shell .admin-list-page > :is(.inspiration-manager-list, .inspiration-category-list) {
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.admin-shell .admin-list-page > .ops-pagination {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.admin-shell .info-dialog-backdrop .ops-editor {
+  border: 0;
+  margin: 0;
+  box-shadow: none;
+}
+.admin-shell .info-dialog-backdrop .ops-editor > form {
+  padding: 0;
 }
 html[data-theme='dark'] .admin-shell {
   --admin-success-text: #86efac;

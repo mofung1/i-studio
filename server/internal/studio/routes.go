@@ -12,8 +12,9 @@ func (s *Service) router() *gin.Engine {
 	return httpapi.NewRouter(httpapi.Handlers{
 		AuthorizeAdmin: s.authorizeAdmin,
 		ConfigurationChanged: func(r *http.Request, action, target, detail string) {
-			actor, _ := s.currentAdministrator(r)
-			s.audit(actor.ID, action, target, detail)
+			if actor, ok := s.currentAdministrator(r); ok {
+				s.audit(actor.ID, action, target, detail)
+			}
 		},
 		AccountHandler:               s.accountHandler,
 		AdminAudit:                   s.adminAudit,

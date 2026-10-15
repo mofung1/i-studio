@@ -4,13 +4,15 @@ export function AdminTable({
   headings,
   children,
   empty,
+  loading = false,
 }: {
   headings: string[]
   children: ReactNode
   empty?: boolean
+  loading?: boolean
 }) {
   return (
-    <div className="ops-table-scroll">
+    <div className="ops-table-scroll" tabIndex={0} aria-label="列表内容" aria-busy={loading}>
       <table className="ops-table">
         <thead>
           <tr>
@@ -19,9 +21,19 @@ export function AdminTable({
             ))}
           </tr>
         </thead>
-        <tbody>{children}</tbody>
+        <tbody>
+          {loading && empty ? (
+            <tr>
+              <td colSpan={headings.length} className="ops-empty">
+                正在读取…
+              </td>
+            </tr>
+          ) : (
+            children
+          )}
+        </tbody>
       </table>
-      {empty && <p className="ops-empty">暂无记录</p>}
+      {empty && !loading && <p className="ops-empty">暂无记录</p>}
     </div>
   )
 }

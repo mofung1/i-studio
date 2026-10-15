@@ -46,6 +46,9 @@ vi.mock('@/lib/credits', async (original) => ({
 let root: Root
 let container: HTMLDivElement
 const request = vi.mocked(adminRequest)
+function firstPage(key: string, items: unknown[]) {
+  return { [key]: items, page: 1, pageSize: 20, total: items.length, totalPages: 1 }
+}
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -95,7 +98,7 @@ it('keeps balance retries idempotent and starts a new adjustment after editing',
   }
   const submissions: Array<{ requestKey: string; deltaMinor: number; note: string }> = []
   request.mockImplementation(async (path, method, body) => {
-    if (path.startsWith('users?')) return { users: [member] }
+    if (path.startsWith('users?')) return firstPage('users', [member])
     if (method === 'POST' && path === 'users/member/balance') {
       submissions.push(body as (typeof submissions)[number])
       if (submissions.length < 3) throw new Error('连接中断，请重试')
@@ -134,7 +137,7 @@ it('submits precise model pricing and clears the default flag when taking it off
     isDefault: true,
   }
   request.mockImplementation(async (path) => {
-    if (path === 'models') return { models: [model] }
+    if (path.startsWith('models?')) return firstPage('models', [model])
     if (path === 'ai-endpoints')
       return { endpoints: [{ id: 'endpoint-1', name: '通道', purpose: 'image', enabled: true }] }
     return { id: 'model-1' }
@@ -183,14 +186,14 @@ it('keeps search focused while loading and ignores an older search response', as
     available: 0,
     held: 0,
   })
-  await act(async () => pending[1]!({ users: [user('alice')] }))
-  await act(async () => pending[0]!({ users: [user('stale-result')] }))
+  await act(async () => pending[1]!(firstPage('users', [user('alice')])))
+  await act(async () => pending[0]!(firstPage('users', [user('stale-result')])))
   expect(container.textContent).toContain('alice')
   expect(container.textContent).not.toContain('stale-result')
 })
 
 it('refreshes the dashboard with a single read', async () => {
-  request.mockResolvedValue({ users: [] })
+  request.mockResolvedValue(firstPage('users', []))
   await act(async () => root.render(<AdminDashboard view="users" />))
   await act(async () => {
     await vi.advanceTimersByTimeAsync(250)
@@ -198,6 +201,8 @@ it('refreshes the dashboard with a single read', async () => {
   request.mockClear()
   await act(async () => button('刷新').click())
   expect(request).toHaveBeenCalledTimes(1)
+  expect(container.querySelector('.settings-saved')).toBeNull()
+  expect(container.textContent).not.toContain('已刷新')
 })
 
 function taskPage(path: string) {
@@ -282,4 +287,116 @@ it('allows retrying a failed page without getting stuck loading', async () => {
   expect(container.textContent).toContain('共 45 条任务 · 第 2 / 3 页')
   expect(container.querySelector('[role="alert"]')).toBeNull()
   expect(nextTaskPage().disabled).toBe(false)
+})
+
+it.each([
+  ['users', '用户'],
+  ['audit', '日志'],
+  ['models', '模型'],
+] as const)(
+  'paginates %s and refreshes the current page without a success notice',
+  async (view, label) => {
+    request.mockImplementation(async (path) => {
+      if (path === 'ai-endpoints') return { endpoints: [] }
+      const params = new URL(`http://fixture/${path}`).searchParams
+      const page = Number(params.get('page'))
+      const pageSize = Number(params.get('pageSize'))
+      const rows = {
+        users: [
+          {
+            id: `customer-${page}`,
+            username: `用户页${page}`,
+            role: 'user',
+            status: 'active',
+            available: 125,
+            held: 0,
+          },
+        ],
+        models: [
+          {
+            id: `model-${page}`,
+            name: `模型页${page}`,
+            endpointId: 'channel',
+            priceMinor: 125,
+            enabled: true,
+            isDefault: false,
+          },
+        ],
+        audit: [
+          {
+            id: page,
+            actor: `操作人页${page}`,
+            action: 'PUT prompt-reverse-settings',
+            targetId: '完整对象编号-12345678901234567890',
+            detail: '配置已更新',
+            createdAt: '2026-10-16T00:00:00Z',
+          },
+        ],
+      }[view]
+      return { [view]: rows, page, pageSize, total: 45, totalPages: Math.ceil(45 / pageSize) }
+    })
+    await act(async () => root.render(<AdminDashboard view={view} />))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250)
+    })
+    const next = container.querySelector<HTMLButtonElement>(`[aria-label="下一页${label}"]`)!
+    await act(async () => next.click())
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250)
+    })
+    expect(
+      request.mock.calls.some(([path]) => path.startsWith(`${view}?`) && path.includes('page=2')),
+    ).toBe(true)
+    expect(container.textContent).toContain('第 2 / 3 页')
+    request.mockClear()
+    await act(async () => button('刷新').click())
+    expect(request.mock.calls.filter(([path]) => path.startsWith(`${view}?`))).toHaveLength(1)
+    expect(request.mock.calls.find(([path]) => path.startsWith(`${view}?`))![0]).toContain('page=2')
+    expect(container.querySelector('.settings-saved')).toBeNull()
+    if (view === 'audit') {
+      expect(container.textContent).toContain('保存图片反推配置')
+      expect(container.textContent).toContain('完整对象编号-12345678901234567890')
+    }
+    const size = container.querySelector<HTMLSelectElement>(
+      `select[aria-label="每页${label}条数"]`,
+    )!
+    await act(async () => {
+      size.value = '50'
+      size.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(250)
+    })
+    expect(container.textContent).toContain('第 1 / 1 页')
+    expect(next.disabled).toBe(true)
+  },
+)
+
+it('returns user search to the first page and resets list scrolling only when paging or searching', async () => {
+  request.mockImplementation(async (path) => {
+    const page = Number(new URL(`http://fixture/${path}`).searchParams.get('page'))
+    return { users: [], page, pageSize: 20, total: 45, totalPages: 3 }
+  })
+  await act(async () => root.render(<AdminDashboard view="users" />))
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(250)
+  })
+  const scroll = container.querySelector('.ops-table-scroll')!
+  scroll.scrollTop = 300
+  await act(async () => button('刷新').click())
+  expect(scroll.scrollTop).toBe(300)
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="下一页用户"]')!.click(),
+  )
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(250)
+  })
+  expect(scroll.scrollTop).toBe(0)
+  scroll.scrollTop = 200
+  await change(container.querySelector<HTMLInputElement>('#member-search')!, 'alice')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(250)
+  })
+  expect(request).toHaveBeenLastCalledWith('users?q=alice&page=1&pageSize=20')
+  expect(scroll.scrollTop).toBe(0)
 })

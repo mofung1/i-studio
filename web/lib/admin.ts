@@ -50,12 +50,24 @@ export interface AdminAudit {
   createdAt: string
 }
 
-export interface AdminTaskPage {
-  tasks: AdminTask[]
+export interface AdminPage {
   page: number
   pageSize: number
   total: number
   totalPages: number
+}
+
+export interface AdminTaskPage extends AdminPage {
+  tasks: AdminTask[]
+}
+export interface AdminUserPage extends AdminPage {
+  users: AdminMember[]
+}
+export interface AdminModelPage extends AdminPage {
+  models: AdminModel[]
+}
+export interface AdminAuditPage extends AdminPage {
+  audit: AdminAudit[]
 }
 
 export const adminRequest = <T>(path: string, method = 'GET', body?: unknown) =>

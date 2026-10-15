@@ -53,6 +53,10 @@ func (s *Service) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 	query := strings.TrimSpace(r.URL.Query().Get("q"))
 	page := clampInt(parseQueryInt(r.URL.Query().Get("page"), 1), 1, 200)
 	pageSize := clampInt(parseQueryInt(r.URL.Query().Get("pageSize"), 24), 1, 60)
+	if includeDisabled {
+		page = max(1, parseQueryInt(r.URL.Query().Get("page"), 1))
+		pageSize = clampInt(parseQueryInt(r.URL.Query().Get("pageSize"), 20), 1, 100)
+	}
 
 	where := "WHERE enabled = true"
 	if includeDisabled {
@@ -88,6 +92,9 @@ func (s *Service) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if includeDisabled {
+		page = min(page, max(1, (total+pageSize-1)/pageSize))
+	}
 	offset := (page - 1) * pageSize
 	querySQL := "SELECT " + inspirationPromptColumns + " FROM inspiration_prompts " + where +
 		" ORDER BY sort_order ASC, id ASC LIMIT $" + strconv.Itoa(len(args)+1) + " OFFSET $" + strconv.Itoa(len(args)+2)
