@@ -9,6 +9,8 @@ export function AdminPagination({
   total,
   totalPages,
   loading,
+  label = '任务',
+  unit = '条',
   onPageChange,
   onPageSizeChange,
 }: {
@@ -17,6 +19,8 @@ export function AdminPagination({
   total: number
   totalPages: number
   loading: boolean
+  label?: string
+  unit?: string
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
 }) {
@@ -32,15 +36,16 @@ export function AdminPagination({
     steps.push(value)
   }
   return (
-    <nav className="ops-pagination" aria-label="生成任务分页">
+    <nav className="ops-pagination" aria-label={`${label}分页`}>
       <div className="ops-pagination-summary" aria-live="polite">
         <span>
-          共 {total} 条任务 · 第 {page} / {totalPages} 页
+          共 {total} {unit}
+          {label} · 第 {page} / {totalPages} 页
         </span>
         {loading && <span role="status">正在读取…</span>}
       </div>
       <LibrarySelect
-        label="每页任务条数"
+        label={`每页${label}条数`}
         value={String(pageSize)}
         options={[
           ['20', '20 条 / 页'],
@@ -53,7 +58,7 @@ export function AdminPagination({
       <div className="ops-pagination-buttons">
         <button
           type="button"
-          aria-label="上一页任务"
+          aria-label={`上一页${label}`}
           disabled={loading || page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
@@ -64,7 +69,7 @@ export function AdminPagination({
             <button
               key={step}
               type="button"
-              aria-label={`第 ${step} 页任务`}
+              aria-label={`第 ${step} 页${label}`}
               aria-current={page === step ? 'page' : undefined}
               disabled={loading}
               onClick={() => onPageChange(step)}
@@ -79,7 +84,7 @@ export function AdminPagination({
         )}
         <button
           type="button"
-          aria-label="下一页任务"
+          aria-label={`下一页${label}`}
           disabled={loading || page >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >

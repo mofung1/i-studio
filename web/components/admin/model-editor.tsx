@@ -1,7 +1,7 @@
 'use client'
 
-import type { FormEvent } from 'react'
-import { Save, X } from 'lucide-react'
+import { useRef, type FormEvent } from 'react'
+import { Save } from 'lucide-react'
 import type { AdminModel as Model } from '@/lib/admin'
 import type { AIEndpoint } from '@/lib/ai-settings'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
@@ -26,19 +26,9 @@ export function AdminModelEditor({
   onClose: () => void
   onSubmit: (event: FormEvent) => void
 }) {
+  const editorRef = useRef<HTMLElement>(null)
   return (
-    <section className="ops-card ops-editor" aria-label="编辑前台模型">
-      <div className="ops-card-heading">
-        <h2>{editing.id ? '编辑模型' : '添加模型'}</h2>
-        <button
-          className="settings-icon"
-          disabled={busy}
-          aria-label="关闭模型编辑"
-          onClick={() => onClose()}
-        >
-          <X size={18} />
-        </button>
-      </div>
+    <section ref={editorRef} className="ops-card ops-editor" aria-label="编辑前台模型">
       <form onSubmit={(event) => void onSubmit(event)}>
         <div className="ops-form-grid">
           <label className="settings-field">
@@ -62,7 +52,7 @@ export function AdminModelEditor({
               <SelectTrigger aria-label="生图服务通道">
                 <SelectValue placeholder="选择通道" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent portalContainer={editorRef.current}>
                 {endpoints.map((item) => (
                   <SelectItem key={item.id} value={item.id}>
                     {item.name}

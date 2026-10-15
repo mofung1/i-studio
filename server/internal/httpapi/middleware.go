@@ -68,9 +68,21 @@ func (s Handlers) adminMiddleware() gin.HandlerFunc {
 func (s Handlers) auditConfiguration(prefix string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
-		if c.Request.Method != http.MethodGet && c.Writer.Status() < http.StatusBadRequest {
-			target := strings.TrimPrefix(c.Request.URL.Path, "/v1/admin/"+prefix)
-			s.ConfigurationChanged(c.Request, c.Request.Method+" "+prefix, target, "配置已更新")
+		if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead && c.Writer.Status() >= 200 && c.Writer.Status() < 300 {
+			path := strings.TrimPrefix(strings.TrimPrefix(c.Request.URL.Path, "/v1/"), "admin/")
+			target := strings.Trim(strings.TrimPrefix(path, prefix), "/")
+			detail := "配置已更新"
+			if c.Request.Method == http.MethodDelete {
+				detail = "已删除"
+			} else if prefix == "ai-endpoints" && strings.HasSuffix(path, "/test") {
+				detail = "已执行服务连接测试"
+			} else if prefix == "ai-endpoints" && strings.HasSuffix(path, "/default") {
+				detail = "已切换默认服务"
+			}
+			if target == "" {
+				target = prefix
+			}
+			s.ConfigurationChanged(c.Request, c.Request.Method+" "+prefix, target, detail)
 		}
 	}
 }

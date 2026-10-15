@@ -13,12 +13,38 @@ import (
 func (s *Service) adminModels(w http.ResponseWriter, r *http.Request, suffix string) {
 	id := strings.TrimPrefix(suffix, "/")
 	if r.Method == "GET" && id == "" {
-		models, err := s.publicModels(false)
+		tx, page, err := s.beginAdminPage(r, "SELECT count(*) FROM public_models")
 		if err != nil {
 			s.error(w, 500, "MODELS_UNAVAILABLE", "模型读取失败")
 			return
 		}
-		s.json(w, 200, map[string]any{"models": models})
+		defer tx.Rollback()
+		rows, err := tx.QueryContext(r.Context(), "SELECT id,name,endpoint_id,price_minor,enabled,is_default,version FROM public_models ORDER BY is_default DESC,created_at,id LIMIT $1 OFFSET $2", page.PageSize, page.offset())
+		if err != nil {
+			s.error(w, 500, "MODELS_UNAVAILABLE", "模型读取失败")
+			return
+		}
+		defer rows.Close()
+		models := []publicModel{}
+		for rows.Next() {
+			var model publicModel
+			if err = rows.Scan(&model.ID, &model.Name, &model.EndpointID, &model.PriceMinor, &model.Enabled, &model.IsDefault, &model.Version); err != nil {
+				break
+			}
+			models = append(models, model)
+		}
+		if err != nil || rows.Err() != nil {
+			s.error(w, 500, "MODELS_UNAVAILABLE", "模型读取失败")
+			return
+		}
+		if err = rows.Close(); err == nil {
+			err = tx.Commit()
+		}
+		if err != nil {
+			s.error(w, 500, "MODELS_UNAVAILABLE", "模型读取失败")
+			return
+		}
+		s.json(w, 200, page.response("models", models))
 		return
 	}
 	if r.Method != "POST" && r.Method != "PUT" {

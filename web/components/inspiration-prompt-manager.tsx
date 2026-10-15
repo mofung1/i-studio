@@ -2,8 +2,6 @@
 
 import Link from 'next/link'
 import {
-  ChevronLeft,
-  ChevronRight,
   Folder,
   LoaderCircle,
   Pencil,
@@ -25,6 +23,7 @@ import {
   type ManagedInspirationPrompt,
 } from '@/lib/inspiration-settings'
 import { ConfirmDialog } from './confirm-dialog'
+import { AdminPagination } from './admin/pagination'
 import type { InspirationCategory } from './workbench/use-inspiration-prompts'
 import {
   Select,
@@ -35,13 +34,13 @@ import {
   SelectValue,
 } from './select'
 
-const PAGE_SIZE = 20
 const errorText = (error: unknown) => (error instanceof Error ? error.message : '请求失败，请重试')
 
 export function InspirationPromptManager() {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [items, setItems] = useState<ManagedInspirationPrompt[]>([])
   const [total, setTotal] = useState(0)
+  const [pageSize, setPageSize] = useState(20)
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState<InspirationCategory[]>([])
   const [filters, setFilters] = useState({ query: '', category: '', status: 'all', page: 1 })
@@ -64,12 +63,17 @@ export function InspirationPromptManager() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const listRef = useRef<HTMLElement>(null)
   const focusRef = useRef<HTMLElement | null>(null)
   const addRef = useRef<HTMLButtonElement>(null)
   const editorOpen = editing !== null
   const dirty =
     (!!editing && JSON.stringify(editing.draft) !== JSON.stringify(editing.initial)) ||
     (addingCategory && !!categoryName.trim())
+
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0
+  }, [filters.page, filters.query, filters.category, filters.status, pageSize])
 
   useEffect(() => {
     setLoggedIn(!!getAdminAccessToken())
@@ -94,7 +98,7 @@ export function InspirationPromptManager() {
     const params = new URLSearchParams({
       includeDisabled: 'true',
       page: String(filters.page),
-      pageSize: String(PAGE_SIZE),
+      pageSize: String(pageSize),
       q: filters.query,
       category: filters.category,
       status: filters.status,
@@ -117,6 +121,8 @@ export function InspirationPromptManager() {
         if (!controller.signal.aborted) {
           setItems(data.prompts)
           setTotal(data.total)
+          if (data.page !== filters.page)
+            setFilters((previous) => ({ ...previous, page: data.page }))
           setCategories(categoryData.categories)
         }
       })
@@ -127,7 +133,7 @@ export function InspirationPromptManager() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [loggedIn, filters.query, filters.category, filters.status, filters.page, refresh])
+  }, [loggedIn, filters.query, filters.category, filters.status, filters.page, refresh, pageSize])
   useEffect(() => {
     if (editorOpen) dialogRef.current?.showModal()
     else {
@@ -251,7 +257,7 @@ export function InspirationPromptManager() {
     )
 
   return (
-    <main className="inspiration-manager">
+    <main className="inspiration-manager admin-list-page">
       <div className="inspiration-manager-toolbar" role="search" aria-label="搜索与筛选提示词">
         <label className="inspiration-manager-search">
           <Search size={17} aria-hidden="true" />
@@ -320,7 +326,10 @@ export function InspirationPromptManager() {
           className="settings-command"
           aria-label="刷新提示词列表"
           disabled={loading}
-          onClick={() => setRefresh((value) => value + 1)}
+          onClick={() => {
+            setNotice('')
+            setRefresh((value) => value + 1)
+          }}
         >
           <RefreshCw size={16} aria-hidden="true" />
           刷新
@@ -344,7 +353,13 @@ export function InspirationPromptManager() {
           {error}
         </p>
       )}
-      <section className="inspiration-manager-list" aria-label="管理提示词列表" aria-busy={loading}>
+      <section
+        ref={listRef}
+        tabIndex={0}
+        className="inspiration-manager-list"
+        aria-label="管理提示词列表"
+        aria-busy={loading}
+      >
         {loading ? (
           <div className="settings-loading" role="status">
             <LoaderCircle className="settings-spinner" size={20} />
@@ -416,33 +431,19 @@ export function InspirationPromptManager() {
         )}
       </section>
       {!error && (
-        <div className="inspiration-manager-pagination">
-          <span>
-            共 {total} 条 · 第 {filters.page} / {Math.max(1, Math.ceil(total / PAGE_SIZE))} 页
-          </span>
-          <div>
-            <button
-              type="button"
-              className="settings-command"
-              aria-label="上一页"
-              disabled={loading || filters.page <= 1}
-              onClick={() => setFilters((previous) => ({ ...previous, page: previous.page - 1 }))}
-            >
-              <ChevronLeft size={17} aria-hidden="true" />
-              上一页
-            </button>
-            <button
-              type="button"
-              className="settings-command"
-              aria-label="下一页"
-              disabled={loading || filters.page * PAGE_SIZE >= total}
-              onClick={() => setFilters((previous) => ({ ...previous, page: previous.page + 1 }))}
-            >
-              下一页
-              <ChevronRight size={17} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
+        <AdminPagination
+          label="提示词"
+          page={filters.page}
+          pageSize={pageSize}
+          total={total}
+          totalPages={Math.max(1, Math.ceil(total / pageSize))}
+          loading={loading}
+          onPageChange={(page) => setFilters((previous) => ({ ...previous, page }))}
+          onPageSizeChange={(size) => {
+            setPageSize(size)
+            setFilters((previous) => ({ ...previous, page: 1 }))
+          }}
+        />
       )}
       <dialog
         ref={dialogRef}

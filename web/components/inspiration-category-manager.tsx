@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { getAdminAccessToken } from '@/lib/api'
 import { settingsRequest } from '@/lib/ai-settings'
 import type { ManagedInspirationCategory } from '@/lib/inspiration-settings'
+import { AdminPagination } from './admin/pagination'
 import {
   Select,
   SelectContent,
@@ -22,6 +23,8 @@ export function InspirationCategoryManager() {
   const [categories, setCategories] = useState<ManagedInspirationCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [name, setName] = useState('')
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null)
   const [busy, setBusy] = useState('')
@@ -31,6 +34,7 @@ export function InspirationCategoryManager() {
   const [moveToId, setMoveToId] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const listRef = useRef<HTMLElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const deleteOpen = deleting !== null
@@ -140,6 +144,15 @@ export function InspirationCategoryManager() {
     row.category.toLowerCase().includes(search.trim().toLowerCase()),
   )
   const destinations = categories.filter((row) => row.id !== deleting?.id)
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const pagedCategories = visible.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0
+  }, [currentPage, pageSize, search])
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
 
   if (loggedIn === null)
     return (
@@ -161,7 +174,7 @@ export function InspirationCategoryManager() {
     )
 
   return (
-    <main className="inspiration-category-manager" aria-label="灵感分类管理">
+    <main className="inspiration-category-manager admin-list-page" aria-label="灵感分类管理">
       <form className="inspiration-category-create" onSubmit={(event) => void save(event)}>
         <label htmlFor="inspiration-new-category">新增分类</label>
         <div>
@@ -192,7 +205,10 @@ export function InspirationCategoryManager() {
           aria-label="搜索灵感分类"
           placeholder="搜索分类名称"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value)
+            setPage(1)
+          }}
         />
       </label>
       {error && (
@@ -205,7 +221,13 @@ export function InspirationCategoryManager() {
           {notice}
         </p>
       )}
-      <section className="inspiration-category-list" aria-label="灵感分类列表" aria-busy={loading}>
+      <section
+        ref={listRef}
+        tabIndex={0}
+        className="inspiration-category-list"
+        aria-label="灵感分类列表"
+        aria-busy={loading}
+      >
         {loading ? (
           <div className="settings-loading" role="status">
             <LoaderCircle size={20} className="settings-spinner" aria-hidden="true" />
@@ -216,7 +238,7 @@ export function InspirationCategoryManager() {
             {search.trim() ? '没有匹配的分类' : '还没有分类，先新增一个分类。'}
           </p>
         ) : (
-          visible.map((row) => (
+          pagedCategories.map((row) => (
             <article className="inspiration-category-row" key={row.id}>
               <Folder size={18} aria-hidden="true" />
               <div className="inspiration-category-copy">
@@ -292,6 +314,24 @@ export function InspirationCategoryManager() {
           ))
         )}
       </section>
+      <AdminPagination
+        label="分类"
+        unit="个"
+        page={currentPage}
+        pageSize={pageSize}
+        total={visible.length}
+        totalPages={totalPages}
+        loading={loading || !!busy}
+        onPageChange={(next) => {
+          setEditing(null)
+          setPage(next)
+        }}
+        onPageSizeChange={(size) => {
+          setEditing(null)
+          setPageSize(size)
+          setPage(1)
+        }}
+      />
       <dialog
         ref={dialogRef}
         className="endpoint-dialog inspiration-category-delete-dialog"

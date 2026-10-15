@@ -1,10 +1,7 @@
 'use client'
 
 import type { FormEvent } from 'react'
-import { X } from 'lucide-react'
-import type { AdminMember as Member } from '@/lib/admin'
 export function AdminBalanceEditor({
-  adjusting,
   amount,
   note,
   unit,
@@ -14,7 +11,6 @@ export function AdminBalanceEditor({
   onClose,
   onSubmit,
 }: {
-  adjusting: Member
   amount: string
   note: string
   unit: string
@@ -26,17 +22,6 @@ export function AdminBalanceEditor({
 }) {
   return (
     <section className="ops-card ops-editor" aria-label="调整用户余额">
-      <div className="ops-card-heading">
-        <h2>调整 {adjusting.username} 的余额</h2>
-        <button
-          className="settings-icon"
-          disabled={busy}
-          aria-label="关闭余额调整"
-          onClick={() => onClose()}
-        >
-          <X size={18} />
-        </button>
-      </div>
       <form onSubmit={(event) => void onSubmit(event)}>
         <div className="ops-form-grid">
           <label className="settings-field">

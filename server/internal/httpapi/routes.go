@@ -87,22 +87,33 @@ func (s Handlers) registerPromptRoutes(api *gin.RouterGroup) {
 // Legacy settings URLs remain permission checked by their handlers. The admin
 // URLs below point to those same handlers, rather than duplicating persistence.
 func (s Handlers) registerSettingsRoutes(api *gin.RouterGroup) {
-	registerMethods(api, "/ai-endpoints", s.AIEndpoints, "GET", "POST")
-	registerMethods(api, "/ai-endpoints/:id", s.AIEndpointByID, "PUT", "DELETE")
-	api.POST("/ai-endpoints/:id/default", gin.WrapF(s.AIEndpointByID))
-	api.POST("/ai-endpoints/:id/test", gin.WrapF(s.AIEndpointByID))
-	registerMethods(api, "/prompt-templates", s.PromptTemplates, "GET", "PUT")
-	registerMethods(api, "/prompt-reverse-settings", s.PromptReverseSettingsHandler, "GET", "PUT")
-	registerMethods(api, "/site-settings", s.SiteSettingsHandler, "GET", "PUT")
+	endpoints := api.Group("/ai-endpoints", s.auditConfiguration("ai-endpoints"))
+	registerMethods(endpoints, "", s.AIEndpoints, "GET", "POST")
+	registerMethods(endpoints, "/:id", s.AIEndpointByID, "PUT", "DELETE")
+	endpoints.POST("/:id/default", gin.WrapF(s.AIEndpointByID))
+	endpoints.POST("/:id/test", gin.WrapF(s.AIEndpointByID))
+	for _, editor := range []struct {
+		path    string
+		handler http.HandlerFunc
+	}{
+		{"prompt-templates", s.PromptTemplates},
+		{"prompt-reverse-settings", s.PromptReverseSettingsHandler},
+		{"site-settings", s.SiteSettingsHandler},
+	} {
+		group := api.Group("/"+editor.path, s.auditConfiguration(editor.path))
+		registerMethods(group, "", editor.handler, "GET", "PUT")
+	}
 	registerMethods(api, "/site-settings/logo/:filename", s.SiteLogo, "GET", "HEAD")
 }
 
 func (s Handlers) registerInspirationRoutes(api *gin.RouterGroup) {
 	inspiration := api.Group("/inspiration")
-	registerMethods(inspiration, "/prompts", s.InspirationPrompts, "GET", "POST")
-	registerMethods(inspiration, "/prompts/:id", s.InspirationPromptByID, "PUT", "DELETE")
-	registerMethods(inspiration, "/categories", s.InspirationCategories, "GET", "POST")
-	registerMethods(inspiration, "/categories/:id", s.InspirationCategoryByID, "PUT", "DELETE")
+	prompts := inspiration.Group("/prompts", s.auditConfiguration("inspiration/prompts"))
+	registerMethods(prompts, "", s.InspirationPrompts, "GET", "POST")
+	registerMethods(prompts, "/:id", s.InspirationPromptByID, "PUT", "DELETE")
+	categories := inspiration.Group("/categories", s.auditConfiguration("inspiration/categories"))
+	registerMethods(categories, "", s.InspirationCategories, "GET", "POST")
+	registerMethods(categories, "/:id", s.InspirationCategoryByID, "PUT", "DELETE")
 	registerMethods(inspiration, "/images/*key", s.InspirationImage, "GET", "HEAD")
 }
 

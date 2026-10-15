@@ -57,6 +57,7 @@ func (s *Service) adminLogin(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 403, "ACCOUNT_DISABLED", "管理员账号已停用")
 		return
 	}
+	s.audit(u.ID, "admin.login", u.ID, "管理员登录后台")
 	s.json(w, 200, map[string]any{"accessToken": authn.SignForAudience(s.secret, u, "admin"), "user": map[string]string{"id": u.ID, "username": u.Username, "role": "admin"}})
 }
 
