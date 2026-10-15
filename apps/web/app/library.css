@@ -48,12 +48,15 @@
 .asset-grid.is-compact { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
 .asset-card { position: relative; min-width: 0; overflow: hidden; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--surface); }
 .asset-card.is-selected { border-color: var(--foreground); box-shadow: 0 0 0 1px var(--foreground); }
-.asset-cover { position: relative; display: grid; place-items: center; aspect-ratio: 4 / 5; width: 100%; padding: 0; overflow: hidden; border: 0; background: var(--surface-subtle); cursor: pointer; }
+.asset-cover { position: relative; display: block; min-width: 0; min-height: 0; flex: none; aspect-ratio: 4 / 5; width: 100%; padding: 0; overflow: hidden; border: 0; background: var(--surface-subtle); cursor: pointer; }
 .is-compact .asset-cover { aspect-ratio: 1; }
-.asset-cover > img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.asset-cover > :is(.auth-image-loading,.auth-image-failed) { width: 100%; height: 100%; }
-.asset-cover.is-empty { display: flex; flex-direction: column; gap: 12px; color: var(--foreground-3); font-size: 13px; }
-.asset-cover.is-failed > img { object-fit: cover; }
+.asset-cover > img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; object-position: center; }
+.asset-cover > :is(.auth-image-loading,.auth-image-failed) { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; }
+.asset-cover-open { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.asset-cover-open:focus-visible { outline: 2px solid var(--foreground); outline-offset: -4px; }
+.asset-cover .auth-image-failed button { position: relative; z-index: 3; }
+.asset-cover.is-empty { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: var(--foreground-3); font-size: 13px; }
+
 .asset-checkbox, .asset-star { position: absolute; top: 10px; z-index: 2; display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--border-soft); border-radius: 7px; background: var(--surface); color: var(--foreground-2); }
 .asset-checkbox { left: 10px; cursor: pointer; }
 .asset-checkbox input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
@@ -73,7 +76,7 @@
 .asset-card-actions :is(button,a) { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 4px; border: 0; background: transparent; color: var(--foreground-3); cursor: pointer; font-size: 12px; }
 .asset-card-actions :first-child { margin-right: auto; }
 .asset-card-actions :disabled { opacity: .4; cursor: default; }
-.asset-task-badge { position: absolute; display: inline-flex; align-items: center; gap: 5px; left: 10px; bottom: 10px; padding: 5px 8px; border-radius: 6px; background: var(--surface); color: var(--foreground-2); font-size: 11px; }
+.asset-task-badge { position: absolute; z-index: 1; max-width: calc(100% - 20px); pointer-events: none; display: inline-flex; align-items: center; gap: 5px; left: 10px; bottom: 10px; padding: 5px 8px; border-radius: 6px; background: var(--surface); color: var(--foreground-2); font-size: 11px; }
 .library-empty-state { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 72px 20px; text-align: center; color: var(--foreground-3); }
 .library-empty-state strong { color: var(--foreground-2); font-size: 16px; }
 .library-empty-state p { margin: 0; font-size: 13px; }
@@ -89,21 +92,21 @@
 .library-parameters dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
 .library-task-prompt { max-height: 280px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; font-size: 13px; }
 .asset-preview-backdrop { z-index: 120; }
-.asset-preview { display: flex; flex-direction: column; width: min(1100px,calc(100vw - 40px)); max-height: calc(100dvh - 40px); overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--foreground); }
-.asset-preview header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--border-soft); }
+.asset-preview { display: flex; flex-direction: column; min-width: 0; min-height: 0; width: min(1100px,calc(100vw - 40px)); height: min(780px,calc(100dvh - 40px)); max-height: calc(100dvh - 40px); overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--foreground); }
+.asset-preview header { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--border-soft); }
 .asset-preview header strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
-.asset-preview-body { display: grid; grid-template-columns: minmax(0,1fr) 270px; min-height: 0; overflow-y: auto; }
-.asset-preview-image { position: relative; display: grid; place-items: center; min-height: 380px; height: min(64vh,640px); padding: 20px; background: var(--surface-subtle); }
-.asset-preview-image > img { width: 100%; height: 100%; object-fit: contain; }
+.asset-preview-body { display: grid; flex: 1; grid-template-columns: minmax(0,1fr) 270px; grid-template-rows: minmax(0,1fr); min-width: 0; min-height: 0; overflow: hidden; }
+.asset-preview-image { --asset-preview-inset: clamp(12px,2vw,20px); position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--surface-subtle); }
+.asset-preview-image > :is(img,.auth-image-loading,.auth-image-failed) { position: absolute; top: var(--asset-preview-inset); left: var(--asset-preview-inset); width: calc(100% - var(--asset-preview-inset) * 2); height: calc(100% - var(--asset-preview-inset) - 64px); min-width: 0; min-height: 0; object-fit: contain; object-position: center; }
 .asset-preview-zoom { position: absolute; display: inline-flex; align-items: center; gap: 6px; bottom: 16px; left: 16px; min-height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--foreground-2); cursor: pointer; font-size: 12px; }
-.asset-preview-body aside { padding: 20px; border-left: 1px solid var(--border-soft); }
+.asset-preview-body aside { min-width: 0; min-height: 0; overflow-y: auto; padding: 20px; border-left: 1px solid var(--border-soft); }
 .asset-preview-prompt { max-height: 220px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.8; color: var(--foreground-2); }
 .asset-preview-actions { display: grid; gap: 8px; margin-top: 20px; }
 .asset-preview-actions :is(button,a) { justify-content: center; min-height: 40px; }
 @media (min-width:1600px) { .asset-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } .asset-grid.is-compact { grid-template-columns: repeat(5,minmax(0,1fr)); } }
 @media (max-width:1100px) { .asset-manager-layout { grid-template-columns: minmax(0,1fr); gap: 16px; } .asset-projects { display: flex; align-items: center; gap: 6px; position: static; overflow-x: auto; } .asset-projects > button { width: auto; flex: 0 0 auto; max-width: 190px; } .asset-projects-title { flex: 0 0 auto; padding: 0 8px; gap: 8px; } .asset-projects details { flex: 0 0 auto; margin: 0; border: 0; } .asset-grid.is-compact { grid-template-columns: repeat(3,minmax(0,1fr)); } }
 @media (max-width:700px) { .asset-manager .library-views { margin-bottom: 0; }
-.asset-manager-heading { align-items: start; flex-direction: column; gap: 8px; } .asset-manager .library-views { flex-wrap: wrap; } .asset-grid, .asset-grid.is-compact { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; } .library-search { flex-basis: 100%; } .library-toolbar .select-trigger { width: auto; flex: 1; min-width: 0; } .asset-preview { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); } .asset-preview-body { grid-template-columns: minmax(0,1fr); } .asset-preview-image { min-height: 220px; height: 40vh; } .asset-preview-body aside { border-left: 0; } .library-advanced > div { grid-template-columns: minmax(0,1fr); } }
+.asset-manager-heading { align-items: start; flex-direction: column; gap: 8px; } .asset-manager .library-views { flex-wrap: wrap; } .asset-grid, .asset-grid.is-compact { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; } .library-search { flex-basis: 100%; } .library-toolbar .select-trigger { width: auto; flex: 1; min-width: 0; } .asset-preview { width: calc(100vw - 20px); height: min(900px,calc(100dvh - 20px)); max-height: calc(100dvh - 20px); } .asset-preview-body { display: block; overflow-y: auto; } .asset-preview-image { height: clamp(180px,48dvh,440px); } .asset-preview-body aside { overflow: visible; border-left: 0; border-top: 1px solid var(--border-soft); } .library-advanced > div { grid-template-columns: minmax(0,1fr); } }
 @media (max-width:380px) { .asset-card-copy { padding: 10px 8px 4px; } .asset-card-actions { gap: 3px; padding: 4px 6px 8px; } .library-selection { gap: 5px; } }
 .personal-library { width: 100%; min-width: 0; }
 .personal-library-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
@@ -181,7 +184,7 @@
 .comparison-stage:focus-visible { outline: 2px solid var(--foreground); outline-offset: -3px; }
 .comparison-stages.is-zoomed .comparison-stage { cursor: grab; }
 .comparison-stages.is-zoomed .comparison-stage:active { cursor: grabbing; }
-.comparison-stage .comparison-image { display: block; width: 100%; height: 100%; object-fit: contain; user-select: none; transform-origin: center; pointer-events: none; }
+.comparison-stage .comparison-image { position: absolute; inset: 0; display: block; min-width: 0; min-height: 0; width: 100%; height: 100%; object-fit: contain; user-select: none; transform-origin: center; pointer-events: none; }
 .comparison-image-label { position: absolute; top: 12px; left: 12px; z-index: 2; max-width: calc(100% - 24px); padding: 5px 8px; border: 1px solid var(--border-soft); border-radius: 5px; background: var(--surface); color: var(--foreground-2); font-size: 11px; pointer-events: none; }
 .comparison-image-label.is-right { left: auto; right: 12px; }
 .comparison-overlay-front { position: absolute; inset: 0; pointer-events: none; }
