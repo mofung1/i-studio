@@ -1,0 +1,707 @@
+/* 受保护图片：加载骨架与失败占位（失败时不再静默消失） */
+.auth-image-loading {
+  display: grid;
+  place-items: center;
+  background: var(--surface-subtle);
+  border-radius: var(--radius);
+}
+
+.auth-image-failed {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.auth-image-failed button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.auth-image-failed button:hover {
+  background: var(--primary-soft);
+  border-color: var(--line-strong);
+}
+
+.library-lightbox-content > .auth-image-loading,
+.library-lightbox-content > .auth-image-failed {
+  min-height: 200px;
+}
+
+.library-content {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.library-views {
+  display: inline-flex;
+  gap: 3px;
+  margin-bottom: 24px;
+  padding: 4px;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.library-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* 资产库顶部：视图切换 */
+.library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.library-head .library-views {
+  margin-bottom: 0;
+}
+
+.library-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.library-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-hover);
+  box-shadow: 0 12px 26px rgba(23, 23, 23, 0.08);
+}
+
+.library-card.is-skeleton {
+  pointer-events: none;
+}
+
+.library-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: zoom-in;
+}
+
+.library-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.library-media.is-empty {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  align-content: center;
+  color: var(--foreground-3);
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* 一张图直接铺满，多张图用 1 大 2 小的拼图，画框比例与单图一致 */
+.library-collage {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  background: var(--surface-2);
+}
+
+.library-collage.is-single {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.library-collage > img:first-child {
+  grid-row: span 2;
+}
+
+.library-collage > .auth-image-loading,
+.library-collage > .auth-image-failed {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.library-collage.is-single > img:first-child {
+  grid-row: auto;
+}
+
+.library-badge {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  left: 18px;
+  padding: 3px 9px;
+  color: var(--foreground-2);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: 999px;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.library-badge.is-active {
+  color: var(--background);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.library-badge.is-failed {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+/* 卡片操作：悬停或键盘聚焦时出现，不占正文空间 */
+.library-media-actions {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.library-card:hover .library-media-actions,
+.library-card:focus-within .library-media-actions {
+  opacity: 1;
+}
+
+.library-media-actions button,
+.library-media-actions a {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: 9px;
+  box-shadow: 0 4px 12px rgba(23, 23, 23, 0.14);
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.library-media-actions button:hover:not(:disabled),
+.library-media-actions a:hover {
+  border-color: var(--line-strong);
+}
+
+.library-media-actions .is-danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+.library-media-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.library-card-meta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.library-card-meta strong,
+.library-card-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-card-meta strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.library-card-meta strong a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.library-card-meta strong a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.library-card-meta span {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.library-toolbar .library-views {
+  margin-bottom: 0;
+}
+
+.library-views a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  color: var(--foreground-2);
+  border-radius: 7px;
+  font-size: 13px;
+  transition:
+    color 150ms ease,
+    background 150ms ease;
+}
+
+.library-views a[aria-current='page'] {
+  color: var(--foreground);
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(23, 23, 23, 0.08);
+}
+
+.library-active {
+  margin-bottom: 27px;
+}
+
+.library-active h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.library-active-list {
+  display: grid;
+  gap: 7px;
+}
+
+.library-active-list a {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.library-active-list a span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-active-list a strong {
+  flex: 0 0 auto;
+  color: var(--foreground);
+  font-size: 12px;
+}
+
+.library-empty {
+  padding: 24px 0;
+}
+
+.library-empty a {
+  color: var(--foreground);
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.library-load-more {
+  display: block;
+  margin: 20px auto 0;
+  padding: 9px 16px;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.library-lightbox {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 17, 17, 0.84);
+}
+
+.library-lightbox-content {
+  position: relative;
+  width: min(960px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  color: var(--background);
+}
+
+.library-lightbox-content > img,
+.library-lightbox-content > div[aria-label] {
+  max-width: 100%;
+  max-height: calc(100dvh - 130px);
+  object-fit: contain;
+}
+
+.library-lightbox-content > button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--background);
+  background: rgba(23, 23, 23, 0.75);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.library-lightbox-content > div:last-child {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 12px;
+}
+
+.library-lightbox-content > div:last-child a,
+.library-lightbox-content > div:last-child button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: var(--background);
+  background: none;
+  border: 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* 预览里的左右切换：覆盖关闭按钮的默认定位 */
+.library-lightbox-content > button.library-lightbox-nav {
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(23, 23, 23, 0.6);
+  transform: translateY(-50%);
+  transition:
+    background 150ms ease,
+    opacity 150ms ease;
+}
+
+.library-lightbox-content > button.library-lightbox-nav.is-prev {
+  right: auto;
+  left: 8px;
+}
+
+.library-lightbox-content > button.library-lightbox-nav.is-next {
+  right: 8px;
+}
+
+.library-lightbox-content > button.library-lightbox-nav:hover:not(:disabled) {
+  background: rgba(23, 23, 23, 0.88);
+}
+
+.library-lightbox-content > button.library-lightbox-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.library-lightbox-counter {
+  position: absolute;
+  left: 50%;
+  bottom: 54px;
+  padding: 3px 10px;
+  color: var(--background);
+  background: rgba(23, 23, 23, 0.6);
+  border-radius: 999px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
+}
+
+/* Result history navigation */
+.result-history-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 7px 12px;
+  background: var(--surface-subtle);
+  border-radius: 8px;
+}
+
+.result-history-nav span {
+  color: var(--foreground-2);
+  font-size: 12px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.result-history-nav button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.result-history-nav button:hover:not(:disabled) {
+  color: var(--foreground);
+  border-color: var(--placeholder);
+}
+
+.result-history-nav button:disabled {
+  color: var(--placeholder);
+  cursor: not-allowed;
+}
+
+/* Result image actions (download + use as reference) */
+.result-image-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 5px;
+}
+
+.result-image-actions button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--background);
+  background: rgba(23, 23, 23, 0.68);
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.result-image-actions button:hover {
+  background: rgba(23, 23, 23, 0.9);
+}
+
+/* Result action bar */
+.result-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(23, 23, 23, 0.07);
+}
+
+.result-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  color: var(--foreground-2);
+  background: var(--surface-2);
+  border: 1px solid var(--line-hover);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.result-action-btn:hover:not(:disabled) {
+  background: var(--border);
+  border-color: var(--line-strong);
+}
+
+.result-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.full-set-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  color: var(--foreground);
+  background: var(--primary-soft);
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.full-set-arrow {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--foreground);
+  background: rgba(23, 23, 23, 0.1);
+  border-radius: 9px;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.field-helper a {
+  margin-left: 4px;
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 资产库：白底，卡片靠边框与轻微阴影分层 */
+.content-page {
+  background: var(--surface);
+}
+
+/* 新建任务按钮 */
+.primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 18px;
+  color: var(--background);
+  background: linear-gradient(180deg, #262626 0%, var(--primary) 100%);
+  border-radius: 10px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(23, 23, 23, 0.16);
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+}
+
+.primary-action:hover {
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
+  box-shadow: 0 6px 16px rgba(23, 23, 23, 0.22);
+  transform: translateY(-1px);
+}
+
+/* 视图切换 tab */
+.library-views {
+  gap: 4px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  box-shadow: inset 0 1px 2px rgba(23, 23, 23, 0.04);
+}
+
+.library-views a:hover:not([aria-current='page']) {
+  color: var(--foreground-2);
+}
+
+.library-views a[aria-current='page'] {
+  box-shadow: 0 1px 3px rgba(23, 23, 23, 0.1);
+}
+
+/* 进行中的任务 */
+.library-active-list a {
+  border-color: var(--border);
+  border-radius: 10px;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.library-active-list a:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-subtle);
+  box-shadow: 0 2px 8px rgba(23, 23, 23, 0.05);
+}
+
+/* 加载更多按钮 */
+.library-load-more {
+  border-color: var(--border);
+  border-radius: 10px;
+  font-weight: 500;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.library-load-more:hover {
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
+  box-shadow: 0 2px 8px rgba(23, 23, 23, 0.05);
+}
+
+.eyebrow {
+  padding: 5px 12px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}

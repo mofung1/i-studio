@@ -1,0 +1,140 @@
+package studio
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"reflect"
+	"testing"
+
+	"github.com/istudio/server/internal/domain"
+	"github.com/istudio/server/internal/idgen"
+)
+
+func deleteRequest(t *testing.T, s *Service, token, path string) *httptest.ResponseRecorder {
+	t.Helper()
+	request := httptest.NewRequest(http.MethodDelete, path, nil)
+	request.Header.Set("Authorization", "Bearer "+token)
+	recorder := httptest.NewRecorder()
+	s.router().ServeHTTP(recorder, request)
+	return recorder
+}
+
+// 历史记录删除：只能删自己的记录，删完列表里不再出现。
+func TestDeleteTaskRemovesItFromHistory(t *testing.T) {
+	s, token := newTaskListServer(t)
+
+	if recorder := deleteRequest(t, s, token, "/v1/generation/tasks/general-1"); recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	remaining := listTasks(t, s, token, "")
+	if len(remaining) != 2 {
+		t.Fatalf("expected 2 remaining tasks, got %d", len(remaining))
+	}
+	for _, item := range remaining {
+		if item.ID == "general-1" {
+			t.Fatalf("deleted task still listed")
+		}
+	}
+
+	// 别人的记录删不掉，也不该暴露存在性
+	if recorder := deleteRequest(t, s, token, "/v1/generation/tasks/other-1"); recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for another user's task, got %d", recorder.Code)
+	}
+	// 重复删除返回 404
+	if recorder := deleteRequest(t, s, token, "/v1/generation/tasks/general-1"); recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for missing task, got %d", recorder.Code)
+	}
+}
+
+// 数据库模式：列表要带错误信息；删除资产会同步从任务结果里移除；删除任务连同其生成图片一起清理。
+func TestDatabaseTaskAndAssetDeletion(t *testing.T) {
+	db := isolatedTestDatabase(t)
+
+	userID := "test-user-" + idgen.New()
+	if _, err := db.Exec("INSERT INTO users (id, username, password_hash) VALUES ($1,$2,$3)", userID, userID, "x"); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	defer func() { _, _ = db.Exec("DELETE FROM users WHERE id=$1", userID) }()
+
+	s := &Service{db: db, secret: []byte("test-secret")}
+	token := s.testToken(domain.User{ID: userID, Username: userID})
+
+	taskID := "task-" + idgen.New()
+	failure := `第 1 批生成失败：{"status":"failed","statusMessage":"Your prompt was blocked by the content safety policy."}`
+	if _, err := db.Exec("INSERT INTO generation_tasks (id,user_id,status,input,error_message,created_at) VALUES ($1,$2,'failed','{}'::jsonb,$3,now())", taskID, userID, failure); err != nil {
+		t.Fatalf("insert task: %v", err)
+	}
+	assetID := "asset-" + idgen.New()
+	assetPath := "/v1/assets/" + assetID + "/content"
+	if _, err := db.Exec("INSERT INTO assets (id,user_id,task_id,filename,storage_key,mime,size_bytes) VALUES ($1,$2,$3,$4,$5,$6,$7)", assetID, userID, taskID, "generated.png", assetID+".png", "image/png", 12); err != nil {
+		t.Fatalf("insert asset: %v", err)
+	}
+	if _, err := db.Exec(`UPDATE generation_tasks SET result_images=$1::jsonb, result_modules='["hero","scene","detail"]'::jsonb WHERE id=$2`, `["before","`+assetPath+`","after"]`, taskID); err != nil {
+		t.Fatalf("update result images: %v", err)
+	}
+
+	tasks := listTasks(t, s, token, "")
+	if len(tasks) != 1 || tasks[0].ErrorMessage == "" {
+		t.Fatalf("expected the failed task with its error message, got %#v", tasks)
+	}
+
+	if recorder := deleteRequest(t, s, token, "/v1/assets/"+assetID); recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 deleting asset, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	var raw []byte
+	if err := db.QueryRow("SELECT result_images FROM generation_tasks WHERE id=$1", taskID).Scan(&raw); err != nil {
+		t.Fatalf("read result images: %v", err)
+	}
+	var images []string
+	_ = json.Unmarshal(raw, &images)
+	if !reflect.DeepEqual(images, []string{"before", "after"}) {
+		t.Fatalf("deleted asset should be removed from the task result, got %#v", images)
+	}
+
+	if err := db.QueryRow("SELECT result_modules FROM generation_tasks WHERE id=$1", taskID).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	var modules []string
+	if err := json.Unmarshal(raw, &modules); err != nil || !reflect.DeepEqual(modules, []string{"hero", "detail"}) {
+		t.Fatalf("modules must stay aligned with remaining images: %#v, %v", modules, err)
+	}
+	if _, err := db.Exec("UPDATE generation_tasks SET status='processing' WHERE id=$1", taskID); err != nil {
+		t.Fatal(err)
+	}
+	if response := deleteRequest(t, s, token, "/v1/generation/tasks/"+taskID); response.Code != http.StatusConflict {
+		t.Fatalf("active database task deletion = %d", response.Code)
+	}
+	if _, err := db.Exec("UPDATE generation_tasks SET status='failed' WHERE id=$1", taskID); err != nil {
+		t.Fatal(err)
+	}
+
+	if recorder := deleteRequest(t, s, token, "/v1/generation/tasks/"+taskID); recorder.Code != http.StatusOK {
+		t.Fatalf("expected 200 deleting task, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	var count int
+	if err := db.QueryRow("SELECT count(*) FROM generation_tasks WHERE id=$1", taskID).Scan(&count); err != nil {
+		t.Fatalf("count tasks: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("task should be deleted")
+	}
+}
+
+func TestDeleteTaskKeepsActiveTasks(t *testing.T) {
+	for _, status := range []string{"queued", "processing", "waiting_provider"} {
+		t.Run(status, func(t *testing.T) {
+			s, token := newTaskListServer(t)
+			task := s.tasks["general-1"]
+			task.Status = status
+			s.tasks[task.ID] = task
+			response := deleteRequest(t, s, token, "/v1/generation/tasks/general-1")
+			if response.Code != http.StatusConflict {
+				t.Fatalf("active task deletion = %d, want 409", response.Code)
+			}
+			if _, exists := s.tasks[task.ID]; !exists {
+				t.Fatal("active task was removed")
+			}
+		})
+	}
+}

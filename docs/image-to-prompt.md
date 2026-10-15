@@ -66,3 +66,5 @@
 任务返回 `id`、`status`、`mode`、`requirements`、`imageUrl`、图片名称/宽高、模板版本和创建/更新/到期时间。完成后 `result` 包含 `promptZh`、`promptEn`、`analysis`、`uncertainties`、`model`、`templateVersion`；失败使用 `errorMessage`。供应商密钥、存储路径、内部执行标识和系统指令不会随任务返回。
 
 新增灵感时，可选 `reverseTaskId` 从本人已完成且未过期的分析复制封面。跨账号记录、过期记录和未完成记录不能用作封面。
+
+账号隔离后，反推使用前台用户会话，结果可保存为个人提示词；不再从此弹窗写入公共灵感库。公共内容由独立后台维护，后台会话不能读取前台反推原图。

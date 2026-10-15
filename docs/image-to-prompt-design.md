@@ -1,6 +1,6 @@
 # 图片反推提示词：首版设计方案
 
-设计日期：2026-10-13。状态：用户已确认，首版已实现。使用说明见 [图片反推](image-to-prompt.md)，本文件保留设计取舍。界面草图见 [image-to-prompt-preview.html](designs/image-to-prompt-preview.html)。
+设计日期：2026-10-13。状态：用户已确认，首版已实现。本文件保留历史设计；2026-10-15 账号隔离后，前台反推仅保存到个人提示词，公共灵感内容由独立后台维护。使用说明见 [图片反推](image-to-prompt.md)，本文件保留设计取舍。界面草图见 [image-to-prompt-preview.html](../test/previews/image-to-prompt-preview.html)。
 
 ## 功能定位
 
@@ -45,9 +45,9 @@
 
 已存在：
 
-- `apps/server/prompt.go`：登录鉴权、图片与文字组合输入、提示词服务能力检查和服务调用。
-- `apps/server/protocol_clients.go`：OpenAI-compatible Chat Completions，图片使用 Base64 传入。目前固定 `detail: low`，反推功能应允许按服务能力使用 auto/high，不能直接沿用低细节设置。
-- `apps/web/lib/image-file.ts`：图片压缩，当前默认长边 1280。建议反推普通图默认 1536，文字/纹理细节图可用 2048，并结合服务支持情况调整；保留透明背景或先按预览一致的底色合成。
+- `server/prompt.go`：登录鉴权、图片与文字组合输入、提示词服务能力检查和服务调用。
+- `server/protocol_clients.go`：OpenAI-compatible Chat Completions，图片使用 Base64 传入。目前固定 `detail: low`，反推功能应允许按服务能力使用 auto/high，不能直接沿用低细节设置。
+- `web/lib/image-file.ts`：图片压缩，当前默认长边 1280。建议反推普通图默认 1536，文字/纹理细节图可用 2048，并结合服务支持情况调整；保留透明背景或先按预览一致的底色合成。
 - AI 服务设置和 Prompt 模板管理、资产上传、灵感分类与提示词 CRUD。
 
 本次只读检查发现默认 Prompt 服务为 `deepseek-flash`，已启用且勾选 Vision，超时 60 秒。[DeepSeek 官方 Vision 文档](https://api-docs.deepseek.com/guides/vision/)确认该模型支持图片输入及 OpenAI-compatible 请求。是否能直接使用取决于当前接口平台的兼容性及额度；实际兼容性以实现阶段的真实识图验证为准。

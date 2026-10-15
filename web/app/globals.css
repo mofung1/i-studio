@@ -1,0 +1,8 @@
+@import 'tailwindcss';
+@import '../styles/base/foundation.css';
+@import '../styles/base/creation.css';
+@import '../styles/base/results.css';
+@import '../styles/base/assets.css';
+@import '../styles/base/pages.css';
+@import '../styles/base/history.css';
+@import '../styles/base/overlays.css';

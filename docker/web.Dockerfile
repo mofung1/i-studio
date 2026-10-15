@@ -1,15 +1,15 @@
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 
 WORKDIR /app
 RUN corepack enable
-COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
+COPY web/package.json web/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
-COPY apps/web ./
+COPY web ./
 ARG NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:44000
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN pnpm build
 
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000
 RUN corepack enable

@@ -1,6 +1,6 @@
 # 失败任务占位插画
 
-通过内置 imagegen 生成，原始输出复制到 `apps/web/public/images/generation-failed.png`，用于「我的资产 → 按任务查看」中没有结果图片的失败任务。Next.js Image 按卡片尺寸提供优化后的图片，插画不写入用户生成资产或任务结果。
+通过内置 imagegen 生成，原始输出复制到 `web/public/images/generation-failed.png`，用于「我的资产 → 按任务查看」中没有结果图片的失败任务。Next.js Image 按卡片尺寸提供优化后的图片，插画不写入用户生成资产或任务结果。
 
 画面采用黑白立体纸质画框、未完成的山形图块和重试箭头。点击卡片继续打开已有失败原因弹窗，底部文字标明“生成失败”和“查看原因”。
 

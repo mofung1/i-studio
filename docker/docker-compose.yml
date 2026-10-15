@@ -1,6 +1,6 @@
 name: i-studio
 
-# compose 的 ${VAR} 插值读的是宿主机 shell 环境变量，不会读 apps/server/.env。
+# compose 的 ${VAR} 插值读的是宿主机 shell 环境变量，不会读 server/.env。
 # 显式指定 env_file，让 AI 服务配置与本地运行时同源。
 services:
   postgres:
@@ -38,7 +38,7 @@ services:
     # env_file 提供 AI 服务与鉴权配置；environment 只覆盖容器内专属配置，
     # 避免把 .env 中自定义的图片中转域名、超时等设置覆盖掉。
     env_file:
-      - path: ../apps/server/.env
+      - path: ../server/.env
         required: false
     environment:
       API_HOST: 0.0.0.0
@@ -52,7 +52,7 @@ services:
     volumes:
       # 绑定挂载宿主机 uploads：灵感库案例图由 seed-inspiration 生成在宿主机，
       # 命名卷会让容器与宿主机隔离，导致 /v1/inspiration/images/* 全部 404。
-      - ../apps/server/storage/uploads:/data/uploads
+      - ../server/storage/uploads:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy

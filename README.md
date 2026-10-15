@@ -2,18 +2,18 @@
 
 支持对外运营的 AI 图片创作工作台：管理员在独立后台配置 AI、提示词和模型定价，用户注册登录后消耗账户余额生成图片。余额默认称为「积分」，可在后台修改。首页直接进入工作台。
 
-运营部署、管理员初始化和扣费规则见 [运营模式说明](docs/hosted-platform.md)。本轮开发改动尚未提交 Git，由部署者测试后自行提交。
+运营部署、管理员初始化和扣费规则见 [运营模式说明](docs/hosted-platform.md)。代码组织与开发约定见 [开发指南](docs/development.md)。
 
 ## 当前功能
 
-- **运营后台与积分**：独立 `/admin`；管理员管理 AI 通道、公共模型与每张价格、系统提示词、网站品牌、用户状态/角色/余额、任务结算和审计。普通用户进入个人中心查看余额与流水，前台只能选择已上架模型。提交预留，按实际保存张数扣费，未交付部分自动退回。支持精确到 0.01 的单价、注册赠送、并发和请求次数上限；首版不包含支付。
+- **运营后台与积分**：独立 `/admin`，管理员在 `/admin/login` 登录，账号表、密码和会话与前台分离；管理员管理 AI 通道、公共模型与每张价格、系统提示词、网站品牌、用户状态与余额、任务结算和审计。普通用户进入个人中心查看余额与流水，前台只能选择已上架模型。提交预留，按实际保存张数扣费，未交付部分自动退回。支持精确到 0.01 的单价、注册赠送、并发和请求次数上限；首版不包含支付。
 
 - **资产管理**：生成作品、我的素材与创作记录分别浏览；所有创作图片位置可本地上传或从素材库选择，支持生成作品继续用作参考。历史恢复直接复用素材 ID，同账号重复上传去重。支持分页、搜索筛选、收藏、项目整理和批量 ZIP 下载。见 [资产管理说明](docs/asset-management.md)。
 - **多云图片存储**：后台 `/admin/storage` 支持本地、阿里云 OSS、七牛云 Kodo、腾讯云 COS 与 S3 / MinIO，保存多套配置并切换新图片的默认存储。可配置 CDN 签名下载，旧图片保持原存储归属，密钥加密保存。见 [对象存储与 CDN](docs/object-storage.md)。
 - **我的提示词与预设**：账号私有提示词、分类/标签/收藏、变量填空、版本记录和回收站；可从灵感、资产和反推结果保存。所有生图工具可保存与应用创作预设，支持撤销，素材另选，不自动生成。见 [私有提示词与预设](docs/personal-prompts.md)。
 - **图片对比**：资产库选中两张图片，或从生成结果进入对比；支持并排、滑杆、交换图片、同步缩放和平移，以及商品原图/参考图对照。手机默认使用滑杆，按原图比例显示，不调用 AI。见 [图片对比说明](docs/image-comparison.md)。
 - **AI 生图**：文字描述、最多 6 张参考图、模型选择、画面比例、1K / 2K / 4K、风格与参考强度；界面一次可生成 1–4 张。
-- **图片反推**：从 AI 生图、发现灵感或本人生成资产上传/选择图片，提炼「还原画面」或「只提取风格」的双语提示词；支持编辑、复制、追加/替换并撤销、选择原图参考、保存为灵感草稿。分析在后台继续，切页或刷新可恢复；可取消或清除临时记录。管理员在「后台 → AI 与网站配置 → 图片反推」指定支持 Vision 的 Prompt 服务、超时、图片细节和保留时间，两个分析模板也可自定义。见 [图片反推使用说明](docs/image-to-prompt.md)。
+- **图片反推**：从 AI 生图、发现灵感或本人生成资产上传/选择图片，提炼「还原画面」或「只提取风格」的双语提示词；支持编辑、复制、追加/替换并撤销、选择原图参考、保存到个人提示词。分析在后台继续，切页或刷新可恢复；可取消或清除临时记录。管理员在「后台 → AI 与网站配置 → 图片反推」指定支持 Vision 的 Prompt 服务、超时、图片细节和保留时间，两个分析模板也可自定义。见 [图片反推使用说明](docs/image-to-prompt.md)。
 - **网站配置**：管理员在「后台 → AI 与网站配置 → 网站配置」修改网站名称、上传 PNG / JPG Logo（不超过 2 MB）或恢复默认品牌；保存后同步到全站导航、浏览器标题和图标。仅管理员可修改，配置由后端持久保存。
 - **电商工具**：商品主图、商品详情、爆款复刻、产品精修、服装组图；主图和详情页可按模块组合，单个模块最多 4 张，总计最多 16 张。
 - **电商生成约束**：区分商品原图与构图参考，精修默认保留原场景，主图与服装商品图要求完整轮廓，详情模块只采用已提供的信息。结果区显示图片实际像素，便于核对接口返回尺寸；包装小字、印花和人物一致性仍需检查原图。
@@ -30,26 +30,43 @@
 
 风格与参考强度通过发送给模型的文字指令表达；实际尺寸、参考效果及可用分辨率取决于所配置的模型。
 
-2026-10-13 使用已配置的 GPT Image 2 完成六个电商场景、共 12 张真实出图对照。观察结果、已实施改进及仍存在的印花和尺寸限制见 [电商效果测试记录](docs/commerce-effects-2026-10-13.md)。
+2026-10-13 使用已配置的 GPT Image 2 完成六个电商场景、共 12 张真实出图对照。观察结果、已实施改进及仍存在的印花和尺寸限制见 [电商效果测试记录](test/reports/commerce-effects-2026-10-13.md)。
 
-2026-10-13 另外完成 6 次真实识图验证，未生成图片；测试发现的风格主体混入与照片方向问题已修正，修正后尚未追加付费复测。见 [图片反推效果记录](docs/prompt-reverse-evaluation-2026-10-13.md)。
+2026-10-13 另外完成 6 次真实识图验证，未生成图片；测试发现的风格主体混入与照片方向问题已修正，修正后尚未追加付费复测。见 [图片反推效果记录](test/reports/prompt-reverse-evaluation-2026-10-13.md)。
 
 ## 目录结构
 
 ```text
-apps/web/       Next.js 15 + React 19 用户端，独立 pnpm 项目
-apps/server/    Go API、鉴权、数据库、任务队列、AI 协议客户端
-  migrations/   AI 配置表迁移（随服务编译并在启动时执行）
+web/       Next.js 15 + React 19 用户端，独立 pnpm 项目
+server/    Go 1.26.9 + Gin API，独立 Go module
+  cmd/server/   API / 部署命令入口
+  internal/
+    app/        启动编排、依赖组装与 CLI
+    httpapi/    Gin 路由、中间件和 JSON 响应
+    studio/     创作、积分、资产与后台业务协调
+    domain/     共享业务数据模型
+    repository/ 账户、任务、资产与分类的数据访问
+    database/   PostgreSQL 连接及内嵌 SQL 迁移
+    auth/       密码、令牌和持久化签名密钥
+    storage/    本地 / 多云对象存储与配置路由
+    config/     运行配置及 .env 读取
+    inspiration/ 灵感案例解析与导入
+    idgen/      标识生成
+  Makefile      构建、格式化、检查与测试命令
   seed/         灵感库导入所需的 Markdown
   storage/      本地运行数据（uploads 下的文件不提交到 Git）
 docker/         Docker Compose 和前后端 Dockerfile
-docs/           实现记录与项目检查报告
-design/         设计参考
+docs/           使用说明、开发指南与功能设计
+test/           测试记录与测试产物，详见 test/README.md
+  reports/      效果评估、界面验证与项目检查报告
+  previews/     独立界面原型，不作为生产页面发布
+  artifacts/    测试图片、截图与原始结果（不提交 Git）
+  backups/      本地数据库备份（不提交 Git）
 dev.sh          本地前后端启动脚本
 TODO.md         后续功能计划
 ```
 
-旧 `ui`、`UI-1`～`UI-4` 换肤副本、废弃首页与临时骨架屏预览已移除；当前唯一前端位于 `apps/web`。
+旧 `ui`、`UI-1`～`UI-4` 换肤副本、废弃首页与临时骨架屏预览已移除；当前唯一前端位于 `web`。自动化测试源码随各自模块保存，手工测试产生的图片、截图、报告与原型统一放在 [`test/`](test/README.md)。
 
 ## 服装组图
 
@@ -61,7 +78,7 @@ TODO.md         后续功能计划
 - **保真要求**：提示词要求保留颜色、版型、印花、Logo 与可见工艺，不编造面料成分、尺码、性能和认证；背面参考不足时显示提醒。实际服装和人物一致性取决于所用模型，生成后应核对原图。
 - **结果与历史**：逐张预览、下载，或下载包含已完成图片的 ZIP；重新生成时先回填素材和已确认的逐张规划，供再次检查。中途失败会保留已生成图片。
 
-素材支持 JPG / PNG / WebP，单张最多 10 MB，一次全部素材合计最多 20 MB。服装分析使用 `/v1/clothing/plan`，通过可配置的服装规划模板调用 Prompt 服务，JSON 返回格式由程序固定；通用 AI 帮写模板不参与此接口。生成仍使用现有任务队列，素材和 ZIP 下载都校验账号归属。
+素材支持 JPG / PNG / WebP，单张最多 10 MB、1 亿像素，一次全部素材合计最多 20 MB。服装分析使用 `/v1/clothing/plan`，通过可配置的服装规划模板调用 Prompt 服务，JSON 返回格式由程序固定；通用 AI 帮写模板不参与此接口。生成仍使用现有任务队列，素材和 ZIP 下载都校验账号归属。
 
 ## 快速启动
 
@@ -93,10 +110,10 @@ WEB_PORT=33100 API_PORT=44100 docker compose up --build
 
 ### 本地开发
 
-需要 Node.js 20+、pnpm 10 和 Go 1.25。首次运行先复制后端配置：
+需要 Node.js 22.12+、pnpm 10 和 Go 1.26.9。首次运行先复制后端配置：
 
 ```bash
-cp apps/server/.env.example apps/server/.env
+cp server/.env.example server/.env
 ./dev.sh --infra
 ```
 
@@ -121,16 +138,16 @@ docker compose stop api
 
 ```bash
 # 终端 1
-cd apps/server
-go run .
+cd server
+go run ./cmd/server
 
 # 终端 2
-cd apps/web
+cd web
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-前端单独开发默认请求 `http://127.0.0.1:4000`。如果连接 Docker 后端，可在 `apps/web/.env.local` 配置：
+前端单独开发默认请求 `http://127.0.0.1:4000`。如果连接 Docker 后端，可在 `web/.env.local` 配置：
 
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:44000
@@ -140,9 +157,9 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:44000
 
 ## 首次配置 AI
 
-1. 复制 `apps/server/.env.example` 为 `apps/server/.env` 并配置数据库等运行参数。前台首个注册账号仍是普通用户。
-2. 在 `apps/server/.env` 配置 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD`（密码 12–128 位），运行 `docker compose -f docker/docker-compose.yml up -d --build --no-deps api`。首次自动创建管理员，不必先注册；修改后重建 API 容器同步，改密会使旧登录失效。也可保留两项为空，使用 CLI 指定已有账号。
-3. 用该账号访问 `/admin/settings`，添加并启用 Image AI 服务，填写协议、Base URL、API Key、Model 和超时。
+1. 复制 `server/.env.example` 为 `server/.env` 并配置数据库等运行参数。前台首个注册账号仍是普通用户。
+2. 在 `server/.env` 配置 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD`（密码 12–128 位），运行 `docker compose -f docker/docker-compose.yml up -d --build --no-deps api`。首次自动创建独立后台管理员，不必先注册；修改后重建 API 容器同步，改密会使旧后台登录失效。也可使用 CLI 创建独立管理员，详见运营说明。
+3. 先在 `/admin/login` 登录，再访问 `/admin/settings`，添加并启用 Image AI 服务，填写协议、Base URL、API Key、Model 和超时。
 4. 在 `/admin/models` 选择通道，配置前台名称、每张积分消耗、上架状态和默认模型。配置服务不等于对用户上架模型。
 5. 按需添加 Prompt AI 并开启 Vision；在后台配置系统提示词、反推与网站品牌。
 6. 在 `/admin/operations` 配置积分名称、注册赠送和使用上限；在 `/admin/users` 给测试账号发放余额。
@@ -168,7 +185,7 @@ AI 地址、密钥、模型和提示词统一通过后台配置，`.env` 只保�
 ## 数据与备份
 
 - PostgreSQL 保存账号与角色、余额与不可覆盖的流水、生图与反推任务、模型定价、资产元数据、灵感库、审计及 AI 配置；Docker 使用 `istudio_postgres_data` 命名卷。
-- 图片默认写入 `STORAGE_ROOT`，Compose 绑定到 `apps/server/storage/uploads`；后台选择云存储后，新图片写入对应桶。更换默认不会自动迁移旧图片，仍需备份原本地目录及旧云桶。
+- 图片默认写入 `STORAGE_ROOT`，Compose 绑定到 `server/storage/uploads`；后台选择云存储后，新图片写入对应桶。更换默认不会自动迁移旧图片，仍需备份原本地目录及旧云桶。
 - AI Key 使用 AES-256-GCM 加密，接口仅返回配置状态和尾四位掩码。未提供 `AI_CONFIG_ENCRYPTION_KEY` 时自动创建 `STORAGE_ROOT/.ai/encryption.key`。
 - 未提供 `AUTH_JWT_SECRET` 时自动创建随机签名密钥 `STORAGE_ROOT/.auth/signing.key`；显式配置时使用自己的随机长字符串。原来使用固定默认密钥的部署，切换到随机密钥后需要重新登录。
 - **备份应同时包含 PostgreSQL、整个 `STORAGE_ROOT`、自定义环境变量及已使用的云桶。** AI 与对象存储密钥共用现有配置加密密钥，丢失后将无法解密。
@@ -182,9 +199,9 @@ AI 地址、密钥、模型和提示词统一通过后台配置，`.env` 只保�
 需要 PostgreSQL；导入命令读取已准备好的 Markdown，并下载案例图。可指定自己的文件和图片源：
 
 ```bash
-cd apps/server
-go run . seed-inspiration -h
-go run . seed-inspiration \
+cd server
+go run ./cmd/server seed-inspiration -h
+go run ./cmd/server seed-inspiration \
   -g1 seed/handdraw-gallery.md \
   -g2 seed/empty.md \
   -cat seed/handdraw-categories.md
@@ -195,11 +212,12 @@ go run . seed-inspiration \
 ## 验证
 
 ```bash
-pnpm --dir apps/web typecheck
-pnpm --dir apps/web test
-pnpm --dir apps/web build
-GOCACHE=/tmp/istudio-go-cache go -C apps/server test -race ./...
-GOCACHE=/tmp/istudio-go-cache go -C apps/server vet ./...
+pnpm --dir web typecheck
+pnpm --dir web format:check
+pnpm --dir web test
+pnpm --dir web build
+GOCACHE=/tmp/istudio-go-cache go -C server test -race ./...
+GOCACHE=/tmp/istudio-go-cache go -C server vet ./...
 bash -n dev.sh
 docker compose -f docker/docker-compose.yml config --quiet
 ```
@@ -208,9 +226,17 @@ docker compose -f docker/docker-compose.yml config --quiet
 
 ```bash
 TEST_DATABASE_URL='postgresql://istudio:istudio_dev@127.0.0.1:55432/istudio?sslmode=disable' \
-  GOCACHE=/tmp/istudio-go-cache go -C apps/server test -race ./...
+  GOCACHE=/tmp/istudio-go-cache go -C server test -race ./...
 ```
 
-图片反推自动回归包含格式校验、幂等、取消、跨账号访问、私有图片、原图/分析图分离、过期清理和灵感封面保留。前端自动测试覆盖输入校验、分页合并与图片缓存账号隔离；产品页面的布局与功能验证见 [界面打磨记录](docs/ui-polish-2026-10-13.md)。
+后端回归通过 Gin 路由验证跨域预检、后台权限与审计、资产与私有提示词访问、积分结算和任务恢复。图片反推自动回归包含格式校验、幂等、取消、跨账号访问、私有图片、原图/分析图分离、过期清理和灵感封面保留。自动测试使用隔离数据库和模拟 AI 客户端，不产生真实 AI 调用费用。前端自动测试覆盖输入校验、分页合并与图片缓存账号隔离；产品页面的布局与功能验证见 [界面打磨记录](test/reports/ui-polish-2026-10-13.md)。
 
-当前检查结果和仍需演进的设计见 [项目检查报告](docs/project-review-2026-10-12.md)，产品计划见 [TODO](TODO.md)。
+当前检查结果和仍需演进的设计见 [项目检查报告](test/reports/project-review-2026-10-15.md)，历史记录与测试产物说明见 [测试目录](test/README.md)，产品计划见 [TODO](TODO.md)。
+
+## 本次结构与安全检查
+
+源码直接位于根目录 `server/`、`web/`；Docker、开发脚本、配置示例与文档同步使用新路径。既有部署迁移时须移动整个后端目录，包括忽略的 `.env` 和 `storage/uploads`，并保留原 Compose 项目名与数据库卷。
+
+前后台账号允许同名，但身份、密码与会话独立。管理员不会自动获得前台资产或生图权限；前台用户也不能升级成后台管理员。旧管理员首次升级时拆分为独立后台身份，原前台账号及资产、余额保留为普通用户；旧会话需重新登录。后台账号初始化方式见 [运营模式说明](docs/hosted-platform.md)。
+
+已修复公开灵感图片的云对象访问边界、生成图片下载的内网访问风险、无效 JSON / 图片头校验、数据库健康状态泄露和账户异步刷新覆盖问题；同时改善弹窗滚动与键盘焦点、后台搜索及窄屏布局。生成图片的 HTTP(S) 下载仅允许公网地址，内网模型可返回 Base64 图片。检查范围、验证结果和限制见 [项目检查记录](test/reports/project-review-2026-10-15.md)。
