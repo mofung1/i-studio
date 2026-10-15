@@ -78,6 +78,16 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/', { method: 'HEAD', signal: AbortSignal.timeout(3000) }).then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 20
 
 volumes:
   istudio_postgres_data:
