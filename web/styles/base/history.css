@@ -1,0 +1,423 @@
+/* ---------------------------------------------------------------------------
+   工作台 v2：历史记录抽屉、图片查看器（缩放 / 裁剪）、二次确认
+   --------------------------------------------------------------------------- */
+.inspire-gallery {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  margin: 0 auto;
+}
+
+.inspire-gallery-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.inspire-gallery-head p {
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: 12px;
+}
+
+.inspire-gallery .inspire-hero-search {
+  width: min(400px, 100%);
+  margin: 0;
+}
+
+.inspire-gallery .inspire-hero-search .inspire-search-input {
+  padding: 12px 44px 12px 42px;
+  font-size: 14px;
+}
+
+.inspire-gallery .inspire-hero-search .inspire-search-icon {
+  left: 15px;
+}
+
+.inspire-gallery .inspire-search-kbd {
+  display: none;
+}
+
+.inspire-gallery .inspire-hero-search .inspire-search-clear {
+  right: 8px;
+}
+
+/* 历史记录：结果区右上角触发 + 右侧抽屉 */
+.history-trigger {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.history-trigger:hover {
+  color: var(--foreground);
+  background: var(--surface-subtle);
+  border-color: var(--line-hover);
+}
+
+.history-trigger.is-active {
+  color: var(--background);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.history-backdrop {
+  position: fixed;
+  z-index: 70;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.26);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.history-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.history-drawer {
+  position: fixed;
+  z-index: 71;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(430px, 94vw);
+  display: flex;
+  flex-direction: column;
+  visibility: hidden;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -18px 0 44px rgba(23, 23, 23, 0.14);
+  transform: translateX(103%);
+  transition:
+    transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    visibility 0s linear 240ms;
+}
+
+.history-drawer.is-open {
+  visibility: visible;
+  transform: none;
+  transition:
+    transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    visibility 0s;
+}
+
+.history-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-drawer-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.history-drawer-head p {
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: 11px;
+}
+
+.history-drawer-head > button {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.history-drawer-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-drawer-filter button {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--foreground-2);
+  background: var(--surface-subtle);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.history-drawer-filter button.is-active {
+  color: var(--background);
+  background: var(--primary);
+}
+
+.history-drawer-filter .history-refresh {
+  width: 30px;
+  margin-left: auto;
+  padding: 0;
+  justify-content: center;
+  color: var(--muted);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.history-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 18px 26px;
+  scrollbar-color: var(--line-hover) transparent;
+  scrollbar-width: thin;
+}
+
+.history-drawer-loading,
+.history-drawer-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0;
+  color: var(--foreground-3);
+  font-size: 12px;
+}
+
+.history-drawer-error {
+  color: var(--danger);
+}
+
+.history-drawer-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 44px 0;
+  color: var(--foreground-3);
+  text-align: center;
+}
+
+.history-drawer-empty strong {
+  color: var(--foreground-2);
+  font-size: 13px;
+}
+
+.history-drawer-empty span {
+  font-size: 12px;
+}
+
+.history-records {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-record {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  background: var(--surface-subtle);
+  border: 1px solid rgba(23, 23, 23, 0.06);
+  border-radius: 12px;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.history-record.is-selected {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  box-shadow: 0 6px 18px rgba(23, 23, 23, 0.07);
+}
+
+.history-record-open {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-record-thumbs {
+  display: flex;
+  gap: 4px;
+}
+
+.history-record-thumb {
+  width: 54px;
+  height: 54px;
+  display: block;
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.history-record-thumb.is-empty {
+  display: grid;
+  place-items: center;
+  color: var(--foreground-3);
+}
+
+.history-record-thumb img,
+.history-record-thumb .auth-image-loading,
+.history-record-thumb .auth-image-failed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.history-record-meta {
+  display: grid;
+  gap: 3px;
+}
+
+.history-record-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-record-tag {
+  padding: 2px 8px;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.history-record-status {
+  color: var(--foreground-3);
+  font-size: 10px;
+}
+
+.history-record-status.is-failed {
+  color: var(--danger);
+}
+
+.history-record-meta strong {
+  font-size: 12px;
+}
+
+.history-record-meta small {
+  color: var(--foreground-3);
+  font-size: 11px;
+}
+
+.history-record-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.history-record-actions button {
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  color: var(--foreground-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
+}
+
+.history-record-actions button:hover:not(:disabled) {
+  color: var(--foreground);
+  border-color: var(--line-hover);
+}
+
+.history-record-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.history-load-config {
+  color: var(--foreground-2);
+}
+
+.history-record-actions .history-regenerate {
+  margin-left: auto;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* 失败记录：一句话原因 + 可展开的原始报错 */
+.history-record-error {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-line);
+  border-radius: 9px;
+  font-size: 11px;
+}
+
+.history-record-error summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.history-record-error pre {
+  max-height: 150px;
+  margin: 2px 0 0;
+  padding: 7px 9px;
+  overflow: auto;
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.history-record-actions .history-delete:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}

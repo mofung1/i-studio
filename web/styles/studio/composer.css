@@ -1,0 +1,940 @@
+/* Reference-style composer: media sits beside the prompt, controls stay tucked into a single expandable strip. */
+.mode-general .composer-input-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 250px) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  min-height: 92px;
+}
+.mode-general .composer-media {
+  min-width: 0;
+  padding-top: 2px;
+}
+.mode-general .composer-media .reference-uploader {
+  display: block;
+}
+.mode-general .composer-media .reference-dropzone {
+  width: 72px;
+  min-height: 72px;
+  height: 72px;
+  padding: 0;
+  gap: 0;
+  border-radius: 10px;
+  background: var(--surface);
+  border-color: #aeb6c2;
+}
+.mode-general .composer-media .reference-dropzone strong,
+.mode-general .composer-media .reference-dropzone > span:not(.reference-dropzone-icon),
+.mode-general .composer-media .reference-dropzone-hint {
+  display: none;
+}
+.mode-general .composer-media .reference-dropzone-icon {
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  color: #4b5563;
+  background: var(--surface-2);
+  border-color: #e2e5eb;
+  border-radius: 50%;
+}
+.mode-general .composer-media .upload-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.mode-general .composer-media .uploaded-thumb,
+.mode-general .composer-media .add-thumb {
+  flex: 0 0 72px;
+  width: 72px;
+  min-width: 72px;
+  height: 72px;
+  aspect-ratio: 1;
+  border-radius: 10px;
+}
+.mode-general .composer-media .add-thumb {
+  gap: 4px;
+  padding: 0;
+  font-size: 0;
+  background: var(--surface);
+}
+.mode-general .composer-media .add-thumb-icon {
+  width: 28px;
+  height: 28px;
+}
+.mode-general .composer-media .reference-meta {
+  display: none;
+}
+.mode-general .composer-media .field-helper {
+  margin-top: 8px;
+  font-size: var(--text-caption);
+}
+.mode-general .composer-input-grid .config-card-prompt {
+  min-width: 0;
+  margin: 0;
+}
+.mode-general .composer-input-grid .prompt-editor .prompt-input {
+  min-height: 72px;
+  padding-top: 4px;
+}
+.mode-general .compact-basic-settings {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 0;
+}
+.mode-general .compact-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.mode-general .settings-chip:not(.select-trigger) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  min-height: 36px;
+  max-width: 220px;
+  margin-top: 0;
+  padding: 0 11px;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: var(--text-small);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+.mode-general .settings-chip:not(.select-trigger):hover,
+.mode-general .settings-chip:not(.select-trigger)[aria-expanded='true'] {
+  color: var(--foreground);
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+.mode-general .settings-chip:not(.select-trigger) > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mode-general .settings-chip-output {
+  max-width: 190px;
+}
+.mode-general .basic-settings-popover {
+  position: absolute;
+  z-index: 45;
+  left: 0;
+  bottom: calc(100% + 12px);
+  width: min(520px, calc(100vw - 48px));
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid #dfe3e8;
+  border-radius: 12px;
+  box-shadow:
+    0 18px 48px rgba(17, 19, 24, 0.12),
+    0 3px 9px rgba(17, 19, 24, 0.05);
+}
+.mode-general .basic-settings-popover-head {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 14px;
+}
+.mode-general .basic-settings-popover-head strong {
+  color: var(--foreground);
+  font-size: var(--text-ui);
+  font-weight: 650;
+}
+.mode-general .basic-settings-popover-head span {
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+.mode-general .basic-settings-popover-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.mode-general .basic-settings-popover .settings-field > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+.mode-general .basic-settings-popover .settings-field .select-trigger {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 780px) {
+  .mode-general .composer-input-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .mode-general .composer-media .upload-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+  .mode-general .composer-media .reference-dropzone,
+  .mode-general .composer-media .uploaded-thumb,
+  .mode-general .composer-media .add-thumb {
+    flex-basis: 64px;
+    width: 64px;
+    min-width: 64px;
+    height: 64px;
+  }
+  .mode-general .compact-settings-row {
+    flex-wrap: wrap;
+  }
+  .mode-general .settings-chip:not(.select-trigger) {
+    max-width: calc(100vw - 80px);
+  }
+  .mode-general .settings-chip-output {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+  .mode-general .basic-settings-popover {
+    right: 0;
+    left: auto;
+    width: min(420px, calc(100vw - 36px));
+  }
+  .mode-general .basic-settings-popover-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Keep model and image parameters as two independent controls. */
+.mode-general .settings-chip-model {
+  width: min(210px, 34vw);
+  max-width: 210px;
+  justify-content: flex-start;
+}
+.mode-general .settings-chip-output {
+  flex: 0 1 auto;
+}
+.mode-general .basic-settings-popover-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 780px) {
+  .mode-general .settings-chip-model {
+    width: min(180px, 46vw);
+    max-width: none;
+  }
+  .mode-general .settings-chip-output {
+    flex: 1 1 auto;
+  }
+  .mode-general .basic-settings-popover-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 780px) {
+  .mode-general .basic-settings-popover {
+    left: 0;
+    right: auto;
+    width: min(420px, calc(100vw - 36px));
+  }
+}
+
+/* The composer media column grows with uploaded thumbnails instead of reserving a fixed gap. */
+.mode-general .composer-input-grid {
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 14px;
+}
+.mode-general .canvas-image-footer {
+  border-top: 0;
+  padding-top: 0;
+}
+.mode-general .result-empty {
+  display: block;
+  min-height: 0;
+  padding: 0;
+}
+
+@media (max-width: 780px) {
+  .mode-general .composer-input-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Reference attachments fan out over the composer without moving the prompt. */
+.reference-uploader .reference-file-input {
+  display: none;
+}
+.reference-uploader .reference-stack-toggle[hidden] {
+  display: none;
+}
+.mode-general .composer-media .is-compact {
+  --reference-size: 72px;
+  --reference-step: calc(var(--reference-size) + 8px);
+  min-height: calc(var(--reference-size) + 14px);
+}
+.mode-general .composer-media .reference-thumbnail-slot {
+  flex: 0 0 var(--reference-size);
+  width: var(--reference-size);
+  height: var(--reference-size);
+}
+.mode-general .composer-media .reference-thumbnail-slot .uploaded-thumb {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+.mode-general .composer-media .reference-dropzone {
+  border-style: solid;
+  border-color: var(--border);
+  color: var(--foreground-2);
+}
+.mode-general .composer-media .reference-dropzone-icon,
+.mode-general .composer-media .add-thumb-icon {
+  border: 0;
+  background: transparent;
+}
+.mode-general .composer-media .is-stackable {
+  width: calc(var(--reference-size) + var(--reference-stack-offset));
+}
+.mode-general .composer-media .is-stackable .upload-list {
+  position: absolute;
+  top: -6px;
+  left: -4px;
+  z-index: 5;
+  width: calc(var(--reference-slots) * var(--reference-step) + 36px);
+  max-width: var(--reference-available-width);
+  height: calc(var(--reference-size) + 20px);
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.mode-general .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
+  position: absolute;
+  top: 6px;
+  left: 4px;
+  transform: translateX(calc(var(--reference-index) * var(--reference-step)));
+}
+.mode-general .composer-media .is-stackable .reference-thumbnail-slot {
+  z-index: calc(var(--reference-index) + 1);
+}
+.mode-general .composer-media .is-collapsed .upload-list {
+  width: calc(var(--reference-size) + var(--reference-stack-offset) + 4px);
+  max-width: none;
+  overflow: visible;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+.mode-general .composer-media .is-collapsed .reference-thumbnail-slot {
+  transform: translateX(calc(min(var(--reference-index), 2) * 14px)) rotate(var(--reference-angle));
+  transform-origin: center bottom;
+}
+.mode-general .composer-media .is-collapsed :is(.reference-thumbnail-slot.is-overflow, .add-thumb) {
+  opacity: 0;
+  visibility: hidden;
+}
+.mode-general .composer-media .is-collapsed :is(.thumb-label, .thumb-tools, .thumb-remove) {
+  visibility: hidden;
+}
+.mode-general .composer-media .reference-stack-toggle {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  width: 100%;
+  height: calc(var(--reference-size) + 4px);
+  padding: 0;
+  color: var(--foreground);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.reference-stack-count,
+.reference-stack-plus {
+  position: absolute;
+  right: -2px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+.reference-stack-count {
+  top: -4px;
+  color: var(--surface);
+  background: var(--foreground);
+  border: 2px solid var(--surface);
+}
+.reference-stack-plus {
+  bottom: 0;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.mode-general .composer-media .reference-stack-close {
+  position: absolute;
+  top: 6px;
+  left: calc(var(--reference-slots) * var(--reference-step) + 4px);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: var(--reference-size);
+  padding: 0;
+  color: var(--foreground-3);
+  background: var(--surface-subtle);
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.mode-general
+  .composer-input-grid:has(.is-stackable:not(.is-collapsed))
+  .prompt-count:not(.is-over) {
+  visibility: hidden;
+}
+.mode-general .composer-media .reference-stack-close:hover {
+  color: var(--foreground);
+  background: var(--surface-2);
+}
+.mode-general .composer-media .uploaded-thumb:is(:hover, :focus-within) .thumb-label {
+  visibility: hidden;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .mode-general .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
+    transition:
+      transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+      opacity 160ms ease;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mode-general .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
+    transition: opacity 125ms ease;
+  }
+}
+@media (max-width: 780px) {
+  .mode-general .composer-media .is-compact {
+    --reference-size: 64px;
+  }
+  .mode-general .composer-input-grid:has(.is-stackable),
+  .mode-general .composer-input-grid:has(.reference-dropzone) {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+  .mode-general .composer-input-grid .prompt-editor .prompt-input {
+    padding: 34px 0 8px;
+  }
+  .mode-general .composer-input-grid .prompt-note {
+    padding-right: 0;
+  }
+}
+
+/* The empty canvas uses one quiet centered illustration instead of placeholder chrome. */
+.mode-general .result-head {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.mode-general .result-empty {
+  display: grid;
+  place-items: center;
+  min-height: clamp(260px, 45vh, 560px);
+  padding: 24px;
+}
+.empty-creation-image {
+  display: block;
+  width: min(380px, 100%);
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+@media (max-width: 780px) {
+  .mode-general .result-empty {
+    min-height: 260px;
+    padding: 20px;
+  }
+  .empty-creation-image {
+    width: min(300px, 100%);
+  }
+}
+
+/* Make the parameter popover legible without an explanatory subtitle. */
+.mode-general .basic-settings-popover {
+  width: min(620px, calc(100vw - 48px));
+  padding: 18px;
+}
+.mode-general .basic-settings-popover-head {
+  margin-bottom: 16px;
+}
+.mode-general .basic-settings-popover-head strong {
+  font-size: 15px;
+  letter-spacing: -0.1px;
+}
+.mode-general .basic-settings-popover-grid {
+  gap: 12px;
+}
+.mode-general .basic-settings-popover .settings-field > span {
+  margin-bottom: 7px;
+  font-size: var(--text-small);
+}
+@media (max-width: 780px) {
+  .mode-general .basic-settings-popover {
+    width: min(440px, calc(100vw - 36px));
+    padding: 16px;
+  }
+  .mode-general .basic-settings-popover-head strong {
+    font-size: 14px;
+  }
+  .mode-general .basic-settings-popover .settings-field > span {
+    font-size: var(--text-small);
+  }
+}
+
+/* The arrow sits on the rail edge so it remains visible in both expanded states. */
+.workbench-rail {
+  overflow: visible;
+}
+
+/* Shared studio controls: soft surfaces for actions, clear type, images without nested frames. */
+.studio-topbar-actions,
+.workbench-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.studio-breadcrumb {
+  font-size: var(--text-ui);
+}
+.studio-breadcrumb strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio-rail-footer > a:hover {
+  color: var(--foreground);
+  background: var(--control-bg);
+}
+.studio-rail-heading {
+  min-height: 34px;
+}
+.studio-rail-toggle {
+  position: absolute;
+  top: 17px;
+  right: calc(-1 * var(--rail-inset) - 16px);
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--foreground-3);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 50%;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+.studio-rail-toggle::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+}
+.studio-rail-toggle:is(:hover, :focus-visible) {
+  color: var(--foreground);
+  background: var(--control-bg);
+  border-color: var(--border);
+}
+.studio-rail-toggle-label {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 6px 9px;
+  border-radius: 6px;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+  pointer-events: none;
+  visibility: hidden;
+}
+.studio-rail-toggle:is(:hover, :focus-visible) .studio-rail-toggle-label {
+  visibility: visible;
+}
+
+/* The same account entry lives in the top right on every studio page. */
+.account-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+.studio-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  max-width: 180px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--foreground-2);
+  background: transparent;
+  text-align: left;
+  text-decoration: none;
+  font-size: var(--text-small);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.studio-account:is(:hover, [aria-expanded='true']) {
+  color: var(--foreground);
+  background: var(--control-bg);
+}
+.studio-account .avatar-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--foreground);
+  background: var(--surface-2);
+  border: 0;
+  border-radius: 50%;
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+.studio-account-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio-account-chevron {
+  flex: 0 0 auto;
+  color: var(--foreground-3);
+}
+.account-dropdown {
+  z-index: 70;
+  min-width: 200px;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 6px;
+  border-color: var(--border-soft);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+.account-dropdown-identity {
+  padding: 9px 10px 12px;
+  color: var(--foreground-3);
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+.account-dropdown [role='menuitem'] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  color: var(--foreground-2);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  font-size: var(--text-ui);
+  cursor: pointer;
+}
+.account-dropdown [role='menuitem']:is(:hover, :focus-visible) {
+  color: var(--foreground);
+  background: var(--control-bg);
+  outline-offset: -2px;
+}
+.history-top-trigger.is-active {
+  background: var(--control-bg);
+  border-color: transparent;
+}
+.panel-toggle {
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--control-bg);
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+}
+.panel-toggle:hover {
+  background: var(--control-hover);
+  color: var(--foreground);
+}
+
+/* Keep actual fields identifiable; auxiliary actions no longer need their own outlines. */
+.settings-field > span,
+.field-heading legend,
+.reference-dropzone strong {
+  font-size: var(--text-ui);
+}
+.field-helper,
+.prompt-note,
+.reference-meta,
+.generate-meta {
+  font-size: var(--text-small);
+  line-height: 1.65;
+}
+.prompt-input,
+.prompt-editor .prompt-input {
+  font-size: var(--text-ui);
+  border-radius: 8px;
+}
+.mode-general .settings-chip:not(.select-trigger) {
+  height: 36px;
+  min-height: 36px;
+  margin-top: 0;
+  color: var(--foreground);
+  background: var(--control-bg);
+  border-color: transparent;
+  border-radius: 8px;
+  font-size: var(--text-small);
+  line-height: 1;
+}
+.mode-general .settings-chip:not(.select-trigger):is(:hover, [aria-expanded='true']) {
+  color: var(--foreground);
+  background: var(--control-hover);
+  border-color: transparent;
+}
+.mode-general .basic-settings-popover {
+  border-color: var(--border-soft);
+  border-radius: 12px;
+}
+.mode-general .basic-settings-popover .settings-field > span {
+  font-size: var(--text-small);
+}
+.mode-general .configuration-footer .generate-button {
+  min-height: 40px;
+  font-size: var(--text-ui);
+}
+.mode-general .creation-canvas,
+.mode-general.config-right .creation-canvas {
+  padding-bottom: 230px;
+}
+.reference-uploader .upload-list {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.reference-dropzone {
+  background: var(--surface-subtle);
+  border-color: #d9dde4;
+  border-radius: 10px;
+}
+.mode-general .composer-media .reference-dropzone {
+  border-color: transparent;
+  background: var(--control-bg);
+  border-radius: 10px;
+}
+.mode-general .composer-media .reference-dropzone:hover {
+  background: var(--control-hover);
+}
+.mode-general .composer-media .is-stackable:not(.is-collapsed) .upload-list {
+  border: 1px solid var(--border-soft);
+}
+.meta-action,
+.history-trigger {
+  border-color: transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: var(--text-small);
+}
+.meta-action:hover,
+.history-trigger:hover {
+  background: var(--control-bg);
+}
+.studio-parameter-details div {
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 16px;
+  font-size: var(--text-ui);
+}
+.studio-parameter-details dt {
+  font-size: var(--text-small);
+}
+
+/* Keep all four tools visible on desktop while allowing short screens to scroll. */
+.commerce-page {
+  padding: 24px 32px;
+}
+.commerce-tool-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 28px;
+}
+.commerce-tool {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.commerce-tool:hover {
+  border-color: transparent;
+}
+.commerce-tool-image {
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.commerce-tool-image img {
+  display: block;
+  width: 100%;
+  height: clamp(136px, calc((100dvh - var(--studio-header) - 216px) / 2), 280px);
+  object-fit: cover;
+  border-radius: 0;
+}
+.commerce-tool-image span {
+  left: 12px;
+  bottom: 12px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  font-size: var(--text-caption);
+}
+.commerce-tool-copy {
+  padding: 12px 2px 0;
+  gap: 4px;
+}
+.commerce-tool h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+}
+.commerce-tool p {
+  margin: 0;
+  font-size: var(--text-ui);
+  line-height: 1.7;
+}
+.commerce-tool-copy > .commerce-tool-heading {
+  gap: 12px;
+  justify-content: space-between;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.commerce-tool-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+}
+.commerce-tool:hover .commerce-tool-heading > span {
+  color: var(--foreground);
+}
+
+/* Galleries use image, caption and actions, without a second enclosing card. */
+.studio-content .content-page {
+  min-height: 100%;
+  background: var(--studio-canvas);
+}
+.library-grid {
+  gap: 28px 22px;
+}
+.library-card {
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: none;
+}
+.library-card:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: transparent;
+}
+.library-media {
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.library-card-meta {
+  padding: 0 2px;
+  gap: 5px;
+}
+.library-card-meta strong {
+  font-size: var(--text-ui);
+}
+.library-card-meta span {
+  font-size: var(--text-small);
+  line-height: 1.5;
+}
+.library-badge {
+  top: 10px;
+  left: 10px;
+  font-size: var(--text-caption);
+}
+.library-media-actions {
+  top: 10px;
+  right: 10px;
+  gap: 5px;
+}
+.library-media-actions :is(button, a) {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 7px;
+  box-shadow: var(--shadow-sm);
+}
+.library-views {
+  border: 0;
+  background: var(--control-bg);
+}
+.library-views a {
+  font-size: var(--text-ui);
+}
+.library-views a[aria-current='page'] {
+  box-shadow: var(--shadow-sm);
+}
+.inspire-hero-search {
+  border: 0;
+  background: var(--control-bg);
+  border-radius: 9px;
+}
+.inspire-search-input {
+  font-size: var(--text-ui);
+}
+.inspire-filter-chip {
+  font-size: var(--text-small);
+  border-radius: 7px;
+}
+.inspire-copy h3 {
+  font-size: 16px;
+}
+.inspire-source {
+  font-size: var(--text-caption);
+}
+.inspire-prompt-preview {
+  font-size: var(--text-ui);
+  line-height: 1.75;
+}
+.inspire-actions {
+  border: 0;
+  gap: 6px 12px;
+}
+.inspire-actions :is(button, a) {
+  min-height: 32px;
+  font-size: var(--text-small);
+  border: 0;
+  border-radius: 6px;
+}
+.inspire-view-button {
+  color: var(--foreground-2);
+  background: transparent;
+}
+.inspire-actions :is(button, a):hover {
+  background: var(--control-bg);
+}
+.inspire-category-tag {
+  font-size: var(--text-caption);
+}

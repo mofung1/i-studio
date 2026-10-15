@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.next-dev/
+.turbo/
+coverage/
+public/
+next-env.d.ts
+pnpm-lock.yaml
+*.tsbuildinfo

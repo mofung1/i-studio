@@ -1,0 +1,1236 @@
+.prompt-reverse-dialog {
+  width: min(1040px, calc(100vw - 48px));
+  max-width: none;
+  max-height: none;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--foreground);
+  background: var(--surface);
+  overflow: visible;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.18);
+}
+.prompt-reverse-dialog:not([open]) {
+  display: none;
+}
+.prompt-reverse-dialog::backdrop {
+  background: rgb(15 18 24 / 0.48);
+}
+.reverse-sheet {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+  border-radius: inherit;
+}
+.reverse-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.reverse-head h2 {
+  margin: 0 0 5px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.reverse-head p {
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: var(--text-small);
+}
+.reverse-head .settings-icon {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+}
+.reverse-body {
+  display: grid;
+  grid-template-columns: 332px minmax(0, 1fr);
+  min-height: 0;
+  overflow-y: auto;
+}
+.reverse-source {
+  min-width: 0;
+  padding: 24px;
+  border-right: 1px solid var(--border-soft);
+  background: var(--surface-subtle);
+}
+.reverse-result {
+  min-width: 0;
+  padding: 24px;
+}
+.reverse-section-head,
+.reverse-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.reverse-sheet h3 {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: 550;
+}
+.reverse-section-head > span {
+  color: var(--foreground-3);
+  font-size: var(--text-caption);
+}
+.reverse-result-head .select-trigger {
+  width: 116px;
+}
+.reverse-image {
+  display: grid;
+  place-items: center;
+  height: 244px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.reverse-image > img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+.reverse-image > :is(.auth-image-loading, .auth-image-failed) {
+  width: 100%;
+  height: 100%;
+}
+.reverse-image.is-empty {
+  background: var(--surface);
+  border-style: dashed;
+}
+.reverse-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 20px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--foreground-3);
+  cursor: pointer;
+}
+.reverse-upload:hover {
+  background: var(--control-bg);
+}
+.reverse-upload strong {
+  color: var(--foreground);
+  font-size: var(--text-ui);
+  font-weight: 550;
+}
+.reverse-upload span {
+  font-size: var(--text-small);
+}
+.reverse-upload small {
+  font-size: var(--text-caption);
+}
+.reverse-image-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 18px;
+}
+.reverse-image-meta > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--foreground-3);
+  font-size: var(--text-caption);
+}
+.reverse-image-meta .settings-command {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 8px;
+  border-color: transparent;
+  color: var(--foreground-2);
+  background: transparent;
+  font-size: var(--text-caption);
+}
+.reverse-reference-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.reverse-reference-picker button {
+  min-height: 36px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--foreground-3);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+.reverse-reference-picker button[aria-pressed='true'] {
+  color: var(--foreground);
+  border-color: var(--foreground);
+}
+.reverse-mode {
+  margin: 18px 0 8px;
+  padding: 0;
+  border: 0;
+}
+.reverse-mode legend {
+  margin-bottom: 8px;
+  font-size: var(--text-small);
+  font-weight: 550;
+}
+.reverse-mode > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--control-bg);
+}
+.reverse-mode button {
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--foreground-3);
+  font: inherit;
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+.reverse-mode button[aria-pressed='true'] {
+  color: var(--foreground);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.reverse-mode p,
+.reverse-help {
+  margin: 8px 0 0;
+  color: var(--foreground-3);
+  font-size: var(--text-caption);
+  line-height: 1.75;
+}
+.reverse-extra {
+  margin-top: 14px;
+}
+.reverse-extra summary,
+.reverse-analysis summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  gap: 8px;
+  list-style: none;
+  font-size: var(--text-small);
+  font-weight: 550;
+  cursor: pointer;
+}
+.reverse-extra summary::-webkit-details-marker,
+.reverse-analysis summary::-webkit-details-marker {
+  display: none;
+}
+.reverse-extra summary::after,
+.reverse-analysis summary::after {
+  margin-left: auto;
+  color: var(--foreground-3);
+  font-size: 18px;
+  content: '+';
+}
+.reverse-extra[open] summary::after,
+.reverse-analysis[open] summary::after {
+  content: '−';
+}
+.reverse-extra summary span {
+  color: var(--foreground-3);
+  font-size: var(--text-caption);
+  font-weight: 400;
+}
+.reverse-sheet textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: var(--text-ui);
+  line-height: 1.8;
+  resize: vertical;
+}
+.reverse-sheet :is(textarea, input):focus-visible {
+  border-color: var(--foreground);
+  outline: 0;
+  box-shadow: inset 0 0 0 1px var(--foreground);
+}
+.reverse-extra textarea {
+  margin-top: 8px;
+}
+.reverse-sheet :is(button, input, textarea):disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.reverse-sheet :is(.settings-primary, .settings-command) {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.reverse-sheet .settings-primary {
+  color: var(--primary-foreground);
+}
+.reverse-sheet .settings-command {
+  background: var(--surface);
+  color: var(--foreground-2);
+}
+.reverse-sheet .settings-command:hover:not(:disabled) {
+  background: var(--control-bg);
+}
+.reverse-analyze {
+  justify-content: center;
+  width: 100%;
+  margin-top: 16px;
+}
+.reverse-provider {
+  margin: 10px 0 0;
+  color: var(--foreground-3);
+  font-size: var(--text-caption);
+  line-height: 1.75;
+  text-align: center;
+}
+.reverse-provider a {
+  display: block;
+  margin-top: 8px;
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.reverse-history {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 12px;
+  color: var(--foreground-3);
+}
+.reverse-history > svg {
+  flex: 0 0 auto;
+}
+.reverse-history .select-trigger {
+  flex: 1;
+  min-width: 0;
+}
+.reverse-history .select-trigger > span:first-child {
+  min-width: 0;
+}
+.reverse-sheet .reverse-prompt {
+  min-height: 240px;
+  line-height: 1.9;
+}
+.reverse-result-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  color: var(--foreground-3);
+  font-size: var(--text-caption);
+}
+.reverse-text-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0;
+  color: var(--foreground-3);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.reverse-text-action:hover {
+  color: var(--foreground);
+}
+.reverse-result-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 260px;
+  padding: 24px;
+  color: var(--foreground-3);
+  text-align: center;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--surface-subtle);
+}
+.reverse-result-empty strong {
+  color: var(--foreground-2);
+  font-weight: 550;
+}
+.reverse-result-empty p {
+  max-width: 330px;
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.8;
+}
+.reverse-analysis {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+.reverse-analysis dl {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+}
+.reverse-analysis dl > div {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 14px;
+  font-size: var(--text-small);
+}
+.reverse-analysis dt {
+  color: var(--foreground-3);
+}
+.reverse-analysis dd {
+  margin: 0;
+  color: var(--foreground-2);
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.reverse-uncertainties {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  font-size: var(--text-small);
+}
+.reverse-uncertainties strong {
+  font-weight: 550;
+}
+.reverse-uncertainties ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  line-height: 1.8;
+  color: var(--foreground-3);
+}
+.reverse-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 16px;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+}
+.reverse-progress > span {
+  flex: 1;
+}
+.reverse-progress .settings-command {
+  padding: 0 8px;
+  font-size: var(--text-caption);
+}
+.reverse-rerun-confirm {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.reverse-rerun-confirm p {
+  margin: 0 0 10px;
+  color: var(--foreground-3);
+  font-size: var(--text-small);
+}
+.reverse-rerun-confirm button {
+  margin-right: 6px;
+  font-size: var(--text-caption);
+}
+.reverse-feedback {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+.reverse-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--foreground-2);
+  background: var(--surface-subtle);
+}
+.reverse-notice a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.reverse-changed {
+  padding: 10px 12px;
+  margin: 14px 0 0;
+  border-radius: 7px;
+  background: var(--control-bg);
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+}
+.reverse-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 16px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+.reverse-apply-options {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.reverse-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+}
+.reverse-checkbox input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+.reverse-apply-options .select-trigger {
+  width: 164px;
+}
+.reverse-commands {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reverse-commands button {
+  font-size: var(--text-small);
+}
+.prompt-reverse-dialog .reverse-commands .settings-command {
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.reverse-login {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 18px;
+  padding: 48px 24px;
+  color: var(--foreground-3);
+  text-align: center;
+}
+/* Reverse settings use one ruled surface, with labels aligned beside their controls. */
+.reverse-settings {
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.reverse-settings-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 24px;
+}
+.reverse-settings-heading h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.reverse-settings-scope {
+  flex: 0 0 auto;
+  color: var(--foreground-3);
+  font-size: 12px;
+}
+.reverse-config-section {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 28px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-soft);
+}
+.reverse-config-label h3 {
+  margin: 0 0 7px;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+}
+.reverse-config-label p {
+  max-width: 210px;
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.reverse-config-controls {
+  min-width: 0;
+}
+.reverse-config-controls > .select-trigger {
+  width: 100%;
+}
+.reverse-config-controls > .select-trigger > span:first-child {
+  min-width: 0;
+}
+.reverse-service-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+.reverse-service-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  color: var(--foreground-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.reverse-service-summary > div {
+  flex: 1;
+  min-width: 0;
+}
+.reverse-service-summary > div > span {
+  color: var(--foreground-3);
+  font-size: 12px;
+}
+.reverse-service-summary strong {
+  margin-left: 4px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.reverse-service-summary p {
+  margin: 4px 0 0;
+  color: var(--foreground-3);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.reverse-service-capability {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  color: var(--foreground-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.reverse-service-unavailable {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--foreground-2);
+  background: var(--surface-subtle);
+}
+.reverse-service-unavailable > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.reverse-service-unavailable p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.reverse-service-help {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.reverse-service-help > span {
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.reverse-settings-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.reverse-settings-link:hover:not(:disabled) {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.reverse-detail-options {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.reverse-detail-options legend {
+  margin: 0 0 10px;
+  padding: 0;
+  color: var(--foreground-2);
+  font-size: 13px;
+  font-weight: 550;
+}
+.reverse-detail-options > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.reverse-detail-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  min-height: 80px;
+  padding: 13px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.reverse-detail-option:hover {
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
+}
+.reverse-detail-option.is-selected {
+  border-color: var(--foreground);
+  background: var(--surface-subtle);
+  box-shadow: inset 0 0 0 0.5px var(--foreground);
+}
+.reverse-detail-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.reverse-detail-title strong {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 550;
+}
+.reverse-detail-title input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 auto;
+  accent-color: var(--foreground);
+  cursor: pointer;
+}
+.reverse-detail-description {
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.reverse-detail-recommended {
+  position: absolute;
+  top: 13px;
+  right: 32px;
+  color: var(--foreground-3);
+  font-size: 12px;
+}
+.reverse-config-help {
+  margin: 10px 0 0;
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.reverse-number-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.reverse-analysis-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 152px;
+  gap: 20px;
+}
+.reverse-analysis-fields > div {
+  min-width: 0;
+}
+.reverse-analysis-fields .reverse-number-row {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.reverse-analysis-fields .reverse-number-control {
+  flex: 0 0 auto;
+}
+@media (max-width: 1180px) {
+  .reverse-analysis-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .reverse-analysis-fields .reverse-number-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .reverse-analysis-fields .reverse-number-control {
+    flex-basis: 136px;
+  }
+}
+.reverse-number-row > div:first-child {
+  min-width: 0;
+}
+.reverse-number-row label {
+  display: block;
+  color: var(--foreground-2);
+  font-size: 13px;
+  font-weight: 550;
+}
+.reverse-number-row p {
+  margin: 6px 0 0;
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.reverse-number-control {
+  display: flex;
+  align-items: center;
+  flex: 0 0 136px;
+  height: 44px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.reverse-number-control:focus-within {
+  border-color: var(--foreground);
+  box-shadow: inset 0 0 0 1px var(--foreground);
+}
+.reverse-number-control input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 12px;
+  color: var(--foreground);
+  border: 0;
+  background: transparent;
+  outline: 0;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.reverse-number-control > span {
+  flex: 0 0 auto;
+  padding: 0 12px 0 6px;
+  color: var(--foreground-3);
+  font-size: 12px;
+  pointer-events: none;
+}
+.reverse-retention-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.reverse-retention-presets button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--foreground-3);
+  background: var(--surface);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.reverse-retention-presets button:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--surface-subtle);
+}
+.reverse-retention-presets button[aria-pressed='true'] {
+  color: var(--foreground);
+  border-color: var(--line-strong);
+  background: var(--control-bg);
+}
+.reverse-template-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-soft);
+}
+.reverse-template-entry > svg {
+  flex: 0 0 auto;
+  color: var(--foreground-3);
+}
+.reverse-template-entry > div {
+  flex: 1;
+  min-width: 0;
+}
+.reverse-template-entry h3 {
+  margin: 0 0 5px;
+  color: var(--foreground-2);
+  font-size: 13px;
+  font-weight: 550;
+}
+.reverse-template-entry p {
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.reverse-template-entry button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  border-radius: 7px;
+  white-space: nowrap;
+}
+.reverse-config-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 12px 12px;
+  background: var(--surface);
+}
+.reverse-config-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.reverse-unsaved-dot {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--foreground);
+}
+.reverse-config-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.reverse-settings :is(.settings-command, .settings-primary) {
+  min-height: 44px;
+  border-radius: 8px;
+}
+.reverse-config-actions .settings-primary {
+  color: var(--primary-foreground);
+}
+.reverse-settings-error {
+  margin: 0;
+  padding: 12px 28px;
+  border-top: 1px solid var(--danger-line);
+  background: var(--danger-soft);
+}
+.reverse-settings-load {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 280px;
+  padding: 28px;
+  color: var(--foreground-3);
+  border-top: 1px solid var(--border-soft);
+}
+.reverse-settings-load strong {
+  color: var(--foreground-2);
+  font-size: 14px;
+  font-weight: 550;
+}
+.reverse-settings-load p {
+  margin: 0;
+}
+.reverse-config-form :is(button, input):disabled,
+.reverse-detail-options:disabled .reverse-detail-option {
+  cursor: default;
+  opacity: 0.5;
+}
+.reverse-config-form :is(button, input, fieldset) {
+  scroll-margin-block: 120px;
+}
+.reverse-settings :is(button, input):focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+.reverse-number-control input:focus-visible {
+  outline: 0;
+}
+@media (max-width: 1040px) {
+  .reverse-config-section {
+    grid-template-columns: 170px minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+@media (max-width: 900px) {
+  .reverse-config-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .reverse-config-label p {
+    max-width: none;
+  }
+}
+@media (max-width: 540px) {
+  .reverse-settings-heading {
+    align-items: center;
+    gap: 12px;
+    padding: 20px 18px;
+  }
+  .reverse-settings-scope {
+    font-size: 12px;
+  }
+  .reverse-config-section {
+    padding: 20px 18px;
+  }
+  .reverse-detail-title strong {
+    font-size: 13px;
+  }
+  .reverse-service-summary {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .reverse-service-capability {
+    margin-left: 46px;
+  }
+  .reverse-service-help {
+    gap: 0;
+  }
+  .reverse-number-control,
+  .reverse-analysis-fields .reverse-number-control {
+    flex-basis: 112px;
+  }
+  .reverse-template-entry {
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+  .reverse-template-entry > div {
+    flex-basis: calc(100% - 30px);
+  }
+  .reverse-template-entry button {
+    margin-left: 30px;
+  }
+  .reverse-config-footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 18px max(14px, env(safe-area-inset-bottom));
+  }
+  .reverse-config-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .reverse-config-actions button {
+    padding: 0 9px;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .ai-settings .settings-tabs {
+    display: grid;
+    grid-template-columns: 0.9fr 1.2fr 0.9fr 1fr;
+    width: 100%;
+  }
+  .ai-settings .settings-tabs button {
+    justify-content: center;
+    min-width: 0;
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+  .ai-settings .settings-tabs button > svg {
+    display: none;
+  }
+}
+.inspiration-topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.library-preview-commands {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.library-lightbox-content .library-preview-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.library-lightbox-content .library-preview-toolbar > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.library-lightbox-content .library-preview-commands button {
+  min-height: 44px;
+}
+/* Keep long forms legible in both themes and make keyboard focus visible inside clipped lists. */
+.studio-shell :is(input, textarea)::placeholder,
+.workbench-shell :is(input, textarea)::placeholder,
+.prompt-reverse-dialog :is(input, textarea)::placeholder {
+  color: var(--foreground-3);
+  opacity: 0.85;
+}
+.prompt-template-tree button:focus-visible,
+.inspiration-category-actions button:focus-visible,
+.inspiration-manager-actions button:focus-visible {
+  outline-offset: -3px;
+}
+.reverse-body {
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--muted) transparent;
+}
+.reverse-body::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+.reverse-body::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: var(--muted);
+}
+@media (max-width: 780px) {
+  .prompt-reverse-dialog {
+    width: calc(100vw - 24px);
+  }
+  .reverse-sheet {
+    max-height: calc(100dvh - 24px);
+  }
+  .reverse-head {
+    padding: 16px 18px;
+  }
+  .reverse-head h2 {
+    font-size: 18px;
+  }
+  .reverse-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .reverse-source {
+    padding: 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .reverse-image {
+    height: 220px;
+  }
+  .reverse-result {
+    padding: 18px;
+  }
+  .reverse-result-empty {
+    min-height: 190px;
+    padding: 20px;
+  }
+  .reverse-sheet .reverse-prompt {
+    min-height: 210px;
+    font-size: 16px;
+  }
+  .reverse-footer {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 18px max(12px, env(safe-area-inset-bottom));
+  }
+  .reverse-apply-options {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .reverse-checkbox {
+    font-size: var(--text-caption);
+  }
+  .reverse-commands {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    width: 100%;
+    gap: 6px;
+  }
+  .reverse-commands :is(.settings-command, .settings-primary) {
+    padding: 0 9px;
+    gap: 5px;
+    font-size: var(--text-caption);
+  }
+  .reverse-save-body {
+    padding: 18px;
+  }
+  .reverse-feedback {
+    padding: 10px 18px;
+  }
+  .inspiration-topbar-tools {
+    gap: 4px;
+  }
+  .inspiration-topbar-tools .studio-secondary {
+    padding: 0 8px;
+    gap: 5px;
+    font-size: var(--text-small);
+  }
+  .studio-topbar:has(.inspiration-topbar-tools) {
+    flex-wrap: wrap;
+  }
+  .studio-topbar:has(.inspiration-topbar-tools) .studio-topbar-actions {
+    margin-left: auto;
+  }
+  .library-preview-commands {
+    gap: 6px;
+  }
+  .library-lightbox-content .library-preview-toolbar > span {
+    width: 100%;
+  }
+}

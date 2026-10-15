@@ -2,13 +2,15 @@ node_modules/
 .pnpm-store/
 .turbo/
 .next/
+.next-dev/
 dist/
 coverage/
 *.tsbuildinfo
-apps/server/server
-apps/server/api-go
+server/server
+server/api-go
+server/bin/
 # 灵感库案例图：seed-inspiration 命令从公开画廊下载，151MB 可随时重建
-apps/server/storage/uploads/inspiration/
+server/storage/uploads/inspiration/
 .env
 .env.local
 .env.*.local
@@ -16,19 +18,10 @@ apps/server/storage/uploads/inspiration/
 .DS_Store
 
 # 运行时上传和生成图片：保存在本地/挂载卷，不提交到 Git
-apps/server/storage/uploads/
+server/storage/uploads/
 
-# 真实电商效果测试的原图与对照结果，仅保存在本地。
-artifacts/commerce-eval-*/
+# 测试截图、真实出图、识图原始结果和覆盖率报告，仅保存在本地。
+/test/artifacts/
 
-# 真实识图测试的本地素材、私有任务结果及页面截图。
-artifacts/prompt-reverse-eval-*/
-
-# 配置界面验证截图，仅保存在本地。
-artifacts/reverse-settings-ui-*/
-
-# 个人工作台功能验证截图与临时测试记录。
-artifacts/personal-workspace-*/
-
-# 本地运营迁移备份包含账号哈希和私有配置，仅保存在本机。
-artifacts/hosted-platform-*/
+# 数据库备份包含账号哈希和私有配置，仅保存在本机。
+/test/backups/

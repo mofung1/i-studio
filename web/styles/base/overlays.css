@@ -1,0 +1,507 @@
+/* 图片查看器：放大 / 缩小 / 平移 / 裁剪 */
+.lightbox-panel {
+  width: min(1120px, 100%);
+  height: min(88dvh, 920px);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+}
+
+.lightbox-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.lightbox-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--foreground-2);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lightbox-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.lightbox-tools button {
+  min-width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 9px;
+  color: var(--foreground-2);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.lightbox-tools button:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--surface);
+  border-color: var(--line-hover);
+}
+
+.lightbox-tools button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lightbox-tools button.is-active {
+  color: var(--background);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.lightbox-tools .lightbox-primary {
+  color: var(--background);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.lightbox-tools .lightbox-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.lightbox-zoom {
+  min-width: 46px;
+  color: var(--foreground-3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.lightbox-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  /* 用 flex 而不是 grid：百分比 max-height 需要容器高度是确定的，否则图片会溢出被裁掉 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  overflow: hidden;
+  background: var(--surface-2);
+  touch-action: none;
+}
+
+.lightbox-image {
+  flex: none;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  transform-origin: center;
+  transition: transform 120ms ease-out;
+}
+
+.lightbox-stage.is-cropping {
+  cursor: crosshair;
+}
+
+.lightbox-stage.is-cropping .lightbox-image {
+  transition: none;
+}
+
+.lightbox-fallback {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: var(--foreground-3);
+  font-size: 12px;
+}
+
+.lightbox-fallback button {
+  height: 32px;
+  padding: 0 12px;
+  color: var(--background);
+  background: var(--primary);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.lightbox-foot {
+  flex-shrink: 0;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.lightbox-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--foreground-2);
+  font-size: 11px;
+}
+
+.lightbox-status.is-muted {
+  color: var(--foreground-3);
+}
+
+.crop-box {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 9999px rgba(14, 14, 14, 0.55);
+  cursor: move;
+}
+
+.crop-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.38) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.38) 1px, transparent 1px);
+  background-size: 33.333% 33.333%;
+}
+
+.crop-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #ffffff;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.crop-handle-nw {
+  top: -7px;
+  left: -7px;
+  cursor: nwse-resize;
+}
+.crop-handle-ne {
+  top: -7px;
+  right: -7px;
+  cursor: nesw-resize;
+}
+.crop-handle-sw {
+  bottom: -7px;
+  left: -7px;
+  cursor: nesw-resize;
+}
+.crop-handle-se {
+  bottom: -7px;
+  right: -7px;
+  cursor: nwse-resize;
+}
+
+/* 重新生成前的二次确认弹窗 */
+.dialog-backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 17, 17, 0.4);
+  animation: backdrop-in 140ms ease-out;
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.confirm-dialog {
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32);
+  /* 弹窗自己一套动画：只做透明度 + 轻微上移。
+     之前复用底部输入条的 dock-in（带 translate(-50%)），会让居中的弹窗先偏左再跳回中间 */
+  animation: dialog-in 160ms ease-out;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.confirm-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.confirm-dialog-head h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.confirm-dialog-head button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.confirm-dialog-note {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.confirm-dialog-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  background: var(--surface-subtle);
+  border-radius: 11px;
+}
+
+.confirm-dialog-list > div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.confirm-dialog-list dt {
+  flex: 0 0 auto;
+  color: var(--foreground-3);
+  font-size: 11px;
+}
+
+.confirm-dialog-list dd {
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 自由文本行（画面描述 / 主图需求）：单独一块，超长时 4 行截断并可展开。
+   选择器要压过 `.confirm-dialog-list > div` 的一行式 flex 排版 */
+.confirm-dialog-list > .confirm-dialog-block {
+  display: grid;
+  gap: 6px;
+  align-items: start;
+}
+
+.confirm-dialog-block dt {
+  color: var(--foreground-3);
+  font-size: 11px;
+}
+
+/* 选择器压过 `.confirm-dialog-list dd` 的单行省略号，否则 4 行截断不会生效 */
+.confirm-dialog-list .confirm-dialog-text {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.confirm-dialog-list .confirm-dialog-text.is-expanded {
+  max-height: 168px;
+  overflow-y: auto;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.confirm-dialog-toggle {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  color: var(--foreground-2);
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.confirm-dialog-toggle:hover {
+  color: var(--foreground);
+}
+
+.confirm-dialog-skip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.confirm-dialog-skip input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--foreground);
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-dialog-actions button {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-dialog-cancel {
+  color: var(--foreground-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.confirm-dialog-cancel:hover {
+  color: var(--foreground);
+  border-color: var(--line-hover);
+}
+
+.confirm-dialog-primary {
+  color: var(--background);
+  background: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.confirm-dialog-primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+/* 删除这类不可恢复的操作：危险色主按钮 + 一句后果提醒 */
+.confirm-dialog-primary.is-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.confirm-dialog-primary.is-danger:hover:not(:disabled) {
+  background: #73281f;
+  border-color: #73281f;
+}
+
+.confirm-dialog-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.confirm-dialog-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 9px 11px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-line);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 780px) {
+  .inspire-gallery-head {
+    display: grid;
+    gap: 12px;
+  }
+
+  .inspire-gallery .inspire-hero-search {
+    width: 100%;
+  }
+
+  .history-drawer {
+    width: 100%;
+  }
+
+  .lightbox-panel {
+    height: min(92dvh, calc(100dvh - 40px));
+  }
+
+  .lightbox-bar {
+    flex-wrap: wrap;
+  }
+
+  .lightbox-tools {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

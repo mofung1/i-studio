@@ -1,11 +1,11 @@
-FROM golang:1.25-alpine AS build
+FROM golang:1.26.9-alpine AS build
 
 WORKDIR /src
-COPY apps/server/go.mod apps/server/go.sum ./apps/server/
-WORKDIR /src/apps/server
+COPY server/go.mod server/go.sum ./server/
+WORKDIR /src/server
 RUN go mod download
-COPY apps/server/ ./
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/istudio-server .
+COPY server/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/istudio-server ./cmd/server
 
 FROM alpine:3.22
 RUN apk add --no-cache ca-certificates wget

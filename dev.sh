@@ -12,8 +12,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SERVER_DIR="$ROOT/apps/server"
-WEB_DIR="$ROOT/apps/web"
+SERVER_DIR="$ROOT/server"
+WEB_DIR="$ROOT/web"
 DOCKER_DIR="$ROOT/docker"
 
 API_PORT="${API_PORT:-4000}"
@@ -60,6 +60,11 @@ for cmd in go node pnpm lsof curl; do
   command -v "$cmd" >/dev/null 2>&1 || { err "缺少命令：${cmd}，请先安装后重试"; exit 1; }
 done
 
+if ! node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major < 22 || (major === 22 && minor < 12) ? 1 : 0)'; then
+  err "需要 Node.js 22.12 或更高版本，请升级 Node.js 后重试"
+  exit 1
+fi
+
 port_in_use() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
 port_owner() { lsof -nP -iTCP:"$1" -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1" (pid "$2")"}'; }
 tcp_open() { (exec 3<>"/dev/tcp/$1/$2") >/dev/null 2>&1 && exec 3<&- ; }
@@ -79,7 +84,7 @@ fi
 
 # ---------------------------------------------------------------- 配置文件
 if [[ ! -f "$SERVER_DIR/.env" ]]; then
-  warn "缺少 apps/server/.env（可 copy .env.example 后填写），后端将使用内置默认值"
+  warn "缺少 server/.env（可 copy .env.example 后填写），后端将使用内置默认值"
 else
   info "AI 服务可在 Web 设置中配置；旧 AI 环境变量只用于首次迁移"
 fi
@@ -97,7 +102,7 @@ if [[ ! -f "$SERVER_DIR/.env" ]]; then
 fi
 
 if ! tcp_open 127.0.0.1 "$DB_PORT"; then
-  warn "连不上 Postgres(127.0.0.1:$DB_PORT)：后端会降级为内存存储（重启后数据丢失）"
+  warn "连不上 Postgres(127.0.0.1:$DB_PORT)：运营模式需要 PostgreSQL，API 将拒绝启动"
   if [[ "$START_INFRA" -eq 1 ]]; then
     if command -v docker >/dev/null 2>&1; then
       info "→ 启动 Docker 里的 postgres / redis …"
@@ -119,10 +124,10 @@ if ! tcp_open 127.0.0.1 "$REDIS_PORT"; then
     for _ in $(seq 1 30); do tcp_open 127.0.0.1 "$REDIS_PORT" && break; sleep 1; done
   fi
   if ! tcp_open 127.0.0.1 "$REDIS_PORT"; then
-    warn "连不上 Redis(127.0.0.1:$REDIS_PORT)：任务队列退回进程内（功能可用，多进程不共享）"
+    warn "连不上 Redis(127.0.0.1:$REDIS_PORT)：任务仍由 PostgreSQL 持久保存，使用进程内唤醒和数据库扫描"
   fi
   if [[ "$REDIS_PORT" == "6379" ]]; then
-    info "  Docker 里的 Redis 映射在 56379；想复用它就把 apps/server/.env 的 REDIS_URL 改成 redis://127.0.0.1:56379"
+    info "  Docker 里的 Redis 映射在 56379；想复用它就把 server/.env 的 REDIS_URL 改成 redis://127.0.0.1:56379"
   fi
 fi
 
@@ -140,7 +145,7 @@ fi
 # 不用 go run：它会产生子进程，Ctrl+C 时容易留下孤儿进程
 BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/istudio-dev.XXXXXX")"
 info "→ 编译后端（go build）…"
-(cd "$SERVER_DIR" && go build -o "$BUILD_DIR/istudio-api" .)
+(cd "$SERVER_DIR" && go build -o "$BUILD_DIR/istudio-api" ./cmd/server)
 
 cleanup() {
   trap - INT TERM EXIT
