@@ -1,13 +1,16 @@
 'use client'
 
+import { isStoredImage, type CreationImage } from '@/lib/creation-images'
+
 import { ChevronLeft, ImagePlus, Plus, Upload } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 
+import { AssetPicker } from './asset-picker'
 import { SelectedImageThumbnail } from './selected-image-thumbnail'
 
 interface ReferenceUploaderProps {
-  files: File[]
-  onChange: (files: File[]) => void
+  files: CreationImage[]
+  onChange: (files: CreationImage[]) => void
   max: number
   /** 每个缩略图下方的主标签 */
   labelFor: (index: number) => string
@@ -19,10 +22,10 @@ interface ReferenceUploaderProps {
 }
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const fileKeys = new WeakMap<File, number>()
+const fileKeys = new WeakMap<CreationImage, number>()
 let nextFileKey = 0
 
-function fileKeyFor(file: File) {
+function fileKeyFor(file: CreationImage) {
   const existing = fileKeys.get(file)
   if (existing !== undefined) return existing
   const key = nextFileKey++
@@ -44,6 +47,7 @@ export function ReferenceUploader({
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const uploaderRef = useRef<HTMLDivElement>(null)
   const stackToggleRef = useRef<HTMLButtonElement>(null)
@@ -64,7 +68,7 @@ export function ReferenceUploader({
 
   const full = files.length >= max
 
-  function accept(selected: File[]) {
+  function accept(selected: CreationImage[]) {
     if (selected.length === 0) return
     const images = selected.filter((file) => ACCEPTED_TYPES.includes(file.type))
     const rejected = selected.length - images.length
@@ -305,6 +309,8 @@ export function ReferenceUploader({
           </p>
         </>
       )}
+      {!full && <div className="reference-source-actions"><button type="button" onClick={() => inputRef.current?.click()}><Upload size={13} />本地上传</button><button type="button" aria-label="从我的素材选择" title="从我的素材选择" onClick={() => setPickerOpen(true)}><ImagePlus size={13} />{collapseAt ? '素材库' : '从我的素材选择'}</button></div>}
+      {pickerOpen && <AssetPicker limit={Math.max(0, max - files.length)} excludedIds={files.filter(isStoredImage).map(image => image.assetId)} onClose={() => setPickerOpen(false)} onSelect={images => { onChange([...files, ...images].slice(0, max)); setError('') }} />}
       <input
         ref={inputRef}
         className="reference-file-input"

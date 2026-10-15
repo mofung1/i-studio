@@ -54,13 +54,20 @@ func (s *localStorage) Save(key string, source io.Reader) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	file, err := os.Create(path)
+	file, err := os.CreateTemp(filepath.Dir(path), ".image-write-*")
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	_, err = io.Copy(file, source)
-	return err
+	temporary := file.Name()
+	defer os.Remove(temporary)
+	if _, err = io.Copy(file, source); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err = file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temporary, path)
 }
 
 func (s *localStorage) Open(key string) (io.ReadCloser, error) {
@@ -81,4 +88,18 @@ func (s *localStorage) Delete(key string) error {
 		return nil
 	}
 	return err
+}
+
+func (s *server) deleteAssetFiles(key string) error {
+	if err := s.storage.Delete(key); err != nil {
+		return err
+	}
+	if err := s.storage.Delete(key + ".thumbnail-v1.jpg"); err != nil {
+		return err
+	}
+	if s.db != nil {
+		_, err := s.db.Exec("DELETE FROM storage_deletions WHERE storage_key=$1", key)
+		return err
+	}
+	return nil
 }

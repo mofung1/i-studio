@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -216,32 +214,25 @@ func (s *server) clothingPlanHandler(w http.ResponseWriter, r *http.Request) {
 		key, role string
 		min, max  int
 	}{{"garmentImages", "服装原图", 1, 6}, {"modelImage", "模特参考，只保留人物身份", 0, 1}, {"sceneImage", "场景参考，只用于背景", 0, 1}} {
-		files := r.MultipartForm.File[group.key]
+		groupImages, size, err := s.readImageSources(r, group.key, group.max, 10<<20)
 		minimum := group.min
 		if group.key == "modelImage" && mode == "model" {
 			minimum = 1
 		}
-		if len(files) < minimum || len(files) > group.max || (mode == "product" && group.key != "garmentImages" && len(files) > 0) {
-			s.error(w, 400, "CLOTHING_INPUT_INVALID", "服装图需为 1–6 张；模特上身需要 1 张模特图，场景图可选 1 张")
+		if err != nil {
+			s.error(w, 400, "CLOTHING_IMAGE_INVALID", err.Error())
 			return
 		}
-		for _, header := range files {
-			file, err := header.Open()
-			if err != nil {
-				s.error(w, 400, "CLOTHING_IMAGE_INVALID", "图片读取失败")
-				return
-			}
-			data, err := io.ReadAll(io.LimitReader(file, (10<<20)+1))
-			file.Close()
-			totalBytes += len(data)
-			mime := http.DetectContentType(data)
-			if err != nil || len(data) == 0 || len(data) > 10<<20 || totalBytes > 20<<20 || (mime != "image/png" && mime != "image/jpeg" && mime != "image/webp") {
-				s.error(w, 400, "CLOTHING_IMAGE_INVALID", "请使用 PNG、JPG 或 WebP；单张最多 10 MB，总计最多 20 MB")
-				return
-			}
-			images = append(images, promptImage{Mime: mime, Data: base64.StdEncoding.EncodeToString(data)})
+		totalBytes += size
+		if len(groupImages) < minimum || totalBytes > 20<<20 || (mode == "product" && group.key != "garmentImages" && len(groupImages) > 0) {
+			s.error(w, 400, "CLOTHING_INPUT_INVALID", "服装图需为 1–6 张；模特上身需要 1 张模特图，场景图可选 1 张；总计最多 20 MB")
+			return
+		}
+		for _, image := range groupImages {
+			images = append(images, image)
 			roles = append(roles, fmt.Sprintf("图片 %d：%s", len(images), group.role))
 		}
+
 	}
 	templates, err := s.generationPromptSnapshot()
 	if err != nil {

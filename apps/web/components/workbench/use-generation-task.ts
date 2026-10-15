@@ -1,5 +1,7 @@
 'use client'
 
+import type { CreationImage } from '@/lib/creation-images'
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { generationInputSchema, type GenerationInput } from '@/lib/contracts'
@@ -41,10 +43,10 @@ export const generationStatusLabels: Record<string, string> = {
 export type GenerationNotice = { kind: 'success' | 'error'; message: string }
 
 export type SubmitParams = {
-  productFiles: File[]
-  referenceFiles: File[]
-  modelFile?: File
-  sceneFile?: File
+  productFiles: CreationImage[]
+  referenceFiles: CreationImage[]
+  modelFile?: CreationImage
+  sceneFile?: CreationImage
   /** 用已上传资产 ID 构建待提交的 payload；返回 null 表示前置校验未过 */
   buildPayload: (productAssetIds: string[], referenceAssetIds: string[], roles?: { modelAssetId?: string; sceneAssetId?: string }) => unknown
   /** 未登录或 401 时的跳转回调 */

@@ -11,6 +11,8 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { getAccessToken } from '@/lib/api'
 import { copyText } from '@/lib/clipboard'
 import { analysisLabels, createReverseRequestId, isReverseActive, prepareReverseFile, reverseRequest, ReverseRequestError, reverseStatusLabels, reverseStorageKey, validateReverseFile, type ReverseConfiguration, type ReverseLanguage, type ReverseOpenOptions, type ReverseTask } from '@/lib/prompt-reverse'
+import type { CreationImage } from '@/lib/creation-images'
+import { loadStoredImage } from '@/lib/library'
 import type { ManagedInspirationCategory } from '@/lib/inspiration-settings'
 import { AuthenticatedImage, forgetProtectedImage, loadProtectedImage } from './authenticated-image'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from './select'
@@ -225,9 +227,10 @@ export function PromptReverseDialog({ open, request, onClose }: { open: boolean;
     if (!ready || !task || busy) return
     setBusy('apply'); setError('')
     try {
-      let referenceFile: File | undefined
+      let referenceFile: CreationImage | undefined
       if (includeReference) {
         if (file) referenceFile = file
+        else if (assetId) referenceFile = await loadStoredImage(`/v1/assets/${encodeURIComponent(assetId)}/content`)
         else { const cached = await loadProtectedImage(assetId ? `/v1/assets/${encodeURIComponent(assetId)}/content` : task.imageUrl); referenceFile = new File([cached.blob], task.imageName, { type: cached.blob.type }) }
       }
       if (request.onApply) await request.onApply({ text: drafts[language], referenceFile, action: applyAction })

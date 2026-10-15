@@ -66,6 +66,7 @@ func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, i
 	}
 	defer tx.Rollback()
 	imageKey, width, height := "", 0, 0
+	coverStorageKey := ""
 	if input.ReverseTaskID != "" {
 		if id != "" {
 			s.error(w, 400, "INSPIRATION_IMAGE_INVALID", "替换现有封面请先创建新的灵感草稿")
@@ -89,7 +90,11 @@ func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, i
 			return
 		}
 		imageKey = "reverse_" + randomID() + extensionForMime(mime)
-		if err := s.storage.Save("inspiration/"+imageKey, bytes.NewReader(data)); err != nil {
+		coverStorageKey = s.newStorageKey("inspiration/" + imageKey)
+		if strings.HasPrefix(coverStorageKey, "@storage/") {
+			imageKey = coverStorageKey
+		}
+		if err := s.storage.Save(coverStorageKey, bytes.NewReader(data)); err != nil {
 			s.error(w, 500, "INSPIRATION_IMAGE_ERROR", "封面保存失败")
 			return
 		}
@@ -97,7 +102,7 @@ func (s *server) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, i
 	imageCommitted := false
 	defer func() {
 		if !imageCommitted && imageKey != "" {
-			_ = s.storage.Delete("inspiration/" + imageKey)
+			_ = s.storage.Delete(coverStorageKey)
 		}
 	}()
 	if input.CategoryID != "" {

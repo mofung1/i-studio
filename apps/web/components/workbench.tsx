@@ -1,5 +1,8 @@
 'use client'
 
+import type { CreationImage } from '@/lib/creation-images'
+import { loadStoredImage } from '@/lib/library'
+
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
@@ -68,8 +71,8 @@ function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialMod
   })
   const [prompt, setPrompt] = useState(initialPrompt ?? '')
   const [requirements, setRequirements] = useState('')
-  const [productFiles, setProductFiles] = useState<File[]>([])
-  const [referenceFiles, setReferenceFiles] = useState<File[]>([])
+  const [productFiles, setProductFiles] = useState<CreationImage[]>([])
+  const [referenceFiles, setReferenceFiles] = useState<CreationImage[]>([])
   const [count, setCount] = useState(() => Math.min(generalMaxCount, Math.max(1, Number(initialCount) || 1)))
   const [model, setModel] = useState<GenerationModel>((initialModel as GenerationModel) ?? 'gpt-image-2')
   const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? '1:1')
@@ -255,17 +258,9 @@ function StandardWorkbench({ initialMode, initialPrompt, initialTask, initialMod
   }
 
   /** 把一张结果图取回成可以直接放进素材区的文件 */
-  async function fetchImageFile(path: string, name: string) {
-    const url = path.startsWith('/') ? `${apiBaseUrl}${path}` : path
-    const token = getAccessToken()
-    const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : undefined })
-    if (!response.ok) throw new Error('图片读取失败，请稍后重试')
-    const blob = await response.blob()
-    const type = blob.type || 'image/png'
-    const extension = type.includes('jpeg') ? 'jpg' : type.includes('webp') ? 'webp' : 'png'
-    return new File([blob], `${name}.${extension}`, { type })
+  async function fetchImageFile(path: string, _name: string) {
+    return loadStoredImage(path)
   }
-
   /** 历史任务里存的是 assetId，需要按 id 取回内容才能还原成可编辑的素材 */
   async function fetchAssetFiles(assetIds: string[]) {
     if (assetIds.length === 0) return []

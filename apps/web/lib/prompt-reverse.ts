@@ -1,3 +1,4 @@
+import type { CreationImage } from './creation-images'
 import { apiBaseUrl, getAccessToken, readApiError } from './api'
 
 export type ReverseMode = 'scene' | 'style'
@@ -14,7 +15,7 @@ export interface ReverseTask {
   mode: ReverseMode; requirements: string; imageUrl: string; imageName: string; imageWidth: number; imageHeight: number
   result?: ReverseResult; errorMessage?: string; createdAt: string; updatedAt: string; expiresAt: string
 }
-export interface ReverseApplication { text: string; referenceFile?: File; action: 'replace' | 'append' }
+export interface ReverseApplication { text: string; referenceFile?: CreationImage; action: 'replace' | 'append' }
 export interface ReverseOpenOptions { files?: File[]; assetId?: string; imageName?: string; currentPrompt?: string; onApply?: (application: ReverseApplication) => void | Promise<void> }
 export class ReverseRequestError extends Error { constructor(message: string, readonly status: number) { super(message) } }
 

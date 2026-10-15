@@ -22,6 +22,9 @@ import (
 )
 
 const assetLibraryMigration = `
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS thumbnail_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS hidden_at TIMESTAMPTZ NULL;
+CREATE INDEX IF NOT EXISTS idx_assets_upload_hash ON assets(user_id,hash) WHERE task_id IS NULL;
 ALTER TABLE assets ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '';
 ALTER TABLE assets ADD COLUMN IF NOT EXISTS favorite BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE assets ADD COLUMN IF NOT EXISTS tags JSONB NOT NULL DEFAULT '[]'::jsonb;
@@ -163,6 +166,7 @@ func (s *server) libraryAssets(w http.ResponseWriter, r *http.Request) {
 	}
 	q := libraryQuery{}
 	q.add("a.user_id=$%d", uid)
+	q.conditions = append(q.conditions, "a.hidden_at IS NULL")
 	kind := r.URL.Query().Get("kind")
 	if kind == "uploads" {
 		q.conditions = append(q.conditions, "a.task_id IS NULL")
@@ -548,15 +552,40 @@ func (s *server) assetThumbnail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/v1/assets/"), "/thumbnail")
-	var key string
-	if s.db.QueryRow("SELECT storage_key FROM assets WHERE id=$1 AND user_id=$2", id, uid).Scan(&key) != nil {
+	var key, thumbnailKey string
+	if s.db.QueryRow("SELECT storage_key,thumbnail_key FROM assets WHERE id=$1 AND user_id=$2", id, uid).Scan(&key, &thumbnailKey) != nil {
 		s.error(w, 404, "ASSET_NOT_FOUND", "资产不存在")
+		return
+	}
+	serveCached := func() bool {
+		if thumbnailKey == "" {
+			return false
+		}
+		if s.redirectStoredObject(w, r, thumbnailKey) {
+			return true
+		}
+		file, err := s.storage.Open(thumbnailKey)
+		if err != nil {
+			return false
+		}
+		defer file.Close()
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("Cache-Control", "private, max-age=300")
+		_, _ = io.Copy(w, file)
+		return true
+	}
+	if serveCached() {
 		return
 	}
 	select {
 	case thumbnailSlots <- struct{}{}:
 		defer func() { <-thumbnailSlots }()
 	case <-r.Context().Done():
+		return
+	}
+	// Another request may have created this thumbnail while waiting for a slot.
+	_ = s.db.QueryRow("SELECT thumbnail_key FROM assets WHERE id=$1 AND user_id=$2", id, uid).Scan(&thumbnailKey)
+	if serveCached() {
 		return
 	}
 	file, err := s.storage.Open(key)
@@ -589,7 +618,21 @@ func (s *server) assetThumbnail(w http.ResponseWriter, r *http.Request) {
 	thumb := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.Draw(thumb, thumb.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
 	draw.CatmullRom.Scale(thumb, thumb.Bounds(), source, source.Bounds(), draw.Over, nil)
+	var encoded bytes.Buffer
+	if jpeg.Encode(&encoded, thumb, &jpeg.Options{Quality: 85}) != nil {
+		s.error(w, 500, "THUMBNAIL_ERROR", "缩略图生成失败")
+		return
+	}
+	thumbnailKey = key + ".thumbnail-v1.jpg"
+	if err := s.storage.Save(thumbnailKey, bytes.NewReader(encoded.Bytes())); err == nil {
+		result, err := s.db.Exec("UPDATE assets SET thumbnail_key=$1 WHERE id=$2 AND user_id=$3 AND storage_key=$4", thumbnailKey, id, uid, key)
+		if err == nil {
+			if count, _ := result.RowsAffected(); count == 0 {
+				_ = s.storage.Delete(thumbnailKey)
+			}
+		}
+	}
 	w.Header().Set("Content-Type", "image/jpeg")
-	w.Header().Set("Cache-Control", "private, max-age=3600")
-	_ = jpeg.Encode(w, thumb, &jpeg.Options{Quality: 85})
+	w.Header().Set("Cache-Control", "private, max-age=300")
+	_, _ = w.Write(encoded.Bytes())
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { loadStoredImage } from '@/lib/library'
 import { X } from 'lucide-react'
 import { apiBaseUrl, deleteGenerationTask, getAccessToken, readApiError } from '@/lib/api'
 import { analyzeClothing, clothingStyles, defaultClothingCounts, makeClothingPlan, type ClothingPlanDefaults } from '@/lib/clothing'
@@ -181,11 +182,8 @@ export function ClothingWorkbench({ initialModel, initialAspectRatio, initialRes
     })
   }
 
-  async function imageFile(path: string, name: string) {
-    const response = await fetch(path.startsWith('/') ? `${apiBaseUrl}${path}` : path, { headers: { Authorization: `Bearer ${getAccessToken()}` } })
-    if (!response.ok) throw new Error(await readApiError(response, '素材读取失败'))
-    const blob = await response.blob()
-    return new File([blob], `${name}.${blob.type.includes('jpeg') ? 'jpg' : blob.type.includes('webp') ? 'webp' : 'png'}`, { type: blob.type || 'image/png' })
+  async function imageFile(path: string, _name: string) {
+    return loadStoredImage(path)
   }
   async function loadHistory(record: HistoryTask, regenerate = false) {
     if (regenerate && (isSubmitting || isGenerating)) { setNotice({ kind: 'error', message: '当前任务生成中，请完成后再重新生成' }); return }

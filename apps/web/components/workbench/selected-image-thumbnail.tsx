@@ -1,7 +1,11 @@
 'use client'
 
+import { isStoredImage, type CreationImage } from '@/lib/creation-images'
+
 import { ArrowLeft, ArrowRight, RefreshCw, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useProtectedImageUrl } from '@/components/authenticated-image'
+import { ImageLightbox } from './image-lightbox'
 import { createPortal } from 'react-dom'
 
 // 同一个 File 复用同一个对象 URL：排序导致的重挂载不会让缩略图闪一下重新加载
@@ -16,7 +20,7 @@ function previewUrlFor(file: File) {
 }
 
 interface SelectedImageThumbnailProps {
-  file: File
+  file: CreationImage
   label: string
   index: number
   total: number
@@ -33,7 +37,10 @@ export function SelectedImageThumbnail({
   file, label, index, total, isDragging,
   onRemove, onReplace, onPointerDown, onMove,
 }: SelectedImageThumbnailProps) {
-  const [preview, setPreview] = useState('')
+  const [localPreview, setLocalPreview] = useState('')
+  const asset = isStoredImage(file) ? file : null
+  const protectedPreview = useProtectedImageUrl(asset?.thumbnailPath ?? '', asset?.assetId)
+  const preview = asset ? protectedPreview.source : localPreview
   const [isLoaded, setIsLoaded] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -42,7 +49,7 @@ export function SelectedImageThumbnail({
 
   useEffect(() => {
     setIsLoaded(false)
-    setPreview(previewUrlFor(file))
+    setLocalPreview(isStoredImage(file) ? '' : previewUrlFor(file))
   }, [file])
 
   useEffect(() => {
@@ -101,7 +108,7 @@ export function SelectedImageThumbnail({
             {!isLoaded && <span className="thumb-skeleton" aria-hidden="true" />}
             <img ref={imageRef} src={preview} alt={`${label}：${file.name}`} draggable={false} onLoad={() => setIsLoaded(true)} />
           </button>
-        ) : <span className="thumb-skeleton" aria-hidden="true" />}
+        ) : asset && protectedPreview.state === 'failed' ? <button className="thumb-preview" type="button" aria-label={`重新加载${label}`} onClick={protectedPreview.retry}><RefreshCw size={16} /></button> : <span className="thumb-skeleton" aria-hidden="true" />}
         <span className="thumb-label">{label}</span>
 
         <div className="thumb-tools">
@@ -148,7 +155,8 @@ export function SelectedImageThumbnail({
           }}
         />
       </div>
-      {expanded && preview && createPortal(
+      {expanded && asset && <ImageLightbox path={asset.contentPath} alt={`${label}：${file.name}`} filename={file.name} onClose={() => setExpanded(false)} />}
+      {expanded && !asset && preview && createPortal(
         <div className="image-lightbox" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setExpanded(false) }}>
           <div className="image-lightbox-content" role="dialog" aria-modal="true" aria-label={`${label}图片预览`} ref={dialogRef}>
             <button type="button" aria-label="关闭图片预览" title="关闭" autoFocus onClick={() => setExpanded(false)}><X size={20} /></button>

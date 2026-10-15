@@ -1,5 +1,7 @@
 'use client'
 
+import type { CreationImage } from '@/lib/creation-images'
+
 import { Shirt, UserRound } from 'lucide-react'
 import type { ClothingMode, ClothingStyle } from '@/lib/contracts'
 import { clothingProductModules, clothingStyles } from '@/lib/clothing'
@@ -13,9 +15,9 @@ export interface ClothingSettingsValue {
   style: ClothingStyle
   counts: Record<string, number>
   modelCount: number
-  garments: File[]
-  models: File[]
-  scenes: File[]
+  garments: CreationImage[]
+  models: CreationImage[]
+  scenes: CreationImage[]
   requirements: string
   platform: string
   outputLanguage: string

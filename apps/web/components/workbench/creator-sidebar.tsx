@@ -1,5 +1,7 @@
 'use client'
 
+import { isStoredImage, sameCreationImage, type CreationImage } from '@/lib/creation-images'
+
 import { ChevronDown, ChevronUp, Loader2, RotateCcw, ScanText, SlidersHorizontal, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { usePromptReverse } from '@/components/prompt-reverse-provider'
@@ -38,8 +40,8 @@ interface CreatorSidebarProps {
   task: CommerceTaskType
   title: string
   requirementsPlaceholder: string
-  productFiles: File[]
-  referenceFiles: File[]
+  productFiles: CreationImage[]
+  referenceFiles: CreationImage[]
   prompt: string
   requirements: string
   platform: string
@@ -66,8 +68,8 @@ interface CreatorSidebarProps {
   isSubmitting: boolean
   isGenerating: boolean
   generationStatus: string | null
-  onSetProductFiles: (files: File[]) => void
-  onSetReferenceFiles: (files: File[]) => void
+  onSetProductFiles: (files: CreationImage[]) => void
+  onSetReferenceFiles: (files: CreationImage[]) => void
   onSetPrompt: (prompt: string) => void
   onSetRequirements: (requirements: string) => void
   onSetPlatform: (platform: string) => void
@@ -126,7 +128,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
 
   const isGeneral = mode === 'general'
   const { openReverse } = usePromptReverse()
-  const [reverseUndo, setReverseUndo] = useState<{ before: string; after: string; beforeFiles: File[]; afterFiles: File[] } | null>(null)
+  const [reverseUndo, setReverseUndo] = useState<{ before: string; after: string; beforeFiles: CreationImage[]; afterFiles: CreationImage[] } | null>(null)
   useEffect(() => { if (reverseUndo && (props.prompt !== reverseUndo.after || props.referenceFiles !== reverseUndo.afterFiles)) setReverseUndo(null) }, [props.prompt, props.referenceFiles, reverseUndo])
   const configToggleRef = useRef<HTMLButtonElement>(null)
   const wasCollapsed = useRef(Boolean(props.generalConfigCollapsed))
@@ -194,7 +196,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   async function runEnhance(target: 'prompt' | 'requirements', text: string) {
     if (!promptEnhanceEnabled) throw new Error('请先在设置中配置提示词 AI 服务')
     if (!props.promptVision && !text.trim()) throw new Error('当前提示词模型不支持图片识别，请先输入大概的生图内容，再提交给 AI 优化提示词。')
-    const files = props.promptVision ? await downscaleImageFiles(enhanceImages.slice(0, 4)) : []
+    const files = props.promptVision ? await Promise.all(enhanceImages.slice(0, 4).map(async image => isStoredImage(image) ? image : (await downscaleImageFiles([image]))[0] ?? image)) : []
     const result = await enhancePrompt({
       target,
       text,
@@ -258,8 +260,8 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 enhanceLabel="AI 优化"
                 actions={<>
                   {reverseUndo && <button type="button" className="prompt-undo" onClick={() => { onSetPrompt(reverseUndo.before); onSetReferenceFiles(reverseUndo.beforeFiles); setReverseUndo(null) }}><RotateCcw size={13} aria-hidden="true" />撤销反推</button>}
-                  <button type="button" className="prompt-enhance" onClick={() => openReverse({ files: referenceFiles, currentPrompt: prompt, onApply: ({ text, referenceFile, action }) => {
-                    const alreadyIncluded = referenceFile && referenceFiles.includes(referenceFile)
+                  <button type="button" className="prompt-enhance" onClick={() => openReverse({ ...(referenceFiles[0] && isStoredImage(referenceFiles[0]) ? { assetId: referenceFiles[0].assetId, imageName: referenceFiles[0].name } : { files: referenceFiles.filter((image): image is File => !isStoredImage(image)) }), currentPrompt: prompt, onApply: ({ text, referenceFile, action }) => {
+                    const alreadyIncluded = referenceFile && referenceFiles.some(image => sameCreationImage(image, referenceFile))
                     if (referenceFile && !alreadyIncluded && referenceFiles.length >= maxFiles) throw new Error('参考图已达上限，请先移除一张再应用')
                     const nextPrompt = applyReverseText(prompt, text, action)
                     if (nextPrompt.length > 10000) throw new Error('追加后的描述超过 10000 字，请选择替换或精简后再应用')

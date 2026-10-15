@@ -243,7 +243,7 @@ func (s *server) promptReverseTasks(w http.ResponseWriter, r *http.Request) {
 	versionHash := sha256.Sum256([]byte(system))
 	version := hex.EncodeToString(versionHash[:8])
 	id := randomID()
-	key := filepath.Join(".reverse", id+extensionForMime(mime))
+	key := s.newStorageKey(filepath.Join(".reverse", id+extensionForMime(mime)))
 	if err := s.storage.Save(key, bytes.NewReader(data)); err != nil {
 		s.error(w, 500, "REVERSE_IMAGE_STORAGE_ERROR", "图片暂存失败，请重试")
 		return
@@ -259,7 +259,7 @@ func (s *server) promptReverseTasks(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 	if len(analysisData) > 0 {
-		analysisKey = filepath.Join(".reverse", id+"-analysis"+extensionForMime(http.DetectContentType(analysisData)))
+		analysisKey = s.newStorageKey(filepath.Join(".reverse", id+"-analysis"+extensionForMime(http.DetectContentType(analysisData))))
 		if err := s.storage.Save(analysisKey, bytes.NewReader(analysisData)); err != nil {
 			s.error(w, 500, "REVERSE_IMAGE_STORAGE_ERROR", "分析图片暂存失败")
 			return
