@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useProtectedImageUrl } from '@/components/authenticated-image'
 import { ImageLightbox } from './image-lightbox'
 import { createPortal } from 'react-dom'
+import { AssetPicker } from './asset-picker'
 
 // 同一个 File 复用同一个对象 URL：排序导致的重挂载不会让缩略图闪一下重新加载
 const previewUrls = new WeakMap<File, string>()
@@ -26,7 +27,7 @@ interface SelectedImageThumbnailProps {
   total: number
   isDragging: boolean
   onRemove: () => void
-  onReplace: (file: File) => void
+  onReplace: (file: CreationImage) => void
   /** 按住缩略图开始拖动排序（指针事件，桌面与触控笔都可用） */
   onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void
   onMove: (from: number, to: number) => void
@@ -52,7 +53,7 @@ export function SelectedImageThumbnail({
   const [expanded, setExpanded] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
-  const replaceRef = useRef<HTMLInputElement>(null)
+  const [replacing, setReplacing] = useState(false)
 
   useEffect(() => {
     setIsLoaded(false)
@@ -155,7 +156,7 @@ export function SelectedImageThumbnail({
             type="button"
             aria-label={`替换${label}`}
             title="替换这张图"
-            onClick={() => replaceRef.current?.click()}
+            onClick={() => setReplacing(true)}
           >
             <RefreshCw size={12} />
           </button>
@@ -179,20 +180,17 @@ export function SelectedImageThumbnail({
         >
           <X size={13} />
         </button>
-        <input
-          ref={replaceRef}
-          className="thumb-replace-input"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          aria-label={`替换${label}`}
-          tabIndex={-1}
-          onChange={(event) => {
-            const next = event.target.files?.[0]
-            if (next) onReplace(next)
-            event.target.value = ''
+      </div>
+      {replacing && (
+        <AssetPicker
+          limit={1}
+          excludedIds={[]}
+          onClose={() => setReplacing(false)}
+          onSelect={(images) => {
+            if (images[0]) onReplace(images[0])
           }}
         />
-      </div>
+      )}
       {expanded && asset && (
         <ImageLightbox
           path={asset.contentPath}

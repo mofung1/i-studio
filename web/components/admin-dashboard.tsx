@@ -10,6 +10,7 @@ import type {
   AdminOperations as Operations,
   AdminTask as Task,
   AdminAudit as Audit,
+  AdminTaskPage,
 } from '@/lib/admin'
 import { AdminTable as Table } from './admin/table'
 import { adminRequest as request } from '@/lib/admin'
@@ -20,6 +21,8 @@ import { AdminAuditTable } from './admin/audit-table'
 import { AdminOperationsForm } from './admin/operations-form'
 import { AdminModelEditor } from './admin/model-editor'
 import { AdminBalanceEditor } from './admin/balance-editor'
+import { AdminPagination } from './admin/pagination'
+import { AdminStatusBadge } from './admin/status-badge'
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : '请求失败，请重试')
 
@@ -33,6 +36,15 @@ export function AdminDashboard({
   const [endpoints, setEndpoints] = useState<AIEndpoint[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [taskPage, setTaskPage] = useState(1)
+  const [taskPageSize, setTaskPageSize] = useState(20)
+  const [taskRevision, setTaskRevision] = useState(0)
+  const [taskPagination, setTaskPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 1,
+  })
   const [audit, setAudit] = useState<Audit[]>([])
   const [overview, setOverview] = useState<Record<string, number>>({})
   const [ops, setOps] = useState<Operations | null>(null)
@@ -79,14 +91,20 @@ export function AdminDashboard({
       }
     }
     if (view === 'tasks') {
-      const data = await request<{ tasks: Task[] }>('tasks')
-      if (current()) setTasks(data.tasks)
+      const data = await request<AdminTaskPage>(
+        `tasks?${new URLSearchParams({ page: String(taskPage), pageSize: String(taskPageSize) })}`,
+      )
+      if (current()) {
+        setTasks(data.tasks)
+        setTaskPagination(data)
+        if (data.page !== taskPage) setTaskPage(data.page)
+      }
     }
     if (view === 'audit') {
       const data = await request<{ audit: Audit[] }>('audit')
       if (current()) setAudit(data.audit)
     }
-  }, [view, query])
+  }, [view, query, taskPage, taskPageSize, taskRevision])
   useEffect(() => {
     let current = true
     setLoading(true)
@@ -252,7 +270,27 @@ export function AdminDashboard({
           />
         </form>
       )}
-      {loading ? (
+      {view === 'tasks' ? (
+        <>
+          <AdminTaskTable tasks={tasks} loading={loading} />
+          <AdminPagination
+            {...taskPagination}
+            pageSize={taskPageSize}
+            loading={loading || busy}
+            onPageChange={(page) => {
+              if (page === taskPagination.page) return
+              setLoading(true)
+              setTaskPage(page)
+              setTaskRevision((value) => value + 1)
+            }}
+            onPageSizeChange={(size) => {
+              setLoading(true)
+              setTaskPage(1)
+              setTaskPageSize(size)
+            }}
+          />
+        </>
+      ) : loading ? (
         <p role="status">正在读取…</p>
       ) : (
         <>
@@ -277,7 +315,11 @@ export function AdminDashboard({
                         {formatCredits(member.available)} {unit}
                       </td>
                       <td>{formatCredits(member.held)}</td>
-                      <td>{member.status === 'active' ? '启用' : '停用'}</td>
+                      <td>
+                        <AdminStatusBadge tone={member.status === 'active' ? 'success' : 'danger'}>
+                          {member.status === 'active' ? '已启用' : '已停用'}
+                        </AdminStatusBadge>
+                      </td>
                       <td>
                         <div className="ops-row-actions">
                           <button
@@ -294,7 +336,8 @@ export function AdminDashboard({
                             调整余额
                           </button>
                           <button
-                            className="settings-command"
+                            className="settings-command admin-action"
+                            data-tone={member.status === 'active' ? 'danger' : 'success'}
                             disabled={busy}
                             onClick={() => {
                               if (
@@ -330,7 +373,6 @@ export function AdminDashboard({
               onSubmit={saveOperations}
             />
           )}
-          {view === 'tasks' && <AdminTaskTable tasks={tasks} />}
           {view === 'audit' && <AdminAuditTable audit={audit} />}
         </>
       )}

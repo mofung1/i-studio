@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
   Check,
+  Globe,
+  Images,
   LoaderCircle,
   Pencil,
   Plus,
@@ -19,6 +21,7 @@ import { PromptTemplateBrowser } from '@/components/prompt-template-browser'
 import { promptGroupLabel } from '@/lib/prompt-groups'
 import { SiteSettingsPanel } from '@/components/site-settings-panel'
 import { PromptReverseSettingsPanel } from '@/components/prompt-reverse-settings-panel'
+import { AdminStatusBadge } from '@/components/admin/status-badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import { getAdminAccessToken } from '@/lib/api'
 import {
@@ -146,7 +149,7 @@ export default function AISettingsPage() {
   }
   async function saveEndpoint(event: React.FormEvent) {
     event.preventDefault()
-    if (!editing) return
+    if (!editing || busy) return
     setBusy('save')
     setMessage('')
     try {
@@ -234,6 +237,10 @@ export default function AISettingsPage() {
   return (
     <>
       <main className="ai-settings">
+        <header className="admin-settings-heading">
+          <h1>AI 与网站配置</h1>
+          <p>统一管理平台使用的模型、系统提示词与网站品牌。</p>
+        </header>
         {!loggedIn ? (
           <p>
             请先<Link href="/admin/login?next=%2Fadmin%2Fsettings">登录</Link>后管理网站与 AI 配置。
@@ -274,7 +281,9 @@ export default function AISettingsPage() {
                 onClick={() => switchView('services')}
               >
                 <Settings2 size={16} />
-                AI 服务
+                <span>
+                  AI 服务<small>连接模型与接口</small>
+                </span>
               </button>
               {canManage && (
                 <>
@@ -287,7 +296,9 @@ export default function AISettingsPage() {
                     onClick={() => switchView('prompts')}
                   >
                     <Pencil size={16} />
-                    Prompt 配置
+                    <span>
+                      系统提示词<small>按用途维护创作指令</small>
+                    </span>
                   </button>
                   <button
                     id="reverse-tab"
@@ -298,7 +309,9 @@ export default function AISettingsPage() {
                     onClick={() => switchView('reverse')}
                   >
                     <ScanText size={16} aria-hidden="true" />
-                    图片反推
+                    <span>
+                      图片反推<small>选择识图服务与偏好</small>
+                    </span>
                   </button>
                   <button
                     id="site-tab"
@@ -308,8 +321,10 @@ export default function AISettingsPage() {
                     aria-controls="site-panel"
                     onClick={() => switchView('site')}
                   >
-                    <Settings2 size={16} />
-                    网站配置
+                    <Globe size={16} />
+                    <span>
+                      网站配置<small>名称与 Logo</small>
+                    </span>
                   </button>
                 </>
               )}
@@ -329,11 +344,12 @@ export default function AISettingsPage() {
             ) : view === 'reverse' ? (
               <PromptReverseSettingsPanel
                 endpoints={endpoints}
+                templates={templates}
                 onDirtyChange={setSiteDirty}
                 onSavingChange={setReverseSaving}
                 onOpenServices={() => switchView('services')}
-                onOpenTemplates={() => {
-                  if (switchView('prompts')) selectTemplate('reverse.scene')
+                onOpenTemplates={(key) => {
+                  if (switchView('prompts')) selectTemplate(key)
                 }}
               />
             ) : view === 'services' ? (
@@ -341,10 +357,23 @@ export default function AISettingsPage() {
                 {(['prompt', 'image'] as const).map((purpose) => (
                   <section className="endpoint-section" key={purpose}>
                     <div className="endpoint-section-head">
-                      <h2>{purpose === 'prompt' ? 'Prompt AI' : 'Image AI'}</h2>
+                      <div className="admin-service-heading">
+                        <span className="admin-service-icon" aria-hidden="true">
+                          {purpose === 'prompt' ? <ScanText size={20} /> : <Images size={20} />}
+                        </span>
+                        <div>
+                          <h2>{purpose === 'prompt' ? '提示词与识图服务' : '图片生成服务'}</h2>
+                          <p>
+                            {purpose === 'prompt'
+                              ? '用于提示词优化、服装分析和图片反推；反推需支持识图。'
+                              : '连接生图接口，前台展示名称与积分消耗在「模型与定价」中设置。'}
+                          </p>
+                        </div>
+                      </div>
                       {canManage && (
                         <button
-                          className="settings-command"
+                          className="settings-command admin-action"
+                          data-tone="success"
                           onClick={() => edit(undefined, purpose)}
                         >
                           <Plus size={16} />
@@ -366,7 +395,7 @@ export default function AISettingsPage() {
                                 <div className="endpoint-name">
                                   <h3>{endpoint.name}</h3>
                                   {endpoint.isDefault && (
-                                    <span>
+                                    <span className="admin-default-badge">
                                       <Check size={12} />
                                       默认
                                     </span>
@@ -386,7 +415,12 @@ export default function AISettingsPage() {
                                         )
                                       }
                                     />
-                                    启用
+                                    <span
+                                      className="admin-switch-label"
+                                      data-tone={endpoint.enabled ? 'success' : 'danger'}
+                                    >
+                                      {endpoint.enabled ? '已启用' : '已停用'}
+                                    </span>
                                   </label>
                                 </div>
                                 <div className="endpoint-meta">
@@ -394,10 +428,13 @@ export default function AISettingsPage() {
                                   <span aria-hidden="true">·</span>
                                   <span>{endpoint.model}</span>
                                   {purpose === 'prompt' && (
-                                    <span className="endpoint-capability">
-                                      Vision {endpoint.capabilities.vision ? '支持' : '不支持'}
-                                    </span>
+                                    <AdminStatusBadge
+                                      tone={endpoint.capabilities.vision ? 'success' : 'neutral'}
+                                    >
+                                      {endpoint.capabilities.vision ? '已启用识图' : '仅文本'}
+                                    </AdminStatusBadge>
                                   )}
+                                  <span>{endpoint.timeoutSeconds} 秒超时</span>
                                 </div>
                                 {canManage && (
                                   <p className="endpoint-url">
@@ -438,13 +475,14 @@ export default function AISettingsPage() {
                                     </button>
                                   )}
                                   <button
-                                    className="settings-icon endpoint-edit-action"
+                                    className="endpoint-edit-action"
                                     title="编辑"
                                     aria-label={`编辑 ${endpoint.name}`}
                                     disabled={!!busy}
                                     onClick={() => edit(endpoint)}
                                   >
                                     <Pencil size={17} />
+                                    编辑
                                   </button>
                                   <button
                                     className="endpoint-test-action"
@@ -465,7 +503,8 @@ export default function AISettingsPage() {
                                     测试连接
                                   </button>
                                   <button
-                                    className="settings-icon endpoint-delete-action"
+                                    className="settings-icon endpoint-delete-action admin-action"
+                                    data-tone="danger"
                                     title="删除"
                                     aria-label={`删除 ${endpoint.name}`}
                                     disabled={!!busy}
@@ -497,7 +536,7 @@ export default function AISettingsPage() {
                 <div className="prompt-settings-intro">
                   <h2>内置提示词</h2>
                   <p>
-                    按用途选择并修改，保存后用于后续创作。所有账号共享此配置，停用后不附加该段指令。
+                    按用途分组管理，所有账号共享此配置。停用一般模板后不再附加指令；停用反推模板后，对应分析模式不可用。
                   </p>
                 </div>
                 <PromptTemplateBrowser
@@ -522,7 +561,12 @@ export default function AISettingsPage() {
                         disabled={!!busy}
                         onChange={(event) => setPromptEnabled(event.target.checked)}
                       />
-                      启用
+                      <span
+                        className="admin-switch-label"
+                        data-tone={promptEnabled ? 'success' : 'danger'}
+                      >
+                        {promptEnabled ? '已启用' : '已停用'}
+                      </span>
                     </label>
                   </div>
                   {activeTemplate?.description && (
@@ -609,7 +653,7 @@ export default function AISettingsPage() {
                 {message}
               </p>
             )}
-            <fieldset className="endpoint-form-group">
+            <fieldset className="endpoint-form-group" disabled={!!busy}>
               <legend>服务连接</legend>
               <label className="settings-field">
                 <span>名称</span>
@@ -625,6 +669,7 @@ export default function AISettingsPage() {
                 <span>协议</span>
                 <Select
                   value={editing.input.protocol}
+                  disabled={!!busy}
                   onValueChange={(value) => field({ protocol: value as AIProtocol })}
                 >
                   <SelectTrigger size="lg" className="settings-select" aria-label="协议">
@@ -668,7 +713,7 @@ export default function AISettingsPage() {
                 />
               </label>
             </fieldset>
-            <fieldset className="endpoint-form-group">
+            <fieldset className="endpoint-form-group" disabled={!!busy}>
               <legend>模型参数</legend>
               <div className="endpoint-form-grid">
                 <label className="settings-field">
@@ -699,6 +744,7 @@ export default function AISettingsPage() {
                   <input
                     type="checkbox"
                     checked={!!editing.input.capabilities.vision}
+                    disabled={!!busy}
                     onChange={(e) =>
                       field({
                         capabilities: { ...editing.input.capabilities, vision: e.target.checked },
@@ -712,6 +758,7 @@ export default function AISettingsPage() {
                 <input
                   type="checkbox"
                   checked={editing.input.enabled}
+                  disabled={!!busy}
                   onChange={(e) =>
                     field({
                       enabled: e.target.checked,
@@ -724,13 +771,18 @@ export default function AISettingsPage() {
               <label>
                 <input
                   type="checkbox"
-                  disabled={!editing.input.enabled}
+                  disabled={!!busy || !editing.input.enabled}
                   checked={editing.input.isDefault}
                   onChange={(e) => field({ isDefault: e.target.checked })}
                 />
                 默认服务
               </label>
             </div>
+            {editing.input.purpose === 'prompt' && (
+              <p className="admin-field-hint">
+                请先确认模型支持图片输入，再勾选「支持图片识别」。图片反推可单独指定此服务，无需设为默认。
+              </p>
+            )}
             <div className="settings-form-actions">
               <button
                 type="button"

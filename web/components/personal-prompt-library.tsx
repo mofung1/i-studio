@@ -22,6 +22,7 @@ import { PersonalPromptApply } from './personal-prompt-apply'
 import { libraryRequest, mergeLibraryPage } from '@/lib/library'
 import { copyText } from '@/lib/clipboard'
 import { getAccessToken } from '@/lib/api'
+import { AccountBoundary } from './account-access'
 import {
   personalWorkbenchURL,
   presetDescription,
@@ -29,6 +30,19 @@ import {
 } from '@/lib/personal-prompts'
 
 export function PersonalPromptLibrary({ kind }: { kind: 'prompt' | 'preset' }) {
+  return (
+    <AccountBoundary
+      section="prompts"
+      title={kind === 'preset' ? '创作预设' : '我的提示词'}
+      description="保存常用提示词与创作配置，建立只属于自己的创作库。"
+      returnTo={`/prompts?kind=${kind}`}
+    >
+      <PersonalPromptLibraryContent kind={kind} />
+    </AccountBoundary>
+  )
+}
+
+function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
   const router = useRouter()
   const [items, setItems] = useState<PersonalPrompt[]>([])
   const [categories, setCategories] = useState<string[]>([])

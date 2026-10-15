@@ -69,12 +69,17 @@ function SessionProvider({ children, admin = false }: { children: ReactNode; adm
       signal: pending.signal,
     })
       .then(async (response) => {
+        if (response.status === 401 || response.status === 403) return { ...empty }
         if (!response.ok) throw new Error('账户暂时无法读取，请重试')
         return response.json() as Promise<AccountState>
       })
       .then((data) => {
         if (!current()) return
         setAccount(data.authenticated ? { ...empty, ...data } : empty)
+        if (!data.authenticated) {
+          window.localStorage.removeItem(admin ? 'istudio-admin-token' : 'istudio-access-token')
+          lastToken.current = ''
+        }
         setError('')
       })
       .catch((error: Error) => {

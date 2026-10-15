@@ -277,7 +277,8 @@ export function InspirationCategoryManager() {
                   </button>
                   <button
                     type="button"
-                    className="settings-command"
+                    className="settings-command admin-action"
+                    data-tone="danger"
                     aria-label={`删除分类 ${row.category}`}
                     disabled={!!busy}
                     onClick={() => startDelete(row)}
@@ -355,7 +356,8 @@ export function InspirationCategoryManager() {
               </button>
               <button
                 type="button"
-                className="settings-primary"
+                className="settings-primary admin-action"
+                data-tone="danger"
                 disabled={!!busy || (deleting.count > 0 && !moveToId)}
                 onClick={() => void deleteCategory()}
               >

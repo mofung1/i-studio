@@ -6,17 +6,13 @@ import {
   Check,
   CircleAlert,
   LoaderCircle,
-  Pencil,
   RotateCcw,
   Save,
   ScanText,
 } from 'lucide-react'
-import {
-  reverseRequest,
-  type ReverseConfiguration,
-  type ReverseSettings,
-} from '@/lib/prompt-reverse'
-import type { AIEndpoint } from '@/lib/ai-settings'
+import type { ReverseConfiguration, ReverseSettings } from '@/lib/prompt-reverse'
+import { settingsRequest, type AIEndpoint, type PromptTemplate } from '@/lib/ai-settings'
+import { AdminStatusBadge } from './admin/status-badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
 
 type SettingsDraft = Omit<ReverseSettings, 'timeoutSeconds' | 'retentionHours'> & {
@@ -46,16 +42,18 @@ const toDraft = (settings: ReverseSettings): SettingsDraft => ({
 
 export function PromptReverseSettingsPanel({
   endpoints,
+  templates,
   onDirtyChange,
   onSavingChange,
   onOpenServices,
   onOpenTemplates,
 }: {
   endpoints: AIEndpoint[]
+  templates: PromptTemplate[]
   onDirtyChange: (dirty: boolean) => void
   onSavingChange: (saving: boolean) => void
   onOpenServices: () => void
-  onOpenTemplates: () => void
+  onOpenTemplates: (key: string) => void
 }) {
   const [draft, setDraft] = useState<SettingsDraft | null>(null)
   const [original, setOriginal] = useState<SettingsDraft | null>(null)
@@ -97,10 +95,11 @@ export function PromptReverseSettingsPanel({
   useEffect(() => {
     const controller = new AbortController()
     setError('')
-    reverseRequest<ReverseConfiguration>(
+    settingsRequest<ReverseConfiguration>(
       'prompt-reverse-settings',
-      { signal: controller.signal },
-      '反推配置读取失败，请重新读取',
+      'GET',
+      undefined,
+      controller.signal,
     )
       .then((data) => {
         if (controller.signal.aborted) return
@@ -157,14 +156,10 @@ export function PromptReverseSettingsPanel({
     setError('')
     setNotice('')
     try {
-      const data = await reverseRequest<ReverseConfiguration>(
+      const data = await settingsRequest<ReverseConfiguration>(
         'prompt-reverse-settings',
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(settings),
-        },
-        '配置保存失败，当前修改已保留，请重试',
+        'PUT',
+        settings,
       )
       setConfiguration(data)
       setDraft(toDraft(data.settings))
@@ -191,8 +186,25 @@ export function PromptReverseSettingsPanel({
       className="reverse-settings"
     >
       <header className="reverse-settings-heading">
-        <h2>图片反推配置</h2>
-        <span className="reverse-settings-scope">用于新的分析任务</span>
+        <div>
+          <h2>图片反推</h2>
+          <p>从参考图提取双语提示词，识图接口与密钥在 AI 服务中统一管理。</p>
+        </div>
+        {draft && (
+          <AdminStatusBadge
+            tone={
+              serviceReady && !configurationReason && draft.endpointId === original?.endpointId
+                ? 'success'
+                : 'warning'
+            }
+          >
+            {serviceReady && !configurationReason
+              ? draft.endpointId !== original?.endpointId
+                ? '服务待保存'
+                : '服务已配置'
+              : '服务待配置'}
+          </AdminStatusBadge>
+        )}
       </header>
       {!draft ? (
         <div className="reverse-settings-load" aria-live="polite">
@@ -230,7 +242,7 @@ export function PromptReverseSettingsPanel({
           <section className="reverse-config-section" aria-labelledby="reverse-service-title">
             <div className="reverse-config-label">
               <h3 id="reverse-service-title">识图服务</h3>
-              <p>使用支持图片识别的 Prompt 服务分析参考图。</p>
+              <p>选择实际支持图片输入的多模态模型，与生图服务分别配置。</p>
             </div>
             <div className="reverse-config-controls">
               <Select
@@ -283,7 +295,12 @@ export function PromptReverseSettingsPanel({
                 </div>
               )}
               <div className="reverse-service-help" id="reverse-service-help">
-                <span>服务列表仅显示已启用且支持识图的模型。</span>
+                <span>
+                  {draft.endpointId
+                    ? '固定使用所选服务，不受默认 Prompt 服务切换影响。'
+                    : '默认 Prompt 服务也必须支持识图；更换默认服务后这里会同步跟随。'}
+                  列表仅显示已启用并勾选「支持图片识别」的服务。
+                </span>
                 <button
                   type="button"
                   className="reverse-settings-link"
@@ -294,6 +311,9 @@ export function PromptReverseSettingsPanel({
                   <ArrowUpRight size={14} aria-hidden="true" />
                 </button>
               </div>
+              <p className="reverse-config-help">
+                勾选识图能力不会改变模型本身的能力，请确认供应商支持图片输入。配置状态不代表实际接口连通性。
+              </p>
             </div>
           </section>
 
@@ -343,7 +363,7 @@ export function PromptReverseSettingsPanel({
                 <div className="reverse-number-row">
                   <div>
                     <label htmlFor="reverse-timeout">分析超时</label>
-                    <p id="reverse-timeout-help">15–600 秒，独立于生图等待时间。</p>
+                    <p id="reverse-timeout-help">15–600 秒，反推时覆盖服务通道超时，不影响生图。</p>
                   </div>
                   <div className="reverse-number-control">
                     <input
@@ -424,29 +444,50 @@ export function PromptReverseSettingsPanel({
             </div>
           </section>
 
-          <div className="reverse-template-entry">
-            <Pencil size={18} aria-hidden="true" />
-            <div>
-              <h3>反推提示词</h3>
-              <p>自定义「还原画面」与「只提取风格」的分析指令。</p>
+          <section className="reverse-config-section" aria-labelledby="reverse-templates-title">
+            <div className="reverse-config-label">
+              <h3 id="reverse-templates-title">反推提示词</h3>
+              <p>两种模式独立配置。模板停用后，对应模式无法发起分析。</p>
             </div>
-            <button
-              type="button"
-              className="settings-command"
-              disabled={saving}
-              onClick={onOpenTemplates}
-            >
-              编辑提示词
-              <ArrowUpRight size={14} aria-hidden="true" />
-            </button>
-          </div>
+            <div className="reverse-template-options">
+              {[
+                { key: 'reverse.scene', name: '还原画面', description: '主体、场景、构图与光线' },
+                { key: 'reverse.style', name: '只提取风格', description: '色彩、材质与视觉表达' },
+              ].map((mode) => {
+                const enabled = templates.some((item) => item.key === mode.key && item.enabled)
+                return (
+                  <button
+                    key={mode.key}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => onOpenTemplates(mode.key)}
+                    aria-label={`编辑${mode.name}提示词`}
+                  >
+                    <strong>
+                      {mode.name}
+                      <ArrowUpRight size={15} aria-hidden="true" />
+                    </strong>
+                    <span>{mode.description}</span>
+                    <AdminStatusBadge tone={enabled ? 'success' : 'danger'}>
+                      {enabled ? '已启用' : '已停用'}
+                    </AdminStatusBadge>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
           {error && (
             <p className="reverse-settings-error settings-error" role="alert">
               {error}
             </p>
           )}
           <footer className="reverse-config-footer">
-            <div className="reverse-config-state" role="status" aria-live="polite">
+            <div
+              className="reverse-config-state"
+              data-tone={dirty ? 'warning' : 'success'}
+              role="status"
+              aria-live="polite"
+            >
               {notice ? (
                 <>
                   <Check size={15} aria-hidden="true" />
@@ -458,7 +499,7 @@ export function PromptReverseSettingsPanel({
                   <span>有未保存的更改</span>
                 </>
               ) : (
-                <span>配置已同步</span>
+                <span>配置已同步 · 仅对新建分析生效</span>
               )}
             </div>
             <div className="reverse-config-actions">
@@ -467,13 +508,13 @@ export function PromptReverseSettingsPanel({
                 className="settings-command"
                 disabled={saving}
                 onClick={() => {
-                  setDraft(toDraft(recommendedSettings))
+                  setDraft(toDraft({ ...recommendedSettings, endpointId: draft.endpointId }))
                   setNotice('')
                   setError('')
                 }}
               >
                 <RotateCcw size={15} aria-hidden="true" />
-                恢复推荐配置
+                恢复推荐参数
               </button>
               <button type="submit" className="settings-primary" disabled={saving || !dirty}>
                 {saving ? (

@@ -48,7 +48,6 @@ export function ReferenceUploader({
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
   const uploaderRef = useRef<HTMLDivElement>(null)
   const stackToggleRef = useRef<HTMLButtonElement>(null)
   const listId = useId()
@@ -253,7 +252,7 @@ export function ReferenceUploader({
           className="reference-dropzone"
           aria-label={emptyTitle}
           title={acceptedHint}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => setPickerOpen(true)}
         >
           <span className="reference-dropzone-icon">
             <ImagePlus size={22} aria-hidden="true" />
@@ -312,7 +311,7 @@ export function ReferenceUploader({
                 style={
                   collapseAt ? ({ '--reference-index': files.length } as CSSProperties) : undefined
                 }
-                onClick={() => inputRef.current?.click()}
+                onClick={() => setPickerOpen(true)}
               >
                 <span className="add-thumb-icon">
                   {collapseAt ? (
@@ -370,23 +369,6 @@ export function ReferenceUploader({
           </p>
         </>
       )}
-      {!full && (
-        <div className="reference-source-actions">
-          <button type="button" onClick={() => inputRef.current?.click()}>
-            <Upload size={13} />
-            本地上传
-          </button>
-          <button
-            type="button"
-            aria-label="从我的素材选择"
-            title="从我的素材选择"
-            onClick={() => setPickerOpen(true)}
-          >
-            <ImagePlus size={13} />
-            {collapseAt ? '素材库' : '从我的素材选择'}
-          </button>
-        </div>
-      )}
       {pickerOpen && (
         <AssetPicker
           limit={Math.max(0, max - files.length)}
@@ -398,20 +380,6 @@ export function ReferenceUploader({
           }}
         />
       )}
-      <input
-        ref={inputRef}
-        className="reference-file-input"
-        type="file"
-        multiple={max > 1}
-        accept="image/jpeg,image/png,image/webp"
-        aria-label={emptyTitle}
-        tabIndex={-1}
-        hidden
-        onChange={(event) => {
-          accept(Array.from(event.target.files ?? []))
-          event.target.value = ''
-        }}
-      />
 
       {isDraggingOver && (
         <span className="reference-drop-overlay" aria-hidden="true">

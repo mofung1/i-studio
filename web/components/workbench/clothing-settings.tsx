@@ -79,7 +79,7 @@ export function ClothingSettings({
           onChange={(garments) => onChange({ garments })}
           labelFor={(index) => `服装 ${index + 1}`}
           emptyTitle="上传服装原图"
-          emptyHint="拖拽或点击上传"
+          emptyHint="拖入图片，或打开素材选择器"
           acceptedHint="JPG / PNG / WebP · 单张最多 10 MB"
         />
       </fieldset>

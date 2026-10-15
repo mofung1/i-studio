@@ -116,3 +116,23 @@ it('ignores an old account response after switching accounts or logging out', as
   await resolve(2, 'second', 7777)
   expect(container.querySelector('[data-web]')?.textContent).toBe('signed-out:0')
 })
+it.each([200, 401])(
+  'clears an expired frontend session without clearing the administrator token (%s)',
+  async (status) => {
+    localStorage.setItem('istudio-access-token', 'expired-web-token')
+    localStorage.setItem('istudio-admin-token', 'independent-admin-token')
+    await act(async () =>
+      root.render(
+        <AccountProvider>
+          <View />
+        </AccountProvider>,
+      ),
+    )
+    await act(async () =>
+      pending[0]!.resolve(new Response(JSON.stringify({ authenticated: false }), { status })),
+    )
+    expect(container.querySelector('[data-web]')?.textContent).toBe('signed-out:0')
+    expect(localStorage.getItem('istudio-access-token')).toBeNull()
+    expect(localStorage.getItem('istudio-admin-token')).toBe('independent-admin-token')
+  },
+)

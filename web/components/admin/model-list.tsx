@@ -6,6 +6,7 @@ import type { AdminModel as Model } from '@/lib/admin'
 import { AdminTable as Table } from './table'
 import Link from 'next/link'
 import { Pencil } from 'lucide-react'
+import { AdminStatusBadge } from './status-badge'
 export function AdminModelList({
   models,
   endpoints,
@@ -40,7 +41,9 @@ export function AdminModelList({
               </td>
               <td>{formatCredits(model.priceMinor)}</td>
               <td>
-                <span className="ops-badge">{model.enabled ? '已上架' : '未上架'}</span>
+                <AdminStatusBadge tone={model.enabled ? 'success' : 'danger'}>
+                  {model.enabled ? '已上架' : '未上架'}
+                </AdminStatusBadge>
               </td>
               <td>
                 <button className="settings-command" onClick={() => onEdit(model)}>

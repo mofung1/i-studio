@@ -1,7 +1,7 @@
 'use client'
 
 import { X } from 'lucide-react'
-import { type ReactNode, useRef } from 'react'
+import { type ReactNode, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useDialogFocus } from './use-dialog-focus'
 
@@ -13,6 +13,7 @@ interface InfoDialogProps {
   children?: ReactNode
   hideActions?: boolean
   portalContainer?: HTMLElement | null
+  footer?: ReactNode
 }
 
 /** 只读信息弹窗：样式与确认弹窗一致，底部只有一个「知道了」。 */
@@ -23,8 +24,10 @@ export function InfoDialog({
   children,
   hideActions = false,
   portalContainer,
+  footer,
 }: InfoDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
 
   useDialogFocus(dialogRef, onClose)
 
@@ -35,22 +38,31 @@ export function InfoDialog({
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()
       }}
+      onDrop={(event) => {
+        if (Array.from(event.dataTransfer.types).includes('Files')) event.preventDefault()
+        event.stopPropagation()
+      }}
+      onDragOver={(event) => {
+        if (Array.from(event.dataTransfer.types).includes('Files')) event.preventDefault()
+        event.stopPropagation()
+      }}
     >
       <div
         className="confirm-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="info-dialog-title"
+        aria-labelledby={titleId}
         ref={dialogRef}
       >
         <header className="confirm-dialog-head">
-          <h2 id="info-dialog-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button type="button" aria-label="关闭" title="关闭" onClick={onClose}>
             <X size={17} />
           </button>
         </header>
         {subtitle && <p className="confirm-dialog-note">{subtitle}</p>}
         {children}
+        {footer}
         {!hideActions && (
           <div className="confirm-dialog-actions">
             <button type="button" className="confirm-dialog-primary" onClick={onClose}>

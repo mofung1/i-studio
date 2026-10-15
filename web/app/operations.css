@@ -328,6 +328,69 @@
   margin: 0 4px;
   color: var(--foreground);
 }
+.ops-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--foreground-3);
+}
+.ops-pagination-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-right: auto;
+}
+.ops-pagination > .select-trigger {
+  width: 122px;
+  min-height: 36px;
+}
+.ops-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.ops-pagination-buttons button {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--foreground-2);
+  font: inherit;
+  cursor: pointer;
+}
+.ops-pagination-buttons button:hover:not(:disabled) {
+  background: var(--control-bg);
+}
+.ops-pagination-buttons button[aria-current='page'] {
+  color: var(--background);
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+.ops-pagination-buttons button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ops-pagination-buttons > span {
+  padding: 0 3px;
+}
+@media (max-width: 600px) {
+  .ops-pagination-summary {
+    flex: 1 1 calc(100% - 140px);
+  }
+  .ops-pagination-buttons {
+    justify-content: flex-end;
+    flex: 1 1 100%;
+  }
+}
 .ops-access {
   min-height: 100dvh;
   padding: 24px;
@@ -379,6 +442,78 @@
   font-size: 11px;
   padding: 4px 0 10px;
   color: var(--foreground-3);
+}
+.account-page {
+  width: 100%;
+  min-width: 0;
+}
+.account-access {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: min(560px, 65dvh);
+  padding: 40px 24px;
+  color: var(--foreground);
+}
+.account-access.is-compact {
+  min-height: 220px;
+  padding: 28px 16px;
+}
+.account-access-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+.account-access-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--foreground-2);
+  background: var(--surface-subtle);
+}
+.account-access h2 {
+  margin: 4px 0 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.3px;
+}
+.account-access p {
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.account-access-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.account-access .studio-primary {
+  min-height: 40px;
+  padding: 0 20px;
+  color: var(--background);
+  background: var(--foreground);
+  text-decoration: none;
+}
+.account-menu-loading {
+  color: var(--foreground-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.generate-bar a.generate-button {
+  text-decoration: none;
 }
 .account-dropdown [role='menuitem'] {
   display: flex;
