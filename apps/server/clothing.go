@@ -170,7 +170,7 @@ func (s *server) clothingPlanHandler(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	if !s.requireSettingsUser(w, r) {
+	if !s.requireAuxiliaryUser(w, r) {
 		return
 	}
 	if s.promptClient == nil || (s.ai != nil && !s.ai.hasAny("prompt")) {
@@ -302,4 +302,35 @@ func clothingPromptForInput(input map[string]any) string {
 	}
 	appendCommerceTextPolicy(&parts, input)
 	return joinPromptParts(parts, "。")
+}
+
+// A user-visible editable shot plan, without exposing the system prompt catalog.
+func (s *server) manualClothingPlan(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
+		return
+	}
+	if _, ok := s.authenticatedUserID(r); !ok {
+		s.error(w, 401, "AUTH_REQUIRED", "请先登录")
+		return
+	}
+	var input struct {
+		Mode         string         `json:"mode"`
+		Counts       map[string]int `json:"counts"`
+		Requirements string         `json:"requirements"`
+	}
+	if !decode(r, &input) || len([]rune(input.Requirements)) > 2000 {
+		s.error(w, 400, "CLOTHING_INPUT_INVALID", "规划参数不正确")
+		return
+	}
+	if _, err := validateClothingCounts(input.Mode, input.Counts); err != nil {
+		s.error(w, 400, "CLOTHING_INPUT_INVALID", err.Error())
+		return
+	}
+	prompts, err := s.generationPromptSnapshot()
+	if err != nil {
+		s.error(w, 503, "PROMPT_STORAGE_ERROR", "规划暂时不可用")
+		return
+	}
+	s.json(w, 200, baseClothingPlan(input.Mode, input.Counts, input.Requirements, prompts))
 }

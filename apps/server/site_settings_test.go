@@ -65,7 +65,7 @@ func putSiteSettings(t *testing.T, s *server, uid, name string, logo []byte, rem
 	r := httptest.NewRequest(http.MethodPut, "/v1/site-settings", &body)
 	r.Header.Set("Content-Type", writer.FormDataContentType())
 	if uid != "" {
-		r.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid}))
+		r.Header.Set("Authorization", "Bearer "+s.testAdminToken(user{ID: uid}))
 	}
 	w := httptest.NewRecorder()
 	s.siteSettingsHandler(w, r)

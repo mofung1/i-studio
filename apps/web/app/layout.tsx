@@ -5,6 +5,8 @@ import { PromptReverseProvider } from '@/components/prompt-reverse-provider'
 import { getSiteBranding } from '@/lib/site-settings-server'
 import { siteLogoUrl, siteTitle } from '@/lib/site-settings'
 
+import { AccountProvider } from '@/components/account-provider'
+import './operations.css'
 import './globals.css'
 import './studio.css'
 import './prompt-reverse.css'
@@ -40,7 +42,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: workbenchConfigSideScript }} />
       </head>
-      <body><SiteBrandingProvider initialBranding={branding}><PromptReverseProvider>{children}</PromptReverseProvider></SiteBrandingProvider></body>
+      <body><SiteBrandingProvider initialBranding={branding}><AccountProvider><PromptReverseProvider>{children}</PromptReverseProvider></AccountProvider></SiteBrandingProvider></body>
     </html>
   )
 }

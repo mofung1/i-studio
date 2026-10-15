@@ -14,7 +14,7 @@ import (
 
 func dbFindUser(db *sql.DB, username string) (user, bool, error) {
 	var u user
-	err := db.QueryRow("SELECT id, username, password_hash FROM users WHERE username = $1", username).Scan(&u.ID, &u.Username, &u.PasswordHash)
+	err := db.QueryRow("SELECT id, username, password_hash, role, status, auth_version FROM users WHERE username = $1", username).Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &u.Status, &u.AuthVersion)
 	if err == sql.ErrNoRows {
 		return user{}, false, nil
 	}
@@ -244,6 +244,10 @@ INSERT INTO inspiration_categories(id,name) SELECT 'category_'||md5(category),ca
 		return err
 	}
 	_, err = db.Exec(personalPromptMigration)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(operationsMigration)
 	return err
 }
 

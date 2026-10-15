@@ -9,9 +9,7 @@ import (
 )
 
 func (s *server) aiEndpoints(w http.ResponseWriter, r *http.Request) {
-	_, ok := s.authenticatedUserID(r)
-	if !ok {
-		s.error(w, 401, "AUTH_REQUIRED", "请先登录")
+	if !s.requireAdmin(w, r) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")

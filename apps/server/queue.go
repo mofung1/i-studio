@@ -34,12 +34,14 @@ func newTaskQueue(s *server) *taskQueue {
 		client := redis.NewClient(options)
 		if client.Ping(context.Background()).Err() == nil {
 			q.redis = client
-			q.recoverRedisTasks()
 		}
 	}
 	workerCount := generationWorkerCount(env("GENERATION_WORKERS", ""))
 	for range workerCount {
 		go q.worker()
+	}
+	if s.db != nil {
+		go q.maintainDatabaseQueue()
 	}
 	return q
 }
@@ -57,7 +59,10 @@ func generationWorkerCount(raw string) int {
 
 func (q *taskQueue) enqueue(id string) bool {
 	if q.redis != nil {
-		if q.redis.LPush(context.Background(), generationQueueKey, id).Err() == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		err := q.redis.LPush(ctx, generationQueueKey, id).Err()
+		cancel()
+		if err == nil {
 			return true
 		}
 	}
@@ -65,33 +70,13 @@ func (q *taskQueue) enqueue(id string) bool {
 	case q.fallback <- id:
 		return true
 	default:
+		// A full wake-up channel cannot invalidate a durably queued task. The DB
+		// dispatcher will notify workers again when capacity becomes available.
+		if q.server.db != nil {
+			return true
+		}
 		q.server.updateTaskResult(id, "failed", nil, nil, "生成队列已满，请稍后重试")
 		return false
-	}
-}
-
-// recoverRedisTasks moves jobs left in the processing list back to the pending
-// list after a process restart. BRPopLPush keeps jobs in the processing list
-// while a worker is executing them, so a crash cannot silently lose a task.
-func (q *taskQueue) recoverRedisTasks() {
-	if q.redis == nil {
-		return
-	}
-	ctx := context.Background()
-	ids, err := q.redis.LRange(ctx, generationProcessingKey, 0, -1).Result()
-	if err != nil || len(ids) == 0 {
-		return
-	}
-	values := make([]any, len(ids))
-	for index, id := range ids {
-		values[index] = id
-	}
-	if err := q.redis.LPush(ctx, generationQueueKey, values...).Err(); err != nil {
-		fmt.Printf("failed to recover generation tasks: %v\n", err)
-		return
-	}
-	if err := q.redis.Del(ctx, generationProcessingKey).Err(); err != nil {
-		fmt.Printf("failed to clear recovered generation tasks: %v\n", err)
 	}
 }
 
@@ -135,7 +120,30 @@ func (q *taskQueue) worker() {
 }
 
 func (q *taskQueue) processTask(id string) {
-	q.server.updateTaskStatus(id, "processing")
+	if !q.server.claimGeneration(id) {
+		return
+	}
+	done := make(chan struct{})
+	defer close(done)
+	if q.server.db != nil {
+		go func() {
+			ticker := time.NewTicker(30 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-done:
+					return
+				case <-ticker.C:
+					q.server.db.Exec("UPDATE generation_tasks SET lease_until=now()+interval '2 minutes' WHERE id=$1 AND status IN ('processing','waiting_provider')", id)
+				}
+			}
+		}()
+		var active, charged bool
+		if err := q.server.db.QueryRow("SELECT u.status='active',EXISTS(SELECT 1 FROM generation_charges c WHERE c.task_id=t.id) FROM generation_tasks t JOIN users u ON u.id=t.user_id WHERE t.id=$1", id).Scan(&active, &charged); err != nil || !active || !charged {
+			q.server.updateTaskResult(id, "failed", nil, nil, "账号不可用或任务需要重新提交，预留余额已退回")
+			return
+		}
+	}
 	if q.server.provider == nil {
 		q.server.updateTaskResult(id, "failed", nil, nil, "AI 服务尚未配置")
 		return
@@ -143,6 +151,10 @@ func (q *taskQueue) processTask(id string) {
 	input, ok := q.server.taskInput(id)
 	if !ok {
 		q.server.updateTaskResult(id, "failed", nil, nil, "无法读取任务参数")
+		return
+	}
+	if err := q.server.loadFrozenGeneration(id, input); err != nil {
+		q.server.updateTaskResult(id, "failed", nil, nil, "无法读取任务模型配置，预留余额已退回")
 		return
 	}
 	if err := q.server.attachSourceImages(input); err != nil {
@@ -170,13 +182,17 @@ func (q *taskQueue) processTask(id string) {
 // generateBatches 返回图片列表与逐图模块归属（modules[i] 为 images[i] 所属模块 key，
 // 非模块化生成时为空切片）。两者按下标一一对应。
 func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, []string, error) {
-	templates, err := q.server.generationPromptSnapshot()
+	templates, frozen := input["generationPrompts"].(generationPromptSet)
+	var err error
+	if !frozen {
+		templates, err = q.server.generationPromptSnapshot()
+	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("无法读取生成提示词配置：%w", err)
 	}
 	input["generationPrompts"] = templates
 	defer delete(input, "generationPrompts")
-	if dynamic, ok := q.server.provider.(*dynamicImageProvider); ok {
+	if dynamic, ok := q.server.provider.(*dynamicImageProvider); ok && input["protocolClient"] == nil {
 		client, err := dynamic.clientFor(input)
 		if err != nil {
 			return nil, nil, err

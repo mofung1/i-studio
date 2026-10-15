@@ -23,7 +23,7 @@ func inspirationRequest(t *testing.T, s *server, method, path string, input any,
 	}
 	r := httptest.NewRequest(method, path, bytes.NewReader(body))
 	if uid != "" {
-		r.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid}))
+		r.Header.Set("Authorization", "Bearer "+s.testAdminToken(user{ID: uid}))
 	}
 	w := httptest.NewRecorder()
 	if r.URL.Path == "/v1/inspiration/categories" {

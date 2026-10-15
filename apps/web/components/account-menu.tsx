@@ -5,34 +5,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, useState } from 'react'
 
-import { apiBaseUrl, getAccessToken } from '@/lib/api'
+import { useAccount } from './account-provider'
+import { formatCredits, refreshAccount } from '@/lib/credits'
 
 export function AccountMenu() {
   const router = useRouter()
-  const [username, setUsername] = useState('')
+  const { account } = useAccount()
+  const username = account.authenticated ? account.user?.username ?? '' : ''
   const [menuOpen, setMenuOpen] = useState(false)
   const accountRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
-
-  useEffect(() => {
-    const token = getAccessToken()
-    if (!token) return
-
-    const controller = new AbortController()
-    fetch(`${apiBaseUrl}/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    })
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error('登录状态获取失败')))
-      .then((data: { authenticated?: boolean; user?: { username?: string } }) => {
-        if (data.authenticated && data.user?.username) setUsername(data.user.username)
-      })
-      .catch(() => undefined)
-
-    return () => controller.abort()
-  }, [])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -56,7 +40,7 @@ export function AccountMenu() {
 
   function logout() {
     window.localStorage.removeItem('istudio-access-token')
-    setUsername('')
+    refreshAccount()
     setMenuOpen(false)
     router.push('/')
     router.refresh()
@@ -95,9 +79,9 @@ export function AccountMenu() {
       <ChevronDown className="studio-account-chevron" size={14} aria-hidden="true" />
     </button>
     {menuOpen && <div className="account-dropdown">
-      <div className="account-dropdown-identity">{username}</div>
+      <div className="account-dropdown-identity">{username}<div className="account-credit-summary">{formatCredits(account.available)} {account.creditName}</div></div>
       <div id={menuId} ref={menuRef} role="menu" aria-label="账户操作">
-        <button type="button" role="menuitem" onClick={logout}><LogOut size={16} aria-hidden="true" />退出登录</button>
+        <Link href="/account" role="menuitem" onClick={() => setMenuOpen(false)}>个人中心与余额</Link>{account.user?.role === 'admin' && <Link href="/admin" role="menuitem" onClick={() => setMenuOpen(false)}>运营后台</Link>}<button type="button" role="menuitem" onClick={logout}><LogOut size={16} aria-hidden="true" />退出登录</button>
       </div>
     </div>}
   </div>

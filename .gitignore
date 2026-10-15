@@ -29,3 +29,6 @@ artifacts/reverse-settings-ui-*/
 
 # 个人工作台功能验证截图与临时测试记录。
 artifacts/personal-workspace-*/
+
+# 本地运营迁移备份包含账号哈希和私有配置，仅保存在本机。
+artifacts/hosted-platform-*/

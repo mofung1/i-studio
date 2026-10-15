@@ -29,18 +29,22 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-type user struct{ ID, Username, PasswordHash string }
+type user struct {
+	ID, Username, PasswordHash, Role, Status string
+	AuthVersion                              int64
+}
 type task struct {
-	ID            string   `json:"id"`
-	UserID        string   `json:"-"`
-	ProjectID     string   `json:"projectId,omitempty"`
-	ProjectName   string   `json:"projectName,omitempty"`
-	Status        string   `json:"status"`
-	CreatedAt     string   `json:"createdAt"`
-	Input         any      `json:"input"`
-	ResultImages  []string `json:"resultImages,omitempty"`
-	ResultModules []string `json:"resultModules,omitempty"`
-	ErrorMessage  string   `json:"errorMessage,omitempty"`
+	Billing       *generationBilling `json:"billing,omitempty"`
+	ID            string             `json:"id"`
+	UserID        string             `json:"-"`
+	ProjectID     string             `json:"projectId,omitempty"`
+	ProjectName   string             `json:"projectName,omitempty"`
+	Status        string             `json:"status"`
+	CreatedAt     string             `json:"createdAt"`
+	Input         any                `json:"input"`
+	ResultImages  []string           `json:"resultImages,omitempty"`
+	ResultModules []string           `json:"resultModules,omitempty"`
+	ErrorMessage  string             `json:"errorMessage,omitempty"`
 }
 
 // taskInputField 读取任务输入里的字符串字段；用于内存模式下按模式 / 任务类型过滤。
@@ -82,9 +86,12 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "seed-inspiration" {
 		os.Exit(runInspirationSeed())
 	}
+	if len(os.Args) > 1 && os.Args[1] == "admin" {
+		os.Exit(runAdminCommand(os.Args[2:]))
+	}
 	db, dbErr := openDatabase()
-	if dbErr != nil {
-		fmt.Printf("database unavailable, using memory store: %v\n", dbErr)
+	if dbErr != nil || db == nil {
+		panic("运营模式需要可用的 DATABASE_URL，禁止回退到内存账户")
 	}
 	if err := migrateDatabase(db); err != nil {
 		panic(fmt.Errorf("database migration failed: %w", err))
@@ -95,9 +102,15 @@ func main() {
 		panic(fmt.Errorf("auth signing key initialization failed: %w", err))
 	}
 	s := &server{users: map[string]user{}, tasks: map[string]task{}, secret: secret, db: db, storageRoot: root, storage: newLocalStorage(root)}
+	if err := s.syncEnvironmentAdmin(); err != nil {
+		panic(fmt.Errorf("administrator configuration failed: %w", err))
+	}
 	s.ai = newAIConfigStore(s)
 	if err := s.ai.migrateLegacy(); err != nil {
 		panic(fmt.Errorf("AI configuration initialization failed: %w", err))
+	}
+	if err := s.initializePublicModels(); err != nil {
+		panic(fmt.Errorf("model migration failed: %w", err))
 	}
 	if err := cleanupLegacyGeneratedAssets(s.db, s.storage); err != nil {
 		fmt.Printf("legacy generated asset cleanup skipped: %v\n", err)
@@ -108,6 +121,10 @@ func main() {
 	s.startPromptReverseWorkers()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v1/health", s.health)
+	mux.HandleFunc("/v1/admin/", s.adminHandler)
+	mux.HandleFunc("/v1/operation-settings", s.publicOperationSettings)
+	mux.HandleFunc("/v1/account", s.accountHandler)
+	mux.HandleFunc("/v1/generation/quote", s.generationQuote)
 	mux.HandleFunc("/v1/auth/register", s.register)
 	mux.HandleFunc("/v1/auth/login", s.login)
 	mux.HandleFunc("/v1/auth/me", s.me)
@@ -121,6 +138,7 @@ func main() {
 	mux.HandleFunc("/v1/prompts/reverse/", s.promptReverseByID)
 	mux.HandleFunc("/v1/prompt-reverse-settings", s.promptReverseSettingsHandler)
 	mux.HandleFunc("/v1/clothing/plan", s.clothingPlanHandler)
+	mux.HandleFunc("/v1/clothing/manual-plan", s.manualClothingPlan)
 	mux.HandleFunc("/v1/ai-endpoints", s.aiEndpoints)
 	mux.HandleFunc("/v1/ai-endpoints/", s.aiEndpointByID)
 	mux.HandleFunc("/v1/prompt-templates", s.promptTemplates)
@@ -169,6 +187,10 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request, create bool) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
+	if !s.allowAuthAttempt(r) {
+		s.error(w, 429, "AUTH_RATE_LIMIT", "登录或注册请求过多，请 15 分钟后重试")
+		return
+	}
 	var body struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -189,17 +211,30 @@ func (s *server) auth(w http.ResponseWriter, r *http.Request, create bool) {
 			return
 		}
 		if create {
+			config, err := s.operationSettings()
+			if err != nil {
+				s.error(w, 503, "AUTH_STORAGE_ERROR", "注册服务暂时不可用")
+				return
+			}
+			if !config.RegistrationEnabled {
+				s.error(w, 403, "REGISTRATION_CLOSED", "网站暂未开放注册")
+				return
+			}
 			if exists {
 				s.error(w, 409, "USERNAME_EXISTS", "用户名已存在")
 				return
 			}
 			u = user{ID: randomID(), Username: name, PasswordHash: hashPassword(body.Password)}
-			if err := dbInsertUser(s.db, u); err != nil {
+			if err := s.registerAccount(u, config.SignupGiftMinor); err != nil {
 				s.error(w, 409, "USERNAME_EXISTS", "用户名已存在")
 				return
 			}
 		} else if !exists || !checkPassword(body.Password, u.PasswordHash) {
 			s.error(w, 401, "INVALID_CREDENTIALS", "用户名或密码错误")
+			return
+		}
+		if u.Status == "disabled" {
+			s.error(w, 403, "ACCOUNT_DISABLED", "账号已停用，请联系管理员")
 			return
 		}
 		s.json(w, 200, map[string]any{"accessToken": s.token(u), "user": map[string]string{"id": u.ID, "username": u.Username}})
@@ -226,12 +261,24 @@ func (s *server) me(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	p, ok := s.verify(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+	u, ok := s.currentUser(r)
 	if !ok {
 		s.json(w, 200, map[string]any{"authenticated": false})
 		return
 	}
-	s.json(w, 200, map[string]any{"authenticated": true, "user": p})
+	config, err := s.operationSettings()
+	if err != nil {
+		s.error(w, 503, "ACCOUNT_UNAVAILABLE", "账户暂时不可用")
+		return
+	}
+	var available, held int64
+	if s.db != nil {
+		if err = s.db.QueryRow("SELECT available,held FROM credit_accounts WHERE user_id=$1", u.ID).Scan(&available, &held); err != nil {
+			s.error(w, 503, "ACCOUNT_UNAVAILABLE", "余额暂时不可用")
+			return
+		}
+	}
+	s.json(w, 200, map[string]any{"authenticated": true, "user": map[string]string{"id": u.ID, "sub": u.ID, "username": u.Username, "role": u.Role}, "available": available, "held": held, "creditName": config.CreditName, "creditScale": creditScale})
 }
 
 func (s *server) capabilities(w http.ResponseWriter, r *http.Request) {
@@ -239,34 +286,25 @@ func (s *server) capabilities(w http.ResponseWriter, r *http.Request) {
 		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	payload := map[string]any{"aiEnabled": s.ai != nil && s.ai.hasAny("image"), "promptEnhanceEnabled": s.ai != nil && s.ai.hasAny("prompt")}
-	if endpoint, err := s.ai.resolve("prompt", "", ""); err == nil {
-		payload["promptModel"] = endpoint.Model
-		payload["promptVision"] = endpoint.Capabilities["vision"]
+	models, err := s.publicModels(true)
+	if err != nil {
+		s.error(w, 503, "MODELS_UNAVAILABLE", "模型暂时不可用")
+		return
 	}
 	images := []map[string]any{}
-	endpoints, _ := s.ai.list()
-	for _, e := range endpoints {
-		if e.Purpose == "image" && e.Enabled {
-			images = append(images, map[string]any{"id": e.ID, "name": e.Name, "model": e.Model, "protocol": e.Protocol, "isDefault": e.IsDefault})
-		}
+	for _, m := range models {
+		images = append(images, map[string]any{"id": m.ID, "name": m.Name, "model": m.Name, "isDefault": m.IsDefault, "priceMinor": m.PriceMinor})
 	}
-	payload["imageEndpoints"] = images
-	if _, ok := s.authenticatedUserID(r); ok {
-		templates, err := s.generationPromptSnapshot()
-		if err != nil {
-			s.error(w, 500, "PROMPT_STORAGE_ERROR", "提示词配置读取失败")
-			return
+	config, err := s.operationSettings()
+	if err != nil {
+		s.error(w, 503, "SETTINGS_UNAVAILABLE", "网站配置暂时不可用")
+		return
+	}
+	payload := map[string]any{"aiEnabled": len(images) > 0, "imageEndpoints": images, "creditName": config.CreditName, "creditScale": creditScale, "promptEnhanceEnabled": s.ai != nil && s.ai.hasAny("prompt")}
+	if s.ai != nil {
+		if endpoint, err := s.ai.resolve("prompt", "", ""); err == nil {
+			payload["promptVision"] = endpoint.Capabilities["vision"]
 		}
-		hints := map[string]string{}
-		for _, module := range clothingModules {
-			hints[module.key] = templates["module.clothing-set."+module.key]
-		}
-		poses := []string{}
-		for index := 1; index <= 4; index++ {
-			poses = append(poses, templates[fmt.Sprintf("clothing.pose.%d", index)])
-		}
-		payload["clothingPlanDefaults"] = map[string]any{"modules": hints, "poses": poses, "footer": templates["clothing.plan.footer"]}
 	}
 	s.json(w, 200, payload)
 }
@@ -335,39 +373,7 @@ func (s *server) tasksHandler(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 400, "GENERATION_INPUT_INVALID", "生成参数不完整或格式不正确")
 		return
 	}
-	if s.ai != nil {
-		e, err := s.ai.resolve("image", stringValue(input["endpointId"], ""), stringValue(input["model"], ""))
-		if err != nil {
-			s.error(w, 503, "AI_ENDPOINT_UNAVAILABLE", err.Error())
-			return
-		}
-		input["endpointId"] = e.ID
-		input["model"] = e.Model
-	}
-	if err := s.validateInputOwnership(userID, input); err != nil {
-		s.error(w, http.StatusBadRequest, "GENERATION_ASSET_INVALID", err.Error())
-		return
-	}
-	t := task{ID: randomID(), UserID: userID, Status: "queued", CreatedAt: time.Now().UTC().Format(time.RFC3339), Input: input}
-	if project, ok := input["projectId"].(string); ok {
-		t.ProjectID = project
-	}
-	if s.db != nil {
-		encoded, _ := json.Marshal(input)
-		if err := dbInsertTask(s.db, t, userID, encoded); err != nil {
-			s.error(w, 500, "TASK_STORAGE_ERROR", "任务暂时无法保存")
-			return
-		}
-	} else {
-		s.mu.Lock()
-		s.tasks[t.ID] = t
-		s.mu.Unlock()
-	}
-	if !s.queue.enqueue(t.ID) {
-		s.error(w, http.StatusServiceUnavailable, "GENERATION_QUEUE_FULL", "生成队列已满，请稍后重试")
-		return
-	}
-	s.json(w, http.StatusAccepted, map[string]any{"task": t, "aiEnabled": s.provider != nil, "message": "任务已创建，等待 AI 服务处理。"})
+	s.createChargedTask(w, r, userID, input)
 }
 func (s *server) taskByID(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/v1/generation/tasks/")
@@ -403,6 +409,7 @@ func (s *server) taskByID(w http.ResponseWriter, r *http.Request) {
 			s.error(w, 404, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
 			return
 		}
+		s.attachBilling(&t)
 		s.json(w, 200, map[string]any{"task": t, "aiEnabled": s.provider != nil})
 		return
 	}
@@ -413,6 +420,7 @@ func (s *server) taskByID(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 404, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
 		return
 	}
+	s.attachBilling(&t)
 	s.json(w, 200, map[string]any{"task": t, "aiEnabled": s.provider != nil})
 }
 
@@ -513,46 +521,12 @@ func (s *server) retryTask(w http.ResponseWriter, r *http.Request, id string) {
 		s.error(w, http.StatusBadRequest, "GENERATION_INPUT_INVALID", "原任务参数无法重试")
 		return
 	}
-	if s.ai != nil {
-		e, err := s.ai.resolve("image", stringValue(input["endpointId"], ""), stringValue(input["model"], ""))
-		if err != nil {
-			s.error(w, 503, "AI_ENDPOINT_UNAVAILABLE", err.Error())
-			return
-		}
-		input["endpointId"] = e.ID
-		input["model"] = e.Model
-	}
-	if err := s.validateInputOwnership(userID, input); err != nil {
-		s.error(w, http.StatusBadRequest, "GENERATION_ASSET_INVALID", err.Error())
-		return
-	}
-	retry := task{ID: randomID(), UserID: userID, ProjectID: original.ProjectID, Status: "queued", CreatedAt: time.Now().UTC().Format(time.RFC3339), Input: input}
-	if s.db != nil {
-		encoded, _ := json.Marshal(input)
-		if err := dbInsertTask(s.db, retry, userID, encoded); err != nil {
-			s.error(w, http.StatusInternalServerError, "TASK_STORAGE_ERROR", "任务暂时无法保存")
-			return
-		}
-	} else {
-		s.mu.Lock()
-		s.tasks[retry.ID] = retry
-		s.mu.Unlock()
-	}
-	if !s.queue.enqueue(retry.ID) {
-		s.error(w, http.StatusServiceUnavailable, "GENERATION_QUEUE_FULL", "生成队列已满，请稍后重试")
-		return
-	}
-	s.json(w, http.StatusAccepted, map[string]any{"task": retry, "message": "任务已创建，等待 AI 服务处理。"})
+	s.createChargedTask(w, r, userID, input)
 }
 
 func (s *server) authenticatedUserID(r *http.Request) (string, bool) {
-	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	payload, ok := s.verify(token)
-	if !ok {
-		return "", false
-	}
-	id, ok := payload["sub"].(string)
-	return id, ok && id != ""
+	u, ok := s.currentUser(r)
+	return u.ID, ok
 }
 
 func (s *server) updateTaskStatus(id, status string) {
@@ -570,9 +544,16 @@ func (s *server) updateTaskStatus(id, status string) {
 
 func (s *server) updateTaskResult(id, status string, images []string, modules []string, message string) {
 	if s.db != nil {
-		raw, _ := json.Marshal(images)
-		modulesRaw, _ := json.Marshal(modules)
-		_, _ = s.db.Exec("UPDATE generation_tasks SET status=$1, result_images=$2::jsonb, result_modules=$3::jsonb, error_message=$4 WHERE id=$5", status, raw, modulesRaw, nullableString(message), id)
+		// A database outage must never leave a successful task with an unrecorded debit.
+		for attempt := 0; attempt < 5; attempt++ {
+			if err := s.settleGeneration(id, status, images, modules, message); err == nil {
+				return
+			} else {
+				fmt.Printf("task %s settlement retry: %v\n", id, err)
+				time.Sleep(time.Duration(attempt+1) * time.Second)
+			}
+		}
+
 		return
 	}
 	s.mu.Lock()
@@ -831,7 +812,7 @@ func (s *server) assets(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) token(u user) string {
-	payload := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"sub":"%s","username":"%s","exp":%d}`, u.ID, u.Username, time.Now().Add(7*24*time.Hour).Unix())))
+	payload := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"sub":"%s","username":"%s","ver":%d,"exp":%d}`, u.ID, u.Username, u.AuthVersion, time.Now().Add(7*24*time.Hour).Unix())))
 	mac := hmac.New(sha256.New, s.secret)
 	mac.Write([]byte(payload))
 	return payload + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
@@ -1024,7 +1005,7 @@ func cors(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
 		}
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Idempotency-Key, X-Expected-Unit-Price")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(204)

@@ -60,7 +60,7 @@ export function WorkbenchRail({ mode, section = mode ?? 'general', task, onChang
         <Link href="/prompts" className={section === 'prompts' ? 'active' : ''} aria-label="我的提示词" title="我的提示词" aria-current={section === 'prompts' ? 'page' : undefined}><BookMarked size={18} /><span>我的提示词</span></Link>
         <Link href="/assets" className={section === 'assets' || section === 'history' ? 'active' : ''} aria-label="我的资产" title="我的资产" aria-current={section === 'assets' || section === 'history' ? 'page' : undefined}><Folder size={18} /><span>我的资产</span></Link>
       </nav>
-      <div className="studio-rail-footer"><Link href="/settings/ai" aria-label="设置" title="设置" aria-current={section === 'settings' ? 'page' : undefined}><Settings size={18} /><span>设置</span></Link></div>
+      <div className="studio-rail-footer"><Link href="/account" aria-label="个人中心" title="个人中心" aria-current={section === 'settings' ? 'page' : undefined}><Settings size={18} /><span>个人中心</span></Link></div>
     </aside>
   )
 }

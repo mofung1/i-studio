@@ -152,7 +152,7 @@ func TestClothingAnalysisRolesAndInvalidAI(t *testing.T) {
 	raw, _ := json.Marshal(expected)
 	client := &fakePromptClient{reply: string(raw)}
 	s := &server{secret: []byte("test-secret"), promptClient: client}
-	token := s.token(user{ID: "user-1", Username: "demo"})
+	token := s.testToken(user{ID: "user-1", Username: "demo"})
 	call := func(token, mode string, model, scene bool) *httptest.ResponseRecorder {
 		rec := httptest.NewRecorder()
 		s.clothingPlanHandler(rec, clothingAnalysisRequest(t, token, mode, model, scene))
@@ -247,7 +247,7 @@ func TestClothingAssetOwnershipRolesAndZip(t *testing.T) {
 	download := func(uid string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(http.MethodGet, "/v1/generation/tasks/group/download", nil)
 		if uid != "" {
-			req.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid, Username: uid}))
+			req.Header.Set("Authorization", "Bearer "+s.testToken(user{ID: uid, Username: uid}))
 		}
 		rec := httptest.NewRecorder()
 		s.taskByID(rec, req)

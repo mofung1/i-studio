@@ -26,7 +26,7 @@ func libraryHTTP(t *testing.T, s *server, method, path, uid, body string) *httpt
 	t.Helper()
 	r := httptest.NewRequest(method, path, strings.NewReader(body))
 	if uid != "" {
-		r.Header.Set("Authorization", "Bearer "+s.token(user{ID: uid}))
+		r.Header.Set("Authorization", "Bearer "+s.testToken(user{ID: uid}))
 	}
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

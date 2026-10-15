@@ -60,7 +60,7 @@ func TestDatabaseTaskAndAssetDeletion(t *testing.T) {
 	defer func() { _, _ = db.Exec("DELETE FROM users WHERE id=$1", userID) }()
 
 	s := &server{db: db, secret: []byte("test-secret")}
-	token := s.token(user{ID: userID, Username: userID})
+	token := s.testToken(user{ID: userID, Username: userID})
 
 	taskID := "task-" + randomID()
 	failure := `第 1 批生成失败：{"status":"failed","statusMessage":"Your prompt was blocked by the content safety policy."}`
