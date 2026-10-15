@@ -53,7 +53,7 @@ function saveBlob(blob: Blob, filename: string) {
  * 裁剪完全在浏览器内完成，不写回服务端，也不产生新的生成费用。
  */
 export function ImageLightbox({ path, alt, filename, hasPrev, hasNext, onPrev, onNext, onClose, fullscreen = false }: ImageLightboxProps) {
-  const { source, state, retry } = useProtectedImageUrl(path)
+  const { source, state, retry } = useProtectedImageUrl(path, path)
   const [mode, setMode] = useState<'view' | 'crop'>('view')
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -74,6 +74,18 @@ export function ImageLightbox({ path, alt, filename, hasPrev, hasNext, onPrev, o
     setZoom(1)
     setOffset({ x: 0, y: 0 })
   }, [])
+
+  // Different image proportions need a fresh fit, including after crop mode.
+  useEffect(() => {
+    resetView()
+    setMode('view')
+    setCrop({ x: 0, y: 0, w: 1, h: 1 })
+    setAspect(null)
+    setImageRect(null)
+    setStatus('')
+    dragRef.current = null
+    panRef.current = null
+  }, [path, resetView])
 
   const measureImage = useCallback(() => {
     const stage = stageRef.current
