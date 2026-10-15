@@ -8,17 +8,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image"
-	"image/color"
-	"image/jpeg"
 	"io"
 	"net/http"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
-
-	"golang.org/x/image/draw"
 )
 
 const assetLibraryMigration = `
@@ -599,32 +594,21 @@ func (s *server) assetThumbnail(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 400, "IMAGE_INVALID", "图片无法读取")
 		return
 	}
-	config, _, err := image.DecodeConfig(bytes.NewReader(raw))
-	if err != nil || config.Width <= 0 || config.Height <= 0 || int64(config.Width)*int64(config.Height) > 40_000_000 {
-		s.error(w, 400, "IMAGE_INVALID", "图片尺寸不支持预览")
-		return
-	}
-	source, _, err := image.Decode(bytes.NewReader(raw))
+	encoded, err := generateAssetThumbnail(r.Context(), raw)
 	if err != nil {
-		s.error(w, 400, "IMAGE_INVALID", "图片无法读取")
+		if r.Context().Err() != nil {
+			return
+		}
+		if errors.Is(err, errThumbnailSize) {
+			s.error(w, 413, "IMAGE_PREVIEW_TOO_LARGE", err.Error())
+		} else {
+			s.error(w, 400, "IMAGE_INVALID", "图片无法读取，请检查原图是否完整")
+		}
 		return
 	}
-	width, height := config.Width, config.Height
-	if max(width, height) > 480 {
-		scale := 480.0 / float64(max(width, height))
-		width = max(1, int(float64(width)*scale))
-		height = max(1, int(float64(height)*scale))
-	}
-	thumb := image.NewRGBA(image.Rect(0, 0, width, height))
-	draw.Draw(thumb, thumb.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
-	draw.CatmullRom.Scale(thumb, thumb.Bounds(), source, source.Bounds(), draw.Over, nil)
-	var encoded bytes.Buffer
-	if jpeg.Encode(&encoded, thumb, &jpeg.Options{Quality: 85}) != nil {
-		s.error(w, 500, "THUMBNAIL_ERROR", "缩略图生成失败")
-		return
-	}
+
 	thumbnailKey = key + ".thumbnail-v1.jpg"
-	if err := s.storage.Save(thumbnailKey, bytes.NewReader(encoded.Bytes())); err == nil {
+	if err := s.storage.Save(thumbnailKey, bytes.NewReader(encoded)); err == nil {
 		result, err := s.db.Exec("UPDATE assets SET thumbnail_key=$1 WHERE id=$2 AND user_id=$3 AND storage_key=$4", thumbnailKey, id, uid, key)
 		if err == nil {
 			if count, _ := result.RowsAffected(); count == 0 {
@@ -634,5 +618,5 @@ func (s *server) assetThumbnail(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "image/jpeg")
 	w.Header().Set("Cache-Control", "private, max-age=300")
-	_, _ = w.Write(encoded.Bytes())
+	_, _ = w.Write(encoded)
 }
