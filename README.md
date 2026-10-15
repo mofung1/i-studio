@@ -108,6 +108,16 @@ WEB_PORT=33100 API_PORT=44100 docker compose up --build
 
 前台按 `Ctrl+C` 停止服务。后台启动用 `docker compose up -d --build`，查看日志用 `docker compose logs -f api web`，停止用 `docker compose down`。`down` 保留命名卷，`down -v` 会删除数据库及 Redis 数据。
 
+构建输出中的 `FINISHED` 只表示镜像构建完成，随后还会启动容器。可用以下命令等待整个服务就绪、查看状态和启动日志（在 `docker/` 下执行）：
+
+```bash
+docker compose up -d --build --wait --wait-timeout 120
+docker compose ps -a
+docker compose logs --tail 100 api web
+```
+
+前端容器直接使用 Node.js 启动已安装的 Next.js，不在启动时下载 pnpm。镜像拉取或依赖下载仍需要网络；构建停在 `load metadata`、`FROM` 或下载进度时，应检查 Docker 的网络、代理或镜像源。已有镜像且代码未变时，可用 `docker compose up -d --no-build --wait --wait-timeout 120` 启动，跳过构建。
+
 ### 本地开发
 
 需要 Node.js 22.12+、pnpm 10 和 Go 1.26.9。首次运行先复制后端配置：
