@@ -1,5 +1,6 @@
 'use client'
 import './admin.css'
+import './data-table.css'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import type { ReactNode } from 'react'

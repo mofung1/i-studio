@@ -372,8 +372,7 @@ export default function AISettingsPage() {
                       </div>
                       {canManage && (
                         <button
-                          className="settings-command admin-action"
-                          data-tone="success"
+                          className="settings-command"
                           onClick={() => edit(undefined, purpose)}
                         >
                           <Plus size={16} />

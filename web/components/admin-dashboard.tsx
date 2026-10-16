@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import type { AIEndpoint } from '@/lib/ai-settings'
-import { formatCredits, parseCredits, refreshAccount } from '@/lib/credits'
+import { parseCredits, refreshAccount } from '@/lib/credits'
 import { useAdminAccount } from './account-provider'
 import type {
   AdminModel as Model,
@@ -15,7 +15,8 @@ import type {
   AdminAuditPage,
   AdminModelPage,
 } from '@/lib/admin'
-import { AdminTable as Table } from './admin/table'
+import type { AdminSorting } from './admin/data-table'
+import { AdminUserTable } from './admin/user-table'
 import { adminRequest as request } from '@/lib/admin'
 import { AdminOverview } from './admin/overview'
 import { AdminModelList } from './admin/model-list'
@@ -25,7 +26,6 @@ import { AdminOperationsForm } from './admin/operations-form'
 import { AdminModelEditor } from './admin/model-editor'
 import { AdminBalanceEditor } from './admin/balance-editor'
 import { AdminPagination } from './admin/pagination'
-import { AdminStatusBadge } from './admin/status-badge'
 import { InfoDialog } from './info-dialog'
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : '请求失败，请重试')
@@ -43,6 +43,7 @@ export function AdminDashboard({
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [revision, setRevision] = useState(0)
+  const [sorting, setSorting] = useState<AdminSorting>([])
   const [pagination, setPagination] = useState({
     page: 1,
     pageSize: 20,
@@ -70,21 +71,26 @@ export function AdminDashboard({
   const unit = account.creditName
   const isList = ['models', 'users', 'tasks', 'audit'].includes(view)
   useEffect(() => {
-    const scroll = listRegion.current?.querySelector('.ops-table-scroll')
+    const scroll = listRegion.current?.querySelector('.admin-data-scroll')
     if (scroll) scroll.scrollTop = 0
-  }, [pagination.page, pagination.pageSize, query])
+  }, [pagination.page, pagination.pageSize, query, sorting])
   const load = useCallback(async () => {
     const version = ++loadVersion.current
     const current = () => version === loadVersion.current
+    const params = new URLSearchParams(view === 'users' ? { q: query } : {})
+    params.set('page', String(page))
+    params.set('pageSize', String(pageSize))
+    if (sorting[0]) {
+      params.set('sort', sorting[0].id)
+      params.set('order', sorting[0].desc ? 'desc' : 'asc')
+    }
     if (view === 'overview') {
       const data = await request<Record<string, number>>('overview')
       if (current()) setOverview(data)
     }
     if (view === 'models') {
       const [catalog, services] = await Promise.all([
-        request<AdminModelPage>(
-          `models?${new URLSearchParams({ page: String(page), pageSize: String(pageSize) })}`,
-        ),
+        request<AdminModelPage>(`models?${params}`),
         request<{ endpoints: AIEndpoint[] }>('ai-endpoints'),
       ])
       if (current()) {
@@ -95,9 +101,7 @@ export function AdminDashboard({
       }
     }
     if (view === 'users') {
-      const data = await request<AdminUserPage>(
-        `users?${new URLSearchParams({ q: query, page: String(page), pageSize: String(pageSize) })}`,
-      )
+      const data = await request<AdminUserPage>(`users?${params}`)
       if (current()) {
         setMembers(data.users)
         setPagination(data)
@@ -112,9 +116,7 @@ export function AdminDashboard({
       }
     }
     if (view === 'tasks') {
-      const data = await request<AdminTaskPage>(
-        `tasks?${new URLSearchParams({ page: String(page), pageSize: String(pageSize) })}`,
-      )
+      const data = await request<AdminTaskPage>(`tasks?${params}`)
       if (current()) {
         setTasks(data.tasks)
         setPagination(data)
@@ -122,16 +124,19 @@ export function AdminDashboard({
       }
     }
     if (view === 'audit') {
-      const data = await request<AdminAuditPage>(
-        `audit?${new URLSearchParams({ page: String(page), pageSize: String(pageSize) })}`,
-      )
+      const data = await request<AdminAuditPage>(`audit?${params}`)
       if (current()) {
         setAudit(data.audit)
         setPagination(data)
         if (data.page !== page) setPage(data.page)
       }
     }
-  }, [view, query, page, pageSize, revision])
+  }, [view, query, page, pageSize, revision, sorting])
+  function changeSorting(next: AdminSorting) {
+    setLoading(true)
+    setSorting(next)
+    setPage(1)
+  }
   useEffect(() => {
     let current = true
     setLoading(true)
@@ -315,7 +320,12 @@ export function AdminDashboard({
       )}
       <div ref={listRegion} className={isList ? 'admin-list-region' : undefined}>
         {view === 'tasks' ? (
-          <AdminTaskTable tasks={tasks} loading={loading} />
+          <AdminTaskTable
+            tasks={tasks}
+            loading={loading}
+            sorting={sorting}
+            onSortingChange={changeSorting}
+          />
         ) : loading && !isList ? (
           <p role="status">正在读取…</p>
         ) : (
@@ -328,75 +338,39 @@ export function AdminDashboard({
                 unit={unit}
                 onEdit={edit}
                 loading={loading}
+                sorting={sorting}
+                onSortingChange={changeSorting}
               />
             )}
             {view === 'users' && (
-              <>
-                <section className="ops-card">
-                  <Table
-                    headings={['账号', '角色', '可用余额', '预留余额', '状态', '操作']}
-                    empty={!members.length}
-                    loading={loading}
-                  >
-                    {members.map((member) => (
-                      <tr key={member.id}>
-                        <td>
-                          <strong>{member.username}</strong>
-                        </td>
-                        <td>用户</td>
-                        <td>
-                          {formatCredits(member.available)} {unit}
-                        </td>
-                        <td>{formatCredits(member.held)}</td>
-                        <td>
-                          <AdminStatusBadge
-                            tone={member.status === 'active' ? 'success' : 'danger'}
-                          >
-                            {member.status === 'active' ? '已启用' : '已停用'}
-                          </AdminStatusBadge>
-                        </td>
-                        <td>
-                          <div className="ops-row-actions">
-                            <button
-                              className="settings-command"
-                              disabled={busy || loading}
-                              onClick={() => {
-                                setAdjusting(member)
-                                setAmount('')
-                                setNote('')
-                                setAdjustmentKey(crypto.randomUUID())
-                                setError('')
-                              }}
-                            >
-                              调整余额
-                            </button>
-                            <button
-                              className="settings-command admin-action"
-                              data-tone={member.status === 'active' ? 'danger' : 'success'}
-                              disabled={busy || loading}
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    `${member.status === 'active' ? '停用' : '启用'}账号 ${member.username}？`,
-                                  )
-                                )
-                                  void action(() =>
-                                    request(`users/${member.id}`, 'PUT', {
-                                      role: member.role,
-                                      status: member.status === 'active' ? 'disabled' : 'active',
-                                    }),
-                                  )
-                              }}
-                            >
-                              {member.status === 'active' ? '停用' : '启用'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </Table>
-                </section>
-              </>
+              <AdminUserTable
+                members={members}
+                unit={unit}
+                loading={loading}
+                busy={busy}
+                sorting={sorting}
+                onSortingChange={changeSorting}
+                onAdjust={(member) => {
+                  setAdjusting(member)
+                  setAmount('')
+                  setNote('')
+                  setAdjustmentKey(crypto.randomUUID())
+                  setError('')
+                }}
+                onToggle={(member) => {
+                  if (
+                    window.confirm(
+                      `${member.status === 'active' ? '停用' : '启用'}账号 ${member.username}？`,
+                    )
+                  )
+                    void action(() =>
+                      request(`users/${member.id}`, 'PUT', {
+                        role: member.role,
+                        status: member.status === 'active' ? 'disabled' : 'active',
+                      }),
+                    )
+                }}
+              />
             )}
             {view === 'operations' && ops && (
               <AdminOperationsForm
@@ -408,7 +382,14 @@ export function AdminDashboard({
                 onSubmit={saveOperations}
               />
             )}
-            {view === 'audit' && <AdminAuditTable audit={audit} loading={loading} />}
+            {view === 'audit' && (
+              <AdminAuditTable
+                audit={audit}
+                loading={loading}
+                sorting={sorting}
+                onSortingChange={changeSorting}
+              />
+            )}
           </>
         )}
       </div>

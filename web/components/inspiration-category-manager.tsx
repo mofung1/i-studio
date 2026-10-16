@@ -7,6 +7,7 @@ import { getAdminAccessToken } from '@/lib/api'
 import { settingsRequest } from '@/lib/ai-settings'
 import type { ManagedInspirationCategory } from '@/lib/inspiration-settings'
 import { AdminPagination } from './admin/pagination'
+import { AdminDataTable, type AdminColumn, type AdminSorting } from './admin/data-table'
 import {
   Select,
   SelectContent,
@@ -18,13 +19,25 @@ import {
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : '请求失败，请重试')
 
-export function InspirationCategoryManager() {
+export interface CategoryManagerState {
+  busy: boolean
+  dirty: boolean
+}
+
+export function InspirationCategoryManager({
+  onChanged,
+  onStateChange,
+}: {
+  onChanged?: (categories: ManagedInspirationCategory[]) => void
+  onStateChange?: (state: CategoryManagerState) => void
+}) {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [categories, setCategories] = useState<ManagedInspirationCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
+  const [sorting, setSorting] = useState<AdminSorting>([])
   const [name, setName] = useState('')
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null)
   const [busy, setBusy] = useState('')
@@ -34,10 +47,16 @@ export function InspirationCategoryManager() {
   const [moveToId, setMoveToId] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const listRef = useRef<HTMLElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const deleteOpen = deleting !== null
+  const dirty =
+    !!name.trim() ||
+    (!!editing && editing.name.trim() !== categories.find((row) => row.id === editing.id)?.category)
+
+  useEffect(() => {
+    onStateChange?.({ busy: !!busy, dirty })
+  }, [busy, dirty, onStateChange])
 
   useEffect(() => {
     setLoggedIn(!!getAdminAccessToken())
@@ -76,6 +95,7 @@ export function InspirationCategoryManager() {
       'inspiration/categories?includeDisabled=true',
     )
     setCategories(data.categories)
+    onChanged?.(data.categories)
     return data.categories
   }
   async function save(event: FormEvent, row?: ManagedInspirationCategory) {
@@ -140,19 +160,124 @@ export function InspirationCategoryManager() {
       setBusy('')
     }
   }
-  const visible = categories.filter((row) =>
+  const filtered = categories.filter((row) =>
     row.category.toLowerCase().includes(search.trim().toLowerCase()),
   )
+  const visible = sorting[0]
+    ? [...filtered].sort((a, b) => {
+        const { id, desc } = sorting[0]!
+        const delta =
+          id === 'category'
+            ? a.category.localeCompare(b.category, 'zh-CN')
+            : id === 'count'
+              ? a.count - b.count
+              : a.enabledCount - b.enabledCount
+        return (desc ? -delta : delta) || a.id.localeCompare(b.id)
+      })
+    : filtered
   const destinations = categories.filter((row) => row.id !== deleting?.id)
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize))
   const currentPage = Math.min(page, totalPages)
   const pagedCategories = visible.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = 0
-  }, [currentPage, pageSize, search])
-  useEffect(() => {
     if (page > totalPages) setPage(totalPages)
   }, [page, totalPages])
+
+  const columns: AdminColumn<ManagedInspirationCategory>[] = [
+    {
+      id: 'category',
+      header: '分类名称',
+      size: 290,
+      pin: 'left',
+      sortable: true,
+      cell: (row) =>
+        editing?.id === row.id ? (
+          <form className="inspiration-category-rename" onSubmit={(event) => void save(event, row)}>
+            <input
+              autoFocus
+              aria-label={`重命名 ${row.category}`}
+              required
+              maxLength={80}
+              value={editing.name}
+              disabled={!!busy}
+              onChange={(event) => setEditing({ id: row.id, name: event.target.value })}
+            />
+            <button
+              type="submit"
+              className="settings-command"
+              disabled={!!busy || !editing.name.trim() || editing.name.trim() === row.category}
+            >
+              <Save size={14} />
+              保存
+            </button>
+            <button
+              type="button"
+              className="settings-command"
+              disabled={!!busy}
+              onClick={() => setEditing(null)}
+            >
+              取消
+            </button>
+          </form>
+        ) : (
+          <div className="admin-cell-heading">
+            <Folder size={17} aria-hidden="true" />
+            <strong>{row.category}</strong>
+          </div>
+        ),
+    },
+    {
+      id: 'count',
+      header: '提示词数量',
+      size: 150,
+      align: 'right',
+      sortable: true,
+      cell: (row) => <span className="admin-cell-number">{row.count}</span>,
+    },
+    {
+      id: 'enabledCount',
+      header: '已启用',
+      size: 130,
+      align: 'right',
+      sortable: true,
+      cell: (row) => <span className="admin-cell-number">{row.enabledCount}</span>,
+    },
+    {
+      id: 'actions',
+      header: '操作',
+      size: 180,
+      pin: 'right',
+      cell: (row) =>
+        editing?.id !== row.id ? (
+          <div className="ops-row-actions">
+            <button
+              type="button"
+              className="settings-command"
+              aria-label={`改名 ${row.category}`}
+              disabled={!!busy || loading}
+              onClick={() => {
+                setEditing({ id: row.id, name: row.category })
+                setError('')
+              }}
+            >
+              <Pencil size={15} />
+              改名
+            </button>
+            <button
+              type="button"
+              className="settings-command admin-action"
+              data-tone="danger"
+              aria-label={`删除分类 ${row.category}`}
+              disabled={!!busy || loading}
+              onClick={() => startDelete(row)}
+            >
+              <Trash2 size={15} />
+              删除
+            </button>
+          </div>
+        ) : null,
+    },
+  ]
 
   if (loggedIn === null)
     return (
@@ -174,12 +299,13 @@ export function InspirationCategoryManager() {
     )
 
   return (
-    <main className="inspiration-category-manager admin-list-page" aria-label="灵感分类管理">
+    <section className="inspiration-category-manager admin-list-page" aria-label="灵感分类管理">
       <form className="inspiration-category-create" onSubmit={(event) => void save(event)}>
         <label htmlFor="inspiration-new-category">新增分类</label>
         <div>
           <input
             ref={inputRef}
+            autoFocus
             id="inspiration-new-category"
             maxLength={80}
             required
@@ -221,99 +347,21 @@ export function InspirationCategoryManager() {
           {notice}
         </p>
       )}
-      <section
-        ref={listRef}
-        tabIndex={0}
-        className="inspiration-category-list"
-        aria-label="灵感分类列表"
-        aria-busy={loading}
-      >
-        {loading ? (
-          <div className="settings-loading" role="status">
-            <LoaderCircle size={20} className="settings-spinner" aria-hidden="true" />
-            正在读取分类
-          </div>
-        ) : !visible.length ? (
-          <p className="settings-empty">
-            {search.trim() ? '没有匹配的分类' : '还没有分类，先新增一个分类。'}
-          </p>
-        ) : (
-          pagedCategories.map((row) => (
-            <article className="inspiration-category-row" key={row.id}>
-              <Folder size={18} aria-hidden="true" />
-              <div className="inspiration-category-copy">
-                {editing?.id === row.id ? (
-                  <form
-                    className="inspiration-category-rename"
-                    onSubmit={(event) => void save(event, row)}
-                  >
-                    <input
-                      autoFocus
-                      aria-label={`重命名 ${row.category}`}
-                      required
-                      maxLength={80}
-                      value={editing.name}
-                      disabled={!!busy}
-                      onChange={(event) => setEditing({ id: row.id, name: event.target.value })}
-                    />
-                    <button
-                      type="submit"
-                      className="settings-command"
-                      disabled={
-                        !!busy || !editing.name.trim() || editing.name.trim() === row.category
-                      }
-                    >
-                      <Save size={15} aria-hidden="true" />
-                      保存
-                    </button>
-                    <button
-                      type="button"
-                      className="settings-command"
-                      disabled={!!busy}
-                      onClick={() => setEditing(null)}
-                    >
-                      取消
-                    </button>
-                  </form>
-                ) : (
-                  <h2>{row.category}</h2>
-                )}
-                <p>
-                  {row.count} 条提示词 · {row.enabledCount} 条已启用
-                </p>
-              </div>
-              {editing?.id !== row.id && (
-                <div className="inspiration-category-actions">
-                  <button
-                    type="button"
-                    className="settings-command"
-                    aria-label={`改名 ${row.category}`}
-                    disabled={!!busy}
-                    onClick={() => {
-                      setEditing({ id: row.id, name: row.category })
-                      setError('')
-                    }}
-                  >
-                    <Pencil size={15} aria-hidden="true" />
-                    改名
-                  </button>
-                  <button
-                    type="button"
-                    className="settings-command admin-action"
-                    data-tone="danger"
-                    aria-label={`删除分类 ${row.category}`}
-                    disabled={!!busy}
-                    onClick={() => startDelete(row)}
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                    删除
-                  </button>
-                </div>
-              )}
-            </article>
-          ))
-        )}
-      </section>
+      <AdminDataTable
+        title="灵感分类列表"
+        data={pagedCategories}
+        columns={columns}
+        getRowId={(row) => row.id}
+        loading={loading}
+        sorting={sorting}
+        onSortingChange={(next) => {
+          setSorting(next)
+          setPage(1)
+        }}
+        scrollKey={`${currentPage}:${pageSize}:${search}:${JSON.stringify(sorting)}`}
+        emptyTitle="暂无分类"
+        emptyDescription="调整搜索条件，或新增一个分类。"
+      />
       <AdminPagination
         label="分类"
         unit="个"
@@ -410,6 +458,6 @@ export function InspirationCategoryManager() {
           </>
         )}
       </dialog>
-    </main>
+    </section>
   )
 }

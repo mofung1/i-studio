@@ -246,104 +246,6 @@
 .inspiration-manager .settings-primary {
   color: var(--primary-foreground);
 }
-.inspiration-manager-list {
-  overflow: hidden;
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  background: var(--surface);
-}
-.inspiration-manager-row {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 20px;
-  border-bottom: 1px solid var(--border-soft);
-}
-.inspiration-manager-row:last-child {
-  border-bottom: 0;
-}
-.inspiration-manager-cover {
-  flex: 0 0 64px;
-  width: 64px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 6px;
-  background: var(--control-bg);
-}
-.inspiration-manager-copy {
-  flex: 1;
-  min-width: 0;
-}
-.inspiration-manager-title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.inspiration-manager-title h2 {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-size: 16px;
-  font-weight: 550;
-}
-.inspiration-manager-badge {
-  flex-shrink: 0;
-  padding: 4px 8px;
-  border-radius: 5px;
-  color: var(--foreground-2);
-  background: var(--control-bg);
-  font-size: var(--text-caption);
-}
-.inspiration-manager-badge.is-disabled {
-  color: var(--muted);
-  background: transparent;
-  border: 1px solid var(--border);
-}
-.inspiration-manager-meta {
-  margin: 6px 0 10px;
-  color: var(--muted);
-  font-size: var(--text-small);
-  overflow-wrap: anywhere;
-}
-.inspiration-manager-excerpt {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 0;
-  color: var(--foreground-2);
-  font-size: var(--text-small);
-  line-height: 1.65;
-  overflow-wrap: anywhere;
-}
-.inspiration-manager-actions {
-  display: flex;
-  flex-shrink: 0;
-  gap: 10px;
-}
-.inspiration-manager-empty {
-  padding: 28px;
-  margin: 0;
-  color: var(--muted);
-  font-size: var(--text-ui);
-  line-height: 1.6;
-}
-.inspiration-manager-list > .settings-loading {
-  padding: 32px;
-}
-.inspiration-manager-pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-top: 20px;
-  color: var(--muted);
-  font-size: var(--text-small);
-}
-.inspiration-manager-pagination > div {
-  display: flex;
-  gap: 10px;
-}
 .library-failed-media {
   position: relative;
 }
@@ -433,24 +335,6 @@
   }
   .inspiration-manager-toolbar > .settings-primary {
     margin-left: auto;
-  }
-  .inspiration-manager-row {
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 16px;
-  }
-  .inspiration-manager-actions {
-    justify-content: flex-end;
-    width: 100%;
-  }
-  .inspiration-manager-pagination {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .inspiration-manager-pagination > div {
-    align-self: flex-end;
   }
   .inspiration-editor-dialog {
     padding: 20px;
@@ -1218,57 +1102,11 @@
   flex: 1 1 200px;
 }
 .inspiration-category-create button,
-.inspiration-category-actions button,
 .inspiration-category-rename button {
   min-height: 44px;
 }
 .inspiration-category-search {
   margin-bottom: 16px;
-}
-.inspiration-category-list {
-  border: 1px solid var(--border-soft);
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--surface);
-}
-.inspiration-category-list > .settings-loading,
-.inspiration-category-list > .settings-empty {
-  padding: 24px;
-  margin: 0;
-}
-.inspiration-category-row {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px;
-  border-bottom: 1px solid var(--border-soft);
-}
-.inspiration-category-row:last-child {
-  border-bottom: none;
-}
-.inspiration-category-row > svg {
-  flex-shrink: 0;
-  color: var(--foreground-3);
-}
-.inspiration-category-copy {
-  flex: 1;
-  min-width: 0;
-}
-.inspiration-category-copy h2 {
-  margin: 0;
-  font-size: var(--text-ui);
-  font-weight: 550;
-  overflow-wrap: anywhere;
-}
-.inspiration-category-copy p {
-  margin: 5px 0 0;
-  color: var(--foreground-3);
-  font-size: var(--text-small);
-}
-.inspiration-category-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
 }
 .inspiration-category-rename input {
   flex: 1 1 180px;
@@ -1334,15 +1172,6 @@
     flex-basis: 100%;
   }
   .inspiration-category-create button {
-    width: 100%;
-  }
-  .inspiration-category-row {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 14px;
-  }
-  .inspiration-category-actions {
-    justify-content: flex-end;
     width: 100%;
   }
   .inspiration-editor-dialog .endpoint-form-grid {

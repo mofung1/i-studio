@@ -36,3 +36,16 @@ func (p adminPagination) response(key string, items any) map[string]any {
 }
 
 func (p adminPagination) offset() int { return (p.Page - 1) * p.PageSize }
+
+// Only SQL identifiers supplied by handlers can enter ORDER BY.
+func adminSortOrder(r *http.Request, allowed map[string]string, fallback string) string {
+	column, ok := allowed[r.URL.Query().Get("sort")]
+	order := r.URL.Query().Get("order")
+	if !ok || (order != "asc" && order != "desc") {
+		return fallback
+	}
+	if order == "desc" {
+		return column + " DESC"
+	}
+	return column + " ASC"
+}

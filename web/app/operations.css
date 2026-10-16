@@ -414,12 +414,6 @@
 .ops-access a {
   font-size: 13px;
 }
-.ops-admin-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 24px;
-}
 .creation-credit-estimate {
   display: flex;
   justify-content: space-between;

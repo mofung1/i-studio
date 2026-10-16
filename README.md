@@ -37,7 +37,7 @@
 ## 目录结构
 
 ```text
-web/       Next.js 15 + React 19 用户端，独立 pnpm 项目
+web/       Next.js 15 + React 19 用户端与运营后台，独立 pnpm 项目
 server/    Go 1.26.9 + Gin API，独立 Go module
   cmd/server/   API / 部署命令入口
   internal/

@@ -4,7 +4,6 @@
   min-height: 0;
   overflow: hidden;
   --admin-success: #15803d;
-  --admin-success-hover: #166534;
   --admin-success-text: #166534;
   --admin-success-soft: #f0fdf4;
   --admin-success-line: #bbdfc6;
@@ -35,9 +34,7 @@
   min-height: 0;
   padding: 0;
 }
-.admin-shell
-  .admin-list-page
-  > :not(.admin-list-region, .inspiration-manager-list, .inspiration-category-list) {
+.admin-shell .admin-list-page > :not(.admin-list-region, .admin-data-table) {
   flex-shrink: 0;
 }
 .admin-shell .admin-list-page .ops-heading {
@@ -50,40 +47,6 @@
   min-height: 0;
   gap: 12px;
   overflow: hidden;
-}
-.admin-shell .admin-list-region > .ops-card {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  margin-bottom: 0;
-  overflow: hidden;
-}
-.admin-shell .admin-list-region .ops-table-scroll {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-.admin-shell .admin-list-region .ops-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--surface-subtle);
-  box-shadow: 0 1px 0 var(--border);
-}
-.admin-shell .ops-table-scroll:focus-visible {
-  outline: 2px solid var(--admin-success);
-  outline-offset: -2px;
-}
-.admin-shell .admin-list-page > :is(.inspiration-manager-list, .inspiration-category-list) {
-  flex: 1 1 0;
-  min-height: 0;
-  margin: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
 }
 .admin-shell .admin-list-page > .ops-pagination {
   margin-top: 12px;
@@ -153,14 +116,14 @@ html[data-theme='dark'] .admin-shell {
   background: currentColor;
 }
 .admin-shell .settings-primary {
-  background: var(--admin-success);
-  border-color: var(--admin-success);
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
 }
 .admin-shell .settings-primary:hover:not(:disabled) {
-  background: var(--admin-success-hover);
-  border-color: var(--admin-success-hover);
-  color: #fff;
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: var(--primary-foreground);
 }
 .admin-shell .admin-action[data-tone] {
   background: var(--admin-tone-soft);
@@ -193,14 +156,12 @@ html[data-theme='dark'] .admin-shell {
   border-color: var(--admin-warning-line);
   background: var(--admin-warning-soft);
 }
-.admin-shell .prompt-template-item .prompt-template-status,
-.admin-shell .inspiration-manager-badge {
+.admin-shell .prompt-template-item .prompt-template-status {
   color: var(--admin-success-text);
   border-color: var(--admin-success-line);
   background: var(--admin-success-soft);
 }
-.admin-shell .prompt-template-item .prompt-template-status.is-disabled,
-.admin-shell .inspiration-manager-badge.is-disabled {
+.admin-shell .prompt-template-item .prompt-template-status.is-disabled {
   color: var(--admin-danger-text);
   border-color: var(--admin-danger-line);
   background: var(--admin-danger-soft);
@@ -522,6 +483,61 @@ html[data-theme='dark'] .admin-shell {
 }
 .admin-shell .prompt-template-search input:focus-visible {
   outline: none;
+}
+.admin-shell .inspiration-manager-search input[type='search'],
+.admin-shell .inspiration-manager-search input[type='search']:is(:focus, :focus-visible) {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}
+.admin-shell .inspiration-manager-search:focus-within {
+  border-color: var(--foreground);
+  box-shadow: inset 0 0 0 1px var(--foreground);
+}
+.admin-shell .inspiration-category-dialog {
+  width: min(1080px, calc(100% - 32px));
+  height: min(760px, calc(100dvh - 40px));
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
+}
+.admin-shell .inspiration-category-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.admin-shell .inspiration-category-dialog-heading {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.admin-shell .inspiration-category-dialog-heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.admin-shell .inspiration-category-dialog .inspiration-category-manager {
+  flex: 1 1 0;
+  height: auto;
+}
+.admin-shell .inspiration-category-dialog .inspiration-category-create {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.admin-shell .inspiration-category-dialog .inspiration-category-create > div {
+  display: flex;
+}
+.admin-shell .inspiration-category-dialog .inspiration-category-search {
+  flex: 0 0 auto;
+}
+.admin-shell .inspiration-category-dialog .inspiration-category-rename {
+  display: flex;
+  gap: 8px;
 }
 .admin-shell .prompt-template-search:focus-within {
   border-color: var(--admin-success);
