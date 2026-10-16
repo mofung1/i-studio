@@ -1,7 +1,7 @@
 'use client'
 
 import type { AdminAudit as Audit } from '@/lib/admin'
-import { AdminTable as Table } from './table'
+import { AdminDataTable, type AdminColumn, type AdminSortProps } from './data-table'
 
 const actionLabels: Record<string, string> = {
   'admin.login': '登录后台',
@@ -28,30 +28,65 @@ const actionLabels: Record<string, string> = {
   'DELETE inspiration/categories': '删除灵感分类',
 }
 
-export function AdminAuditTable({ audit, loading = false }: { audit: Audit[]; loading?: boolean }) {
+export function AdminAuditTable({
+  audit,
+  loading = false,
+  sorting,
+  onSortingChange,
+}: { audit: Audit[]; loading?: boolean } & AdminSortProps) {
+  const columns: AdminColumn<Audit>[] = [
+    {
+      id: 'createdAt',
+      header: '时间',
+      size: 195,
+      pin: 'left',
+      sortable: true,
+      cell: (item) => new Date(item.createdAt).toLocaleString('zh-CN'),
+    },
+    {
+      id: 'actor',
+      header: '操作人',
+      size: 150,
+      sortable: true,
+      cell: (item) => <strong>{item.actor}</strong>,
+    },
+    {
+      id: 'action',
+      header: '操作',
+      size: 200,
+      cell: (item) => (
+        <span title={item.action}>
+          {item.action === 'POST ai-endpoints' && item.targetId.endsWith('/test')
+            ? '测试 AI 服务'
+            : item.action === 'POST ai-endpoints' && item.targetId.endsWith('/default')
+              ? '切换默认 AI 服务'
+              : (actionLabels[item.action] ?? item.action)}
+        </span>
+      ),
+    },
+    {
+      id: 'target',
+      header: '对象',
+      size: 230,
+      cell: (item) => <span className="admin-cell-message">{item.targetId || '—'}</span>,
+    },
+    {
+      id: 'detail',
+      header: '内容',
+      size: 300,
+      cell: (item) => <span className="admin-cell-message">{item.detail}</span>,
+    },
+  ]
   return (
-    <section className="ops-card">
-      <Table
-        headings={['时间', '操作人', '操作', '对象', '内容']}
-        empty={!audit.length}
-        loading={loading}
-      >
-        {audit.map((item) => (
-          <tr key={item.id}>
-            <td>{new Date(item.createdAt).toLocaleString('zh-CN')}</td>
-            <td>{item.actor}</td>
-            <td title={item.action}>
-              {item.action === 'POST ai-endpoints' && item.targetId.endsWith('/test')
-                ? '测试 AI 服务'
-                : item.action === 'POST ai-endpoints' && item.targetId.endsWith('/default')
-                  ? '切换默认 AI 服务'
-                  : (actionLabels[item.action] ?? item.action)}
-            </td>
-            <td className="ops-message-cell">{item.targetId || '—'}</td>
-            <td className="ops-message-cell">{item.detail}</td>
-          </tr>
-        ))}
-      </Table>
-    </section>
+    <AdminDataTable
+      title="操作日志列表"
+      columns={columns}
+      data={audit}
+      getRowId={(item) => String(item.id)}
+      loading={loading}
+      sorting={sorting}
+      onSortingChange={onSortingChange}
+      emptyDescription="管理员的配置、余额和权限变更会记录在这里。"
+    />
   )
 }

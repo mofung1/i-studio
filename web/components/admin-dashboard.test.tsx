@@ -381,7 +381,7 @@ it('returns user search to the first page and resets list scrolling only when pa
   await act(async () => {
     await vi.advanceTimersByTimeAsync(250)
   })
-  const scroll = container.querySelector('.ops-table-scroll')!
+  const scroll = container.querySelector('.admin-data-scroll')!
   scroll.scrollTop = 300
   await act(async () => button('刷新').click())
   expect(scroll.scrollTop).toBe(300)
@@ -399,4 +399,22 @@ it('returns user search to the first page and resets list scrolling only when pa
   })
   expect(request).toHaveBeenLastCalledWith('users?q=alice&page=1&pageSize=20')
   expect(scroll.scrollTop).toBe(0)
+})
+
+it('requests global sorting from the server and preserves it across pagination and refresh', async () => {
+  request.mockImplementation(async (path) => taskPage(path))
+  await act(async () => root.render(<AdminDashboard view="tasks" />))
+  await flushTaskRequest()
+  await act(async () => button('实扣').click())
+  await flushTaskRequest()
+  expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=20&sort=charged&order=asc')
+  await act(async () => nextTaskPage().click())
+  await flushTaskRequest()
+  expect(request).toHaveBeenLastCalledWith('tasks?page=2&pageSize=20&sort=charged&order=asc')
+  await act(async () => button('刷新').click())
+  expect(request).toHaveBeenLastCalledWith('tasks?page=2&pageSize=20&sort=charged&order=asc')
+  expect(container.querySelector('.settings-saved')).toBeNull()
+  await act(async () => button('实扣').click())
+  await flushTaskRequest()
+  expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=20&sort=charged&order=desc')
 })

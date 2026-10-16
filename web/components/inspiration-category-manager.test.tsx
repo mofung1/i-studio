@@ -38,8 +38,8 @@ afterEach(async () => {
 
 it('paginates categories, resets scrolling on page changes and searches all categories', async () => {
   await act(async () => root.render(<InspirationCategoryManager />))
-  const list = container.querySelector<HTMLElement>('.inspiration-category-list')!
-  expect(list.querySelectorAll('article')).toHaveLength(20)
+  const list = container.querySelector<HTMLElement>('.admin-data-scroll')!
+  expect(list.querySelectorAll('tbody > tr')).toHaveLength(20)
   expect(list.textContent).toContain('分类-01')
   expect(list.textContent).not.toContain('分类-21')
   list.scrollTop = 300
@@ -57,7 +57,21 @@ it('paginates categories, resets scrolling on page changes and searches all cate
     )
     search.dispatchEvent(new Event('input', { bubbles: true }))
   })
-  expect(list.querySelectorAll('article')).toHaveLength(1)
+  expect(list.querySelectorAll('tbody > tr')).toHaveLength(1)
   expect(list.textContent).toContain('分类-51')
   expect(container.textContent).toContain('第 1 / 1 页')
+})
+
+it('sorts the complete category collection before selecting a page', async () => {
+  await act(async () => root.render(<InspirationCategoryManager />))
+  const sort = [...container.querySelectorAll('thead button')].find(
+    (button) => button.textContent === '提示词数量',
+  ) as HTMLButtonElement
+  await act(async () => sort.click())
+  await act(async () => sort.click())
+  expect(container.querySelector('tbody tr')?.textContent).toContain('分类-51')
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="下一页分类"]')!.click(),
+  )
+  expect(container.querySelector('tbody tr')?.textContent).toContain('分类-31')
 })

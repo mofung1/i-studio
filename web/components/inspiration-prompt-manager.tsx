@@ -23,7 +23,10 @@ import {
   type ManagedInspirationPrompt,
 } from '@/lib/inspiration-settings'
 import { ConfirmDialog } from './confirm-dialog'
+import { InspirationCategoryDialog } from './inspiration-category-dialog'
 import { AdminPagination } from './admin/pagination'
+import { AdminDataTable, type AdminColumn } from './admin/data-table'
+import { AdminStatusBadge } from './admin/status-badge'
 import type { InspirationCategory } from './workbench/use-inspiration-prompts'
 import {
   Select,
@@ -43,6 +46,7 @@ export function InspirationPromptManager() {
   const [pageSize, setPageSize] = useState(20)
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState<InspirationCategory[]>([])
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false)
   const [filters, setFilters] = useState({ query: '', category: '', status: 'all', page: 1 })
   const [refresh, setRefresh] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -63,7 +67,6 @@ export function InspirationPromptManager() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const listRef = useRef<HTMLElement>(null)
   const focusRef = useRef<HTMLElement | null>(null)
   const addRef = useRef<HTMLButtonElement>(null)
   const editorOpen = editing !== null
@@ -72,11 +75,8 @@ export function InspirationPromptManager() {
     (addingCategory && !!categoryName.trim())
 
   useEffect(() => {
-    if (listRef.current) listRef.current.scrollTop = 0
-  }, [filters.page, filters.query, filters.category, filters.status, pageSize])
-
-  useEffect(() => {
     setLoggedIn(!!getAdminAccessToken())
+    setCategoryManagerOpen(new URLSearchParams(window.location.search).get('categories') === '1')
   }, [])
   useEffect(() => {
     const timer = window.setTimeout(
@@ -240,6 +240,83 @@ export function InspirationPromptManager() {
     }
   }
 
+  const columns: AdminColumn<ManagedInspirationPrompt>[] = [
+    {
+      id: 'title',
+      header: '灵感提示词',
+      size: 310,
+      pin: 'left',
+      cell: (item) => (
+        <div className="admin-prompt-title">
+          {item.imageUrl && (
+            <img
+              src={item.imageUrl.startsWith('/') ? `${apiBaseUrl}${item.imageUrl}` : item.imageUrl}
+              alt=""
+              loading="lazy"
+            />
+          )}
+          <strong>{item.title}</strong>
+        </div>
+      ),
+    },
+    { id: 'category', header: '分类', size: 130, cell: (item) => item.category || '未分类' },
+    {
+      id: 'prompt',
+      header: '提示词',
+      size: 320,
+      cell: (item) => (
+        <p className="admin-prompt-excerpt" title={item.prompt}>
+          {item.prompt}
+        </p>
+      ),
+    },
+    { id: 'source', header: '来源', size: 140, cell: (item) => item.source || '—' },
+    {
+      id: 'status',
+      header: '状态',
+      size: 110,
+      cell: (item) => (
+        <AdminStatusBadge tone={item.enabled ? 'success' : 'danger'}>
+          {item.enabled ? '已启用' : '未启用'}
+        </AdminStatusBadge>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '操作',
+      size: 180,
+      pin: 'right',
+      cell: (item) => (
+        <div className="ops-row-actions">
+          <button
+            type="button"
+            className="settings-command"
+            aria-label={`编辑 ${item.title}`}
+            disabled={loading}
+            onClick={() => edit(item)}
+          >
+            <Pencil size={15} />
+            编辑
+          </button>
+          <button
+            type="button"
+            className="settings-command admin-action"
+            data-tone="danger"
+            aria-label={`删除 ${item.title}`}
+            disabled={loading}
+            onClick={() => {
+              setDeleteError('')
+              setDeleting(item)
+            }}
+          >
+            <Trash2 size={15} />
+            删除
+          </button>
+        </div>
+      ),
+    },
+  ]
+
   if (loggedIn === null)
     return (
       <div className="settings-loading" role="status">
@@ -334,10 +411,15 @@ export function InspirationPromptManager() {
           <RefreshCw size={16} aria-hidden="true" />
           刷新
         </button>
-        <Link className="settings-command" href="/admin/inspiration/categories">
+        <button
+          type="button"
+          className="settings-command"
+          aria-haspopup="dialog"
+          onClick={() => setCategoryManagerOpen(true)}
+        >
           <Folder size={16} aria-hidden="true" />
           分类管理
-        </Link>
+        </button>
         <button ref={addRef} type="button" className="settings-primary" onClick={() => edit()}>
           <Plus size={17} aria-hidden="true" />
           新增提示词
@@ -353,83 +435,18 @@ export function InspirationPromptManager() {
           {error}
         </p>
       )}
-      <section
-        ref={listRef}
-        tabIndex={0}
-        className="inspiration-manager-list"
-        aria-label="管理提示词列表"
-        aria-busy={loading}
-      >
-        {loading ? (
-          <div className="settings-loading" role="status">
-            <LoaderCircle className="settings-spinner" size={20} />
-            正在读取提示词
-          </div>
-        ) : error ? null : !items.length ? (
-          <p className="inspiration-manager-empty">
-            {filters.query || filters.category || filters.status !== 'all'
-              ? '没有符合筛选条件的提示词'
-              : '灵感库还没有提示词，点击「新增提示词」开始添加。'}
-          </p>
-        ) : (
-          items.map((item) => (
-            <article className="inspiration-manager-row" key={item.id}>
-              {item.imageUrl && (
-                <img
-                  className="inspiration-manager-cover"
-                  src={
-                    item.imageUrl.startsWith('/') ? `${apiBaseUrl}${item.imageUrl}` : item.imageUrl
-                  }
-                  alt=""
-                  loading="lazy"
-                />
-              )}
-              <div className="inspiration-manager-copy">
-                <div className="inspiration-manager-title">
-                  <h2>{item.title}</h2>
-                  <span
-                    className={
-                      item.enabled
-                        ? 'inspiration-manager-badge'
-                        : 'inspiration-manager-badge is-disabled'
-                    }
-                  >
-                    {item.enabled ? '已启用' : '未启用'}
-                  </span>
-                </div>
-                <p className="inspiration-manager-meta">
-                  {[item.category, item.source].filter(Boolean).join(' · ')}
-                </p>
-                <p className="inspiration-manager-excerpt">{item.prompt}</p>
-              </div>
-              <div className="inspiration-manager-actions">
-                <button
-                  type="button"
-                  className="settings-command"
-                  aria-label={`编辑 ${item.title}`}
-                  onClick={() => edit(item)}
-                >
-                  <Pencil size={16} aria-hidden="true" />
-                  编辑
-                </button>
-                <button
-                  type="button"
-                  className="settings-command admin-action"
-                  data-tone="danger"
-                  aria-label={`删除 ${item.title}`}
-                  onClick={() => {
-                    setDeleteError('')
-                    setDeleting(item)
-                  }}
-                >
-                  <Trash2 size={16} aria-hidden="true" />
-                  删除
-                </button>
-              </div>
-            </article>
-          ))
-        )}
-      </section>
+      <AdminDataTable
+        title="灵感提示词列表"
+        data={items}
+        columns={columns}
+        getRowId={(item) => item.id}
+        loading={loading}
+        scrollKey={`${filters.page}:${filters.query}:${filters.category}:${filters.status}:${pageSize}`}
+        emptyTitle={error ? '列表暂时无法读取' : '暂无灵感提示词'}
+        emptyDescription={
+          error ? '点击刷新后重试。' : '调整筛选条件，或点击「新增提示词」添加内容。'
+        }
+      />
       {!error && (
         <AdminPagination
           label="提示词"
@@ -442,6 +459,33 @@ export function InspirationPromptManager() {
           onPageSizeChange={(size) => {
             setPageSize(size)
             setFilters((previous) => ({ ...previous, page: 1 }))
+          }}
+        />
+      )}
+      {categoryManagerOpen && (
+        <InspirationCategoryDialog
+          onClose={() => {
+            setCategoryManagerOpen(false)
+            const url = new URL(window.location.href)
+            if (url.searchParams.has('categories')) {
+              url.searchParams.delete('categories')
+              window.history.replaceState(
+                window.history.state,
+                '',
+                url.pathname + url.search + url.hash,
+              )
+            }
+          }}
+          onChanged={(latest) => {
+            const activeCategory = categories.find((row) => row.category === filters.category)
+            setCategories(latest)
+            setFilters((previous) => ({
+              ...previous,
+              category: activeCategory
+                ? (latest.find((row) => row.id === activeCategory.id)?.category ?? '')
+                : previous.category,
+            }))
+            setRefresh((value) => value + 1)
           }}
         />
       )}

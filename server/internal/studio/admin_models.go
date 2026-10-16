@@ -19,7 +19,8 @@ func (s *Service) adminModels(w http.ResponseWriter, r *http.Request, suffix str
 			return
 		}
 		defer tx.Rollback()
-		rows, err := tx.QueryContext(r.Context(), "SELECT id,name,endpoint_id,price_minor,enabled,is_default,version FROM public_models ORDER BY is_default DESC,created_at,id LIMIT $1 OFFSET $2", page.PageSize, page.offset())
+		order := adminSortOrder(r, map[string]string{"name": "name", "priceMinor": "price_minor", "enabled": "enabled"}, "is_default DESC,created_at")
+		rows, err := tx.QueryContext(r.Context(), "SELECT id,name,endpoint_id,price_minor,enabled,is_default,version FROM public_models ORDER BY "+order+",id LIMIT $1 OFFSET $2", page.PageSize, page.offset())
 		if err != nil {
 			s.error(w, 500, "MODELS_UNAVAILABLE", "模型读取失败")
 			return

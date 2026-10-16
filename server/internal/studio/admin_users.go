@@ -21,7 +21,8 @@ func (s *Service) adminUsers(w http.ResponseWriter, r *http.Request, suffix stri
 			return
 		}
 		defer tx.Rollback()
-		rows, err := tx.QueryContext(r.Context(), `SELECT u.id,u.username,u.role,u.status,u.created_at,a.available,a.held,false FROM users u JOIN credit_accounts a ON a.user_id=u.id WHERE u.username ILIKE '%'||$1||'%' ORDER BY u.created_at DESC,u.id DESC LIMIT $2 OFFSET $3`, q, page.PageSize, page.offset())
+		order := adminSortOrder(r, map[string]string{"username": "u.username", "available": "a.available", "held": "a.held", "status": "u.status"}, "u.created_at DESC")
+		rows, err := tx.QueryContext(r.Context(), `SELECT u.id,u.username,u.role,u.status,u.created_at,a.available,a.held,false FROM users u JOIN credit_accounts a ON a.user_id=u.id WHERE u.username ILIKE '%'||$1||'%' ORDER BY `+order+`,u.id DESC LIMIT $2 OFFSET $3`, q, page.PageSize, page.offset())
 		if err != nil {
 			s.error(w, 500, "USERS_UNAVAILABLE", "用户读取失败")
 			return

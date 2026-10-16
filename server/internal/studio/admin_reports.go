@@ -30,7 +30,8 @@ func (s *Service) adminTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	rows, err := tx.QueryContext(r.Context(), `SELECT t.id,u.username,t.status,t.created_at,COALESCE(t.error_message,''),COALESCE(c.model_name,''),COALESCE(c.unit_price*c.quantity,0),COALESCE(c.charged,0),COALESCE(c.refunded,0),COALESCE(c.settled,true) FROM generation_tasks t JOIN users u ON u.id=t.user_id LEFT JOIN generation_charges c ON c.task_id=t.id ORDER BY t.created_at DESC,t.id DESC LIMIT $1 OFFSET $2`, page.PageSize, page.offset())
+	order := adminSortOrder(r, map[string]string{"createdAt": "t.created_at", "username": "u.username", "status": "t.status", "reserved": "COALESCE(c.unit_price*c.quantity,0)", "charged": "COALESCE(c.charged,0)", "refunded": "COALESCE(c.refunded,0)"}, "t.created_at DESC")
+	rows, err := tx.QueryContext(r.Context(), `SELECT t.id,u.username,t.status,t.created_at,COALESCE(t.error_message,''),COALESCE(c.model_name,''),COALESCE(c.unit_price*c.quantity,0),COALESCE(c.charged,0),COALESCE(c.refunded,0),COALESCE(c.settled,true) FROM generation_tasks t JOIN users u ON u.id=t.user_id LEFT JOIN generation_charges c ON c.task_id=t.id ORDER BY `+order+`,t.id DESC LIMIT $1 OFFSET $2`, page.PageSize, page.offset())
 	if err != nil {
 		s.error(w, 500, "TASK_STORAGE_ERROR", "任务读取失败")
 		return
@@ -72,7 +73,8 @@ func (s *Service) adminAudit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback()
-	rows, err := tx.QueryContext(r.Context(), `SELECT a.id,COALESCE(u.username,a.actor_id),a.action,a.target_id,a.detail,a.created_at FROM admin_audit a LEFT JOIN admin_users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT $1 OFFSET $2`, page.PageSize, page.offset())
+	order := adminSortOrder(r, map[string]string{"createdAt": "a.created_at", "actor": "COALESCE(u.username,a.actor_id)"}, "a.id DESC")
+	rows, err := tx.QueryContext(r.Context(), `SELECT a.id,COALESCE(u.username,a.actor_id),a.action,a.target_id,a.detail,a.created_at FROM admin_audit a LEFT JOIN admin_users u ON u.id=a.actor_id ORDER BY `+order+`,a.id DESC LIMIT $1 OFFSET $2`, page.PageSize, page.offset())
 	if err != nil {
 		s.error(w, 500, "AUDIT_UNAVAILABLE", "审计读取失败")
 		return
