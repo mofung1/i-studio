@@ -147,13 +147,16 @@ export function GenerationCost({
       {quote ? (
         <>
           <span>
-            预计{' '}
+            预计扣除{' '}
             <strong>
               {formatCredits(quote.totalMinor)} {quote.creditName}
             </strong>
           </span>
           <span>
-            可用 {formatCredits(quote.availableMinor)}
+            可用余额{' '}
+            <strong>
+              {formatCredits(quote.availableMinor)} {quote.creditName}
+            </strong>
             {!quote.canAfford && (
               <>
                 {' '}

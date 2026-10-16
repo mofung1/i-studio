@@ -97,6 +97,8 @@ export function WorkbenchHeader({
         <button
           type="button"
           className="panel-toggle"
+          aria-label="创作设置"
+          title={panelOpen ? '收起创作设置' : '展开创作设置'}
           aria-controls="creation-settings"
           aria-expanded={panelOpen}
           onClick={onTogglePanel}

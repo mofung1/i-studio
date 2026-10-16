@@ -3,15 +3,21 @@
 import { isStoredImage, sameCreationImage, type CreationImage } from '@/lib/creation-images'
 
 import {
-  ChevronDown,
-  ChevronUp,
+  GripVertical,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  PanelRight,
+  PanelLeft,
   Loader2,
   RotateCcw,
   ScanText,
-  SlidersHorizontal,
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { usePanelDock } from './use-panel-dock'
 import { usePromptReverse } from '@/components/prompt-reverse-provider'
 import { applyReverseText } from '@/lib/prompt-reverse'
 
@@ -38,6 +44,7 @@ import {
   type ModuleMode,
   type ReferenceStrength,
   type WorkbenchMode,
+  type ConfigSide,
 } from './shared'
 import type { GenerationNotice } from './use-generation-task'
 
@@ -45,6 +52,9 @@ interface CreatorSidebarProps {
   mode: WorkbenchMode
   generalConfigCollapsed?: boolean
   onToggleGeneralConfig?: () => void
+  configSide?: ConfigSide
+  onSetConfigSide?: (side: ConfigSide) => void
+  onResetLayout?: () => void
   task: CommerceTaskType
   title: string
   requirementsPlaceholder: string
@@ -171,6 +181,26 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   } = props
 
   const isGeneral = mode === 'general'
+  const side = props.configSide ?? 'left'
+  const dock = usePanelDock({
+    enabled: isGeneral && !!props.onSetConfigSide,
+    collapsed: !!props.generalConfigCollapsed,
+    side,
+    onDock: props.onSetConfigSide,
+  })
+  const previousSide = useRef(side)
+  useEffect(() => {
+    if (isGeneral && (props.generalConfigCollapsed || previousSide.current !== side)) {
+      dock.panelRef.current?.querySelectorAll<HTMLElement>('[popover]').forEach((popover) => {
+        try {
+          popover.hidePopover?.()
+        } catch {
+          /* Already dismissed. */
+        }
+      })
+    }
+    previousSide.current = side
+  }, [isGeneral, props.generalConfigCollapsed, side, dock.panelRef])
   const { openReverse } = usePromptReverse()
   const [reverseUndo, setReverseUndo] = useState<{
     before: string
@@ -306,36 +336,81 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
 
   return (
     <aside
+      ref={isGeneral ? dock.panelRef : undefined}
       id="creation-settings"
-      className={`configuration-panel creator-sidebar ${isGeneral ? 'general-composer' : 'commerce-settings'}`}
+      className={`configuration-panel creator-sidebar ${isGeneral ? 'general-composer' : 'commerce-settings'} ${dock.preview ? 'is-panel-dragging' : ''}`}
       aria-label="创作设置"
     >
-      {isGeneral && props.generalConfigCollapsed && (
+      {isGeneral && (
         <div className="general-config-head">
+          <button
+            type="button"
+            className="creator-drag-handle"
+            aria-label="拖动创作面板，或按左右方向键停靠"
+            title="拖动停靠至左侧或右侧，Esc 取消"
+            {...dock.handleProps}
+          >
+            <GripVertical size={15} aria-hidden="true" />
+          </button>
+          <h2>创作设置</h2>
+          <span
+            className={`creator-panel-status${notice?.kind === 'error' ? ' is-error' : ''}`}
+            role="status"
+            aria-atomic="true"
+            aria-label={notice?.kind === 'error' ? notice.message : generationStatus}
+            title={notice?.kind === 'error' ? notice.message : generationStatus}
+          >
+            {isSubmitting || isGenerating ? (
+              <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+            ) : null}
+            <span>{notice?.kind === 'error' ? '需处理' : generationStatus}</span>
+          </span>
+          <div className="creator-layout-actions">
+            <button
+              type="button"
+              aria-label={side === 'left' ? '配置移至右侧' : '配置移至左侧'}
+              title={side === 'left' ? '配置移至右侧' : '配置移至左侧'}
+              onClick={() => dock.moveTo(side === 'left' ? 'right' : 'left')}
+            >
+              {side === 'left' ? (
+                <PanelRight size={15} aria-hidden="true" />
+              ) : (
+                <PanelLeft size={15} aria-hidden="true" />
+              )}
+            </button>
+            <button
+              type="button"
+              aria-label="恢复默认创作布局"
+              title="恢复默认布局"
+              onClick={props.onResetLayout}
+            >
+              <RotateCcw size={14} aria-hidden="true" />
+            </button>
+          </div>
           <button
             ref={configToggleRef}
             type="button"
-            className="general-config-summary"
+            className="creator-panel-toggle"
             aria-label={props.generalConfigCollapsed ? '展开创作配置' : '收起创作配置'}
             aria-controls="creation-settings-body"
             aria-expanded={!props.generalConfigCollapsed}
             onClick={props.onToggleGeneralConfig}
+            title={
+              props.generalConfigCollapsed
+                ? `展开创作设置 · ${currentModel}`
+                : '收起创作设置，扩大画布'
+            }
           >
-            <SlidersHorizontal size={16} aria-hidden="true" />
-            <span>{props.generalConfigCollapsed ? '展开创作配置' : '收起创作配置'}</span>
-            <small className="general-config-model" title={`当前模型：${currentModel}`}>
-              当前模型：{currentModel}
-            </small>
-            <small className="general-config-status" role="status" aria-atomic="true">
-              {(isSubmitting || isGenerating) && (
-                <Loader2 size={12} className="animate-spin" aria-hidden="true" />
-              )}
-              {generationStatus}
-            </small>
-            {props.generalConfigCollapsed ? (
-              <ChevronUp size={16} aria-hidden="true" />
+            {side === 'left' ? (
+              props.generalConfigCollapsed ? (
+                <PanelLeftOpen size={17} aria-hidden="true" />
+              ) : (
+                <PanelLeftClose size={17} aria-hidden="true" />
+              )
+            ) : props.generalConfigCollapsed ? (
+              <PanelRightOpen size={17} aria-hidden="true" />
             ) : (
-              <ChevronDown size={16} aria-hidden="true" />
+              <PanelRightClose size={17} aria-hidden="true" />
             )}
           </button>
         </div>
@@ -355,24 +430,13 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
 
           {isGeneral ? (
             <div className="composer-input-grid">
-              <div className="composer-media" aria-label="参考图片">
-                <ReferenceUploader
-                  files={assetFiles}
-                  max={maxFiles}
-                  onChange={onSetReferenceFiles}
-                  labelFor={(index) => `参考 ${index + 1}`}
-                  emptyTitle="添加参考图片"
-                  emptyHint="选择本地图片或素材库"
-                  acceptedHint={`JPG / PNG / WebP · 最多 ${maxFiles} 张`}
-                  collapseAt={2}
-                />
-              </div>
               <fieldset className="form-section config-card config-card-prompt">
+                <legend className="prompt-field-label">画面描述</legend>
                 <PromptEditor
                   value={prompt}
                   onChange={onSetPrompt}
                   ariaLabel="画面描述"
-                  placeholder="输入文字或上传参考图，描述你想生成的内容。"
+                  placeholder="描述主体、场景和风格，或添加参考图片。"
                   enhance={async (value) =>
                     promptEnhanceEnabled
                       ? runEnhance('prompt', value)
@@ -461,6 +525,24 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                   collapsed={props.generalConfigCollapsed}
                 />
               </fieldset>
+              <div className="composer-media" aria-label="参考图片">
+                <div className="composer-media-heading">
+                  <span>参考图片</span>
+                  <small>
+                    {assetFiles.length ? `${assetFiles.length}/${maxFiles} 张` : '可选'}
+                  </small>
+                </div>
+                <ReferenceUploader
+                  files={assetFiles}
+                  max={maxFiles}
+                  onChange={onSetReferenceFiles}
+                  labelFor={(index) => `参考 ${index + 1}`}
+                  emptyTitle="添加参考图片"
+                  emptyHint="选择本地图片或素材库"
+                  acceptedHint={`JPG / PNG / WebP · 最多 ${maxFiles} 张`}
+                  collapseAt={2}
+                />
+              </div>
             </div>
           ) : null}
 
@@ -597,34 +679,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 onSetEnhancements={onSetEnhancements}
               />
             )}
-            {isGeneral && !props.generalConfigCollapsed && (
-              <button
-                ref={configToggleRef}
-                type="button"
-                className="general-config-fold"
-                aria-label="收起创作配置"
-                aria-expanded="true"
-                aria-controls="creation-settings-body"
-                onClick={props.onToggleGeneralConfig}
-              >
-                <ChevronDown size={16} aria-hidden="true" />
-                收起
-              </button>
-            )}
-            {isGeneral && (
-              <GenerateBar
-                modelId={props.endpointId}
-                title={title}
-                expectedCount={expectedCount}
-                aspectRatio={aspectRatio}
-                resolution={resolution}
-                notice={null}
-                isSubmitting={isSubmitting}
-                isGenerating={isGenerating}
-                aiEnabled={aiEnabled}
-                onSubmit={onSubmit}
-              />
-            )}
           </div>
           {isGeneral && notice && (
             <p className={`form-notice ${notice.kind}`} role="status">
@@ -633,20 +687,34 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           )}
         </div>
       </div>
-      {!isGeneral && (
-        <GenerateBar
-          modelId={props.endpointId}
-          title={title}
-          expectedCount={expectedCount}
-          aspectRatio={aspectRatio}
-          resolution={resolution}
-          notice={notice}
-          isSubmitting={isSubmitting}
-          isGenerating={isGenerating}
-          aiEnabled={aiEnabled}
-          onSubmit={onSubmit}
-        />
-      )}
+      <GenerateBar
+        modelId={props.endpointId}
+        title={title}
+        expectedCount={expectedCount}
+        aspectRatio={aspectRatio}
+        resolution={resolution}
+        notice={isGeneral ? null : notice}
+        isSubmitting={isSubmitting}
+        isGenerating={isGenerating}
+        aiEnabled={aiEnabled}
+        onSubmit={onSubmit}
+      />
+      {dock.preview &&
+        createPortal(
+          <div
+            className="creator-dock-preview"
+            style={{
+              left: dock.preview.left,
+              top: dock.preview.top,
+              width: dock.preview.width,
+              height: dock.preview.height,
+            }}
+            aria-hidden="true"
+          >
+            <span>松开停靠到{dock.preview.side === 'left' ? '左侧' : '右侧'}</span>
+          </div>,
+          document.body,
+        )}
     </aside>
   )
 }

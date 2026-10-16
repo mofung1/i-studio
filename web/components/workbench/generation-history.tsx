@@ -6,9 +6,11 @@ import { useEffect, useRef } from 'react'
 import { AuthenticatedImage } from '@/components/authenticated-image'
 
 import type { InlineGenerationTask } from './use-generation-task'
+import { GenerationFilmstrip } from './generation-filmstrip'
 
 interface GenerationHistoryProps {
-  placement?: 'bottom' | 'sidebar'
+  placement?: 'bottom' | 'sidebar' | 'filmstrip'
+  onViewAll?: () => void
   items: InlineGenerationTask[]
   activeIndex: number
   /** 当前选中的版本里正在查看第几张 */
@@ -29,6 +31,7 @@ export function GenerationHistory({
   onDownload,
   onUseAsReference,
   placement = 'bottom',
+  onViewAll,
 }: GenerationHistoryProps) {
   const listRef = useRef<HTMLOListElement>(null)
   useEffect(() => {
@@ -51,10 +54,21 @@ export function GenerationHistory({
   const versions = items.filter((item) => item.resultImages?.length)
   const displayedVersions = placement === 'sidebar' ? [...versions].reverse() : versions
   if (versions.length === 0) return null
+  if (placement === 'filmstrip')
+    return (
+      <GenerationFilmstrip
+        items={items}
+        activeIndex={activeIndex}
+        activeImageIndex={activeImageIndex}
+        onSelect={onSelect}
+        onViewAll={onViewAll}
+      />
+    )
 
   return (
     <section
       className={`history-section${placement === 'sidebar' ? ' history-sidebar' : ''}`}
+      data-version-count={versions.length}
       aria-label="最近生成"
     >
       <header className="history-head">

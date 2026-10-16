@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ReferenceUploader } from './reference-uploader'
+import type { CreationImage } from '@/lib/creation-images'
 vi.mock('@/components/account-provider', () => ({
   useAccount: () => ({
     account: { authenticated: false },
@@ -66,4 +67,50 @@ it('opens the unified picker from the original uploader and stages dropped files
   )
   expect(onChange).toHaveBeenCalledExactlyOnceWith([file])
   expect(fetch).not.toHaveBeenCalled()
+})
+
+it('preserves the image stack and opens each expanded list from the first image', async () => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  )
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => callback(0))
+  function Harness() {
+    const [files, setFiles] = useState<CreationImage[]>(
+      ['first.png', 'second.png', 'third.png'].map(
+        (name) => new File(['image'], name, { type: 'image/png' }),
+      ),
+    )
+    return (
+      <ReferenceUploader
+        files={files}
+        onChange={setFiles}
+        max={6}
+        collapseAt={2}
+        labelFor={(index) => `参考 ${index + 1}`}
+        emptyTitle="添加参考图片"
+        emptyHint="选择本地图片或素材库"
+        acceptedHint="JPG / PNG / WebP"
+      />
+    )
+  }
+  const button = (label: string) =>
+    container.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)!
+  await act(async () => root.render(<Harness />))
+  expect(button('展开 3 张参考图片').getAttribute('aria-expanded')).toBe('false')
+  await act(async () => button('展开 3 张参考图片').click())
+  expect(container.querySelectorAll('.uploaded-thumb')).toHaveLength(3)
+  const list = container.querySelector<HTMLDivElement>('.upload-list')!
+  list.scrollLeft = 80
+  await act(async () => button('收起参考图片').click())
+  await act(async () => button('展开 3 张参考图片').click())
+  expect(list.scrollLeft).toBe(0)
+  await act(async () => button('删除参考 3').click())
+  await act(async () => button('删除参考 2').click())
+  expect(container.querySelector('.is-stackable')).toBeNull()
+  expect(container.querySelectorAll('.uploaded-thumb')).toHaveLength(1)
+  expect(container.querySelector('img')?.alt).toContain('first.png')
 })

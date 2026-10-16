@@ -3,11 +3,14 @@
   padding: 0;
 }
 
-/* Let generated images use the canvas; the composer already has its own desktop row. */
+/* A floating inspector on the left keeps the full-height canvas clear. */
 .mode-general .creation-canvas,
 .mode-general.config-right .creation-canvas {
-  padding: 12px 16px 0;
-  padding-bottom: 0;
+  grid-column: 3;
+  grid-row: 2;
+  padding: 8px 12px;
+  min-width: 0;
+  min-height: 0;
 }
 .mode-general .result-body {
   padding: 12px 0;
@@ -30,82 +33,163 @@
   }
 }
 
-/* The general composer owns a bottom row; neither state overlays the image canvas. */
+/* The inspector is its own column, with a scrollable body and a persistent action area. */
 .workbench-shell.mode-general .configuration-panel,
 .workbench-shell.mode-general.config-right .configuration-panel {
   grid-column: 2;
-  grid-row: 3;
+  grid-row: 2;
   position: relative;
   bottom: auto;
-  align-self: stretch;
+  align-self: start;
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: auto;
-  max-height: min(45dvh, 420px);
+  height: 100%;
+  max-height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
   pointer-events: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius-panel);
+  border-radius: 18px;
   background: var(--surface);
-  box-shadow: var(--shadow-panel);
+  box-shadow: 0 8px 28px rgba(17, 19, 24, 0.05);
+}
+.mode-general .workbench-nav {
+  grid-column: 2 / -1;
+}
+.workbench-shell.mode-general.config-right .configuration-panel {
+  grid-column: 3;
+}
+.mode-general.config-right .creation-canvas {
+  grid-column: 2;
 }
 .mode-general .general-config-head {
-  flex: 0 0 auto;
-}
-.mode-general .general-config-summary {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 18px;
-  border: 0;
-  border-radius: var(--radius-panel);
-  color: var(--foreground-2);
-  background: transparent;
-  font-size: var(--text-small);
-  text-align: left;
-  cursor: pointer;
+  flex: 0 0 auto;
+  gap: 6px;
+  min-height: 56px;
+  padding: 10px 14px;
 }
-.mode-general .general-config-summary:hover {
-  background: var(--hover-background);
-}
-.mode-general .general-config-summary:focus-visible {
-  outline-offset: -3px;
-}
-.mode-general .general-config-summary > :is(span, small) {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.mode-general .general-config-head h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
-.mode-general .general-config-summary > span {
+.mode-general .general-config-head button {
+  display: inline-flex;
   flex: 0 0 auto;
-  font-weight: 500;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  color: var(--foreground-3);
+  background: transparent;
+  cursor: pointer;
 }
-.mode-general .general-config-summary > small {
-  color: var(--muted);
-  font-size: var(--text-small);
+.mode-general .general-config-head button:hover {
+  color: var(--foreground);
+  background: var(--control-bg);
 }
-.mode-general .general-config-summary > .general-config-status {
+.mode-general .general-config-head .creator-drag-handle {
+  width: 24px;
+  cursor: grab;
+  touch-action: none;
+}
+.mode-general .general-config-head .creator-drag-handle:active {
+  cursor: grabbing;
+}
+.creator-panel-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  min-width: 0;
   margin-left: auto;
-  flex-shrink: 0;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  white-space: nowrap;
 }
-.mode-general .general-config-summary > svg {
-  flex-shrink: 0;
+.creator-panel-status.is-error {
+  color: var(--danger);
+}
+.creator-layout-actions {
+  display: flex;
+  gap: 2px;
+}
+.creator-dock-preview {
+  position: fixed;
+  z-index: 45;
+  pointer-events: none;
+  border: 1px dashed var(--line-strong);
+  border-radius: 18px;
+  background: var(--focus-soft);
+  display: grid;
+  place-items: center;
+}
+.creator-dock-preview span {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  box-shadow: var(--shadow-sm);
+}
+.workbench-shell.mode-general .configuration-panel.is-panel-dragging {
+  z-index: 50;
+  user-select: none;
+  will-change: transform;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.13);
+}
+@media (min-width: 781px) {
+  .mode-general .panel-toggle {
+    display: inline-flex;
+  }
+  .general-config-collapsed .general-config-head {
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px 5px 14px;
+  }
+  .general-config-collapsed .general-config-head h2 {
+    order: 1;
+    font-size: 13px;
+    font-weight: 500;
+    writing-mode: vertical-rl;
+    letter-spacing: 0.12em;
+  }
+  .general-config-collapsed .creator-panel-status {
+    order: 2;
+    margin: 0;
+  }
+  .general-config-collapsed .creator-panel-status span {
+    display: none;
+  }
+  .general-config-collapsed .creator-panel-status:not(:has(svg))::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .general-config-collapsed .creator-layout-actions,
+  .general-config-collapsed .general-config-head .creator-drag-handle {
+    display: none;
+  }
 }
 .workbench-shell.mode-general .configuration-scroll {
   display: block;
+  flex: 1;
   position: static;
   overflow-y: auto;
+  overscroll-behavior: contain;
   min-height: 0;
-  padding: 0 18px 16px;
+  padding: 0 20px 20px;
   pointer-events: auto;
 }
 .workbench-shell.mode-general .configuration-scroll[hidden] {
@@ -132,11 +216,15 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .workbench-shell.mode-general.general-config-collapsed .configuration-panel {
+  height: auto;
   max-height: none;
 }
+.workbench-shell.mode-general.general-config-collapsed .configuration-footer {
+  display: none;
+}
 
-/* Short desktop windows scroll the workspace instead of clipping the image stage. */
-@media (min-width: 781px) and (max-height: 600px) {
+/* Short desktop windows scroll as a page instead of reducing the image to a sliver. */
+@media (min-width: 781px) and (max-height: 540px) {
   .workbench-page:has(.mode-general) {
     height: auto;
     overflow: visible;
@@ -144,33 +232,50 @@
   .workbench-shell.mode-general,
   .workbench-shell.mode-general.config-right {
     height: auto;
-    min-height: calc(100dvh - 2 * var(--layout-padding));
-    grid-template-rows: var(--studio-header) minmax(380px, 1fr) auto;
-    overflow: visible;
+    min-height: 640px;
+    grid-template-rows: var(--studio-header) minmax(540px, 1fr);
   }
 }
 
 @media (max-width: 780px) {
+  .workbench-shell.mode-general,
+  .workbench-shell.mode-general.config-right {
+    display: flex;
+    flex-direction: column;
+  }
+  .mode-general .workbench-rail {
+    order: 0;
+  }
+  .mode-general .workbench-nav {
+    order: 1;
+  }
+  .mode-general .configuration-panel {
+    order: 2;
+  }
+  .mode-general .creation-canvas {
+    order: 3;
+  }
   .workbench-shell.mode-general .configuration-panel,
   .workbench-shell.mode-general.config-right .configuration-panel {
     position: static;
+    height: auto;
     max-height: none;
     overflow: hidden;
   }
   .workbench-shell.mode-general .configuration-scroll {
     padding: 0 14px 14px;
   }
-  .mode-general .general-config-summary {
-    gap: 8px;
-    padding: 12px 14px;
-    min-height: 48px;
-    flex-wrap: wrap;
+  .mode-general .general-config-head {
+    padding: 10px 16px;
   }
-  .mode-general .general-config-summary > .general-config-model {
-    order: 1;
-    flex: 1 0 calc(100% - 24px);
-    margin-left: 24px;
-    font-size: var(--text-caption);
+  .mode-general .general-config-head .creator-drag-handle,
+  .mode-general .creator-layout-actions,
+  .mode-general .general-config-head .creator-panel-toggle {
+    display: none;
+  }
+  .mode-general .general-config-head .creator-panel-toggle {
+    width: 40px;
+    height: 40px;
   }
   .mode-general .configuration-footer {
     position: static;
@@ -196,7 +301,7 @@
   gap: 12px;
 }
 .mode-general .result-layout.has-recent-history {
-  grid-template-columns: minmax(0, 1fr) 228px;
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 .history-sidebar {
   display: flex;
@@ -546,27 +651,13 @@
     display: none;
   }
 }
-@media (max-width: 1040px) {
-  .mode-general .result-layout.has-recent-history {
-    grid-template-columns: minmax(0, 1fr) 190px;
-    gap: 12px;
-  }
-  .history-sidebar {
-    padding-left: 12px;
-  }
-  .history-sidebar .history-meta {
-    padding-right: 0;
-  }
-  .history-sidebar .history-tools {
-    position: static;
-    justify-content: flex-end;
-    margin-top: 8px;
-  }
-}
 @media (max-width: 780px) {
   .mode-general .result-layout,
   .mode-general .result-layout.has-recent-history {
     display: flex;
+  }
+  .mode-general .history-sidebar[data-version-count='1'] {
+    display: none;
   }
   .history-sidebar {
     padding: 18px 0;

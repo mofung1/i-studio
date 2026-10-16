@@ -246,28 +246,30 @@ export function BasicSettings(props: BasicSettingsProps) {
         aria-label="生成参数"
       >
         <div className="compact-settings-row">
-          <Select
-            value={selected?.id ?? ''}
-            onValueChange={onSetEndpoint}
-            disabled={modelsLoading || !imageEndpoints.length}
-          >
-            <SelectTrigger
-              size="sm"
-              className="settings-chip settings-chip-model"
-              aria-label="模型选择"
-              title={selected?.name ?? modelPlaceholder}
+          <div className="settings-model-control">
+            <span className="settings-control-label">生成模型</span>
+            <Select
+              value={selected?.id ?? ''}
+              onValueChange={onSetEndpoint}
+              disabled={modelsLoading || !imageEndpoints.length}
             >
-              <Sparkles size={14} aria-hidden="true" />
-              <SelectValue placeholder={modelPlaceholder}>{selected?.name}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {imageEndpoints.map((endpoint) => (
-                <SelectItem key={endpoint.id} value={endpoint.id}>
-                  {endpoint.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                className="settings-chip settings-chip-model"
+                aria-label="模型选择"
+                title={selected?.name ?? modelPlaceholder}
+              >
+                <Sparkles size={14} aria-hidden="true" />
+                <SelectValue placeholder={modelPlaceholder}>{selected?.name}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {imageEndpoints.map((endpoint) => (
+                  <SelectItem key={endpoint.id} value={endpoint.id}>
+                    {endpoint.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {onReloadModels && (modelsError || (!modelsLoading && !imageEndpoints.length)) && (
             <button
               type="button"
@@ -281,22 +283,25 @@ export function BasicSettings(props: BasicSettingsProps) {
               重新加载
             </button>
           )}
-          <button
-            ref={triggerRef}
-            type="button"
-            className="settings-chip settings-chip-output"
-            aria-label="图片参数配置"
-            aria-haspopup="dialog"
-            aria-expanded={paramsOpen}
-            aria-controls={popoverId}
-            popoverTarget={popoverId}
-          >
-            <ImageIcon size={14} aria-hidden="true" />
-            <span>
-              {aspectRatio} · {resolution} · {count} 张
-            </span>
-            <ChevronDown size={13} aria-hidden="true" />
-          </button>
+          <div className="settings-output-control">
+            <span className="settings-control-label">画面参数</span>
+            <button
+              ref={triggerRef}
+              type="button"
+              className="settings-chip settings-chip-output"
+              aria-label="图片参数配置"
+              aria-haspopup="dialog"
+              aria-expanded={paramsOpen}
+              aria-controls={popoverId}
+              popoverTarget={popoverId}
+            >
+              <span className="settings-output-label">画面参数</span>
+              <span>
+                {aspectRatio} · {resolution} · {count} 张
+              </span>
+              <ChevronDown size={13} aria-hidden="true" />
+            </button>
+          </div>
         </div>
         {!modelsLoading && (modelsError || !imageEndpoints.length) && (
           <p className="model-availability-note" role={modelsError ? 'alert' : 'status'}>

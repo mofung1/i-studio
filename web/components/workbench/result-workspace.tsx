@@ -244,7 +244,8 @@ export function ResultWorkspace({
   const recentHistory =
     !isHistoryView && !isGenerating && resultHistory.length > 0 ? (
       <GenerationHistory
-        placement={mode === 'general' ? 'sidebar' : 'bottom'}
+        placement={mode === 'general' ? 'filmstrip' : 'bottom'}
+        onViewAll={onToggleHistory}
         items={resultHistory}
         activeIndex={activeResultIndex}
         activeImageIndex={safeIndex}
