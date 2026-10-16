@@ -54,6 +54,11 @@ const fetcher = vi.fn<typeof fetch>()
 beforeEach(() => {
   vi.useFakeTimers()
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal('matchMedia', () => ({
+    matches: true,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
   vi.stubGlobal('fetch', fetcher)
   vi.stubGlobal(
     'ResizeObserver',

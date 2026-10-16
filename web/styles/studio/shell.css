@@ -172,9 +172,9 @@
   background: var(--surface-subtle);
 }
 .workbench-rail-nav :is(a, button).active {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  font-weight: 550;
+  background: var(--control-hover);
+  color: var(--foreground);
+  font-weight: 600;
 }
 .studio-task-nav {
   display: grid;

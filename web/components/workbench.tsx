@@ -22,6 +22,7 @@ import {
 import { ResultWorkspace } from './workbench/result-workspace'
 import { WorkbenchHeader } from './workbench/workbench-header'
 import { WorkbenchRail } from './workbench/workbench-rail'
+import { useCreatorPreferences } from './workbench/use-creator-preferences'
 import { useGenerationTask, type GenerationNotice } from './workbench/use-generation-task'
 import {
   historyWorkbenchUrl,
@@ -134,7 +135,9 @@ function StandardWorkbench({
   const selectedEndpointRef = useRef(endpointId)
   selectedEndpointRef.current = endpointId
   const [panelOpen, setPanelOpen] = useState(false)
-  const [generalConfigCollapsed, setGeneralConfigCollapsed] = useState(false)
+  const creatorLayout = useCreatorPreferences()
+  const { collapsed: generalConfigCollapsed, setCollapsed: setGeneralConfigCollapsed } =
+    creatorLayout
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyTask, setHistoryTask] = useState<HistoryTask | null>(null)
   const [loadingConfigId, setLoadingConfigId] = useState<string | null>(null)
@@ -162,10 +165,6 @@ function StandardWorkbench({
     submit,
     removeResult,
   } = useGenerationTask(`${mode}:${task}`)
-
-  useEffect(() => {
-    if (mode === 'general' && generationTask) setGeneralConfigCollapsed(true)
-  }, [mode, generationTask?.id])
 
   const hasProductImage = productFiles.length > 0
   useWorkbenchHandoff({
@@ -197,12 +196,6 @@ function StandardWorkbench({
     createGenerationTask()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRegeneratePending])
-
-  useEffect(() => {
-    if (mode === 'general' && notice?.kind === 'error') {
-      setGeneralConfigCollapsed(false)
-    }
-  }, [mode, notice])
 
   useEffect(() => {
     const savedSide = window.localStorage.getItem('istudio-config-side')
@@ -756,11 +749,6 @@ function StandardWorkbench({
       productFiles,
       referenceFiles,
       buildPayload,
-      onSubmitted: () => {
-        if (mode === 'general') {
-          setGeneralConfigCollapsed(true)
-        }
-      },
       onAuthRequired: () => {
         const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`
         router.push(`/login?next=${encodeURIComponent(currentUrl)}`)
@@ -771,7 +759,7 @@ function StandardWorkbench({
   return (
     <main className="workbench-page">
       <section
-        className={`workbench-shell mode-${mode} config-${configSide} ${panelOpen ? 'panel-open' : ''} ${mode === 'general' && generalConfigCollapsed ? 'general-config-collapsed' : ''}`}
+        className={`workbench-shell mode-${mode} config-${mode === 'general' ? creatorLayout.side : configSide} ${panelOpen ? 'panel-open' : ''} ${mode === 'general' && generalConfigCollapsed ? 'general-config-collapsed' : ''}`}
       >
         <WorkbenchRail
           mode={mode}
@@ -806,12 +794,16 @@ function StandardWorkbench({
           mode={mode}
           task={task}
           configSide={configSide}
-          panelOpen={panelOpen}
+          panelOpen={mode === 'general' ? !generalConfigCollapsed : panelOpen}
           historyOpen={historyOpen}
           onShowDetails={() => setDetailsOpen(true)}
           onToggleHistory={() => setHistoryOpen((open) => !open)}
           onChangeSide={setConfigSide}
           onTogglePanel={() => {
+            if (mode === 'general') {
+              setGeneralConfigCollapsed((collapsed) => !collapsed)
+              return
+            }
             setPanelOpen((open) => !open)
             document
               .querySelector('.configuration-panel')
@@ -822,6 +814,9 @@ function StandardWorkbench({
           mode={mode}
           generalConfigCollapsed={generalConfigCollapsed}
           onToggleGeneralConfig={() => setGeneralConfigCollapsed((collapsed) => !collapsed)}
+          configSide={creatorLayout.side}
+          onSetConfigSide={creatorLayout.setSide}
+          onResetLayout={creatorLayout.reset}
           task={task}
           title={title}
           requirementsPlaceholder={requirementsPlaceholder}
@@ -908,7 +903,6 @@ function StandardWorkbench({
           onSelectHistory={(nextTask) => {
             setHistoryTask(nextTask)
             setHistoryOpen(false)
-            if (mode === 'general') setGeneralConfigCollapsed(true)
           }}
           onExitHistoryView={() => setHistoryTask(null)}
           onLoadHistoryConfig={(record) => void loadHistoryConfig(record)}

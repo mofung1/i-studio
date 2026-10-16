@@ -32,7 +32,12 @@ function Select(props: ComponentProps<typeof SelectPrimitive.Root>) {
 }
 
 function SelectValue({ className, ...props }: ComponentProps<typeof SelectPrimitive.Value>) {
-  return <SelectPrimitive.Value className={cn('select-value', className)} {...props} />
+  // Radix Value ignores className/style; the wrapper owns flex sizing and ellipsis.
+  return (
+    <span className={cn('select-value', className)}>
+      <SelectPrimitive.Value {...props} />
+    </span>
+  )
 }
 
 function SelectGroup(props: ComponentProps<typeof SelectPrimitive.Group>) {

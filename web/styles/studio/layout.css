@@ -25,10 +25,26 @@
   overflow: hidden;
   background: transparent;
 }
-.workbench-shell.mode-general,
+.workbench-shell.mode-general {
+  --creator-width: 340px;
+  grid-template-columns: var(--studio-rail) var(--creator-width) minmax(0, 1fr);
+  grid-template-rows: var(--studio-header) minmax(0, 1fr);
+}
 .workbench-shell.mode-general.config-right {
-  grid-template-columns: var(--studio-rail) minmax(0, 1fr);
-  grid-template-rows: var(--studio-header) minmax(0, 1fr) auto;
+  grid-template-columns: var(--studio-rail) minmax(0, 1fr) var(--creator-width);
+  grid-template-rows: var(--studio-header) minmax(0, 1fr);
+}
+.workbench-shell.mode-general.general-config-collapsed {
+  --creator-width: 48px;
+}
+@media (min-width: 781px) and (max-width: 1180px) {
+  .workbench-nav :is(.header-assets, .header-details, .history-top-trigger, .panel-toggle) {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    justify-content: center;
+    font-size: 0;
+  }
 }
 .studio-shell > .workbench-rail,
 .workbench-shell > .workbench-rail {
@@ -92,8 +108,9 @@
   margin: 0;
 }
 .studio-rail-nav :is(a, button).active {
-  color: #fff;
-  background: #111318;
+  color: var(--foreground);
+  background: var(--control-hover);
+  font-weight: 600;
   border-radius: var(--radius-control);
 }
 .studio-rail-nav :is(a, button):focus-visible,

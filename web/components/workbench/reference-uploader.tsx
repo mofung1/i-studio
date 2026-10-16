@@ -49,6 +49,7 @@ export function ReferenceUploader({
   const [error, setError] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
   const uploaderRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const stackToggleRef = useRef<HTMLButtonElement>(null)
   const listId = useId()
   const sortRef = useRef<{ index: number; startX: number; startY: number; active: boolean } | null>(
@@ -60,6 +61,10 @@ export function ReferenceUploader({
   const [availableWidth, setAvailableWidth] = useState(0)
   const shouldCollapse = Boolean(collapseAt && files.length >= collapseAt)
   const expanded = !shouldCollapse || hovered || pinned || keyboardFocus || draggingIndex !== null
+
+  useEffect(() => {
+    if (shouldCollapse && expanded && listRef.current) listRef.current.scrollLeft = 0
+  }, [shouldCollapse, expanded])
 
   function closeStack() {
     setHovered(false)
@@ -263,7 +268,7 @@ export function ReferenceUploader({
         </button>
       ) : (
         <>
-          <div className="upload-list" id={listId} aria-label="已上传图片">
+          <div ref={listRef} className="upload-list" id={listId} aria-label="已上传图片">
             {files.map((file, index) => {
               const thumbnail = (
                 <SelectedImageThumbnail
@@ -349,7 +354,9 @@ export function ReferenceUploader({
               onClick={() => {
                 setPinned(true)
                 requestAnimationFrame(() =>
-                  uploaderRef.current?.querySelector<HTMLElement>('.uploaded-thumb')?.focus(),
+                  uploaderRef.current
+                    ?.querySelector<HTMLElement>('.uploaded-thumb')
+                    ?.focus({ preventScroll: true }),
                 )
               }}
             >
