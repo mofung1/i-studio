@@ -73,6 +73,7 @@ func (s Handlers) registerPromptRoutes(api *gin.RouterGroup) {
 	prompts.POST("/enhance", gin.WrapF(s.PromptEnhance))
 	prompts.POST("/format", gin.WrapF(s.FormatPrompt))
 	registerMethods(prompts, "/reverse", s.PromptReverseTasks, "GET", "POST")
+	prompts.GET("/reverse/capabilities", gin.WrapF(s.PromptReverseCapabilities))
 	registerMethods(prompts, "/reverse/:id", s.PromptReverseByID, "GET", "DELETE")
 	prompts.GET("/reverse/:id/image", gin.WrapF(s.PromptReverseByID))
 	prompts.POST("/reverse/:id/cancel", gin.WrapF(s.PromptReverseByID))

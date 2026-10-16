@@ -59,7 +59,7 @@ func TestRouterPrivateNestedResourcesRequireAuthentication(t *testing.T) {
 		{"GET", "/v1/assets/asset-1/metadata"}, {"GET", "/v1/assets/asset-1/thumbnail"},
 		{"DELETE", "/v1/assets/asset-1"}, {"PATCH", "/v1/projects/project-1"},
 		{"PATCH", "/v1/library/assets"}, {"POST", "/v1/library/download"},
-		{"GET", "/v1/prompts/reverse"}, {"GET", "/v1/prompts/reverse/task-1/image"},
+		{"GET", "/v1/prompts/reverse"}, {"GET", "/v1/prompts/reverse/capabilities"}, {"GET", "/v1/prompts/reverse/task-1/image"},
 		{"POST", "/v1/prompts/reverse/task-1/cancel"},
 		{"GET", "/v1/personal/prompts/prompt-1/versions"},
 		{"POST", "/v1/personal/prompts/prompt-1/restore"},

@@ -4,6 +4,7 @@ import { X } from 'lucide-react'
 import { type ReactNode, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useDialogFocus } from './use-dialog-focus'
+import { useOverlayContainer } from './overlay-root'
 
 interface InfoDialogProps {
   title: string
@@ -28,8 +29,10 @@ export function InfoDialog({
 }: InfoDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  const overlayContainer = useOverlayContainer()
+  const container = portalContainer ?? overlayContainer ?? document.body
 
-  useDialogFocus(dialogRef, onClose)
+  useDialogFocus(dialogRef, onClose, 'button', container)
 
   return createPortal(
     <div
@@ -52,6 +55,7 @@ export function InfoDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        tabIndex={-1}
         ref={dialogRef}
       >
         <header className="confirm-dialog-head">
@@ -72,6 +76,6 @@ export function InfoDialog({
         )}
       </div>
     </div>,
-    portalContainer ?? document.body,
+    container,
   )
 }

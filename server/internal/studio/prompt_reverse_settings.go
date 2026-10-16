@@ -49,6 +49,32 @@ func (s *Service) reverseEndpoint(settings reverseSettings) (endpointConfig, err
 	return e, nil
 }
 
+// Frontend clients need availability and image preparation detail, not operator configuration.
+func (s *Service) promptReverseCapabilities(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	if _, ok := s.authenticatedUserID(r); !ok {
+		s.error(w, http.StatusUnauthorized, "AUTH_REQUIRED", "请先登录后分析图片")
+		return
+	}
+	settings, err := s.readReverseSettings()
+	if err != nil {
+		s.error(w, http.StatusInternalServerError, "REVERSE_SETTINGS_ERROR", "图片反推配置读取失败")
+		return
+	}
+	reason := ""
+	if _, err := s.reverseEndpoint(settings); err != nil {
+		reason = "图片反推服务暂不可用，请联系网站管理员"
+	}
+	if s.db == nil || s.storage == nil {
+		reason = "图片反推服务暂不可用，请联系网站管理员"
+	}
+	s.json(w, http.StatusOK, map[string]any{
+		"available":   reason == "",
+		"reason":      reason,
+		"imageDetail": settings.ImageDetail,
+	})
+}
+
 func (s *Service) promptReverseSettingsHandler(w http.ResponseWriter, r *http.Request) {
 	if !s.requireSettingsUser(w, r) {
 		return

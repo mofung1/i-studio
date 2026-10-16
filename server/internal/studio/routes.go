@@ -53,6 +53,7 @@ func (s *Service) router() *gin.Engine {
 		Projects:                     s.projects,
 		PromptEnhance:                s.promptEnhance,
 		PromptReverseByID:            s.promptReverseByID,
+		PromptReverseCapabilities:    s.promptReverseCapabilities,
 		PromptReverseSettingsHandler: s.promptReverseSettingsHandler,
 		PromptReverseTasks:           s.promptReverseTasks,
 		PromptTemplates:              s.promptTemplates,

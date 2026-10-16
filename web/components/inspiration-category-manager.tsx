@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Folder, LoaderCircle, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { getAdminAccessToken } from '@/lib/api'
-import { settingsRequest } from '@/lib/ai-settings'
+import { adminRequest } from '@/lib/admin'
 import type { ManagedInspirationCategory } from '@/lib/inspiration-settings'
 import { AdminPagination } from './admin/pagination'
 import { AdminDataTable, type AdminColumn, type AdminSorting } from './admin/data-table'
@@ -64,7 +64,7 @@ export function InspirationCategoryManager({
   useEffect(() => {
     if (!loggedIn) return
     const controller = new AbortController()
-    settingsRequest<{ categories: ManagedInspirationCategory[] }>(
+    adminRequest<{ categories: ManagedInspirationCategory[] }>(
       'inspiration/categories?includeDisabled=true',
       'GET',
       undefined,
@@ -91,7 +91,7 @@ export function InspirationCategoryManager({
   }, [deleteOpen])
 
   async function refresh() {
-    const data = await settingsRequest<{ categories: ManagedInspirationCategory[] }>(
+    const data = await adminRequest<{ categories: ManagedInspirationCategory[] }>(
       'inspiration/categories?includeDisabled=true',
     )
     setCategories(data.categories)
@@ -106,7 +106,7 @@ export function InspirationCategoryManager({
     setError('')
     setNotice('')
     try {
-      await settingsRequest(
+      await adminRequest(
         `inspiration/categories${row ? `/${encodeURIComponent(row.id)}` : ''}`,
         row ? 'PUT' : 'POST',
         { name: value },
@@ -136,7 +136,7 @@ export function InspirationCategoryManager({
     setDeleteError('')
     setNotice('')
     try {
-      const result = await settingsRequest<{ movedCount: number }>(
+      const result = await adminRequest<{ movedCount: number }>(
         `inspiration/categories/${encodeURIComponent(deleting.id)}`,
         'DELETE',
         { moveToId },

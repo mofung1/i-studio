@@ -8,7 +8,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
 
-import { apiBaseUrl, deleteGenerationTask, getAccessToken } from '@/lib/api'
+import { apiBaseUrl, deleteGenerationTask, getAccessToken, readApiError } from '@/lib/api'
 
 import { InfoDialog } from './info-dialog'
 import { useAccount } from './account-provider'
@@ -128,6 +128,11 @@ function StandardWorkbench({
     { id: string; name: string; model: string; isDefault: boolean }[]
   >([])
   const [endpointId, setEndpointId] = useState('')
+  const [modelsLoading, setModelsLoading] = useState(true)
+  const [modelsError, setModelsError] = useState('')
+  const [modelsRevision, setModelsRevision] = useState(0)
+  const selectedEndpointRef = useRef(endpointId)
+  selectedEndpointRef.current = endpointId
   const [panelOpen, setPanelOpen] = useState(false)
   const [generalConfigCollapsed, setGeneralConfigCollapsed] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -209,10 +214,21 @@ function StandardWorkbench({
   }, [configSide])
 
   useEffect(() => {
+    let current = true
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 10_000)
+    setModelsLoading(true)
+    setModelsError('')
+    setAiEnabled(null)
     fetch(`${apiBaseUrl}/v1/generation/capabilities`, {
       headers: { Authorization: `Bearer ${getAccessToken()}` },
+      cache: 'no-store',
+      signal: controller.signal,
     })
-      .then((response) => response.json())
+      .then(async (response) => {
+        if (!response.ok) throw new Error(await readApiError(response, '模型列表读取失败，请重试'))
+        return response.json()
+      })
       .then(
         (data: {
           aiEnabled?: boolean
@@ -220,23 +236,52 @@ function StandardWorkbench({
           promptVision?: boolean
           imageEndpoints?: { id: string; name: string; model: string; isDefault: boolean }[]
         }) => {
-          setAiEnabled(Boolean(data.aiEnabled))
+          if (!current) return
+          const endpoints = data.imageEndpoints ?? []
+          setAiEnabled(Boolean(data.aiEnabled) && endpoints.length > 0)
           setPromptEnhanceEnabled(Boolean(data.promptEnhanceEnabled))
           setPromptVision(Boolean(data.promptVision))
-          const endpoints = data.imageEndpoints ?? []
           setImageEndpoints(endpoints)
           const selected =
-            endpoints.find((endpoint) => endpoint.model === initialModel) ??
+            endpoints.find((endpoint) => endpoint.id === selectedEndpointRef.current) ??
+            endpoints.find(
+              (endpoint) => endpoint.id === initialModel || endpoint.model === initialModel,
+            ) ??
             endpoints.find((endpoint) => endpoint.isDefault) ??
             endpoints[0]
           if (selected) {
             setEndpointId(selected.id)
             setModel(selected.model)
+          } else {
+            setEndpointId('')
+            setModel('')
           }
         },
       )
-      .catch(() => setAiEnabled(false))
-  }, [])
+      .catch((error) => {
+        if (!current) return
+        setAiEnabled(false)
+        setImageEndpoints([])
+        setEndpointId('')
+        setModel('')
+        setModelsError(
+          controller.signal.aborted
+            ? '模型列表读取超时，请重试'
+            : error instanceof Error
+              ? error.message
+              : '模型列表读取失败，请重试',
+        )
+      })
+      .finally(() => {
+        clearTimeout(timeout)
+        if (current) setModelsLoading(false)
+      })
+    return () => {
+      current = false
+      clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [modelsRevision, initialModel])
 
   useEffect(() => {
     if (!pendingNoticeRef.current) return
@@ -801,6 +846,9 @@ function StandardWorkbench({
           promptEnhanceEnabled={promptEnhanceEnabled}
           promptVision={promptVision}
           imageEndpoints={imageEndpoints}
+          modelsLoading={modelsLoading}
+          modelsError={modelsError}
+          onReloadModels={() => setModelsRevision((value) => value + 1)}
           endpointId={endpointId}
           onSetEndpoint={(id) => {
             setEndpointId(id)

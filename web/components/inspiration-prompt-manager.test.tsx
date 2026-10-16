@@ -3,13 +3,13 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Page from '@/app/admin/inspiration/page'
-import { settingsRequest } from '@/lib/ai-settings'
+import { adminRequest } from '@/lib/admin'
 import type {
   ManagedInspirationCategory,
   ManagedInspirationPrompt,
 } from '@/lib/inspiration-settings'
 
-vi.mock('@/lib/ai-settings', () => ({ settingsRequest: vi.fn() }))
+vi.mock('@/lib/admin', () => ({ adminRequest: vi.fn() }))
 
 let root: Root
 let container: HTMLDivElement
@@ -60,8 +60,8 @@ beforeEach(() => {
     sortOrder: index,
     enabled: true,
   }))
-  vi.mocked(settingsRequest).mockReset()
-  vi.mocked(settingsRequest).mockImplementation(async (path, method = 'GET', body) => {
+  vi.mocked(adminRequest).mockReset()
+  vi.mocked(adminRequest).mockImplementation(async (path, method = 'GET', body) => {
     if (path.startsWith('inspiration/prompts?')) {
       const params = new URLSearchParams(path.split('?')[1])
       const query = params.get('q') ?? ''

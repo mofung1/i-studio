@@ -1,6 +1,7 @@
 import { storedImage } from './creation-images'
 import { apiBaseUrl, getAccessToken, readApiError } from './api'
 import type { HistoryTask } from '@/components/workbench/use-task-history'
+import { frontendRequest } from './frontend-request'
 
 export interface LibraryProject {
   id: string
@@ -27,18 +28,13 @@ export interface LibraryAsset {
   task?: HistoryTask
 }
 export async function libraryRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getAccessToken()
-  if (!token) throw new Error('请先登录')
-  const response = await fetch(`${apiBaseUrl}/v1/${path}`, {
+  const headers = new Headers(init.headers)
+  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type'))
+    headers.set('Content-Type', 'application/json')
+  return frontendRequest<T>(path, {
     ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init.headers,
-    },
+    headers,
   })
-  if (!response.ok) throw new Error(await readApiError(response, '操作失败，请重试'))
-  return response.json() as Promise<T>
 }
 export function assetTitle(asset: LibraryAsset) {
   return (

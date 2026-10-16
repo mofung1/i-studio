@@ -1,5 +1,7 @@
 import type { CreationImage } from './creation-images'
-import { apiBaseUrl, getAccessToken, readApiError } from './api'
+import { getAccessToken } from './api'
+import { frontendRequest } from './frontend-request'
+export { FrontendRequestError as ReverseRequestError } from './frontend-request'
 
 export type ReverseMode = 'scene' | 'style'
 export type ReverseLanguage = 'zh' | 'en'
@@ -15,6 +17,11 @@ export interface ReverseConfiguration {
   reason: string
   serviceName: string
   model: string
+}
+export interface ReverseCapabilities {
+  available: boolean
+  reason: string
+  imageDetail: ReverseSettings['imageDetail']
 }
 export interface ReverseResult {
   promptZh: string
@@ -54,28 +61,12 @@ export interface ReverseOpenOptions {
   currentPrompt?: string
   onApply?: (application: ReverseApplication) => void | Promise<void>
 }
-export class ReverseRequestError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message)
-  }
-}
-
 export async function reverseRequest<T>(
   path: string,
   options: RequestInit = {},
   fallback = '图片分析请求失败，请稍后重试',
 ): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}/v1/${path}`, {
-    ...options,
-    cache: 'no-store',
-    headers: { Authorization: `Bearer ${getAccessToken()}`, ...options.headers },
-  })
-  if (!response.ok)
-    throw new ReverseRequestError(await readApiError(response, fallback), response.status)
-  return response.json() as Promise<T>
+  return frontendRequest<T>(path, options, fallback)
 }
 export const isReverseActive = (task: ReverseTask | null) =>
   task?.status === 'queued' || task?.status === 'processing'

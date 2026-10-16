@@ -47,7 +47,9 @@ export function GenerateBar({
       ? '正在生成…'
       : aiEnabled === null
         ? '检查 AI 服务…'
-        : (buttonLabel ?? `生成${title}`)
+        : aiEnabled === false
+          ? '暂无可用模型'
+          : (buttonLabel ?? `生成${title}`)
 
   const hint = isGenerating
     ? '当前任务生成中，完成后可以继续提交新任务'

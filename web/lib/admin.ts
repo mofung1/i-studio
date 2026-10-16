@@ -1,4 +1,5 @@
-import { settingsRequest } from './ai-settings'
+import { apiBaseUrl, getAdminAccessToken, readApiError } from './api'
+import { assertRequestScope } from './request-scope'
 
 export interface AdminModel {
   id: string
@@ -70,5 +71,32 @@ export interface AdminAuditPage extends AdminPage {
   audit: AdminAudit[]
 }
 
-export const adminRequest = <T>(path: string, method = 'GET', body?: unknown) =>
-  settingsRequest<T>(`admin/${path}`, method, body)
+export async function adminFetch(path: string, options: RequestInit = {}) {
+  assertRequestScope(path, 'admin')
+  const token = getAdminAccessToken()
+  if (!token) throw new Error('请先登录运营后台')
+  const headers = new Headers(options.headers)
+  headers.set('Authorization', `Bearer ${token}`)
+  const response = await fetch(`${apiBaseUrl}/v1/admin/${path}`, {
+    ...options,
+    cache: 'no-store',
+    headers,
+  })
+  if (!response.ok) throw new Error(await readApiError(response, '后台请求失败，请重试'))
+  return response
+}
+
+export async function adminRequest<T>(
+  path: string,
+  method = 'GET',
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await adminFetch(path, {
+    method,
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+    signal,
+  })
+  return response.json() as Promise<T>
+}

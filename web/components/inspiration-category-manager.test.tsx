@@ -2,10 +2,10 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
-import { settingsRequest } from '@/lib/ai-settings'
+import { adminRequest } from '@/lib/admin'
 import { InspirationCategoryManager } from './inspiration-category-manager'
 
-vi.mock('@/lib/ai-settings', () => ({ settingsRequest: vi.fn() }))
+vi.mock('@/lib/admin', () => ({ adminRequest: vi.fn() }))
 let root: Root
 let container: HTMLDivElement
 beforeEach(() => {
@@ -15,7 +15,7 @@ beforeEach(() => {
     configurable: true,
     value: vi.fn(),
   })
-  vi.mocked(settingsRequest).mockResolvedValue({
+  vi.mocked(adminRequest).mockResolvedValue({
     categories: Array.from({ length: 51 }, (_, n) => ({
       id: String(n + 1),
       category: `分类-${String(n + 1).padStart(2, '0')}`,

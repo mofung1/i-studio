@@ -30,7 +30,7 @@ import {
   reverseStatusLabels,
   reverseStorageKey,
   validateReverseFile,
-  type ReverseConfiguration,
+  type ReverseCapabilities,
   type ReverseLanguage,
   type ReverseOpenOptions,
   type ReverseTask,
@@ -75,7 +75,7 @@ export function PromptReverseDialog({
   const [localURL, setLocalURL] = useState('')
   const [task, setTask] = useState<ReverseTask | null>(null)
   const [history, setHistory] = useState<ReverseTask[]>([])
-  const [config, setConfig] = useState<ReverseConfiguration | null>(null)
+  const [config, setConfig] = useState<ReverseCapabilities | null>(null)
   const [mode, setMode] = useState<'scene' | 'style'>('scene')
   const [requirements, setRequirements] = useState('')
   const [language, setLanguage] = useState<ReverseLanguage>('zh')
@@ -159,7 +159,7 @@ export function PromptReverseDialog({
     if (loggedIn) {
       setLoading(true)
       Promise.all([
-        reverseRequest<ReverseConfiguration>('prompt-reverse-settings', {
+        reverseRequest<ReverseCapabilities>('prompts/reverse/capabilities', {
           signal: controller.signal,
         }),
         reverseRequest<{ tasks: ReverseTask[] }>('prompts/reverse', { signal: controller.signal }),
@@ -343,7 +343,7 @@ export function PromptReverseDialog({
       body.append('requestId', requestNonce.current.id)
       if (file) {
         body.append('image', file)
-        body.append('analysisImage', await prepareReverseFile(file, config.settings.imageDetail))
+        body.append('analysisImage', await prepareReverseFile(file, config.imageDetail))
       } else if (assetId) body.append('assetId', assetId)
       else if (task) {
         const cached = await loadProtectedImage(task.imageUrl)
