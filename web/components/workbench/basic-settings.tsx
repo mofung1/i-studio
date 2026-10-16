@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, Image as ImageIcon, Sparkles, X } from 'lucide-react'
+import { ChevronDown, Image as ImageIcon, RefreshCw, Sparkles, X } from 'lucide-react'
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import type { CommerceTaskType } from '@/lib/contracts'
@@ -22,6 +22,9 @@ interface BasicSettingsProps {
   resolution: string
   count: number
   imageEndpoints: { id: string; name: string; model: string }[]
+  modelsLoading?: boolean
+  modelsError?: string
+  onReloadModels?: () => void
   endpointId: string
   onSetEndpoint: (id: string) => void
   onSetResolution: (resolution: string) => void
@@ -164,6 +167,9 @@ export function BasicSettings(props: BasicSettingsProps) {
     referenceStrength,
     onSetStyle,
     onSetReferenceStrength,
+    modelsLoading = false,
+    modelsError = '',
+    onReloadModels,
   } = props
   const [paramsOpen, setParamsOpen] = useState(false)
   const [position, setPosition] = useState<{ top: number; left: number; maxHeight: number } | null>(
@@ -228,22 +234,31 @@ export function BasicSettings(props: BasicSettingsProps) {
   }, [paramsOpen, mode])
 
   if (mode === 'general') {
-    const modelName =
-      imageEndpoints.find((endpoint) => endpoint.id === endpointId)?.name ?? '选择模型'
+    const selected = imageEndpoints.find((endpoint) => endpoint.id === endpointId)
+    const modelPlaceholder = modelsLoading
+      ? '正在读取模型…'
+      : !imageEndpoints.length
+        ? '暂无可用模型'
+        : '请选择模型'
     return (
       <section
         className={`basic-settings compact-basic-settings ${paramsOpen ? 'is-open' : ''}`}
         aria-label="生成参数"
       >
         <div className="compact-settings-row">
-          <Select value={endpointId || undefined} onValueChange={onSetEndpoint}>
+          <Select
+            value={selected?.id ?? ''}
+            onValueChange={onSetEndpoint}
+            disabled={modelsLoading || !imageEndpoints.length}
+          >
             <SelectTrigger
               size="sm"
               className="settings-chip settings-chip-model"
               aria-label="模型选择"
+              title={selected?.name ?? modelPlaceholder}
             >
               <Sparkles size={14} aria-hidden="true" />
-              <SelectValue placeholder={modelName} />
+              <SelectValue placeholder={modelPlaceholder}>{selected?.name}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {imageEndpoints.map((endpoint) => (
@@ -253,6 +268,19 @@ export function BasicSettings(props: BasicSettingsProps) {
               ))}
             </SelectContent>
           </Select>
+          {onReloadModels && (modelsError || (!modelsLoading && !imageEndpoints.length)) && (
+            <button
+              type="button"
+              className="settings-chip model-reload"
+              aria-label="重新加载模型列表"
+              title="重新加载模型列表"
+              disabled={modelsLoading}
+              onClick={onReloadModels}
+            >
+              <RefreshCw size={15} aria-hidden="true" />
+              重新加载
+            </button>
+          )}
           <button
             ref={triggerRef}
             type="button"
@@ -270,6 +298,11 @@ export function BasicSettings(props: BasicSettingsProps) {
             <ChevronDown size={13} aria-hidden="true" />
           </button>
         </div>
+        {!modelsLoading && (modelsError || !imageEndpoints.length) && (
+          <p className="model-availability-note" role={modelsError ? 'alert' : 'status'}>
+            {modelsError || '暂无可用生图模型，请联系网站管理员启用。'}
+          </p>
+        )}
         <div
           ref={popoverRef}
           id={popoverId}
@@ -337,9 +370,13 @@ export function BasicSettings(props: BasicSettingsProps) {
       <div className="settings-grid">
         <label className="settings-field model-field">
           <span>生图模型</span>
-          <Select value={endpointId || undefined} onValueChange={onSetEndpoint}>
+          <Select
+            value={imageEndpoints.some((endpoint) => endpoint.id === endpointId) ? endpointId : ''}
+            onValueChange={onSetEndpoint}
+            disabled={modelsLoading || !imageEndpoints.length}
+          >
             <SelectTrigger aria-label="生图模型">
-              <SelectValue placeholder="暂无可用模型" />
+              <SelectValue placeholder={modelsLoading ? '正在读取模型…' : '暂无可用模型'} />
             </SelectTrigger>
             <SelectContent>
               {imageEndpoints.map((endpoint) => (

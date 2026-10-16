@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { apiBaseUrl, getAdminAccessToken } from '@/lib/api'
-import { settingsRequest } from '@/lib/ai-settings'
+import { adminRequest } from '@/lib/admin'
 import {
   inspirationDraft,
   type InspirationManagementResponse,
@@ -104,13 +104,13 @@ export function InspirationPromptManager() {
       status: filters.status,
     })
     Promise.all([
-      settingsRequest<InspirationManagementResponse>(
+      adminRequest<InspirationManagementResponse>(
         `inspiration/prompts?${params}`,
         'GET',
         undefined,
         controller.signal,
       ),
-      settingsRequest<{ categories: InspirationCategory[] }>(
+      adminRequest<{ categories: InspirationCategory[] }>(
         'inspiration/categories?includeDisabled=true',
         'GET',
         undefined,
@@ -181,7 +181,7 @@ export function InspirationPromptManager() {
       const categoryId = categories.find(
         (category) => category.category === editing.draft.category,
       )?.id
-      await settingsRequest(
+      await adminRequest(
         `inspiration/prompts${editing.item ? `/${encodeURIComponent(editing.item.id)}` : ''}`,
         editing.item ? 'PUT' : 'POST',
         { ...editing.draft, categoryId },
@@ -204,7 +204,7 @@ export function InspirationPromptManager() {
     setCategorySaving(true)
     setCategoryError('')
     try {
-      const { category } = await settingsRequest<{ category: ManagedInspirationCategory }>(
+      const { category } = await adminRequest<{ category: ManagedInspirationCategory }>(
         'inspiration/categories',
         'POST',
         { name: categoryName.trim() },
@@ -227,7 +227,7 @@ export function InspirationPromptManager() {
     setDeleteBusy(true)
     setDeleteError('')
     try {
-      await settingsRequest(`inspiration/prompts/${encodeURIComponent(deleting.id)}`, 'DELETE')
+      await adminRequest(`inspiration/prompts/${encodeURIComponent(deleting.id)}`, 'DELETE')
       setDeleting(null)
       setNotice('提示词已删除')
       if (items.length === 1 && filters.page > 1)

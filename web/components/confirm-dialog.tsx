@@ -1,9 +1,10 @@
 'use client'
 
 import { AlertTriangle, Loader2, X } from 'lucide-react'
-import { useRef } from 'react'
+import { useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useDialogFocus } from './use-dialog-focus'
+import { useOverlayContainer } from './overlay-root'
 
 interface ConfirmDialogProps {
   title: string
@@ -30,6 +31,9 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  const overlayContainer = useOverlayContainer()
+  const container = overlayContainer ?? document.body
 
   useDialogFocus(
     dialogRef,
@@ -37,6 +41,7 @@ export function ConfirmDialog({
       if (!busy) onCancel()
     },
     '.confirm-dialog-cancel',
+    container,
   )
 
   return createPortal(
@@ -51,11 +56,12 @@ export function ConfirmDialog({
         className="confirm-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         ref={dialogRef}
       >
         <header className="confirm-dialog-head">
-          <h2 id="confirm-dialog-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button type="button" aria-label="关闭" title="关闭" disabled={busy} onClick={onCancel}>
             <X size={17} />
           </button>
@@ -93,6 +99,6 @@ export function ConfirmDialog({
         </div>
       </div>
     </div>,
-    document.body,
+    container,
   )
 }

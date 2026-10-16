@@ -24,8 +24,8 @@ import { PromptReverseSettingsPanel } from '@/components/prompt-reverse-settings
 import { AdminStatusBadge } from '@/components/admin/status-badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import { getAdminAccessToken } from '@/lib/api'
+import { adminRequest } from '@/lib/admin'
 import {
-  settingsRequest,
   type AIEndpoint,
   type AIProtocol,
   type EndpointInput,
@@ -85,13 +85,13 @@ export default function AISettingsPage() {
   const keyRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
-    const result = await settingsRequest<{ endpoints: AIEndpoint[]; canManage: boolean }>(
+    const result = await adminRequest<{ endpoints: AIEndpoint[]; canManage: boolean }>(
       'ai-endpoints',
     )
     setEndpoints(result.endpoints)
     setCanManage(result.canManage)
     if (result.canManage) {
-      const data = await settingsRequest<{ templates: PromptTemplate[] }>('prompt-templates')
+      const data = await adminRequest<{ templates: PromptTemplate[] }>('prompt-templates')
       setTemplates(data.templates)
     }
   }, [])
@@ -154,7 +154,7 @@ export default function AISettingsPage() {
     setMessage('')
     try {
       const { id, input } = editing
-      await settingsRequest(`ai-endpoints${id ? `/${id}` : ''}`, id ? 'PUT' : 'POST', input)
+      await adminRequest(`ai-endpoints${id ? `/${id}` : ''}`, id ? 'PUT' : 'POST', input)
       if (keyRef.current) keyRef.current.value = ''
       setEditing(null)
       await load()
@@ -168,7 +168,7 @@ export default function AISettingsPage() {
     setBusy(endpoint.id)
     setMessage('')
     try {
-      const result = await settingsRequest<AIConnectionTest>(
+      const result = await adminRequest<AIConnectionTest>(
         `ai-endpoints/${endpoint.id}/test`,
         'POST',
       )
@@ -186,7 +186,7 @@ export default function AISettingsPage() {
   }
   async function savePrompt(restoreDefault = false) {
     const success = await action('prompt', () =>
-      settingsRequest('prompt-templates', 'PUT', {
+      adminRequest('prompt-templates', 'PUT', {
         key: selectedKey,
         content: promptDraft,
         enabled: promptEnabled,
@@ -406,7 +406,7 @@ export default function AISettingsPage() {
                                       disabled={!canManage || !!busy}
                                       onChange={() =>
                                         action(endpoint.id, () =>
-                                          settingsRequest(`ai-endpoints/${endpoint.id}`, 'PUT', {
+                                          adminRequest(`ai-endpoints/${endpoint.id}`, 'PUT', {
                                             ...endpoint,
                                             enabled: !endpoint.enabled,
                                             isDefault: false,
@@ -463,7 +463,7 @@ export default function AISettingsPage() {
                                       disabled={!!busy}
                                       onClick={() =>
                                         action(endpoint.id, () =>
-                                          settingsRequest(
+                                          adminRequest(
                                             `ai-endpoints/${endpoint.id}/default`,
                                             'POST',
                                           ),
@@ -510,7 +510,7 @@ export default function AISettingsPage() {
                                     onClick={() => {
                                       if (window.confirm(`删除“${endpoint.name}”？`))
                                         action(endpoint.id, () =>
-                                          settingsRequest(`ai-endpoints/${endpoint.id}`, 'DELETE'),
+                                          adminRequest(`ai-endpoints/${endpoint.id}`, 'DELETE'),
                                         )
                                     }}
                                   >

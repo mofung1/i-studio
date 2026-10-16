@@ -224,7 +224,11 @@
   font-size: 13px;
 }
 .library-advanced input,
-.library-dialog-body :is(input, textarea) {
+.library-dialog-body
+  :where(
+    input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden'], [type='search']),
+    textarea
+  ) {
   width: 100%;
   min-width: 0;
   min-height: 40px;
@@ -240,7 +244,11 @@
   resize: vertical;
   line-height: 1.7;
 }
-.library-dialog-body :is(input, textarea):focus-visible,
+.library-dialog-body
+  :where(
+    input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden'], [type='search']),
+    textarea
+  ):focus-visible,
 .library-advanced input:focus-visible {
   border-color: var(--foreground);
   outline: 0;

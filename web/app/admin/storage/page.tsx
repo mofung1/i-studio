@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Cloud, HardDrive, Pencil, Plus, X } from 'lucide-react'
 import { LibraryDialog, LibrarySelect } from '@/components/library-controls'
-import { settingsRequest } from '@/lib/ai-settings'
+import { adminRequest } from '@/lib/admin'
 
 interface Profile {
   id: string
@@ -59,9 +59,7 @@ export default function StoragePage() {
   const [editorError, setEditorError] = useState('')
   const [message, setMessage] = useState('')
   const load = useCallback(async () => {
-    const data = await settingsRequest<{ activeProfile: string; profiles: Profile[] }>(
-      'admin/storage',
-    )
+    const data = await adminRequest<{ activeProfile: string; profiles: Profile[] }>('storage')
     setProfiles(data.profiles)
     setActive(data.activeProfile)
   }, [])
@@ -75,7 +73,7 @@ export default function StoragePage() {
     setError('')
     setMessage('')
     try {
-      await settingsRequest('admin/storage', 'PUT', { activeProfile: id })
+      await adminRequest('storage', 'PUT', { activeProfile: id })
       await load()
       setMessage('已切换新图片的存储位置，旧图片继续从原位置读取。')
     } catch (reason) {
@@ -89,7 +87,7 @@ export default function StoragePage() {
     setBusy(true)
     setEditorError('')
     try {
-      await settingsRequest('admin/storage', 'POST', draft)
+      await adminRequest('storage', 'POST', draft)
       setDraft(null)
       await load()
       setMessage('存储配置已加密保存。确认云端访问权限和跨域设置后，可切换为默认存储。')

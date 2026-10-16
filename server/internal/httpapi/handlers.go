@@ -44,6 +44,7 @@ type Handlers struct {
 	Projects                     func(http.ResponseWriter, *http.Request)
 	PromptEnhance                func(http.ResponseWriter, *http.Request)
 	PromptReverseByID            func(http.ResponseWriter, *http.Request)
+	PromptReverseCapabilities    func(http.ResponseWriter, *http.Request)
 	PromptReverseSettingsHandler func(http.ResponseWriter, *http.Request)
 	PromptReverseTasks           func(http.ResponseWriter, *http.Request)
 	PromptTemplates              func(http.ResponseWriter, *http.Request)

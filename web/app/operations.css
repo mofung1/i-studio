@@ -422,6 +422,18 @@
   color: var(--foreground-3);
   margin: 10px 0;
   line-height: 1.6;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.credit-estimate-retry {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 .creation-credit-estimate strong {
   color: var(--foreground);

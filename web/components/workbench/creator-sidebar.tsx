@@ -70,6 +70,9 @@ interface CreatorSidebarProps {
   promptEnhanceEnabled: boolean
   promptVision: boolean
   imageEndpoints: { id: string; name: string; model: string }[]
+  modelsLoading?: boolean
+  modelsError?: string
+  onReloadModels?: () => void
   endpointId: string
   onSetEndpoint: (id: string) => void
   notice: GenerationNotice | null
@@ -548,6 +551,9 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               resolution={resolution}
               count={count}
               imageEndpoints={props.imageEndpoints}
+              modelsLoading={props.modelsLoading}
+              modelsError={props.modelsError}
+              onReloadModels={props.onReloadModels}
               endpointId={props.endpointId}
               onSetEndpoint={props.onSetEndpoint}
               onSetResolution={onSetResolution}

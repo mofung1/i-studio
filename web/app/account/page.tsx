@@ -4,7 +4,7 @@ import { Coins, RefreshCw } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
 import { useAccount } from '@/components/account-provider'
 import { AccountAccess } from '@/components/account-access'
-import { settingsRequest } from '@/lib/ai-settings'
+import { frontendRequest } from '@/lib/frontend-request'
 import { getAccessToken } from '@/lib/api'
 import { formatCredits } from '@/lib/credits'
 interface Entry {
@@ -50,12 +50,7 @@ export default function AccountPage() {
     setBusy(true)
     setError('')
     try {
-      const result = await settingsRequest<AccountDetail>(
-        'account',
-        'GET',
-        undefined,
-        pending.signal,
-      )
+      const result = await frontendRequest<AccountDetail>('account', { signal: pending.signal })
       if (!current()) return
       setSnapshot({ owner, data: result })
       refresh()

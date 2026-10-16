@@ -243,7 +243,12 @@ export function ClothingSettings({
           <label className="settings-field clothing-model-field">
             <span>模型</span>
             <Select
-              value={value.endpointId || undefined}
+              value={
+                endpoints.some((endpoint) => endpoint.id === value.endpointId)
+                  ? value.endpointId
+                  : ''
+              }
+              disabled={!endpoints.length}
               onValueChange={(id) => {
                 const endpoint = endpoints.find((endpoint) => endpoint.id === id)
                 if (endpoint) onChange({ endpointId: id, model: endpoint.model })

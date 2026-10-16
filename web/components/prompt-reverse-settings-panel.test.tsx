@@ -112,7 +112,7 @@ it('reads and saves reverse configuration using the isolated administrator sessi
   expect(fetcher).toHaveBeenCalledTimes(2)
   for (const [url, init] of fetcher.mock.calls) {
     expect(new URL(String(url)).pathname).toBe('/v1/admin/prompt-reverse-settings')
-    expect(init?.headers).toMatchObject({ Authorization: 'Bearer operator-session' })
+    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer operator-session')
   }
   expect(JSON.parse(String(fetcher.mock.calls[1]![1]?.body))).toMatchObject({
     endpointId: 'vision',

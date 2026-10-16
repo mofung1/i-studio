@@ -218,6 +218,16 @@
 .mode-general .settings-chip-output {
   flex: 0 1 auto;
 }
+.mode-general .model-availability-note {
+  margin: 6px 0 0;
+  color: var(--foreground-3);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.mode-general .model-reload {
+  flex: 0 0 auto;
+}
 .mode-general .basic-settings-popover-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

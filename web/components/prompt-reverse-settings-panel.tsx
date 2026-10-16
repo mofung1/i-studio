@@ -11,7 +11,8 @@ import {
   ScanText,
 } from 'lucide-react'
 import type { ReverseConfiguration, ReverseSettings } from '@/lib/prompt-reverse'
-import { settingsRequest, type AIEndpoint, type PromptTemplate } from '@/lib/ai-settings'
+import { adminRequest } from '@/lib/admin'
+import { type AIEndpoint, type PromptTemplate } from '@/lib/ai-settings'
 import { AdminStatusBadge } from './admin/status-badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
 
@@ -95,7 +96,7 @@ export function PromptReverseSettingsPanel({
   useEffect(() => {
     const controller = new AbortController()
     setError('')
-    settingsRequest<ReverseConfiguration>(
+    adminRequest<ReverseConfiguration>(
       'prompt-reverse-settings',
       'GET',
       undefined,
@@ -156,7 +157,7 @@ export function PromptReverseSettingsPanel({
     setError('')
     setNotice('')
     try {
-      const data = await settingsRequest<ReverseConfiguration>(
+      const data = await adminRequest<ReverseConfiguration>(
         'prompt-reverse-settings',
         'PUT',
         settings,

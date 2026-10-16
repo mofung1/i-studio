@@ -2,7 +2,7 @@
 import { act, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { settingsRequest } from '@/lib/ai-settings'
+import { frontendRequest } from '@/lib/frontend-request'
 import Page from './page'
 const state = vi.hoisted(() => ({
   id: 'alice',
@@ -32,12 +32,12 @@ vi.mock('@/components/studio-shell', () => ({
     </>
   ),
 }))
-vi.mock('@/lib/ai-settings', () => ({ settingsRequest: vi.fn() }))
+vi.mock('@/lib/frontend-request', () => ({ frontendRequest: vi.fn() }))
 let container: HTMLDivElement
 let root: ReturnType<typeof createRoot>
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  vi.mocked(settingsRequest).mockReset()
+  vi.mocked(frontendRequest).mockReset()
   state.id = 'alice'
   state.authenticated = true
   state.loading = false
@@ -55,7 +55,7 @@ afterEach(async () => {
 })
 it('never shows a previous customer ledger after an account switch', async () => {
   const pending: Array<(value: unknown) => void> = []
-  vi.mocked(settingsRequest).mockImplementation(
+  vi.mocked(frontendRequest).mockImplementation(
     () => new Promise((resolve) => pending.push(resolve)),
   )
   const detail = (note: string) => ({
@@ -95,7 +95,7 @@ it('shows a dedicated signed-out state without account controls or ledger reques
   expect(container.querySelector('a')?.getAttribute('href')).toBe('/login?next=%2Faccount')
   expect(container.textContent).not.toContain('刷新余额')
   expect(container.querySelector('table')).toBeNull()
-  expect(settingsRequest).not.toHaveBeenCalled()
+  expect(frontendRequest).not.toHaveBeenCalled()
 })
 it('waits for authentication before showing a login prompt', async () => {
   state.authenticated = false
@@ -104,5 +104,5 @@ it('waits for authentication before showing a login prompt', async () => {
   await act(async () => root.render(<Page />))
   expect(container.querySelector('[role="status"]')?.textContent).toContain('正在确认登录状态')
   expect(container.querySelector('a')).toBeNull()
-  expect(settingsRequest).not.toHaveBeenCalled()
+  expect(frontendRequest).not.toHaveBeenCalled()
 })

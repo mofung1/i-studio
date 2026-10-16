@@ -1,5 +1,3 @@
-import { apiBaseUrl, getAccessToken, getAdminAccessToken, readApiError } from './api'
-
 export type EndpointPurpose = 'prompt' | 'image'
 export type AIProtocol = 'openai_chat' | 'openai_image' | 'gemini_generate_content'
 export interface AIEndpoint {
@@ -35,29 +33,4 @@ export interface AIConnectionTest {
   model: string
   responseTimeMs: number
   message: string
-}
-export async function settingsRequest<T>(
-  path: string,
-  method = 'GET',
-  body?: unknown,
-  signal?: AbortSignal,
-): Promise<T> {
-  const adminPath =
-    /^(ai-endpoints|prompt-templates|prompt-reverse-settings|site-settings|inspiration\/)/.test(
-      path,
-    )
-      ? `admin/${path}`
-      : path
-  const response = await fetch(`${apiBaseUrl}/v1/${adminPath}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${adminPath.startsWith('admin/') ? getAdminAccessToken() : getAccessToken()}`,
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-    signal,
-  })
-  if (!response.ok) throw new Error(await readApiError(response, '请求失败，请重试'))
-  return response.json() as Promise<T>
 }

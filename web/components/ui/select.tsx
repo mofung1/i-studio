@@ -14,6 +14,7 @@ import {
 } from 'react'
 
 import { cn } from './lib/utils'
+import { useOverlayContainer } from '../overlay-root'
 
 const SelectContext = createContext<{
   trigger: HTMLButtonElement | null
@@ -87,8 +88,11 @@ function SelectContent({
 }: ComponentProps<typeof SelectPrimitive.Content> & { portalContainer?: HTMLElement | null }) {
   const context = useContext(SelectContext)
   // Stay inside the owning modal/popover, including the browser's native top layer.
+  const overlayContainer = useOverlayContainer()
   const container =
-    portalContainer ?? context?.trigger?.closest<HTMLElement>('[role="dialog"], dialog, [popover]')
+    portalContainer ??
+    context?.trigger?.closest<HTMLElement>('[role="dialog"], dialog, [popover]') ??
+    overlayContainer
   const hasGroups = Children.toArray(children).some(
     (child) =>
       isValidElement(child) && (child.type === SelectGroup || child.type === SelectPrimitive.Group),

@@ -20,6 +20,7 @@ import { AdminAccountProvider, useAdminAccount } from '@/components/account-prov
 import { getAdminAccessToken } from '@/lib/api'
 import { Brand } from '@/components/brand'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { OverlayRoot } from '@/components/overlay-root'
 const links = [
   ['/admin', '运营概览', LayoutDashboard],
   ['/admin/models', '模型与定价', Coins],
@@ -81,7 +82,7 @@ function AdminWorkspace({ children }: { children: ReactNode }) {
       </main>
     )
   return (
-    <div className="admin-shell">
+    <OverlayRoot className="admin-shell">
       <a className="skip-link" href="#admin-main">
         跳至主要内容
       </a>
@@ -128,6 +129,6 @@ function AdminWorkspace({ children }: { children: ReactNode }) {
       <div className="admin-content" id="admin-main" tabIndex={-1}>
         {children}
       </div>
-    </div>
+    </OverlayRoot>
   )
 }

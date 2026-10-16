@@ -6,20 +6,20 @@
 
 后端采用 Go 官方服务端项目建议的 `cmd` / `internal` 结构，保留一个 Go module。`cmd/server/main.go` 只处理进程退出；`internal/app` 负责配置加载、部署命令和依赖组装。参考 [Go 官方模块组织建议](https://go.dev/doc/modules/layout)。
 
-| 包 | 职责 |
-| --- | --- |
-| `cmd/server` | 可执行程序入口，API、管理员命令和灵感导入共用同一二进制 |
-| `internal/app` | 读取运行配置、连接数据库、执行迁移、创建业务服务并启动 API / Worker |
-| `internal/httpapi` | Gin 显式路由、HTTP 方法、CORS、异常恢复、后台鉴权与审计中间件、JSON 响应 |
-| `internal/studio` | 创作、积分、资产、个人提示词、AI 配置与运营后台的业务协调 |
-| `internal/domain` | 用户、资产、生成任务与结算数据；不依赖 HTTP、SQL 或第三方 SDK |
-| `internal/repository` | 账户、任务、资产、分类与管理员授权的数据访问；支持调用方传入事务 |
-| `internal/database` | PostgreSQL 连接、健康状态、内嵌 SQL 迁移 |
-| `internal/auth` | 用户名与密码处理、令牌签发与验证、凭据版本、持久化签名密钥 |
-| `internal/storage` | 本地存储、多云适配、签名 URL、按原存储配置解析对象 |
-| `internal/config` | `.env` 加载、环境变量优先级和运行参数 |
-| `internal/inspiration` | Markdown 案例解析、文本规范化与批量导入 |
-| `internal/idgen` | 业务标识生成 |
+| 包                     | 职责                                                                     |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `cmd/server`           | 可执行程序入口，API、管理员命令和灵感导入共用同一二进制                  |
+| `internal/app`         | 读取运行配置、连接数据库、执行迁移、创建业务服务并启动 API / Worker      |
+| `internal/httpapi`     | Gin 显式路由、HTTP 方法、CORS、异常恢复、后台鉴权与审计中间件、JSON 响应 |
+| `internal/studio`      | 创作、积分、资产、个人提示词、AI 配置与运营后台的业务协调                |
+| `internal/domain`      | 用户、资产、生成任务与结算数据；不依赖 HTTP、SQL 或第三方 SDK            |
+| `internal/repository`  | 账户、任务、资产、分类与管理员授权的数据访问；支持调用方传入事务         |
+| `internal/database`    | PostgreSQL 连接、健康状态、内嵌 SQL 迁移                                 |
+| `internal/auth`        | 用户名与密码处理、令牌签发与验证、凭据版本、持久化签名密钥               |
+| `internal/storage`     | 本地存储、多云适配、签名 URL、按原存储配置解析对象                       |
+| `internal/config`      | `.env` 加载、环境变量优先级和运行参数                                    |
+| `internal/inspiration` | Markdown 案例解析、文本规范化与批量导入                                  |
+| `internal/idgen`       | 业务标识生成                                                             |
 
 依赖从入口流向业务和基础包。`app` 组装 `studio.Dependencies`，`studio` 将业务操作注入 `httpapi.Handlers`；路由包通过函数回调完成鉴权与审计，不导入数据库、存储或业务实现。存储路由通过小接口 `ProfileSource` 获取配置，不依赖整个业务服务。
 
@@ -60,6 +60,10 @@ Docker 和 `dev.sh` 已使用 `./cmd/server` 构建，容器内二进制仍为 `
 - `components/admin/`：模型列表与编辑、余额编辑、运营表单、概览和报表。`lib/admin.ts` 统一后台数据类型与请求入口，页面控制器处理提交反馈和刷新。
 - `components/workbench/`：工作台设置、素材、结果、历史和任务恢复。
 - 下拉框沿用共享 `Select`，弹窗沿用现有焦点管理，不新增独立样式体系。
+
+前台私有 JSON 请求使用 `lib/frontend-request.ts`，只携带前台会话；后台请求使用 `lib/admin.ts` 中的 `adminRequest` / `adminFetch`，固定访问 `/v1/admin/` 并使用独立管理员会话。请求路径会校验所属资源，不能通过同一个函数自动猜测使用哪个账号。网站名称、Logo、公开模型列表和已启用的公共灵感是公开只读数据；网站品牌的写入实现在 `lib/admin-site-settings.ts`，不进入前台页面的依赖图。
+
+后台布局使用 `OverlayRoot` 提供弹窗和下拉菜单的挂载容器，确保 Portal 保留后台的样式与颜色变量；原生 `dialog` 和 `popover` 内的下拉菜单仍优先挂载到当前弹层。`useDialogFocus` 只遍历可见、可交互的控件，并把内层原生弹窗的 Escape 交给浏览器处理。
 
 所有前端源码使用同一份 Prettier 配置；TypeScript 同时检查未使用的导入、局部变量和参数。不要将 JSX 压成整行，组件按职责拆分，数据请求与余额变更留在所属控制器中。
 

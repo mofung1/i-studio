@@ -5,10 +5,10 @@ import { LoaderCircle, RotateCcw, Save, Upload, X } from 'lucide-react'
 import {
   defaultSiteBranding,
   readSiteBranding,
-  saveSiteBranding,
   siteLogoUrl,
   type SiteBranding,
 } from '@/lib/site-settings'
+import { saveSiteBranding } from '@/lib/admin-site-settings'
 import { BrandLogo } from './brand'
 import { useSiteBranding } from './site-branding-provider'
 
