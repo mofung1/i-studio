@@ -417,6 +417,7 @@
 }
 
 .select-content {
+  --select-scroll-space: 0px;
   z-index: 10010;
   min-width: var(--radix-select-trigger-width);
   max-width: calc(100vw - 24px);
@@ -429,9 +430,17 @@
   box-shadow: var(--shadow-md);
   animation: select-in 120ms ease;
 }
+.select-content:has(.select-scroll-button) {
+  --select-scroll-space: 48px;
+}
 .select-viewport {
-  max-height: min(320px, calc(var(--radix-select-content-available-height, 368px) - 48px));
+  min-height: 0;
+  max-height: min(
+    320px,
+    calc(var(--radix-select-content-available-height, 370px) - var(--select-scroll-space) - 2px)
+  );
   padding: 4px;
+  overscroll-behavior-y: contain;
 }
 .select-item {
   position: relative;
@@ -470,6 +479,11 @@
   justify-content: center;
   color: var(--foreground);
   pointer-events: none;
+}
+.select-scroll-slot {
+  flex: 0 0 auto;
+  height: calc(var(--select-scroll-space) / 2);
+  overflow: hidden;
 }
 .select-scroll-button {
   display: flex;

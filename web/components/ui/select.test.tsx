@@ -39,6 +39,7 @@ afterEach(async () => {
   if (documentKeyListener) document.removeEventListener('keydown', documentKeyListener)
   documentKeyListener = null
   delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView
+  vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
@@ -142,5 +143,36 @@ describe('shared select in editing dialogs', () => {
     await key(document.querySelector('[role="listbox"]')!, 'Escape')
     expect(changed.mock.calls.map((call) => call[0])).toEqual([true, false])
     expect(document.querySelector('[role="listbox"]')).toBeNull()
+  })
+
+  it('keeps keyboard navigation and selection working through a long list', async () => {
+    vi.useFakeTimers()
+    const changed = vi.fn()
+    await act(async () =>
+      root.render(
+        <Select defaultValue="0" onValueChange={changed}>
+          <SelectTrigger aria-label="目标平台">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 20 }, (_, index) => (
+              <SelectItem key={index} value={String(index)}>
+                平台 {index + 1}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>,
+      ),
+    )
+    await key(trigger(), 'ArrowDown')
+    await key(document.querySelector('[role="listbox"]')!, 'End')
+    await act(async () => vi.runOnlyPendingTimers())
+    expect(document.activeElement?.textContent).toBe('平台 20')
+    await key(document.activeElement!, 'Enter')
+    await act(async () => vi.runOnlyPendingTimers())
+    expect(changed).toHaveBeenCalledExactlyOnceWith('19')
+    expect(trigger().textContent).toContain('平台 20')
+    expect(document.querySelector('[role="listbox"]')).toBeNull()
+    expect(document.activeElement).toBe(trigger())
   })
 })

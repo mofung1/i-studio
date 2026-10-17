@@ -118,13 +118,19 @@ function SelectContent({
           onEscapeKeyDown?.(event)
         }}
       >
-        <SelectPrimitive.ScrollUpButton className="select-scroll-button">
-          <ChevronUp size={16} aria-hidden="true" />
-        </SelectPrimitive.ScrollUpButton>
+        {/* Radix mounts each arrow only while scrolling that way is possible.
+            Stable slots keep those mounts from resizing or moving the menu. */}
+        <div className="select-scroll-slot" aria-hidden="true">
+          <SelectPrimitive.ScrollUpButton className="select-scroll-button">
+            <ChevronUp size={16} aria-hidden="true" />
+          </SelectPrimitive.ScrollUpButton>
+        </div>
         <SelectPrimitive.Viewport className="select-viewport">{options}</SelectPrimitive.Viewport>
-        <SelectPrimitive.ScrollDownButton className="select-scroll-button">
-          <ChevronDown size={16} aria-hidden="true" />
-        </SelectPrimitive.ScrollDownButton>
+        <div className="select-scroll-slot" aria-hidden="true">
+          <SelectPrimitive.ScrollDownButton className="select-scroll-button">
+            <ChevronDown size={16} aria-hidden="true" />
+          </SelectPrimitive.ScrollDownButton>
+        </div>
       </SelectPrimitive.Content>
     </SelectPrimitive.Portal>
   )
