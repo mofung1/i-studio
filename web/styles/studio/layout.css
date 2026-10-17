@@ -26,6 +26,7 @@
   background: transparent;
 }
 .workbench-shell.floating-workbench {
+  position: relative;
   --creator-width: 340px;
   grid-template-columns: var(--studio-rail) var(--creator-width) minmax(0, 1fr);
   grid-template-rows: var(--studio-header) minmax(0, 1fr);
@@ -34,8 +35,10 @@
   grid-template-columns: var(--studio-rail) minmax(0, 1fr) var(--creator-width);
   grid-template-rows: var(--studio-header) minmax(0, 1fr);
 }
-.workbench-shell.floating-workbench.creator-config-collapsed {
-  --creator-width: 48px;
+@media (min-width: 781px) {
+  .workbench-shell.floating-workbench.creator-config-collapsed {
+    grid-template-columns: var(--studio-rail) minmax(0, 1fr);
+  }
 }
 @media (min-width: 781px) and (max-width: 1180px) {
   .workbench-nav :is(.header-assets, .header-details, .history-top-trigger, .panel-toggle) {

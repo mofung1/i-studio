@@ -5,15 +5,15 @@ import { createPortal } from 'react-dom'
 import {
   GripVertical,
   PanelLeftClose,
-  PanelLeftOpen,
   PanelRightClose,
-  PanelRightOpen,
   PanelRight,
   PanelLeft,
   Loader2,
   RotateCcw,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { usePanelDock } from './use-panel-dock'
+import { useCreatorOrb } from './use-creator-orb'
 import type { ConfigSide } from './shared'
 import type { GenerationNotice } from './use-generation-task'
 
@@ -65,6 +65,7 @@ export function CreatorPanel({
     side,
     onDock: onSetSide,
   })
+  const orb = useCreatorOrb({ panelRef: dock.panelRef, enabled: collapsed && !dialog, side })
   const previousSide = useRef(side)
   useEffect(() => {
     if (collapsed || previousSide.current !== side) {
@@ -146,7 +147,10 @@ export function CreatorPanel({
             type="button"
             aria-label="恢复默认创作布局"
             title="恢复默认布局"
-            onClick={onResetLayout}
+            onClick={() => {
+              orb.reset()
+              onResetLayout?.()
+            }}
           >
             <RotateCcw size={14} aria-hidden="true" />
           </button>
@@ -158,17 +162,27 @@ export function CreatorPanel({
           aria-label={collapsed ? '展开创作配置' : '收起创作配置'}
           aria-controls="creation-settings-body"
           aria-expanded={!collapsed}
-          onClick={onToggle}
-          title={collapsed ? `展开创作设置 · ${currentModel}` : '收起创作设置，扩大画布'}
+          aria-description={
+            collapsed ? '拖动可在内容区悬停；方向键移动，Home 复位，点击展开' : undefined
+          }
+          {...(collapsed ? orb.handleProps : {})}
+          onClick={(event) => {
+            if (!collapsed || orb.shouldExpand(event.detail)) onToggle?.()
+          }}
+          title={
+            collapsed
+              ? `点击展开，拖动悬停 · ${notice?.kind === 'error' ? notice.message : isSubmitting || isGenerating ? generationStatus : currentModel}`
+              : '收起创作设置，扩大画布'
+          }
         >
-          {side === 'left' ? (
-            collapsed ? (
-              <PanelLeftOpen size={17} aria-hidden="true" />
+          {collapsed ? (
+            isSubmitting || isGenerating ? (
+              <Loader2 size={20} className="animate-spin" aria-hidden="true" />
             ) : (
-              <PanelLeftClose size={17} aria-hidden="true" />
+              <SlidersHorizontal size={20} aria-hidden="true" />
             )
-          ) : collapsed ? (
-            <PanelRightOpen size={17} aria-hidden="true" />
+          ) : side === 'left' ? (
+            <PanelLeftClose size={17} aria-hidden="true" />
           ) : (
             <PanelRightClose size={17} aria-hidden="true" />
           )}
