@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Download, Pencil, Star, Trash2 } from 'lucide-react'
+import { Check, Download, Maximize2, Pencil, Star, Trash2 } from 'lucide-react'
 import { AssetImageCover } from '@/components/asset-image-cover'
 import { taskModeLabel } from '@/components/workbench/use-task-history'
 import { assetTitle, formatLibraryDate, type LibraryAsset } from '@/lib/library'
@@ -32,6 +32,7 @@ export function AssetGrid({
   onDownload,
   onDelete,
 }: AssetGridProps) {
+  const selectionMode = selected.length > 0
   return (
     <div className={`asset-grid is-${density}`}>
       {assets.map((asset) => (
@@ -42,13 +43,32 @@ export function AssetGrid({
           <AssetImageCover
             path={asset.thumbnailPath}
             alt={assetTitle(asset)}
-            onOpen={() => onPreview(asset)}
-          />
+            onOpen={() => (selectionMode ? onSelect(asset.id) : onPreview(asset))}
+            openLabel={
+              selectionMode
+                ? `${selected.includes(asset.id) ? '取消选择' : '选择'} ${assetTitle(asset)}`
+                : undefined
+            }
+            selected={selectionMode ? selected.includes(asset.id) : undefined}
+            disabled={selectionMode && busy}
+          >
+            {selectionMode && (
+              <button
+                type="button"
+                className="asset-cover-preview"
+                aria-label={`查看 ${assetTitle(asset)}`}
+                onClick={() => onPreview(asset)}
+              >
+                <Maximize2 size={15} aria-hidden="true" />
+              </button>
+            )}
+          </AssetImageCover>
           <label className="asset-checkbox">
             <input
               type="checkbox"
               aria-label={`选择 ${assetTitle(asset)}`}
               checked={selected.includes(asset.id)}
+              disabled={busy}
               onChange={() => onSelect(asset.id)}
             />
             <Check size={13} aria-hidden="true" />

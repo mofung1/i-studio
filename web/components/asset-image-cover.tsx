@@ -8,11 +8,17 @@ export function AssetImageCover({
   path,
   alt,
   onOpen,
+  openLabel,
+  selected,
+  disabled,
   children,
 }: {
   path: string
   alt: string
   onOpen: () => void
+  openLabel?: string
+  selected?: boolean
+  disabled?: boolean
   children?: ReactNode
 }) {
   return (
@@ -21,7 +27,9 @@ export function AssetImageCover({
       <button
         type="button"
         className="asset-cover-open"
-        aria-label={`查看 ${alt}`}
+        aria-label={openLabel ?? `查看 ${alt}`}
+        aria-pressed={selected}
+        disabled={disabled}
         onClick={onOpen}
       />
       {children}
