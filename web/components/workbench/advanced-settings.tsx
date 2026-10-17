@@ -1,6 +1,17 @@
 'use client'
 
-import { Check, Plus, SlidersHorizontal } from 'lucide-react'
+import {
+  Check,
+  Eraser,
+  Focus,
+  ImageMinus,
+  Palette,
+  Plus,
+  Scan,
+  SlidersHorizontal,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
@@ -17,6 +28,15 @@ import {
   type WorkbenchMode,
 } from './shared'
 import type { CommerceTaskType } from '@/lib/contracts'
+
+const retouchIcons: Record<(typeof retouchOptions)[number][0], LucideIcon> = {
+  gloss: Sparkles,
+  repair: Eraser,
+  clarity: Focus,
+  color: Palette,
+  perspective: Scan,
+  background: ImageMinus,
+}
 
 interface AdvancedSettingsProps {
   imageEndpoints: { id: string; name: string; model: string }[]
@@ -181,26 +201,46 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
           )}
 
           {mode === 'commerce' && task === 'product-retouch' && (
-            <div className="choice-group">
-              <span className="choice-label">快捷优化项</span>
-              <div className="insight-chips">
-                {retouchOptions.map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={enhancements.includes(value)}
-                    className={enhancements.includes(value) ? 'selected' : ''}
-                    onClick={() =>
-                      onSetEnhancements(
-                        enhancements.includes(value)
-                          ? enhancements.filter((item) => item !== value)
-                          : [...enhancements, value],
-                      )
-                    }
-                  >
-                    {label}
-                  </button>
-                ))}
+            <div className="choice-group retouch-options">
+              <div className="retouch-options-heading">
+                <span className="choice-label" id="retouch-options-label">
+                  快捷优化项
+                </span>
+                <span className="retouch-options-count" aria-live="polite" aria-atomic="true">
+                  {enhancements.length ? `已选 ${enhancements.length} 项` : '可多选'}
+                </span>
+              </div>
+              <div
+                className="retouch-options-grid"
+                role="group"
+                aria-labelledby="retouch-options-label"
+              >
+                {retouchOptions.map(([value, label]) => {
+                  const Icon = retouchIcons[value]
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={enhancements.includes(value)}
+                      className="retouch-option"
+                      onClick={() =>
+                        onSetEnhancements(
+                          enhancements.includes(value)
+                            ? enhancements.filter((item) => item !== value)
+                            : [...enhancements, value],
+                        )
+                      }
+                    >
+                      <span className="retouch-option-icons" aria-hidden="true">
+                        <Icon size={18} strokeWidth={1.6} />
+                        <span className="retouch-option-check">
+                          <Check size={11} strokeWidth={2.5} />
+                        </span>
+                      </span>
+                      <span className="retouch-option-label">{label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
