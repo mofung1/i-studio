@@ -152,9 +152,11 @@ export function ReferenceUploader({
 
   useEffect(() => {
     if (!collapseAt) return
-    const container = uploaderRef.current?.closest('.composer-input-grid')
+    const container =
+      uploaderRef.current?.closest('.composer-input-grid') ??
+      uploaderRef.current?.closest('.composer-media')
     if (!container) return
-    // 展开宽度以整块输入区为边界，避免撑出提示词面板或移动端视口。
+    // 以所在输入区或素材分区为边界，避免展开时被折叠堆栈的自身宽度限制。
     const observer = new ResizeObserver(() => setAvailableWidth(container.clientWidth))
     setAvailableWidth(container.clientWidth)
     observer.observe(container)

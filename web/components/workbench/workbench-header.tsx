@@ -3,31 +3,22 @@
 import type { ReactNode } from 'react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
-import {
-  Folder,
-  History,
-  LayoutPanelLeft,
-  PanelRight,
-  SlidersHorizontal,
-  ListFilter,
-} from 'lucide-react'
+import { Folder, History, SlidersHorizontal, ListFilter } from 'lucide-react'
 import Link from 'next/link'
 
 import { AccountMenu } from '@/components/account-menu'
 import type { CommerceTaskType } from '@/lib/contracts'
 
-import { taskMeta, type ConfigSide, type WorkbenchMode } from './shared'
+import { taskMeta, type WorkbenchMode } from './shared'
 
 interface WorkbenchHeaderProps {
   collectionTools?: ReactNode
   mode: WorkbenchMode
   task: CommerceTaskType
-  configSide: ConfigSide
   panelOpen: boolean
   onShowDetails: () => void
   historyOpen: boolean
   onToggleHistory: () => void
-  onChangeSide: (side: ConfigSide) => void
   onTogglePanel: () => void
 }
 
@@ -36,12 +27,10 @@ export function WorkbenchHeader({
   collectionTools,
   mode,
   task,
-  configSide,
   panelOpen,
   historyOpen,
   onShowDetails,
   onToggleHistory,
-  onChangeSide,
   onTogglePanel,
 }: WorkbenchHeaderProps) {
   const inCommerce = mode === 'commerce'
@@ -106,28 +95,6 @@ export function WorkbenchHeader({
           <SlidersHorizontal size={16} aria-hidden="true" />
           创作设置
         </button>
-        {inCommerce && (
-          <div className="side-toggle" aria-label="生成配置位置">
-            <button
-              className={configSide === 'left' ? 'active' : ''}
-              type="button"
-              aria-label="配置显示在左侧"
-              aria-pressed={configSide === 'left'}
-              onClick={() => onChangeSide('left')}
-            >
-              <LayoutPanelLeft size={17} />
-            </button>
-            <button
-              className={configSide === 'right' ? 'active' : ''}
-              type="button"
-              aria-label="配置显示在右侧"
-              aria-pressed={configSide === 'right'}
-              onClick={() => onChangeSide('right')}
-            >
-              <PanelRight size={17} />
-            </button>
-          </div>
-        )}
         <ThemeToggle />
         <AccountMenu />
       </div>

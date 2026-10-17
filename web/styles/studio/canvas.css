@@ -34,8 +34,8 @@
 }
 
 /* The inspector is its own column, with a scrollable body and a persistent action area. */
-.workbench-shell.mode-general .configuration-panel,
-.workbench-shell.mode-general.config-right .configuration-panel {
+.workbench-shell.floating-workbench .configuration-panel,
+.workbench-shell.floating-workbench.config-right .configuration-panel {
   grid-column: 2;
   grid-row: 2;
   position: relative;
@@ -58,13 +58,13 @@
 .mode-general .workbench-nav {
   grid-column: 2 / -1;
 }
-.workbench-shell.mode-general.config-right .configuration-panel {
+.workbench-shell.floating-workbench.config-right .configuration-panel {
   grid-column: 3;
 }
 .mode-general.config-right .creation-canvas {
   grid-column: 2;
 }
-.mode-general .general-config-head {
+.floating-workbench .creator-panel-head {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
@@ -72,7 +72,7 @@
   min-height: 56px;
   padding: 10px 14px;
 }
-.mode-general .general-config-head h2 {
+.floating-workbench .creator-panel-head h2 {
   margin: 0;
   color: var(--foreground);
   font-size: 15px;
@@ -80,7 +80,7 @@
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
-.mode-general .general-config-head button {
+.floating-workbench .creator-panel-head button {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -94,16 +94,16 @@
   background: transparent;
   cursor: pointer;
 }
-.mode-general .general-config-head button:hover {
+.floating-workbench .creator-panel-head button:hover {
   color: var(--foreground);
   background: var(--control-bg);
 }
-.mode-general .general-config-head .creator-drag-handle {
+.floating-workbench .creator-panel-head .creator-drag-handle {
   width: 24px;
   cursor: grab;
   touch-action: none;
 }
-.mode-general .general-config-head .creator-drag-handle:active {
+.floating-workbench .creator-panel-head .creator-drag-handle:active {
   cursor: grabbing;
 }
 .creator-panel-status {
@@ -141,48 +141,49 @@
   font-size: var(--text-small);
   box-shadow: var(--shadow-sm);
 }
-.workbench-shell.mode-general .configuration-panel.is-panel-dragging {
+.workbench-shell.floating-workbench .configuration-panel.is-panel-dragging {
   z-index: 50;
   user-select: none;
   will-change: transform;
   box-shadow: 0 16px 42px rgba(0, 0, 0, 0.13);
 }
 @media (min-width: 781px) {
-  .mode-general .panel-toggle {
+  .floating-workbench .panel-toggle {
     display: inline-flex;
   }
-  .general-config-collapsed .general-config-head {
+  .creator-config-collapsed .creator-panel-head {
     flex-direction: column;
     gap: 12px;
     padding: 10px 5px 14px;
   }
-  .general-config-collapsed .general-config-head h2 {
+  .creator-config-collapsed .creator-panel-head h2 {
     order: 1;
     font-size: 13px;
     font-weight: 500;
     writing-mode: vertical-rl;
     letter-spacing: 0.12em;
   }
-  .general-config-collapsed .creator-panel-status {
+  .creator-config-collapsed .creator-panel-status {
     order: 2;
     margin: 0;
   }
-  .general-config-collapsed .creator-panel-status span {
+  .creator-config-collapsed .creator-panel-status span {
     display: none;
   }
-  .general-config-collapsed .creator-panel-status:not(:has(svg))::before {
+  .creator-config-collapsed .creator-panel-status:not(:has(svg))::before {
     content: '';
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background: currentColor;
   }
-  .general-config-collapsed .creator-layout-actions,
-  .general-config-collapsed .general-config-head .creator-drag-handle {
+  .creator-config-collapsed .creator-layout-actions,
+  .creator-config-collapsed .creator-panel-head .creator-drag-handle {
     display: none;
   }
 }
-.workbench-shell.mode-general .configuration-scroll {
+.workbench-shell.floating-workbench .configuration-scroll,
+.workbench-shell.floating-workbench.config-right .configuration-scroll {
   display: block;
   flex: 1;
   position: static;
@@ -192,10 +193,10 @@
   padding: 0 20px 20px;
   pointer-events: auto;
 }
-.workbench-shell.mode-general .configuration-scroll[hidden] {
+.workbench-shell.floating-workbench .configuration-scroll[hidden] {
   display: none;
 }
-.mode-general .configuration-scroll .composer-surface {
+.floating-workbench .configuration-scroll .composer-surface {
   width: 100%;
   margin: 0;
   padding: 0;
@@ -215,22 +216,35 @@
 .mode-general .basic-settings-popover-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.workbench-shell.mode-general.general-config-collapsed .configuration-panel {
+.workbench-shell.floating-workbench.creator-config-collapsed .configuration-panel {
   height: auto;
   max-height: none;
 }
-.workbench-shell.mode-general.general-config-collapsed .configuration-footer {
+.workbench-shell.floating-workbench.creator-config-collapsed .configuration-footer {
   display: none;
+}
+
+@media (min-width: 781px) {
+  .floating-workbench.mode-commerce .creation-canvas {
+    grid-column: 3;
+    grid-row: 2;
+    min-width: 0;
+    min-height: 0;
+    padding: 8px 12px;
+  }
+  .floating-workbench.mode-commerce.config-right .creation-canvas {
+    grid-column: 2;
+  }
 }
 
 /* Short desktop windows scroll as a page instead of reducing the image to a sliver. */
 @media (min-width: 781px) and (max-height: 540px) {
-  .workbench-page:has(.mode-general) {
+  .workbench-page:has(.floating-workbench) {
     height: auto;
     overflow: visible;
   }
-  .workbench-shell.mode-general,
-  .workbench-shell.mode-general.config-right {
+  .workbench-shell.floating-workbench,
+  .workbench-shell.floating-workbench.config-right {
     height: auto;
     min-height: 640px;
     grid-template-rows: var(--studio-header) minmax(540px, 1fr);
@@ -255,25 +269,26 @@
   .mode-general .creation-canvas {
     order: 3;
   }
-  .workbench-shell.mode-general .configuration-panel,
-  .workbench-shell.mode-general.config-right .configuration-panel {
+  .workbench-shell.floating-workbench .configuration-panel,
+  .workbench-shell.floating-workbench.config-right .configuration-panel {
     position: static;
     height: auto;
     max-height: none;
     overflow: hidden;
   }
-  .workbench-shell.mode-general .configuration-scroll {
+  .workbench-shell.floating-workbench .configuration-scroll,
+  .workbench-shell.floating-workbench.config-right .configuration-scroll {
     padding: 0 14px 14px;
   }
-  .mode-general .general-config-head {
+  .floating-workbench .creator-panel-head {
     padding: 10px 16px;
   }
-  .mode-general .general-config-head .creator-drag-handle,
-  .mode-general .creator-layout-actions,
-  .mode-general .general-config-head .creator-panel-toggle {
+  .floating-workbench .creator-panel-head .creator-drag-handle,
+  .floating-workbench .creator-layout-actions,
+  .floating-workbench .creator-panel-head .creator-panel-toggle {
     display: none;
   }
-  .mode-general .general-config-head .creator-panel-toggle {
+  .floating-workbench .creator-panel-head .creator-panel-toggle {
     width: 40px;
     height: 40px;
   }
@@ -749,5 +764,11 @@
   .mode-general .general-parameter-head button {
     width: 40px;
     height: 40px;
+  }
+}
+
+@media (max-width: 780px) {
+  .floating-workbench.mode-commerce .creator-panel-head {
+    display: none;
   }
 }

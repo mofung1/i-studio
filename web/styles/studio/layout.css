@@ -25,16 +25,16 @@
   overflow: hidden;
   background: transparent;
 }
-.workbench-shell.mode-general {
+.workbench-shell.floating-workbench {
   --creator-width: 340px;
   grid-template-columns: var(--studio-rail) var(--creator-width) minmax(0, 1fr);
   grid-template-rows: var(--studio-header) minmax(0, 1fr);
 }
-.workbench-shell.mode-general.config-right {
+.workbench-shell.floating-workbench.config-right {
   grid-template-columns: var(--studio-rail) minmax(0, 1fr) var(--creator-width);
   grid-template-rows: var(--studio-header) minmax(0, 1fr);
 }
-.workbench-shell.mode-general.general-config-collapsed {
+.workbench-shell.floating-workbench.creator-config-collapsed {
   --creator-width: 48px;
 }
 @media (min-width: 781px) and (max-width: 1180px) {

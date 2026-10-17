@@ -2,11 +2,16 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { CREATOR_LAYOUT_KEY, useCreatorPreferences } from './use-creator-preferences'
+import type { WorkbenchMode } from './shared'
+import {
+  COMMERCE_LAYOUT_KEY,
+  CREATOR_LAYOUT_KEY,
+  useCreatorPreferences,
+} from './use-creator-preferences'
 let root: Root
 let container: HTMLDivElement
-function Harness() {
-  const layout = useCreatorPreferences()
+function Harness({ scope = 'general' }: { scope?: WorkbenchMode }) {
+  const layout = useCreatorPreferences(scope)
   return (
     <>
       <output>
@@ -85,4 +90,36 @@ it('keeps desktop collapse preferences while showing the full editor on phones',
     change()
   })
   expect(container.querySelector('output')?.textContent).toBe('right:true')
+})
+
+it('migrates the commerce docking preference and shares it across commerce tools', async () => {
+  localStorage.setItem('istudio-config-side', 'right')
+  await act(async () => root.render(<Harness scope="commerce" />))
+  expect(container.querySelector('output')?.textContent).toBe('right:false')
+  await act(async () => container.querySelectorAll('button')[0]!.click())
+  expect(JSON.parse(localStorage.getItem(COMMERCE_LAYOUT_KEY)!)).toEqual({
+    side: 'right',
+    collapsed: true,
+  })
+  await act(async () => root.render(null))
+  await act(async () => root.render(<Harness scope="commerce" />))
+  expect(container.querySelector('output')?.textContent).toBe('right:true')
+})
+
+it('switches scopes without overwriting either workspace preference', async () => {
+  localStorage.setItem(COMMERCE_LAYOUT_KEY, JSON.stringify({ side: 'right', collapsed: true }))
+  await act(async () => root.render(<Harness />))
+  expect(container.querySelector('output')?.textContent).toBe('left:false')
+  await act(async () => root.render(<Harness scope="commerce" />))
+  expect(container.querySelector('output')?.textContent).toBe('right:true')
+  expect(JSON.parse(localStorage.getItem(CREATOR_LAYOUT_KEY)!)).toEqual({
+    side: 'left',
+    collapsed: false,
+  })
+  await act(async () => root.render(<Harness />))
+  expect(container.querySelector('output')?.textContent).toBe('left:false')
+  expect(JSON.parse(localStorage.getItem(COMMERCE_LAYOUT_KEY)!)).toEqual({
+    side: 'right',
+    collapsed: true,
+  })
 })

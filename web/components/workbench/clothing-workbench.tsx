@@ -23,6 +23,8 @@ import { CreationLibraryTools } from './creation-library-tools'
 import { usePersonalPromptHandoff } from './use-personal-prompt-handoff'
 import { ClothingSettings, type ClothingSettingsValue } from './clothing-settings'
 import { ClothingPlanDialog } from './clothing-plan-dialog'
+import { CreatorPanel } from './creator-panel'
+import { useCreatorPreferences } from './use-creator-preferences'
 import { GenerateBar } from './generate-bar'
 import { ResultWorkspace } from './result-workspace'
 import { WorkbenchHeader } from './workbench-header'
@@ -34,7 +36,7 @@ import {
   useWorkbenchHandoff,
 } from './use-workbench-handoff'
 import type { HistoryTask } from './use-task-history'
-import type { ConfigSide, WorkbenchMode } from './shared'
+import type { WorkbenchMode } from './shared'
 
 export function ClothingWorkbench({
   initialModel,
@@ -64,12 +66,8 @@ export function ClothingWorkbench({
     aspectRatio: initialAspectRatio ?? '3:4',
     resolution: initialResolution ?? '2K',
   })
-  const [side, setSide] = useState<ConfigSide>(() =>
-    typeof document !== 'undefined' &&
-    document.documentElement.getAttribute('data-wb-side') === 'right'
-      ? 'right'
-      : 'left',
-  )
+  const creatorLayout = useCreatorPreferences('commerce')
+  const { side, collapsed, setCollapsed } = creatorLayout
   const [panelOpen, setPanelOpen] = useState(false)
   const [mobile, setMobile] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -160,6 +158,7 @@ export function ClothingWorkbench({
       else patch.counts = { ...config.moduleCounts }
     }
     change(patch)
+    setCollapsed(false)
     setPanelOpen(true)
     setNotice({
       kind: 'success',
@@ -206,13 +205,6 @@ export function ClothingWorkbench({
       revision.current++
     }
   }, [initialModel])
-  useEffect(() => {
-    try {
-      localStorage.setItem('istudio-config-side', side)
-    } catch {
-      /* Layout still works without persistence. */
-    }
-  }, [side])
   useEffect(() => {
     const query = window.matchMedia('(max-width: 780px)')
     const update = () => setMobile(query.matches)
@@ -488,6 +480,7 @@ export function ClothingWorkbench({
       setSettings(next)
       setHistoryTask(null)
       setHistoryOpen(false)
+      setCollapsed(false)
       setPanelOpen(true)
       const restored = makeClothingPlan(
         next.mode,
@@ -535,6 +528,7 @@ export function ClothingWorkbench({
     }
     if (settings.garments.length >= 6) {
       setNotice({ kind: 'error', message: '服装素材已达到 6 张，请先移除一张再添加参考图' })
+      setCollapsed(false)
       setPanelOpen(true)
       return
     }
@@ -543,6 +537,7 @@ export function ClothingWorkbench({
       const file = await imageFile(path, '服装参考')
       if (current !== revision.current) return
       change({ garments: [...settings.garments, file].slice(0, 6) })
+      setCollapsed(false)
       setPanelOpen(true)
       setNotice({ kind: 'success', message: '已作为服装参考填入素材区' })
     } catch (error) {
@@ -573,7 +568,7 @@ export function ClothingWorkbench({
   return (
     <div className="workbench-page">
       <div
-        className={`workbench-shell mode-commerce clothing-workbench config-${side} ${panelOpen ? 'panel-open' : ''}`}
+        className={`workbench-shell floating-workbench mode-commerce clothing-workbench config-${side} ${collapsed ? 'creator-config-collapsed' : ''} ${panelOpen ? 'panel-open' : ''}`}
       >
         <WorkbenchRail
           mode="commerce"
@@ -609,13 +604,13 @@ export function ClothingWorkbench({
           }
           mode="commerce"
           task="clothing-set"
-          configSide={side}
-          panelOpen={panelOpen}
+          panelOpen={mobile ? panelOpen : !collapsed}
           onShowDetails={() => setDetailsOpen(true)}
           historyOpen={historyOpen}
           onToggleHistory={() => setHistoryOpen((value) => !value)}
-          onChangeSide={setSide}
-          onTogglePanel={() => setPanelOpen((value) => !value)}
+          onTogglePanel={() =>
+            mobile ? setPanelOpen((value) => !value) : setCollapsed((value) => !value)
+          }
         />
         <button
           type="button"
@@ -625,14 +620,24 @@ export function ClothingWorkbench({
           aria-label="关闭服装设置"
           tabIndex={-1}
         />
-        <aside
-          id="creation-settings"
-          className="configuration-panel creator-sidebar commerce-settings"
-          aria-label="服装创作设置"
-          role={mobile && panelOpen ? 'dialog' : undefined}
-          aria-modal={mobile && panelOpen ? true : undefined}
+        <CreatorPanel
+          className="commerce-settings"
+          side={side}
+          collapsed={collapsed}
+          onSetSide={creatorLayout.setSide}
+          onToggle={() => setCollapsed((value) => !value)}
+          onResetLayout={creatorLayout.reset}
+          currentModel={
+            endpoints.find((endpoint) => endpoint.id === settings.endpointId)?.name ??
+            settings.model
+          }
+          notice={notice}
+          isSubmitting={isSubmitting || planning}
+          isGenerating={isGenerating}
+          taskStatus={generationTask?.status}
+          dialog={mobile && panelOpen}
         >
-          <div className="configuration-scroll">
+          <div id="creation-settings-body" className="configuration-scroll" hidden={collapsed}>
             <div className="creator-sheet-head">
               <span>服装组图设置</span>
               <button type="button" aria-label="收起服装设置" onClick={() => setPanelOpen(false)}>
@@ -660,7 +665,7 @@ export function ClothingWorkbench({
             aiEnabled={aiEnabled}
             onSubmit={() => void prepare()}
           />
-        </aside>
+        </CreatorPanel>
         <ResultWorkspace
           mode="commerce"
           task="clothing-set"
@@ -690,6 +695,7 @@ export function ClothingWorkbench({
           onDownloadAll={() => void downloadAll()}
           downloadAllBusy={downloadBusy}
           onConfigure={() => {
+            setCollapsed(false)
             setPanelOpen(true)
             document.getElementById('creation-settings')?.scrollIntoView({ block: 'nearest' })
           }}
