@@ -3,8 +3,6 @@
 import {
   Archive,
   Clock3,
-  Columns2,
-  Download,
   Folder,
   Image as ImageIcon,
   Pencil,
@@ -13,7 +11,6 @@ import {
   Search,
   SlidersHorizontal,
   Star,
-  X,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -22,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { downloadProtectedAsset } from '@/components/authenticated-image'
 import { AccountBoundary } from '@/components/account-access'
 import { AssetGrid } from '@/components/assets/asset-grid'
+import { AssetSelectionToolbar } from '@/components/assets/asset-selection-toolbar'
 import { TaskGrid } from '@/components/assets/task-grid'
 import { AssetPreview } from '@/components/assets/asset-preview'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -172,6 +170,10 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
         setAssets((previous) =>
           append ? mergeLibraryPage(previous, data.assets ?? []) : (data.assets ?? []),
         )
+        if (!append)
+          setSelected((previous) =>
+            previous.filter((id) => data.assets?.some((item) => item.id === id)),
+          )
         setTasks((previous) =>
           append ? mergeLibraryPage(previous, data.tasks ?? []) : (data.tasks ?? []),
         )
@@ -249,6 +251,31 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     }
   }, [tasks])
 
+  useEffect(() => {
+    if (!selected.length || busy) return
+    function clearOnEscape(event: KeyboardEvent) {
+      if (
+        event.key !== 'Escape' ||
+        event.defaultPrevented ||
+        document.querySelector(
+          '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]',
+        )
+      )
+        return
+      setSelected([])
+      setNotice('')
+      setError('')
+    }
+    document.addEventListener('keydown', clearOnEscape)
+    return () => document.removeEventListener('keydown', clearOnEscape)
+  }, [selected.length, busy])
+
+  useEffect(() => {
+    if (!notice || !selected.length) return
+    const timer = window.setTimeout(() => setNotice(''), 3500)
+    return () => window.clearTimeout(timer)
+  }, [notice, selected.length])
+
   async function act(key: string, action: () => Promise<void>, success = '') {
     if (busy) return
     setBusy(key)
@@ -273,6 +300,9 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     setSelected([])
   }
   function toggleSelect(id: string) {
+    if (busy) return
+    setNotice('')
+    setError('')
     setSelected((previous) =>
       previous.includes(id)
         ? previous.filter((value) => value !== id)
@@ -281,19 +311,63 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
           : previous,
     )
   }
+  const selectedAssets = assets.filter((item) => selected.includes(item.id))
+  const allSelectedFavorite =
+    selectedAssets.length > 0 && selectedAssets.every((item) => item.favorite)
+  async function favoriteSelected() {
+    const requestFilter = filterKey
+    const ids = [...selected]
+    const nextFavorite = !allSelectedFavorite
+    await libraryRequest('library/assets', {
+      method: 'PATCH',
+      body: JSON.stringify({ ids, favorite: nextFavorite }),
+    })
+    if (currentFilter.current !== requestFilter) return
+    // Preserve the loaded pages and selection so another batch action can follow.
+    setAssets((current) =>
+      current.flatMap((item) => {
+        if (!ids.includes(item.id)) return [item]
+        return favorite && !nextFavorite ? [] : [{ ...item, favorite: nextFavorite }]
+      }),
+    )
+    if (favorite && !nextFavorite) {
+      setSelected((current) => current.filter((id) => !ids.includes(id)))
+      setTotal((current) => Math.max(0, current - ids.length))
+      if (assets.length === ids.length && total > ids.length) {
+        setLoading(true)
+        await latestLoad.current()
+      }
+    }
+  }
+  async function downloadSelected() {
+    if (selectedAssets.length !== selected.length)
+      throw new Error('部分图片已不在当前列表，请重新选择')
+    const asset = selectedAssets[0]
+    if (selectedAssets.length === 1 && asset) {
+      await downloadProtectedAsset(asset.contentPath, assetFilename(asset))
+    } else await downloadLibraryAssets(selected)
+  }
   function compareSelected() {
     const chosen = selected
       .map((id) => assets.find((item) => item.id === id))
       .filter((item): item is LibraryAsset => !!item)
-    if (chosen.length !== 2) return
+    const pair = comparisonCandidates(
+      chosen.map((item) => ({
+        path: item.contentPath,
+        label: `${formatLibraryDate(item.createdAt)} · ${assetTitle(item)}`,
+        width: item.width,
+        height: item.height,
+      })),
+    )
+    if (chosen.length !== 2 || pair.length !== 2) {
+      setError('请选择两张不同且可读取的图片进行对比')
+      return
+    }
+    setError('')
+    setNotice('')
     setComparison(
       comparisonCandidates([
-        ...chosen.map((item) => ({
-          path: item.contentPath,
-          label: `${formatLibraryDate(item.createdAt)} · ${assetTitle(item)}`,
-          width: item.width,
-          height: item.height,
-        })),
+        ...pair,
         ...chosen.flatMap((item) => comparisonReferences(item.task?.input)),
         ...assets.map((item) => ({
           path: item.contentPath,
@@ -514,63 +588,97 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 <RefreshCw size={16} />
               </button>
             </div>
-            <div className="library-filter-row">
-              <details className="library-advanced">
-                <summary>
-                  <SlidersHorizontal size={14} />
-                  更多筛选{(tag || from || to) && <span>已设置</span>}
-                </summary>
-                <div>
+            <div className="asset-context-row">
+              {selected.length > 0 ? (
+                <AssetSelectionToolbar
+                  count={selected.length}
+                  loadedCount={assets.length}
+                  allFavorite={allSelectedFavorite}
+                  busy={busy}
+                  error={error}
+                  notice={notice}
+                  onSelectLoaded={() => setSelected(assets.slice(0, 100).map((item) => item.id))}
+                  onClear={() => {
+                    setSelected([])
+                    setNotice('')
+                    setError('')
+                  }}
+                  onDownload={() => void act('download', downloadSelected)}
+                  onMove={() => {
+                    setMoveOpen(true)
+                    setMoveProject('unfiled')
+                  }}
+                  onFavorite={() =>
+                    void act(
+                      'favorite',
+                      favoriteSelected,
+                      allSelectedFavorite ? '已取消收藏' : '已加入收藏',
+                    )
+                  }
+                  onCompare={compareSelected}
+                />
+              ) : (
+                <div className="library-filter-row">
+                  <details className="library-advanced">
+                    <summary>
+                      <SlidersHorizontal size={14} />
+                      更多筛选{(tag || from || to) && <span>已设置</span>}
+                    </summary>
+                    <div>
+                      {view !== 'tasks' && (
+                        <label>
+                          标签
+                          <input
+                            aria-label="筛选标签"
+                            placeholder="输入完整标签"
+                            value={tag}
+                            onChange={(event) => setTag(event.target.value)}
+                          />
+                        </label>
+                      )}
+                      <label>
+                        开始日期
+                        <input
+                          type="date"
+                          aria-label="开始日期"
+                          value={from}
+                          max={to || undefined}
+                          onChange={(event) => setFrom(event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        结束日期
+                        <input
+                          type="date"
+                          aria-label="结束日期"
+                          value={to}
+                          min={from || undefined}
+                          onChange={(event) => setTo(event.target.value)}
+                        />
+                      </label>
+                      <button
+                        className="library-command"
+                        onClick={() => {
+                          setTag('')
+                          setFrom('')
+                          setTo('')
+                        }}
+                      >
+                        清除筛选
+                      </button>
+                    </div>
+                  </details>
                   {view !== 'tasks' && (
-                    <label>
-                      标签
-                      <input
-                        aria-label="筛选标签"
-                        placeholder="输入完整标签"
-                        value={tag}
-                        onChange={(event) => setTag(event.target.value)}
-                      />
-                    </label>
+                    <button
+                      className="library-density"
+                      onClick={() =>
+                        setDensity(density === 'comfortable' ? 'compact' : 'comfortable')
+                      }
+                    >
+                      {density === 'comfortable' ? '紧凑视图' : '舒适视图'}
+                    </button>
                   )}
-                  <label>
-                    开始日期
-                    <input
-                      type="date"
-                      aria-label="开始日期"
-                      value={from}
-                      max={to || undefined}
-                      onChange={(event) => setFrom(event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    结束日期
-                    <input
-                      type="date"
-                      aria-label="结束日期"
-                      value={to}
-                      min={from || undefined}
-                      onChange={(event) => setTo(event.target.value)}
-                    />
-                  </label>
-                  <button
-                    className="library-command"
-                    onClick={() => {
-                      setTag('')
-                      setFrom('')
-                      setTo('')
-                    }}
-                  >
-                    清除筛选
-                  </button>
                 </div>
-              </details>
-              {view !== 'tasks' && (
-                <button
-                  className="library-density"
-                  onClick={() => setDensity(density === 'comfortable' ? 'compact' : 'comfortable')}
-                >
-                  {density === 'comfortable' ? '紧凑视图' : '舒适视图'}
-                </button>
               )}
             </div>
             {currentProject && (
@@ -619,65 +727,16 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 </div>
               </div>
             )}
-            {error && (
+            {error && !selected.length && (
               <div className="library-feedback is-error" role="alert">
                 {error}
                 <button onClick={() => void load()}>重试</button>
               </div>
             )}
-            {notice && (
+            {notice && !selected.length && (
               <p className="library-feedback" role="status">
                 {notice}
               </p>
-            )}
-            {selected.length > 0 && (
-              <div className="library-selection" role="toolbar" aria-label="批量操作">
-                <strong>已选 {selected.length} 张</strong>
-                <button
-                  disabled={selected.length !== 2}
-                  title="选择两张图片进行对比"
-                  onClick={compareSelected}
-                >
-                  <Columns2 size={15} />
-                  图片对比
-                </button>
-                <button
-                  disabled={!!busy}
-                  onClick={() => void act('download', () => downloadLibraryAssets(selected))}
-                >
-                  <Download size={15} />
-                  打包下载
-                </button>
-                <button
-                  disabled={!!busy}
-                  onClick={() => {
-                    setMoveOpen(true)
-                    setMoveProject('unfiled')
-                  }}
-                >
-                  <Folder size={15} />
-                  移动到项目
-                </button>
-                <button
-                  disabled={!!busy}
-                  onClick={() =>
-                    void act(
-                      'favorite',
-                      () => editAssets(selected, { favorite: true }),
-                      '已加入收藏',
-                    )
-                  }
-                >
-                  <Star size={15} />
-                  收藏
-                </button>
-                <button onClick={() => setSelected(assets.slice(0, 100).map((item) => item.id))}>
-                  选择已加载
-                </button>
-                <button aria-label="取消选择" onClick={() => setSelected([])}>
-                  <X size={16} />
-                </button>
-              </div>
             )}
             <div
               ref={recordsRef}
