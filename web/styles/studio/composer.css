@@ -6,14 +6,14 @@
   gap: 18px;
   min-height: 92px;
 }
-.mode-general .composer-media {
+.floating-workbench .composer-media {
   min-width: 0;
   padding-top: 2px;
 }
-.mode-general .composer-media .reference-uploader {
+.floating-workbench .composer-media .reference-uploader {
   display: block;
 }
-.mode-general .composer-media .reference-dropzone {
+.floating-workbench .composer-media .reference-dropzone {
   width: 72px;
   min-height: 72px;
   height: 72px;
@@ -23,12 +23,12 @@
   background: var(--surface);
   border-color: #aeb6c2;
 }
-.mode-general .composer-media .reference-dropzone strong,
-.mode-general .composer-media .reference-dropzone > span:not(.reference-dropzone-icon),
-.mode-general .composer-media .reference-dropzone-hint {
+.floating-workbench .composer-media .reference-dropzone strong,
+.floating-workbench .composer-media .reference-dropzone > span:not(.reference-dropzone-icon),
+.floating-workbench .composer-media .reference-dropzone-hint {
   display: none;
 }
-.mode-general .composer-media .reference-dropzone-icon {
+.floating-workbench .composer-media .reference-dropzone-icon {
   width: 30px;
   height: 30px;
   margin: 0;
@@ -37,7 +37,7 @@
   border-color: #e2e5eb;
   border-radius: 50%;
 }
-.mode-general .composer-media .upload-list {
+.floating-workbench .composer-media .upload-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -45,8 +45,8 @@
   border: 0;
   background: transparent;
 }
-.mode-general .composer-media .uploaded-thumb,
-.mode-general .composer-media .add-thumb {
+.floating-workbench .composer-media .uploaded-thumb,
+.floating-workbench .composer-media .add-thumb {
   flex: 0 0 72px;
   width: 72px;
   min-width: 72px;
@@ -54,20 +54,20 @@
   aspect-ratio: 1;
   border-radius: 10px;
 }
-.mode-general .composer-media .add-thumb {
+.floating-workbench .composer-media .add-thumb {
   gap: 4px;
   padding: 0;
   font-size: 0;
   background: var(--surface);
 }
-.mode-general .composer-media .add-thumb-icon {
+.floating-workbench .composer-media .add-thumb-icon {
   width: 28px;
   height: 28px;
 }
-.mode-general .composer-media .reference-meta {
+.floating-workbench .composer-media .reference-meta {
   display: none;
 }
-.mode-general .composer-media .field-helper {
+.floating-workbench .composer-media .field-helper {
   margin-top: 8px;
   font-size: var(--text-caption);
 }
@@ -176,14 +176,14 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
-  .mode-general .composer-media .upload-list {
+  .floating-workbench .composer-media .upload-list {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 3px;
   }
-  .mode-general .composer-media .reference-dropzone,
-  .mode-general .composer-media .uploaded-thumb,
-  .mode-general .composer-media .add-thumb {
+  .floating-workbench .composer-media .reference-dropzone,
+  .floating-workbench .composer-media .uploaded-thumb,
+  .floating-workbench .composer-media .add-thumb {
     flex-basis: 64px;
     width: 64px;
     min-width: 64px;
@@ -281,35 +281,35 @@
 .reference-uploader .reference-stack-toggle[hidden] {
   display: none;
 }
-.mode-general .composer-media .is-compact {
+.floating-workbench .composer-media .is-compact {
   --reference-size: 72px;
   --reference-step: calc(var(--reference-size) + 8px);
   min-height: calc(var(--reference-size) + 14px);
 }
-.mode-general .composer-media .reference-thumbnail-slot {
+.floating-workbench .composer-media .reference-thumbnail-slot {
   flex: 0 0 var(--reference-size);
   width: var(--reference-size);
   height: var(--reference-size);
 }
-.mode-general .composer-media .reference-thumbnail-slot .uploaded-thumb {
+.floating-workbench .composer-media .reference-thumbnail-slot .uploaded-thumb {
   width: 100%;
   min-width: 0;
   height: 100%;
 }
-.mode-general .composer-media .reference-dropzone {
+.floating-workbench .composer-media .reference-dropzone {
   border-style: solid;
   border-color: var(--border);
   color: var(--foreground-2);
 }
-.mode-general .composer-media .reference-dropzone-icon,
-.mode-general .composer-media .add-thumb-icon {
+.floating-workbench .composer-media .reference-dropzone-icon,
+.floating-workbench .composer-media .add-thumb-icon {
   border: 0;
   background: transparent;
 }
-.mode-general .composer-media .is-stackable {
+.floating-workbench .composer-media .is-stackable {
   width: calc(var(--reference-size) + var(--reference-stack-offset));
 }
-.mode-general .composer-media .is-stackable .upload-list {
+.floating-workbench .composer-media .is-stackable .upload-list {
   position: absolute;
   top: -6px;
   left: -4px;
@@ -326,16 +326,16 @@
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
-.mode-general .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
+.floating-workbench .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
   position: absolute;
   top: 6px;
   left: 4px;
   transform: translateX(calc(var(--reference-index) * var(--reference-step)));
 }
-.mode-general .composer-media .is-stackable .reference-thumbnail-slot {
+.floating-workbench .composer-media .is-stackable .reference-thumbnail-slot {
   z-index: calc(var(--reference-index) + 1);
 }
-.mode-general .composer-media .is-collapsed .upload-list {
+.floating-workbench .composer-media .is-collapsed .upload-list {
   width: calc(var(--reference-size) + var(--reference-stack-offset) + 4px);
   max-width: none;
   overflow: visible;
@@ -344,18 +344,21 @@
   box-shadow: none;
   pointer-events: none;
 }
-.mode-general .composer-media .is-collapsed .reference-thumbnail-slot {
+.floating-workbench .composer-media .is-collapsed .reference-thumbnail-slot {
   transform: translateX(calc(min(var(--reference-index), 2) * 14px)) rotate(var(--reference-angle));
   transform-origin: center bottom;
 }
-.mode-general .composer-media .is-collapsed :is(.reference-thumbnail-slot.is-overflow, .add-thumb) {
+.floating-workbench
+  .composer-media
+  .is-collapsed
+  :is(.reference-thumbnail-slot.is-overflow, .add-thumb) {
   opacity: 0;
   visibility: hidden;
 }
-.mode-general .composer-media .is-collapsed :is(.thumb-label, .thumb-tools, .thumb-remove) {
+.floating-workbench .composer-media .is-collapsed :is(.thumb-label, .thumb-tools, .thumb-remove) {
   visibility: hidden;
 }
-.mode-general .composer-media .reference-stack-toggle {
+.floating-workbench .composer-media .reference-stack-toggle {
   position: absolute;
   inset: 0;
   z-index: 6;
@@ -392,7 +395,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
 }
-.mode-general .composer-media .reference-stack-close {
+.floating-workbench .composer-media .reference-stack-close {
   position: absolute;
   top: 6px;
   left: calc(var(--reference-slots) * var(--reference-step) + 4px);
@@ -412,27 +415,27 @@
   .prompt-count:not(.is-over) {
   visibility: hidden;
 }
-.mode-general .composer-media .reference-stack-close:hover {
+.floating-workbench .composer-media .reference-stack-close:hover {
   color: var(--foreground);
   background: var(--surface-2);
 }
-.mode-general .composer-media .uploaded-thumb:is(:hover, :focus-within) .thumb-label {
+.floating-workbench .composer-media .uploaded-thumb:is(:hover, :focus-within) .thumb-label {
   visibility: hidden;
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .mode-general .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
+  .floating-workbench .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
     transition:
       transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
       opacity 160ms ease;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mode-general .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
+  .floating-workbench .composer-media .is-stackable :is(.reference-thumbnail-slot, .add-thumb) {
     transition: opacity 125ms ease;
   }
 }
 @media (max-width: 780px) {
-  .mode-general .composer-media .is-compact {
+  .floating-workbench .composer-media .is-compact {
     --reference-size: 64px;
   }
   .mode-general .composer-input-grid:has(.is-stackable),
@@ -741,15 +744,15 @@
   border-color: #d9dde4;
   border-radius: 10px;
 }
-.mode-general .composer-media .reference-dropzone {
+.floating-workbench .composer-media .reference-dropzone {
   border-color: transparent;
   background: var(--control-bg);
   border-radius: 10px;
 }
-.mode-general .composer-media .reference-dropzone:hover {
+.floating-workbench .composer-media .reference-dropzone:hover {
   background: var(--control-hover);
 }
-.mode-general .composer-media .is-stackable:not(.is-collapsed) .upload-list {
+.floating-workbench .composer-media .is-stackable:not(.is-collapsed) .upload-list {
   border: 1px solid var(--border-soft);
 }
 .meta-action,

@@ -49,7 +49,6 @@ import {
   productMainModules,
   styleOptions,
   taskMeta,
-  type ConfigSide,
   type GeneralStyle,
   type ModuleMode,
   type ReferenceStrength,
@@ -96,12 +95,6 @@ function StandardWorkbench({
 
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
-  const [configSide, setConfigSide] = useState<ConfigSide>(() => {
-    if (typeof document === 'undefined') return 'left'
-    return (
-      document.documentElement.getAttribute('data-wb-side') === 'right' ? 'right' : 'left'
-    ) as ConfigSide
-  })
   const [prompt, setPrompt] = useState(initialPrompt ?? '')
   const [requirements, setRequirements] = useState('')
   const [productFiles, setProductFiles] = useState<CreationImage[]>([])
@@ -135,9 +128,10 @@ function StandardWorkbench({
   const selectedEndpointRef = useRef(endpointId)
   selectedEndpointRef.current = endpointId
   const [panelOpen, setPanelOpen] = useState(false)
-  const creatorLayout = useCreatorPreferences()
-  const { collapsed: generalConfigCollapsed, setCollapsed: setGeneralConfigCollapsed } =
-    creatorLayout
+  const generalLayout = useCreatorPreferences()
+  const commerceLayout = useCreatorPreferences('commerce')
+  const creatorLayout = mode === 'general' ? generalLayout : commerceLayout
+  const { collapsed: configCollapsed, setCollapsed: setConfigCollapsed } = creatorLayout
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyTask, setHistoryTask] = useState<HistoryTask | null>(null)
   const [loadingConfigId, setLoadingConfigId] = useState<string | null>(null)
@@ -183,7 +177,7 @@ function StandardWorkbench({
         applyReverseText(previous, text, previous.trim() ? 'append' : 'replace'),
       )
       if (file) setReferenceFiles((previous) => [...previous, file])
-      setGeneralConfigCollapsed(false)
+      setConfigCollapsed(false)
       setNotice({ kind: 'success', message: '反推提示词已填入，可调整后开始生成' })
     },
     onError: (message) => setNotice({ kind: 'error', message }),
@@ -196,15 +190,6 @@ function StandardWorkbench({
     createGenerationTask()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRegeneratePending])
-
-  useEffect(() => {
-    const savedSide = window.localStorage.getItem('istudio-config-side')
-    setConfigSide(savedSide === 'right' ? 'right' : 'left')
-  }, [])
-
-  useEffect(() => {
-    window.localStorage.setItem('istudio-config-side', configSide)
-  }, [configSide])
 
   useEffect(() => {
     let current = true
@@ -371,7 +356,7 @@ function StandardWorkbench({
         setEnhancements(config.enhancements ?? [])
       }
     }
-    setGeneralConfigCollapsed(false)
+    setConfigCollapsed(false)
     setNotice({
       kind: 'success',
       message: restore ? '已撤销应用' : `已应用“${application.title}”，可继续编辑或撤销`,
@@ -436,7 +421,8 @@ function StandardWorkbench({
     configurationRequestRef.current += 1
     setLoadingConfigId(null)
     setMode(nextMode)
-    setGeneralConfigCollapsed(false)
+    const targetLayout = nextMode === 'general' ? generalLayout : commerceLayout
+    targetLayout.setCollapsed(false)
     setPanelOpen(false)
     setNotice(null)
     router.replace(
@@ -449,7 +435,7 @@ function StandardWorkbench({
     setLoadingConfigId(null)
     setTask(nextTask)
     setMode('commerce')
-    setGeneralConfigCollapsed(false)
+    commerceLayout.setCollapsed(false)
     setPanelOpen(false)
     setNotice(null)
     router.replace(`/workbench?mode=commerce&task=${nextTask}`)
@@ -488,7 +474,8 @@ function StandardWorkbench({
     ).includes(source.taskType)
       ? source.taskType
       : 'product-main'
-    if (targetMode === 'general') setGeneralConfigCollapsed(false)
+    const targetLayout = targetMode === 'general' ? generalLayout : commerceLayout
+    targetLayout.setCollapsed(false)
     setNotice(null)
     try {
       const file = await fetchImageFile(path, 'ref-result')
@@ -553,7 +540,8 @@ function StandardWorkbench({
 
       setMode(nextMode)
       setTask(nextTask)
-      if (nextMode === 'general') setGeneralConfigCollapsed(false)
+      const targetLayout = nextMode === 'general' ? generalLayout : commerceLayout
+      targetLayout.setCollapsed(false)
       setPrompt(input.prompt ?? '')
       setRequirements(input.requirements ?? '')
       setPlatform(input.platform ?? 'smart')
@@ -643,7 +631,7 @@ function StandardWorkbench({
 
   /** 重新生成前先确认：每次生成都会调用 AI 服务并产生费用 */
   function requestRegenerate() {
-    if (mode === 'general') setGeneralConfigCollapsed(false)
+    setConfigCollapsed(false)
     if (shouldSkipRegenerateConfirm()) {
       createGenerationTask()
       return
@@ -759,7 +747,7 @@ function StandardWorkbench({
   return (
     <main className="workbench-page">
       <section
-        className={`workbench-shell mode-${mode} config-${mode === 'general' ? creatorLayout.side : configSide} ${panelOpen ? 'panel-open' : ''} ${mode === 'general' && generalConfigCollapsed ? 'general-config-collapsed' : ''}`}
+        className={`workbench-shell floating-workbench mode-${mode} config-${creatorLayout.side} ${panelOpen ? 'panel-open' : ''} ${configCollapsed ? 'creator-config-collapsed' : ''}`}
       >
         <WorkbenchRail
           mode={mode}
@@ -793,15 +781,13 @@ function StandardWorkbench({
           }
           mode={mode}
           task={task}
-          configSide={configSide}
-          panelOpen={mode === 'general' ? !generalConfigCollapsed : panelOpen}
+          panelOpen={mode === 'general' || creatorLayout.desktop ? !configCollapsed : panelOpen}
           historyOpen={historyOpen}
           onShowDetails={() => setDetailsOpen(true)}
           onToggleHistory={() => setHistoryOpen((open) => !open)}
-          onChangeSide={setConfigSide}
           onTogglePanel={() => {
-            if (mode === 'general') {
-              setGeneralConfigCollapsed((collapsed) => !collapsed)
+            if (mode === 'general' || creatorLayout.desktop) {
+              setConfigCollapsed((collapsed) => !collapsed)
               return
             }
             setPanelOpen((open) => !open)
@@ -812,8 +798,8 @@ function StandardWorkbench({
         />
         <CreatorSidebar
           mode={mode}
-          generalConfigCollapsed={generalConfigCollapsed}
-          onToggleGeneralConfig={() => setGeneralConfigCollapsed((collapsed) => !collapsed)}
+          configCollapsed={configCollapsed}
+          onToggleConfig={() => setConfigCollapsed((collapsed) => !collapsed)}
           configSide={creatorLayout.side}
           onSetConfigSide={creatorLayout.setSide}
           onResetLayout={creatorLayout.reset}

@@ -63,7 +63,7 @@ export function ClothingSettings({
           模特上身
         </button>
       </div>
-      <fieldset className="form-section config-card config-card-assets">
+      <fieldset className="form-section config-card config-card-assets composer-media">
         <div className="field-heading">
           <legend>服装原图</legend>
           <span>1–6 张</span>
@@ -74,6 +74,7 @@ export function ClothingSettings({
             : '上传同套搭配中的服装，模特将穿着这套搭配。'}
         </p>
         <ReferenceUploader
+          collapseAt={2}
           files={value.garments}
           max={6}
           onChange={(garments) => onChange({ garments })}
@@ -85,7 +86,7 @@ export function ClothingSettings({
       </fieldset>
       {value.mode === 'model' && (
         <>
-          <fieldset className="form-section config-card config-card-assets">
+          <fieldset className="form-section config-card config-card-assets composer-media">
             <div className="field-heading">
               <legend>模特照片</legend>
               <span>必须 1 张</span>
@@ -101,7 +102,7 @@ export function ClothingSettings({
               acceptedHint="JPG / PNG / WebP"
             />
           </fieldset>
-          <fieldset className="form-section config-card config-card-assets">
+          <fieldset className="form-section config-card config-card-assets composer-media">
             <div className="field-heading">
               <legend>拍摄场景</legend>
               <span>可选 1 张</span>

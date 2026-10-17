@@ -9,7 +9,7 @@ export function WorkbenchSkeleton({ mode = 'general' }: { mode?: WorkbenchMode }
   return (
     <main className="workbench-page">
       <section
-        className={`workbench-shell mode-${mode} config-${typeof document !== 'undefined' ? document.documentElement.getAttribute('data-wb-side') || 'left' : 'left'}`}
+        className={`workbench-shell floating-workbench mode-${mode} config-${typeof document !== 'undefined' ? document.documentElement.getAttribute('data-wb-side') || 'left' : 'left'}`}
         aria-busy="true"
         aria-label="工作台加载中"
       >

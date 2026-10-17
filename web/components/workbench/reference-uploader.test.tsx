@@ -114,3 +114,41 @@ it('preserves the image stack and opens each expanded list from the first image'
   expect(container.querySelectorAll('.uploaded-thumb')).toHaveLength(1)
   expect(container.querySelector('img')?.alt).toContain('first.png')
 })
+
+it('bounds commerce image stacks by their material section when no prompt grid exists', async () => {
+  const observe = vi.fn()
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe = observe
+      disconnect() {}
+    },
+  )
+  const width = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(298)
+  try {
+    await act(async () =>
+      root.render(
+        <fieldset className="composer-media">
+          <ReferenceUploader
+            files={[]}
+            max={6}
+            collapseAt={2}
+            onChange={() => {}}
+            labelFor={(index) => `商品 ${index + 1}`}
+            emptyTitle="商品原图"
+            emptyHint="选择图片"
+            acceptedHint="PNG"
+          />
+        </fieldset>,
+      ),
+    )
+    expect(observe).toHaveBeenCalledWith(container.querySelector('fieldset'))
+    expect(
+      container
+        .querySelector<HTMLElement>('.reference-uploader')
+        ?.style.getPropertyValue('--reference-available-width'),
+    ).toBe('298px')
+  } finally {
+    width.mockRestore()
+  }
+})
