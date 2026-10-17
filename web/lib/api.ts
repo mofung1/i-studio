@@ -143,14 +143,25 @@ export async function enhancePrompt({
   appendCreationImages(body, 'images', files)
 
   const token = getAccessToken()
-  const response = await fetch(`${apiBaseUrl}/v1/prompts/enhance`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body,
-  })
+  let response: Response
+  try {
+    response = await fetch(`${apiBaseUrl}/v1/prompts/enhance`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body,
+    })
+  } catch {
+    throw new Error('无法连接 AI 服务，请检查网络后重试，原文已保留')
+  }
   if (response.status === 401) throw new Error('登录状态已失效，请重新登录')
   if (!response.ok) throw new Error(await readApiError(response, 'AI 处理失败，请稍后重试'))
-  const payload = (await response.json()) as PromptEnhanceResult
-  if (!payload.text) throw new Error('AI 没有返回内容，请重试')
+  let payload: PromptEnhanceResult
+  try {
+    payload = (await response.json()) as PromptEnhanceResult
+  } catch {
+    throw new Error('AI 返回的内容格式异常，请稍后重试，原文已保留')
+  }
+  if (typeof payload?.text !== 'string' || !payload.text.trim())
+    throw new Error('AI 没有返回内容，请重试')
   return payload
 }

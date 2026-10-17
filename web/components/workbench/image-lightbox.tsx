@@ -16,7 +16,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import { useProtectedImageUrl } from '@/components/authenticated-image'
+import { downloadProtectedAsset, useProtectedImageUrl } from '@/components/authenticated-image'
 import { useDialogFocus } from '@/components/use-dialog-focus'
 
 interface ImageLightboxProps {
@@ -182,7 +182,7 @@ export function ImageLightbox({
   }, [])
 
   function startPan(event: React.PointerEvent<HTMLDivElement>) {
-    if (mode !== 'view' || zoom <= 1) return
+    if (mode !== 'view' || zoom <= 1 || (event.target as HTMLElement).closest('button')) return
     panRef.current = { x: event.clientX, y: event.clientY, offsetX: offset.x, offsetY: offset.y }
   }
 
@@ -319,28 +319,28 @@ export function ImageLightbox({
           <div className="lightbox-tools">
             {mode === 'view' ? (
               <>
-                {onPrev && (
-                  <button
-                    type="button"
-                    aria-label="上一张"
-                    title="上一张（←）"
-                    disabled={!hasPrev}
-                    onClick={onPrev}
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                )}
-                {onNext && (
-                  <button
-                    type="button"
-                    aria-label="下一张"
-                    title="下一张（→）"
-                    disabled={!hasNext}
-                    onClick={onNext}
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  aria-label="下载原图"
+                  title="下载原图"
+                  disabled={state !== 'loaded' || isSaving}
+                  onClick={async () => {
+                    setIsSaving(true)
+                    setStatus('')
+                    try {
+                      await downloadProtectedAsset(
+                        path,
+                        /\.[a-z0-9]{2,5}$/i.test(filename) ? filename : `${filename}.png`,
+                      )
+                    } catch {
+                      setStatus('下载失败，请检查连接后重试')
+                    } finally {
+                      setIsSaving(false)
+                    }
+                  }}
+                >
+                  <Download size={16} aria-hidden="true" />
+                </button>
                 <button
                   type="button"
                   aria-label="缩小"
@@ -419,7 +419,7 @@ export function ImageLightbox({
         </header>
 
         <div
-          className={`lightbox-stage ${mode === 'crop' ? 'is-cropping' : ''}`}
+          className={`lightbox-stage ${mode === 'crop' ? 'is-cropping' : ''}${onPrev || onNext ? ' has-navigation' : ''}`}
           ref={stageRef}
           onPointerDown={startPan}
           onWheel={(event) => {
@@ -427,10 +427,40 @@ export function ImageLightbox({
             event.preventDefault()
             stepZoom(event.deltaY < 0 ? 1 : -1)
           }}
-          onDoubleClick={() => {
+          onDoubleClick={(event) => {
+            if ((event.target as HTMLElement).closest('button')) return
             if (mode === 'view') zoom > 1 ? resetView() : setZoom(2)
           }}
         >
+          {mode === 'view' && (
+            <>
+              {' '}
+              {onPrev && (
+                <button
+                  type="button"
+                  className="image-side-nav is-prev"
+                  aria-label="上一张"
+                  title="上一张（←）"
+                  disabled={!hasPrev}
+                  onClick={onPrev}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+              )}
+              {onNext && (
+                <button
+                  type="button"
+                  className="image-side-nav is-next"
+                  aria-label="下一张"
+                  title="下一张（→）"
+                  disabled={!hasNext}
+                  onClick={onNext}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              )}
+            </>
+          )}
           {state === 'failed' && (
             <div className="lightbox-fallback">
               <span>图片加载失败</span>

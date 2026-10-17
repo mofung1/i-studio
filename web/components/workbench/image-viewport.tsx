@@ -5,23 +5,19 @@ import { containImage } from '@/lib/image-fit'
 
 /** The frame follows the actual image area after controls, thumbnails and composer reflow. */
 export function ImageViewport({
-  enabled,
   aspectRatio,
   loading = false,
-  legacyStyle,
   children,
 }: {
-  enabled: boolean
   aspectRatio: number
   loading?: boolean
-  legacyStyle?: CSSProperties
   children: ReactNode
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [bounds, setBounds] = useState({ width: 0, height: 0 })
   useLayoutEffect(() => {
     const node = viewportRef.current
-    if (!enabled || !node) return
+    if (!node) return
     const observer = new ResizeObserver(([entry]) => {
       if (!entry) return
       const { width, height } = entry.contentRect
@@ -33,15 +29,9 @@ export function ImageViewport({
     })
     observer.observe(node)
     return () => observer.disconnect()
-  }, [enabled])
+  }, [])
 
   const className = loading ? 'result-hero-skeleton' : 'result-hero'
-  if (!enabled)
-    return (
-      <div className={className} style={legacyStyle}>
-        {children}
-      </div>
-    )
   const size = containImage(bounds.width, bounds.height, aspectRatio)
   return (
     <div

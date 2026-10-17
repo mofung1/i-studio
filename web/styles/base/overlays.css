@@ -505,3 +505,74 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Navigation belongs to the image region; image actions stay in its top bar. */
+.image-side-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--foreground);
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 5%);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+.image-side-nav.is-prev {
+  left: 4px;
+}
+.image-side-nav.is-next {
+  right: 4px;
+}
+.image-side-nav:hover:not(:disabled) {
+  background: var(--control-bg);
+  border-color: var(--line-strong);
+}
+.image-side-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.image-side-nav:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+.lightbox-stage.has-navigation {
+  padding-inline: 56px;
+}
+.lightbox-stage > .image-side-nav.is-prev {
+  left: 12px;
+}
+.lightbox-stage > .image-side-nav.is-next {
+  right: 12px;
+}
+@media (max-width: 780px) {
+  .image-side-nav {
+    width: 32px;
+    min-height: 44px;
+  }
+  .image-side-nav.is-prev {
+    left: 0;
+  }
+  .image-side-nav.is-next {
+    right: 0;
+  }
+  .lightbox-tools {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .lightbox-stage.has-navigation {
+    padding-inline: 42px;
+  }
+  .lightbox-stage > .image-side-nav.is-prev {
+    left: 4px;
+  }
+  .lightbox-stage > .image-side-nav.is-next {
+    right: 4px;
+  }
+}

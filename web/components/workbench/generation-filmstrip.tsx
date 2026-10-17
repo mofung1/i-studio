@@ -21,7 +21,7 @@ export function GenerationFilmstrip({
   onSelect,
   onViewAll,
 }: GenerationFilmstripProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const listId = useId()
   const listRef = useRef<HTMLOListElement>(null)
   const versions = items

@@ -1,6 +1,9 @@
 package studio
 
 import (
+	"context"
+	"errors"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -9,7 +12,7 @@ const (
 	maxPromptImages    = 4
 	maxPromptImageSize = 5 << 20  // 单张 5MB
 	maxPromptBodySize  = 24 << 20 // 整个请求 24MB
-	maxPromptTextRunes = 2000
+	maxPromptTextRunes = 10000
 )
 
 const promptRewriteSystemPrompt = `你是文生图提示词工程师。你的任务是把用户的口语描述（以及可能上传的参考图）改写成一条可直接用于文生图模型的提示词。
@@ -93,7 +96,7 @@ func (s *Service) promptEnhance(w http.ResponseWriter, r *http.Request) {
 	target := strings.TrimSpace(r.FormValue("target"))
 	text := strings.TrimSpace(r.FormValue("text"))
 	if len([]rune(text)) > maxPromptTextRunes {
-		s.error(w, http.StatusBadRequest, "PROMPT_INPUT_TOO_LONG", "输入内容过长，请精简后再试")
+		s.error(w, http.StatusBadRequest, "PROMPT_INPUT_TOO_LONG", "输入内容超过 10000 字，请精简后再试")
 		return
 	}
 
@@ -125,9 +128,11 @@ func (s *Service) promptEnhance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rewritten, err := s.promptClient.complete(r.Context(), system, userText, images, 800)
+	rewritten, err := s.promptClient.complete(r.Context(), system, userText, images, 4096)
 	if err != nil {
-		s.error(w, http.StatusBadGateway, "PROMPT_ENHANCE_FAILED", "AI 处理失败，请稍后重试")
+		status, code, message := promptEnhanceError(err)
+		log.Printf("prompt enhance failed: code=%s model=%q", code, s.promptClient.modelName())
+		s.error(w, status, code, message)
 		return
 	}
 	rewritten = strings.TrimSpace(rewritten)
@@ -319,3 +324,26 @@ const (
 	errPromptImageTooLarge   = promptImageError("单张图片不能超过 5MB，请压缩后再试")
 	errPromptImageUnreadable = promptImageError("图片读取失败，请重新上传")
 )
+
+// Only expose actionable categories, never raw provider messages or credentials.
+func promptEnhanceError(err error) (int, string, string) {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return http.StatusGatewayTimeout, "PROMPT_ENHANCE_TIMEOUT", "AI 响应超时，原文已保留，请稍后重试"
+	}
+	var upstream *promptUpstreamError
+	if errors.As(err, &upstream) {
+		switch {
+		case upstream.status == http.StatusTooManyRequests:
+			return http.StatusTooManyRequests, "PROMPT_ENHANCE_BUSY", "AI 服务繁忙或额度不足，请稍后重试，或在设置中检查服务额度"
+		case upstream.status == http.StatusUnauthorized || upstream.status == http.StatusForbidden:
+			return http.StatusServiceUnavailable, "PROMPT_AI_AUTH_FAILED", "提示词 AI 服务授权失败，请在设置中检查 API 密钥和模型权限"
+		case upstream.kind == "length":
+			return http.StatusBadGateway, "PROMPT_ENHANCE_TRUNCATED", "AI 输出未完成，原文已保留，请精简描述后重试"
+		case upstream.kind == "filter":
+			return http.StatusBadRequest, "PROMPT_ENHANCE_FILTERED", "AI 未能处理当前内容，请调整文字或参考图后重试"
+		case upstream.status == http.StatusBadRequest || upstream.status == http.StatusNotFound || upstream.status == http.StatusUnprocessableEntity:
+			return http.StatusBadGateway, "PROMPT_AI_CONFIG_INVALID", "提示词模型未接受请求，请检查设置中的模型、接口地址和图片识别能力"
+		}
+	}
+	return http.StatusBadGateway, "PROMPT_ENHANCE_FAILED", "AI 服务暂时未返回有效结果，原文已保留，请稍后重试"
+}

@@ -16,6 +16,13 @@ let root: Root
 let container: HTMLDivElement
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  )
   vi.stubGlobal('fetch', vi.fn())
   vi.stubGlobal(
     'URL',
@@ -54,7 +61,7 @@ it('opens the unified picker from the original uploader and stages dropped files
     container.querySelector<HTMLButtonElement>('button[aria-label="添加参考图片"]')!.click(),
   )
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('选择创作素材')
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('本地上传')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('添加图片')
   const drop = new Event('drop', { bubbles: true, cancelable: true })
   Object.defineProperty(drop, 'dataTransfer', { value: { types: ['Files'], files: [file] } })
   await act(async () => document.querySelector('.asset-picker')!.dispatchEvent(drop))

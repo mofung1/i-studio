@@ -46,6 +46,9 @@ async function render() {
       />,
     ),
   )
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="展开最近生成"]')!.click(),
+  )
 }
 it('groups all result images newest first and selects the correct original version and image', async () => {
   await render()

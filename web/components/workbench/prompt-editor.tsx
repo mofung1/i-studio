@@ -80,6 +80,10 @@ export function PromptEditor({
       setJustEnhanced(false)
       return
     }
+    if (Array.from(value).length > maxLength) {
+      setError(`描述超过 ${maxLength} 字，请精简后再优化`)
+      return
+    }
     setBlockedHint(false)
     setIsEnhancing(true)
     setError('')
@@ -113,7 +117,8 @@ export function PromptEditor({
     setError('')
   }
 
-  const overLimit = value.length > maxLength
+  const characterCount = Array.from(value).length
+  const overLimit = characterCount > maxLength
   const blocked = Boolean(enhanceDisabledReason)
 
   return (
@@ -137,7 +142,7 @@ export function PromptEditor({
       <div className="prompt-editor-bar">
         {(!compact || expanded || overLimit) && (
           <span className={`prompt-count ${overLimit ? 'is-over' : ''}`}>
-            {value.length}/{maxLength}
+            {characterCount}/{maxLength}
           </span>
         )}
         <div className="prompt-editor-actions">
