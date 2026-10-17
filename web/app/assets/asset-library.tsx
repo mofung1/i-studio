@@ -89,7 +89,6 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
   const [tool, setTool] = useState('all')
-  const [model, setModel] = useState('')
   const [tag, setTag] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -123,6 +122,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     project?: LibraryProject
   } | null>(null)
   const epoch = useRef(0)
+  const recordsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search.trim()), 250)
@@ -131,7 +131,6 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
   const filters = new URLSearchParams({ limit: '40', sort })
   if (project !== 'all') filters.set('projectId', project)
   if (query) filters.set('q', query)
-  if (model.trim()) filters.set('model', model.trim())
   if (from) filters.set('from', from)
   if (to) filters.set('to', to)
   if (tool !== 'all') filters.set('taskType', tool)
@@ -215,6 +214,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     setCursor('')
     setTotal(0)
     setMoreBusy(false)
+    if (recordsRef.current) recordsRef.current.scrollTop = 0
     void load('', false, controller.signal)
     return () => controller.abort()
   }, [filterKey, load, router, view])
@@ -518,20 +518,9 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
               <details className="library-advanced">
                 <summary>
                   <SlidersHorizontal size={14} />
-                  更多筛选{(model || tag || from || to) && <span>已设置</span>}
+                  更多筛选{(tag || from || to) && <span>已设置</span>}
                 </summary>
                 <div>
-                  {view !== 'uploads' && (
-                    <label>
-                      模型
-                      <input
-                        aria-label="筛选模型"
-                        placeholder="输入模型名称"
-                        value={model}
-                        onChange={(event) => setModel(event.target.value)}
-                      />
-                    </label>
-                  )}
                   {view !== 'tasks' && (
                     <label>
                       标签
@@ -566,7 +555,6 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                   <button
                     className="library-command"
                     onClick={() => {
-                      setModel('')
                       setTag('')
                       setFrom('')
                       setTo('')
@@ -691,78 +679,86 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 </button>
               </div>
             )}
-            {loading ? (
-              <div className={`asset-grid is-${density}`} aria-label="正在加载资产">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <div key={i} className="asset-card is-skeleton" aria-hidden="true">
-                    <div className="asset-cover auth-image-loading" />
-                    <div className="asset-card-copy">
-                      <span className="skeleton-line" />
+            <div
+              ref={recordsRef}
+              className="asset-records"
+              role="region"
+              aria-label={view === 'tasks' ? '创作记录内容' : '资产内容'}
+              tabIndex={0}
+            >
+              {loading ? (
+                <div className={`asset-grid is-${density}`} aria-label="正在加载资产">
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <div key={i} className="asset-card is-skeleton" aria-hidden="true">
+                      <div className="asset-cover auth-image-loading" />
+                      <div className="asset-card-copy">
+                        <span className="skeleton-line" />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : view !== 'tasks' ? (
-              <AssetGrid
-                assets={assets}
-                selected={selected}
-                density={density}
-                busy={!!busy}
-                onPreview={setPreview}
-                onSelect={toggleSelect}
-                onTag={setTag}
-                onEdit={openEdit}
-                onFavorite={(asset) =>
-                  void act(asset.id, () => editAssets([asset.id], { favorite: !asset.favorite }))
-                }
-                onDownload={(asset) =>
-                  void act('download', () =>
-                    downloadProtectedAsset(asset.contentPath, assetFilename(asset)),
-                  )
-                }
-                onDelete={(asset) => setConfirm({ asset })}
-              />
-            ) : (
-              <TaskGrid
-                tasks={tasks}
-                density={density}
-                onDetails={setDetailTask}
-                onDelete={(task) => setConfirm({ task })}
-              />
-            )}
-            {!loading && assetCount === 0 && !error && (
-              <div className="library-empty-state">
-                <Folder size={32} />
-                <strong>
-                  {query || tool !== 'all' || tag || favorite || project !== 'all'
-                    ? '没有匹配的作品'
-                    : view === 'uploads'
-                      ? '上传的参考素材会保存在这里'
-                      : '从第一张图片开始'}
-                </strong>
-                <p>可以调整筛选条件，或开始一次新的创作。</p>
-                <Link className="studio-primary" href="/workbench?mode=general">
-                  开始创作
-                </Link>
-              </div>
-            )}
-            {!loading && cursor && (
-              <button
-                className="library-load-more"
-                disabled={moreBusy}
-                onClick={() => {
-                  setMoreBusy(true)
-                  void load(cursor, true)
-                }}
-              >
-                {moreBusy ? '正在加载…' : '加载更多'}
-              </button>
-            )}
-            {!loading && assetCount > 0 && (
-              <p className="library-end-note">
-                已加载 {assetCount} / {total} {view === 'tasks' ? '条记录' : '张图片'}
-              </p>
-            )}
+                  ))}
+                </div>
+              ) : view !== 'tasks' ? (
+                <AssetGrid
+                  assets={assets}
+                  selected={selected}
+                  density={density}
+                  busy={!!busy}
+                  onPreview={setPreview}
+                  onSelect={toggleSelect}
+                  onTag={setTag}
+                  onEdit={openEdit}
+                  onFavorite={(asset) =>
+                    void act(asset.id, () => editAssets([asset.id], { favorite: !asset.favorite }))
+                  }
+                  onDownload={(asset) =>
+                    void act('download', () =>
+                      downloadProtectedAsset(asset.contentPath, assetFilename(asset)),
+                    )
+                  }
+                  onDelete={(asset) => setConfirm({ asset })}
+                />
+              ) : (
+                <TaskGrid
+                  tasks={tasks}
+                  density={density}
+                  onDetails={setDetailTask}
+                  onDelete={(task) => setConfirm({ task })}
+                />
+              )}
+              {!loading && assetCount === 0 && !error && (
+                <div className="library-empty-state">
+                  <Folder size={32} />
+                  <strong>
+                    {query || tool !== 'all' || tag || favorite || project !== 'all'
+                      ? '没有匹配的作品'
+                      : view === 'uploads'
+                        ? '上传的参考素材会保存在这里'
+                        : '从第一张图片开始'}
+                  </strong>
+                  <p>可以调整筛选条件，或开始一次新的创作。</p>
+                  <Link className="studio-primary" href="/workbench?mode=general">
+                    开始创作
+                  </Link>
+                </div>
+              )}
+              {!loading && cursor && (
+                <button
+                  className="library-load-more"
+                  disabled={moreBusy}
+                  onClick={() => {
+                    setMoreBusy(true)
+                    void load(cursor, true)
+                  }}
+                >
+                  {moreBusy ? '正在加载…' : '加载更多'}
+                </button>
+              )}
+              {!loading && assetCount > 0 && (
+                <p className="library-end-note">
+                  已加载 {assetCount} / {total} {view === 'tasks' ? '条记录' : '张图片'}
+                </p>
+              )}
+            </div>
           </section>
         </div>
       </main>

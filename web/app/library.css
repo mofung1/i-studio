@@ -1,14 +1,32 @@
 /* Personal library surfaces share controls, spacing and semantic theme tokens. */
+.studio-shell:has(> .studio-content > .asset-manager) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.studio-shell:has(> .studio-content > .asset-manager) > :not(.studio-content) {
+  flex-shrink: 0;
+}
+.studio-content:has(> .asset-manager) {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
 .asset-manager {
   width: 100%;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   padding: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 .asset-manager .library-views {
   margin-bottom: 0;
 }
 .asset-manager-heading {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -23,14 +41,19 @@
   display: grid;
   grid-template-columns: 168px minmax(0, 1fr);
   gap: 22px;
-  align-items: start;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
 }
 .asset-projects {
   display: grid;
   gap: 4px;
   padding: 8px;
-  position: sticky;
-  top: 0;
+  position: static;
+  align-self: start;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: 12px;
@@ -107,8 +130,27 @@
   cursor: pointer;
 }
 .asset-manager-results {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
+.asset-manager-results > :not(.asset-records) {
+  flex: 0 0 auto;
+}
+.asset-records:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: -2px;
+}
+.asset-records {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 2px 4px 12px 0;
+}
+
 .asset-manager .library-toolbar {
   margin-bottom: 0;
 }
@@ -161,6 +203,7 @@
   box-shadow: none;
 }
 .library-toolbar .select-trigger {
+  background: var(--surface);
   width: 135px;
   flex: 0 0 auto;
 }
@@ -735,6 +778,7 @@
 @media (max-width: 1100px) {
   .asset-manager-layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 16px;
   }
   .asset-projects {
@@ -843,6 +887,7 @@
   margin-bottom: 20px;
 }
 .personal-library-toolbar .select-trigger {
+  background: var(--surface);
   width: 150px;
 }
 .personal-library-toolbar .library-command {
