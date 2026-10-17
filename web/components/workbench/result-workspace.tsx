@@ -160,7 +160,6 @@ export function ResultWorkspace({
   // 加载占位按当前比例铺开，尺寸与生成后的图片一致
   const [ratioWidth, ratioHeight] = displayRatio.split(':').map(Number)
   const heroRatio = ratioWidth && ratioHeight ? ratioWidth / ratioHeight : 1
-  const heroRatioCss = ratioWidth && ratioHeight ? `${ratioWidth} / ${ratioHeight}` : '1 / 1'
   const currentImageSize = naturalImage?.path === heroImage ? naturalImage : null
   const imageRatio = currentImageSize ? currentImageSize.width / currentImageSize.height : heroRatio
   const generatingImages = Math.min(Math.max(generatingCount ?? expectedCount, 1), MAX_SKELETONS)
@@ -213,44 +212,21 @@ export function ResultWorkspace({
     setActiveImageIndex(next)
   }
 
-  const imagePager = (
-    <div className="result-pager" role="group" aria-label="切换生成图片">
-      {images.length > 1 && (
-        <button
-          type="button"
-          aria-label="上一张"
-          disabled={safeIndex === 0}
-          onClick={() => step(-1)}
-        >
-          <ChevronLeft size={16} aria-hidden="true" />
-        </button>
-      )}
-      <span className="result-pager-count">
-        {safeIndex + 1} / {images.length}
-      </span>
-      {images.length > 1 && (
-        <button
-          type="button"
-          aria-label="下一张"
-          disabled={safeIndex === images.length - 1}
-          onClick={() => step(1)}
-        >
-          <ChevronRight size={16} aria-hidden="true" />
-        </button>
-      )}
-    </div>
-  )
-
   const recentHistory =
-    !isHistoryView && !isGenerating && resultHistory.length > 0 ? (
+    !isGenerating && resultHistory.length > 0 ? (
       <GenerationHistory
-        placement={mode === 'general' ? 'filmstrip' : 'bottom'}
+        placement="filmstrip"
         onViewAll={onToggleHistory}
         items={resultHistory}
-        activeIndex={activeResultIndex}
+        activeIndex={isHistoryView ? -1 : activeResultIndex}
         activeImageIndex={safeIndex}
         onSelect={(resultIndex, imageIndex) => {
           pendingImageRef.current = imageIndex
+          if (isHistoryView) {
+            onExitHistoryView()
+            onSetActiveResultIndex(() => resultIndex)
+            return
+          }
           if (resultIndex === activeResultIndex) {
             setActiveImageIndex(imageIndex)
             pendingImageRef.current = null
@@ -296,8 +272,6 @@ export function ResultWorkspace({
                 <span className="meta-chip is-status">
                   <Check size={12} aria-hidden="true" />
                   {activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'}
-                  {mode !== 'general' &&
-                    ` · 第 ${activeResultIndex + 1}/${resultHistory.length} 次 · ${images.length} 张`}
                 </span>
               )}
               {isGenerating && (
@@ -310,13 +284,6 @@ export function ResultWorkspace({
                   此时没有可重新生成的对象，直接引导用户用左侧的生成按钮 */}
               {(hasResults || isGenerating) && (
                 <>
-                  {mode !== 'general' && (
-                    <span className="meta-chip">
-                      {isGenerating
-                        ? `${generatingCount ?? expectedCount} 张`
-                        : `${images.length} 张`}
-                    </span>
-                  )}
                   <span className="meta-chip">{displayRatio}</span>
                   <span className="meta-chip">{displayResolution}</span>
                   <button
@@ -333,26 +300,6 @@ export function ResultWorkspace({
               )}
             </>
           )}
-          {hasResults && mode !== 'general' && (
-            <button type="button" className="studio-secondary" onClick={downloadCurrent}>
-              <Download size={15} />
-              下载图片
-            </button>
-          )}
-          {hasResults && onDownloadAll && (
-            <button
-              type="button"
-              className="studio-secondary"
-              disabled={downloadAllBusy}
-              onClick={onDownloadAll}
-            >
-              <Download size={15} aria-hidden="true" />
-              {downloadAllBusy ? '打包中…' : '下载图组'}
-            </button>
-          )}
-          {hasResults && (
-            <ImageComparisonButton candidates={comparisonImages} initialLeft={heroImage} />
-          )}
         </div>
       </header>
 
@@ -362,23 +309,13 @@ export function ResultWorkspace({
         </p>
       )}
 
-      <div
-        className={`result-layout${mode === 'general' && recentHistory ? ' has-recent-history' : ''}`}
-      >
+      <div className={`result-layout${recentHistory ? ' has-recent-history' : ''}`}>
         <div className="result-body">
           {isGenerating && !isHistoryView && (
             <div className="result-generating">
               <div className={`result-stage${generatingImages > 1 ? ' has-strip' : ''}`}>
                 {/* 占位尺寸与生成后的主图一致：同比例、同最大高度 */}
-                <ImageViewport
-                  enabled={mode === 'general'}
-                  aspectRatio={heroRatio}
-                  loading
-                  legacyStyle={{
-                    aspectRatio: heroRatioCss,
-                    maxWidth: `calc(var(--hero-max) * ${heroRatio})`,
-                  }}
-                >
+                <ImageViewport aspectRatio={heroRatio} loading>
                   <GenerationLoading
                     status={generationTask?.status ?? 'processing'}
                     count={generatingCount ?? expectedCount}
@@ -443,102 +380,155 @@ export function ResultWorkspace({
 
           {heroImage !== '' && (!isGenerating || isHistoryView) && (
             <div className="result-result">
-              <div className={`result-stage${images.length > 1 ? ' has-strip' : ''}`}>
-                {/* 图片就绪前先按当前比例撑出与结果一致的画框，避免生成完成时塌陷或跳动 */}
-                <ImageViewport
-                  enabled={mode === 'general'}
-                  aspectRatio={imageRatio}
-                  legacyStyle={
-                    heroReady
-                      ? undefined
-                      : {
-                          width: `min(100%, calc(var(--hero-max) * ${heroRatio}))`,
-                          aspectRatio: heroRatioCss,
-                        }
-                  }
-                >
-                  {heroReady ? (
-                    <button
-                      type="button"
-                      className="result-hero-open"
-                      aria-label={`放大查看第 ${safeIndex + 1} 张`}
-                      title="点击查看大图"
-                      onClick={() => setLightboxOpen(true)}
-                    >
-                      <img
-                        className="result-hero-image"
-                        src={heroSource}
-                        alt={`AI 生成结果 ${safeIndex + 1}`}
-                        onLoad={(event) => {
-                          const image = event.currentTarget
-                          if (image.naturalWidth > 0 && image.naturalHeight > 0)
-                            setNaturalImage({
-                              path: heroImage,
-                              width: image.naturalWidth,
-                              height: image.naturalHeight,
-                            })
-                        }}
-                      />
-                    </button>
-                  ) : (
-                    <div
-                      className={`result-hero-pending${heroFailed ? ' is-failed' : ''}`}
-                      role={heroFailed ? 'alert' : 'status'}
-                      aria-label={heroFailed ? '结果图加载失败' : '结果图加载中'}
-                    >
-                      {heroFailed && (
-                        <button
-                          type="button"
-                          onClick={retryHero}
-                          title="重新加载"
-                          aria-label="重新加载结果图"
-                        >
-                          <RefreshCw size={16} />
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {moduleLabel(
-                    imageSource.taskType,
-                    (isHistoryView
-                      ? historyTask?.resultModules?.[safeIndex]
-                      : activeResult?.resultModules?.[safeIndex]) ?? '',
-                  ) && (
-                    <span className="module-badge">
-                      {moduleLabel(
-                        imageSource.taskType,
-                        (isHistoryView
-                          ? historyTask?.resultModules?.[safeIndex]
-                          : activeResult?.resultModules?.[safeIndex]) ?? '',
-                      )}
+              <div className="result-image-toolbar" role="group" aria-label="图片查看操作">
+                <span className="result-image-info" aria-live="polite">
+                  <strong>
+                    {safeIndex + 1} / {images.length}
+                  </strong>
+                  {heroReady && currentImageSize && (
+                    <span>
+                      {currentImageSize.width} × {currentImageSize.height} px
                     </span>
                   )}
-
-                  {heroReady && mode !== 'general' && (
-                    <div className="result-hero-actions">
-                      <button
-                        type="button"
-                        title="下载"
-                        aria-label="下载这张图片"
-                        onClick={downloadCurrent}
-                      >
-                        <Download size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        title={referenceTitle}
-                        aria-label={referenceTitle}
-                        onClick={() => onUseImageAsReference(heroImage, imageSource)}
-                      >
-                        <RotateCcw size={16} />
-                      </button>
-                    </div>
+                </span>
+                <div className="result-image-commands">
+                  <button
+                    type="button"
+                    className="studio-secondary"
+                    disabled={!heroReady}
+                    onClick={downloadCurrent}
+                  >
+                    <Download size={15} aria-hidden="true" />
+                    下载图片
+                  </button>
+                  {onDownloadAll && (
+                    <button
+                      type="button"
+                      className="studio-secondary"
+                      disabled={downloadAllBusy}
+                      onClick={onDownloadAll}
+                    >
+                      <Download size={15} aria-hidden="true" />
+                      {downloadAllBusy ? '打包中…' : '下载图组'}
+                    </button>
                   )}
-                </ImageViewport>
+                  <button
+                    type="button"
+                    className="studio-secondary"
+                    disabled={!heroReady}
+                    onClick={() => setLightboxOpen(true)}
+                  >
+                    <Maximize2 size={15} aria-hidden="true" />
+                    全屏查看
+                  </button>
+                  <button
+                    type="button"
+                    className="studio-secondary"
+                    disabled={!heroReady}
+                    title={referenceTitle}
+                    onClick={() => onUseImageAsReference(heroImage, imageSource)}
+                  >
+                    <ImageIcon size={15} aria-hidden="true" />
+                    继续创作
+                  </button>
+                  <ImageComparisonButton candidates={comparisonImages} initialLeft={heroImage} />
+                </div>
+              </div>
+              <div className={`result-stage${images.length > 1 ? ' has-strip' : ''}`}>
+                <div
+                  className={`result-image-area${images.length > 1 ? ' has-navigation' : ''}`}
+                  role="group"
+                  aria-label="生成图片查看区域"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                      event.preventDefault()
+                      step(event.key === 'ArrowLeft' ? -1 : 1)
+                    }
+                  }}
+                >
+                  <ImageViewport aspectRatio={imageRatio}>
+                    {heroReady ? (
+                      <button
+                        type="button"
+                        className="result-hero-open"
+                        aria-label={`放大查看第 ${safeIndex + 1} 张`}
+                        title="点击查看大图"
+                        onClick={() => setLightboxOpen(true)}
+                      >
+                        <img
+                          className="result-hero-image"
+                          src={heroSource}
+                          alt={`AI 生成结果 ${safeIndex + 1}`}
+                          onLoad={(event) => {
+                            const image = event.currentTarget
+                            if (image.naturalWidth > 0 && image.naturalHeight > 0)
+                              setNaturalImage({
+                                path: heroImage,
+                                width: image.naturalWidth,
+                                height: image.naturalHeight,
+                              })
+                          }}
+                        />
+                      </button>
+                    ) : (
+                      <div
+                        className={`result-hero-pending${heroFailed ? ' is-failed' : ''}`}
+                        role={heroFailed ? 'alert' : 'status'}
+                        aria-label={heroFailed ? '结果图加载失败' : '结果图加载中'}
+                      >
+                        {heroFailed && (
+                          <button
+                            type="button"
+                            onClick={retryHero}
+                            title="重新加载"
+                            aria-label="重新加载结果图"
+                          >
+                            <RefreshCw size={16} />
+                          </button>
+                        )}
+                      </div>
+                    )}
 
-                {/* 切换按钮放在图片下方，不遮挡画面 */}
-                {mode !== 'general' && images.length > 1 && imagePager}
+                    {moduleLabel(
+                      imageSource.taskType,
+                      (isHistoryView
+                        ? historyTask?.resultModules?.[safeIndex]
+                        : activeResult?.resultModules?.[safeIndex]) ?? '',
+                    ) && (
+                      <span className="module-badge">
+                        {moduleLabel(
+                          imageSource.taskType,
+                          (isHistoryView
+                            ? historyTask?.resultModules?.[safeIndex]
+                            : activeResult?.resultModules?.[safeIndex]) ?? '',
+                        )}
+                      </span>
+                    )}
+                  </ImageViewport>
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        className="image-side-nav is-prev"
+                        aria-label="上一张"
+                        disabled={safeIndex === 0}
+                        onClick={() => step(-1)}
+                      >
+                        <ChevronLeft size={20} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="image-side-nav is-next"
+                        aria-label="下一张"
+                        disabled={safeIndex === images.length - 1}
+                        onClick={() => step(1)}
+                      >
+                        <ChevronRight size={20} aria-hidden="true" />
+                      </button>
+                    </>
+                  )}
+                </div>
 
                 {images.length > 1 && (
                   <ol className="result-strip" aria-label="本次生成的图片">
@@ -558,68 +548,10 @@ export function ResultWorkspace({
                   </ol>
                 )}
               </div>
-              {mode === 'general' ? (
-                <div
-                  className="canvas-image-footer result-image-toolbar"
-                  role="group"
-                  aria-label="图片查看操作"
-                >
-                  {images.length > 1 && imagePager}
-                  <div className="result-image-commands">
-                    <button
-                      type="button"
-                      className="studio-secondary"
-                      disabled={!heroReady}
-                      onClick={downloadCurrent}
-                    >
-                      <Download size={15} aria-hidden="true" />
-                      下载图片
-                    </button>
-                    <button
-                      type="button"
-                      className="studio-secondary"
-                      disabled={!heroReady}
-                      onClick={() => setLightboxOpen(true)}
-                    >
-                      <Maximize2 size={15} aria-hidden="true" />
-                      全屏查看
-                    </button>
-                    <button
-                      type="button"
-                      className="studio-secondary"
-                      disabled={!heroReady}
-                      onClick={() => onUseImageAsReference(heroImage, imageSource)}
-                    >
-                      <ImageIcon size={15} aria-hidden="true" />
-                      继续创作
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="canvas-image-footer">
-                  <span>
-                    当前图片 · {safeIndex + 1} / {images.length}
-                    {heroReady &&
-                      currentImageSize &&
-                      ` · 实际 ${currentImageSize.width} × ${currentImageSize.height} px`}
-                  </span>
-                  <button
-                    type="button"
-                    className="studio-secondary"
-                    disabled={!heroReady}
-                    onClick={() => onUseImageAsReference(heroImage, imageSource)}
-                  >
-                    <ImageIcon size={15} />
-                    用作参考，继续创作
-                  </button>
-                </div>
-              )}
             </div>
           )}
-
-          {mode !== 'general' && recentHistory}
         </div>
-        {mode === 'general' && recentHistory}
+        {recentHistory}
       </div>
 
       <HistoryDrawer
@@ -643,11 +575,11 @@ export function ResultWorkspace({
           path={heroImage}
           alt={`${title}生成结果 ${safeIndex + 1}`}
           filename={`istudio-${(isHistoryView ? historyTask?.id : activeResult?.id)?.slice(0, 8) ?? 'result'}-${safeIndex + 1}`}
-          fullscreen={mode === 'general'}
+          fullscreen
           hasPrev={images.length > 1 && safeIndex > 0}
           hasNext={images.length > 1 && safeIndex < images.length - 1}
-          onPrev={() => step(-1)}
-          onNext={() => step(1)}
+          onPrev={images.length > 1 ? () => step(-1) : undefined}
+          onNext={images.length > 1 ? () => step(1) : undefined}
           onClose={() => setLightboxOpen(false)}
         />
       )}

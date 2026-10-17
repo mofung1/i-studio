@@ -14,16 +14,18 @@ import (
 )
 
 type fakePromptClient struct {
-	model    string
-	lastText string
-	images   int
-	reply    string
-	err      error
+	model     string
+	lastText  string
+	images    int
+	maxTokens int
+	reply     string
+	err       error
 }
 
-func (f *fakePromptClient) complete(_ context.Context, _ string, userText string, images []promptImage, _ int) (string, error) {
+func (f *fakePromptClient) complete(_ context.Context, _ string, userText string, images []promptImage, maxTokens int) (string, error) {
 	f.lastText = userText
 	f.images = len(images)
+	f.maxTokens = maxTokens
 	if f.err != nil {
 		return "", f.err
 	}
@@ -70,10 +72,7 @@ func TestPromptEnhanceRequiresTextOrImage(t *testing.T) {
 		t.Fatalf("expected 400 without text or image, got %d", recorder.Code)
 	}
 
-	longText := ""
-	for index := 0; index < maxPromptTextRunes+1; index++ {
-		longText += "字"
-	}
+	longText := strings.Repeat("字", maxPromptTextRunes+1)
 	recorder = httptest.NewRecorder()
 	s.promptEnhance(recorder, newPromptRequest(t, token, longText, 0))
 	if recorder.Code != http.StatusBadRequest {
@@ -141,8 +140,8 @@ func TestPromptEnhanceUpstreamFailure(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	s.promptEnhance(recorder, newPromptRequest(t, token, "文案", 0))
-	if recorder.Code != http.StatusBadGateway {
-		t.Fatalf("expected 502 on upstream failure, got %d", recorder.Code)
+	if recorder.Code != http.StatusGatewayTimeout {
+		t.Fatalf("expected 504 on upstream timeout, got %d", recorder.Code)
 	}
 }
 
@@ -276,5 +275,45 @@ func TestPromptSystemGuidanceFollowsTaskType(t *testing.T) {
 	general := promptSystem("prompt", "")
 	if strings.Contains(general, "本次任务是") {
 		t.Fatalf("通用生图不应带电商板块说明：%q", general)
+	}
+}
+
+func TestPromptEnhanceLongDraftAndOutputBudget(t *testing.T) {
+	client := &fakePromptClient{reply: "完整提示词"}
+	s := &Service{secret: []byte("test-secret"), promptClient: client}
+	token := s.testToken(domain.User{ID: "user-1", Username: "demo"})
+	recorder := httptest.NewRecorder()
+	text := strings.Repeat("字", 10000)
+	s.promptEnhance(recorder, newPromptRequest(t, token, text, 0))
+	if recorder.Code != http.StatusOK || !strings.Contains(client.lastText, text) {
+		t.Fatalf("long editor draft rejected: %d", recorder.Code)
+	}
+	if client.maxTokens < 3000 {
+		t.Fatalf("insufficient output budget: %d", client.maxTokens)
+	}
+}
+
+func TestPromptEnhanceProviderErrorsDoNotExposeSecrets(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		err    error
+		status int
+		code   string
+	}{
+		{"busy", &promptUpstreamError{status: 429, message: "private-provider-detail"}, 429, "PROMPT_ENHANCE_BUSY"},
+		{"auth", &promptUpstreamError{status: 401, message: "secret-key"}, 503, "PROMPT_AI_AUTH_FAILED"},
+		{"config", &promptUpstreamError{status: 400, message: "private-provider-detail"}, 502, "PROMPT_AI_CONFIG_INVALID"},
+		{"truncated", &promptUpstreamError{kind: "length"}, 502, "PROMPT_ENHANCE_TRUNCATED"},
+		{"filtered", &promptUpstreamError{kind: "filter"}, 400, "PROMPT_ENHANCE_FILTERED"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s := &Service{secret: []byte("test-secret"), promptClient: &fakePromptClient{err: test.err}}
+			recorder := httptest.NewRecorder()
+			s.promptEnhance(recorder, newPromptRequest(t, s.testToken(domain.User{ID: "user-1"}), "产品摄影", 0))
+			body := recorder.Body.String()
+			if recorder.Code != test.status || !strings.Contains(body, test.code) || strings.Contains(body, "secret-key") || strings.Contains(body, "private-provider-detail") {
+				t.Fatalf("unsafe or incorrect error: %d %s", recorder.Code, body)
+			}
+		})
 	}
 }

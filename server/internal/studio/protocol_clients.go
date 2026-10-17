@@ -7,10 +7,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 )
+
+type promptUpstreamError struct {
+	status        int
+	kind, message string
+}
+
+func (e *promptUpstreamError) Error() string { return e.message }
 
 type openAICompatibleClient struct {
 	baseURL, apiKey, model string
@@ -40,7 +48,11 @@ func (c *openAICompatibleClient) complete(ctx context.Context, system, userText 
 		}
 		parts = append(parts, map[string]any{"type": "image_url", "image_url": map[string]any{"url": fmt.Sprintf("data:%s;base64,%s", image.Mime, image.Data), "detail": detail}})
 	}
-	body := map[string]any{"model": c.model, "messages": []any{map[string]any{"role": "system", "content": system}, map[string]any{"role": "user", "content": parts}}, "stream": false, "max_tokens": maxTokens}
+	var userContent any = userText
+	if len(images) > 0 {
+		userContent = parts
+	}
+	body := map[string]any{"model": c.model, "messages": []any{map[string]any{"role": "system", "content": system}, map[string]any{"role": "user", "content": userContent}}, "stream": false, "max_tokens": maxTokens}
 	if c.disableThinking && strings.HasPrefix(c.model, "deepseek-") {
 		body["thinking"] = map[string]any{"type": "disabled"}
 	}
@@ -53,6 +65,10 @@ func (c *openAICompatibleClient) complete(ctx context.Context, system, userText 
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	resp, err := c.client.Do(req)
 	if err != nil {
+		var timeout net.Error
+		if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &timeout) && timeout.Timeout()) {
+			return "", fmt.Errorf("prompt request timed out: %w", context.DeadlineExceeded)
+		}
 		return "", fmt.Errorf("OpenAI Compatible request failed: %s", safeAIError(err, c.apiKey))
 	}
 	defer resp.Body.Close()
@@ -61,13 +77,14 @@ func (c *openAICompatibleClient) complete(ctx context.Context, system, userText 
 		return "", err
 	}
 	if resp.StatusCode >= 300 {
-		return "", fmt.Errorf("OpenAI Compatible %s: %s", resp.Status, safeAIError(fmt.Errorf("%s", providerErrorMessage(raw)), c.apiKey))
+		return "", &promptUpstreamError{status: resp.StatusCode, message: fmt.Sprintf("OpenAI Compatible %s: %s", resp.Status, safeAIError(fmt.Errorf("%s", providerErrorMessage(raw)), c.apiKey))}
 	}
 	var payload struct {
 		Choices []struct {
 			Message struct {
-				Content string `json:"content"`
+				Content json.RawMessage `json:"content"`
 			} `json:"message"`
+			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
 		Error struct {
 			Message string `json:"message"`
@@ -79,10 +96,38 @@ func (c *openAICompatibleClient) complete(ctx context.Context, system, userText 
 	if payload.Error.Message != "" {
 		return "", errors.New(safeAIError(errors.New(payload.Error.Message), c.apiKey))
 	}
-	if len(payload.Choices) == 0 || strings.TrimSpace(payload.Choices[0].Message.Content) == "" {
+	if len(payload.Choices) == 0 {
 		return "", errors.New("API 未返回内容")
 	}
-	return sanitizeModelText(payload.Choices[0].Message.Content), nil
+	choice := payload.Choices[0]
+	if choice.FinishReason == "length" {
+		return "", &promptUpstreamError{kind: "length", message: "提示词输出达到模型长度上限"}
+	}
+	if choice.FinishReason == "content_filter" {
+		return "", &promptUpstreamError{kind: "filter", message: "模型未能处理当前内容"}
+	}
+	var content string
+	if err := json.Unmarshal(choice.Message.Content, &content); err != nil {
+		var blocks []struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+		}
+		if err := json.Unmarshal(choice.Message.Content, &blocks); err != nil {
+			return "", errors.New("API 返回的文字格式无法识别")
+		}
+		var text strings.Builder
+		for _, block := range blocks {
+			if block.Type == "text" {
+				text.WriteString(block.Text)
+			}
+		}
+		content = text.String()
+	}
+	content = sanitizeModelText(content)
+	if strings.TrimSpace(content) == "" {
+		return "", errors.New("API 未返回内容")
+	}
+	return content, nil
 }
 
 func joinProtocolURL(base, path string) string {
@@ -115,7 +160,9 @@ func (c *dynamicPromptClient) complete(ctx context.Context, system, userText str
 	if len(images) > 0 && !e.Capabilities["vision"] {
 		return "", errors.New("当前提示词模型不支持图片识别，请先输入大概的生图内容")
 	}
-	return newOpenAICompatibleClient(e, key).complete(ctx, system, userText, images, maxTokens)
+	client := newOpenAICompatibleClient(e, key)
+	client.disableThinking = true
+	return client.complete(ctx, system, userText, images, maxTokens)
 }
 
 type dynamicImageProvider struct{ server *Service }

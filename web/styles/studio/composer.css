@@ -451,7 +451,7 @@
 }
 
 /* The empty canvas uses one quiet centered illustration instead of placeholder chrome. */
-.mode-general .result-head {
+.result-workspace .result-head {
   border-bottom: 0;
   padding-bottom: 0;
 }

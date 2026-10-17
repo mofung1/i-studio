@@ -21,6 +21,7 @@ vi.mock('./image-lightbox', () => ({
 vi.mock('@/components/authenticated-image', () => ({
   AuthenticatedImage: ({ alt }: { alt: string }) => <img alt={alt} />,
 }))
+const resizeMeasurements: Array<() => void> = []
 let root: Root
 let container: HTMLDivElement
 const asset = (id: string) => ({
@@ -35,6 +36,18 @@ const asset = (id: string) => ({
 })
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  resizeMeasurements.length = 0
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: () => void) {
+        resizeMeasurements.push(callback)
+      }
+      observe() {}
+      disconnect() {}
+    },
+  )
+  vi.stubGlobal('matchMedia', () => ({ matches: false }))
   session.authenticated = true
   session.owner = 'customer'
   vi.stubGlobal(
@@ -145,7 +158,7 @@ it('stages local and library images together in selection order without uploadin
   expect(onSelect.mock.calls[0]?.[0][0].assetId).toBe('first')
   expect(onSelect.mock.calls[0]?.[0][1]).toBe(file)
 })
-it('shows a local preview above the library immediately after choosing files', async () => {
+it('shows local previews in the fixed selection tray immediately after choosing files', async () => {
   await act(async () =>
     root.render(<AssetPicker limit={2} excludedIds={[]} onSelect={vi.fn()} onClose={vi.fn()} />),
   )
@@ -156,8 +169,8 @@ it('shows a local preview above the library immediately after choosing files', a
   expect(pending.querySelector('img[alt="visible.png"]')?.getAttribute('src')).toBe(
     'blob:local-file',
   )
-  expect(pending.textContent).toContain('待使用的图片 · 1 张')
-  expect(pending.textContent).toContain('使用所选素材')
+  expect(document.querySelector('.asset-picker-footer')?.textContent).toContain('已选择 1 / 2 张')
+  expect(confirm().disabled).toBe(false)
   await act(async () => pending.querySelector('img')!.dispatchEvent(new Event('error')))
   expect(pending.textContent).toContain('图片无法预览，请重新选择')
 })
@@ -222,4 +235,60 @@ it('opens the original image without changing the staged selection', async () =>
   )
   expect(onSelect).not.toHaveBeenCalled()
   expect(document.body.textContent).toContain('已选择 0 / 1 张')
+})
+it('keeps the staged selection outside the scrolling browser, even when emptied', async () => {
+  await act(async () =>
+    root.render(<AssetPicker limit={6} excludedIds={[]} onSelect={vi.fn()} onClose={vi.fn()} />),
+  )
+  const tray = document.querySelector('.asset-picker-pending')!
+  expect(tray.closest('.asset-picker-materials')).not.toBeNull()
+  expect(tray.closest('.asset-picker-footer')).toBeNull()
+  expect(document.querySelector('.asset-picker-upload')?.parentElement).toBe(tray.parentElement)
+  expect(tray.closest('.asset-picker-browser')).toBeNull()
+  expect(tray.textContent).toContain('已选图片会显示在这里')
+  await act(async () => button('first').click())
+  expect(tray.querySelectorAll('.asset-picker-selected')).toHaveLength(1)
+  await act(async () => button('移除所选图片1').click())
+  expect(document.querySelector('.asset-picker-pending')).toBe(tray)
+  expect(tray.textContent).toContain('已选图片会显示在这里')
+})
+
+it('reveals new images and keeps upload fixed while navigating the overflow strip', async () => {
+  await act(async () =>
+    root.render(<AssetPicker limit={6} excludedIds={[]} onSelect={vi.fn()} onClose={vi.fn()} />),
+  )
+  const viewport = document.querySelector<HTMLDivElement>('.asset-picker-selection')!
+  Object.defineProperties(viewport, {
+    clientWidth: { configurable: true, get: () => 120 },
+    scrollWidth: {
+      configurable: true,
+      get: () => Math.max(120, document.querySelectorAll('.asset-picker-selected').length * 108),
+    },
+  })
+  viewport.scrollTo = vi.fn((options?: ScrollToOptions | number) => {
+    viewport.scrollLeft = typeof options === 'number' ? options : (options?.left ?? 0)
+  })
+  viewport.scrollBy = vi.fn((options?: ScrollToOptions | number) => {
+    viewport.scrollLeft += typeof options === 'number' ? options : (options?.left ?? 0)
+    viewport.dispatchEvent(new Event('scroll'))
+  })
+  await chooseFiles(
+    ['one', 'two', 'three'].map(
+      (name) => new File(['image'], `${name}.png`, { type: 'image/png' }),
+    ),
+  )
+  expect(viewport.scrollTo).toHaveBeenLastCalledWith({ left: 204, behavior: 'instant' })
+  expect(button('向左浏览已选图片').disabled).toBe(false)
+  expect(button('向右浏览已选图片').disabled).toBe(true)
+  await act(async () => button('向左浏览已选图片').click())
+  expect(viewport.scrollBy).toHaveBeenLastCalledWith({ left: -108, behavior: 'smooth' })
+  expect(button('向右浏览已选图片').disabled).toBe(false)
+  expect(viewport.querySelector('.asset-picker-upload')).toBeNull()
+  vi.mocked(viewport.scrollTo).mockClear()
+  await act(async () => button('移除所选图片2').click())
+  expect(viewport.scrollTo).not.toHaveBeenCalled()
+  Object.defineProperty(viewport, 'clientWidth', { get: () => 600 })
+  viewport.scrollLeft = 0
+  await act(async () => resizeMeasurements.forEach((measure) => measure()))
+  expect(document.querySelector('.asset-picker-scroll')).toBeNull()
 })

@@ -245,6 +245,8 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
             ),
         )
       : []
+    if (files.some((image) => !isStoredImage(image) && image.size > 5 * 1024 * 1024))
+      throw new Error('参考图压缩失败或仍超过 5 MB，请换用较小图片后再优化，原文已保留')
     const result = await enhancePrompt({
       target,
       text,

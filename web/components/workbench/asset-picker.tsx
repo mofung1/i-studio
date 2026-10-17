@@ -1,7 +1,17 @@
 'use client'
 
-import { Check, Images, Maximize2, Search, Star, Upload, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Images,
+  Maximize2,
+  Plus,
+  Search,
+  Star,
+  X,
+} from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { AccountAccess } from '@/components/account-access'
 import { useAccount } from '@/components/account-provider'
 import { AuthenticatedImage } from '@/components/authenticated-image'
@@ -35,6 +45,154 @@ function LocalPreview({ file }: { file: File }) {
       </span>
     )
   return source ? <img src={source} alt={file.name} onError={() => setFailed(true)} /> : null
+}
+
+function LocalLightbox({ file, onClose }: { file: File; onClose: () => void }) {
+  const [source, setSource] = useState('')
+  useEffect(() => {
+    const url = URL.createObjectURL(file)
+    setSource(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
+  return source ? (
+    <ImageLightbox path={source} alt={file.name} filename={file.name} onClose={onClose} />
+  ) : null
+}
+
+function SelectedImages({
+  images,
+  onPreview,
+  onRemove,
+}: {
+  images: CreationImage[]
+  onPreview: (image: CreationImage) => void
+  onRemove: (index: number) => void
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const previousCount = useRef(images.length)
+  const [edges, setEdges] = useState({ left: false, right: false })
+  const measure = useCallback(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+    const left = viewport.scrollLeft > 1
+    const right = viewport.scrollWidth - viewport.clientWidth - viewport.scrollLeft > 1
+    setEdges((previous) =>
+      previous.left === left && previous.right === right ? previous : { left, right },
+    )
+  }, [])
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+    // Reveal newly added files without scrolling the dialog or moving the library.
+    if (images.length > previousCount.current) {
+      const target = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
+      if (target > viewport.scrollLeft) viewport.scrollTo({ left: target, behavior: 'instant' })
+    }
+    previousCount.current = images.length
+    measure()
+  }, [images.length, measure])
+  useEffect(() => {
+    const observer = new ResizeObserver(measure)
+    if (viewportRef.current) observer.observe(viewportRef.current)
+    if (listRef.current) observer.observe(listRef.current)
+    return () => observer.disconnect()
+  }, [measure])
+  function scroll(direction: -1 | 1) {
+    const viewport = viewportRef.current
+    if (!viewport) return
+    viewport.scrollBy({
+      left: direction * Math.max(108, viewport.clientWidth * 0.8),
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'instant'
+        : 'smooth',
+    })
+  }
+  return (
+    <div
+      className="asset-picker-pending"
+      data-scroll-left={edges.left}
+      data-scroll-right={edges.right}
+    >
+      <div
+        className="asset-picker-selection"
+        ref={viewportRef}
+        role="group"
+        aria-label="已选择的素材"
+        tabIndex={0}
+        onScroll={measure}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) return
+          if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            event.preventDefault()
+            scroll(event.key === 'ArrowLeft' ? -1 : 1)
+          }
+        }}
+      >
+        <div className="asset-picker-selection-list" ref={listRef}>
+          {!images.length && (
+            <span className="asset-picker-selection-hint">
+              <Images size={20} aria-hidden="true" />
+              已选图片会显示在这里
+            </span>
+          )}
+          {images.map((image, index) => (
+            <div
+              key={isStoredImage(image) ? image.assetId : `local-${index}`}
+              className="asset-picker-selected"
+            >
+              <div className="asset-picker-selected-cover">
+                {isStoredImage(image) ? (
+                  <AuthenticatedImage path={image.thumbnailPath} alt={image.name} />
+                ) : (
+                  <LocalPreview file={image} />
+                )}
+              </div>
+              <button
+                type="button"
+                className="asset-picker-selected-preview"
+                aria-label={`查看已选图片${index + 1}大图`}
+                onClick={() => onPreview(image)}
+              />
+              <span title={image.name}>
+                {index + 1}. {image.name}
+              </span>
+              <button
+                type="button"
+                className="asset-picker-selected-remove"
+                aria-label={`移除所选图片${index + 1}`}
+                onClick={() => onRemove(index)}
+              >
+                <X size={13} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+      {(edges.left || edges.right) && (
+        <>
+          <button
+            type="button"
+            className="asset-picker-scroll is-prev"
+            aria-label="向左浏览已选图片"
+            disabled={!edges.left}
+            onClick={() => scroll(-1)}
+          >
+            <ChevronLeft size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="asset-picker-scroll is-next"
+            aria-label="向右浏览已选图片"
+            disabled={!edges.right}
+            onClick={() => scroll(1)}
+          >
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+        </>
+      )}
+    </div>
+  )
 }
 
 export function AssetPicker({
@@ -80,10 +238,10 @@ export function AssetPicker({
   const [fileError, setFileError] = useState('')
   const [dragging, setDragging] = useState(false)
   const [preview, setPreview] = useState<LibraryAsset | null>(null)
+  const [selectedPreview, setSelectedPreview] = useState<CreationImage | null>(null)
+  useEffect(() => setSelectedPreview(null), [owner, account.authenticated])
   const [attempt, setAttempt] = useState(0)
   const input = useRef<HTMLInputElement>(null)
-  const selectionAnchor = useRef<HTMLDivElement>(null)
-  const revealSelection = useRef(false)
   const scope = `${owner}:${account.authenticated}:${kind}:${query}:${favorite}:${project}:${attempt}`
   const currentScope = useRef(scope)
   currentScope.current = scope
@@ -102,18 +260,11 @@ export function AssetPicker({
     )
     const room = Math.max(0, limit - selected.length)
     const added = valid.slice(0, room)
-    revealSelection.current = added.length > 0
     select((previous) => [...previous, ...added].slice(0, limit))
     if (valid.length !== files.length) setFileError('仅支持 JPG / PNG / WebP，单张不超过 10 MB。')
     else if (valid.length > room) setFileError(`还可以选择 ${room} 张，超出的图片已忽略。`)
     else setFileError('')
   }
-
-  useEffect(() => {
-    if (!revealSelection.current) return
-    revealSelection.current = false
-    selectionAnchor.current?.scrollIntoView?.({ block: 'nearest' })
-  }, [selection])
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(search.trim()), 250)
@@ -190,28 +341,30 @@ export function AssetPicker({
       onClose={onClose}
       footer={
         <footer className="asset-picker-footer">
-          <span aria-live="polite">
-            已选择 {selected.length} / {limit} 张
-          </span>
-          <button
-            type="button"
-            className="studio-secondary"
-            onClick={() => select(() => [])}
-            disabled={!selected.length}
-          >
-            清空
-          </button>
-          <button
-            type="button"
-            className="studio-primary"
-            disabled={!selected.length}
-            onClick={() => {
-              onSelect(selected)
-              onClose()
-            }}
-          >
-            使用所选素材
-          </button>
+          <div className="asset-picker-footer-actions">
+            <span aria-live="polite">
+              已选择 {selected.length} / {limit} 张
+            </span>
+            <button
+              type="button"
+              className="studio-secondary"
+              onClick={() => select(() => [])}
+              disabled={!selected.length}
+            >
+              清空
+            </button>
+            <button
+              type="button"
+              className="studio-primary"
+              disabled={!selected.length}
+              onClick={() => {
+                onSelect(selected)
+                onClose()
+              }}
+            >
+              使用所选素材
+            </button>
+          </div>
         </footer>
       }
     >
@@ -234,21 +387,29 @@ export function AssetPicker({
           addLocal(Array.from(event.dataTransfer.files))
         }}
       >
-        <button
-          className="asset-picker-upload"
-          type="button"
-          disabled={selected.length >= limit}
-          onClick={() => input.current?.click()}
-        >
-          <span className="asset-picker-upload-icon">
-            <Upload size={21} aria-hidden="true" />
-          </span>
-          <span>
-            <strong>选择本地图片</strong>
-            <small>也可以拖入图片 · JPG / PNG / WebP · 单张不超过 10 MB</small>
-          </span>
-          <span className="asset-picker-upload-action">本地上传</span>
-        </button>
+        <div className="asset-picker-materials">
+          <button
+            className="asset-picker-upload"
+            type="button"
+            aria-label="选择本地图片"
+            title={
+              selected.length >= limit
+                ? `已选满 ${limit} 张，移除图片后可继续添加`
+                : '选择本地图片，或拖入图片'
+            }
+            disabled={selected.length >= limit}
+            onClick={() => input.current?.click()}
+          >
+            <Plus size={23} aria-hidden="true" />
+            <strong>添加图片</strong>
+            <small>{selected.length >= limit ? '已达上限' : '点击或拖入'}</small>
+          </button>
+          <SelectedImages
+            images={selected}
+            onPreview={setSelectedPreview}
+            onRemove={(index) => select((previous) => previous.filter((_, at) => at !== index))}
+          />
+        </div>
         <input
           ref={input}
           type="file"
@@ -261,51 +422,17 @@ export function AssetPicker({
             event.target.value = ''
           }}
         />
-        {fileError && (
-          <p className="settings-error" role="alert">
-            {fileError}
-          </p>
-        )}
-        {selected.length > 0 && (
-          <div ref={selectionAnchor} className="asset-picker-pending" aria-label="已选择的素材">
-            <header>
-              <strong>待使用的图片 · {selected.length} 张</strong>
-              <span>点击「使用所选素材」带入当前创作</span>
-            </header>
-            <div className="asset-picker-selection">
-              {selected.map((image, index) => (
-                <div
-                  key={isStoredImage(image) ? image.assetId : `local-${index}`}
-                  className="asset-picker-selected"
-                >
-                  <div className="asset-picker-selected-cover">
-                    {isStoredImage(image) ? (
-                      <AuthenticatedImage path={image.thumbnailPath} alt={image.name} />
-                    ) : (
-                      <LocalPreview file={image} />
-                    )}
-                  </div>
-                  <span title={image.name}>
-                    {index + 1}. {image.name}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`移除所选图片${index + 1}`}
-                    onClick={() => select((previous) => previous.filter((_, at) => at !== index))}
-                  >
-                    <X size={13} aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <p className="asset-picker-file-status" role={fileError ? 'alert' : undefined}>
+          {fileError || 'JPG / PNG / WebP · 单张不超过 10 MB'}
+        </p>
         {!account.authenticated ? (
-          <AccountAccess
-            compact
-            title="登录后使用素材库"
-            description="本地图片可以直接选择；登录后还可复用上传素材和生成作品。"
-          />
+          <div className="asset-picker-browser">
+            <AccountAccess
+              compact
+              title="登录后使用素材库"
+              description="本地图片可以直接选择；登录后还可复用上传素材和生成作品。"
+            />
+          </div>
         ) : (
           <>
             <div className="asset-picker-tabs" role="group" aria-label="素材来源">
@@ -355,102 +482,117 @@ export function AssetPicker({
                 ]}
               />
             </div>
-            <div className="asset-picker-grid" aria-label="可用素材" aria-busy={loading}>
-              {assets.map((asset) => {
-                const checked = selected.some(
-                  (item) => isStoredImage(item) && item.assetId === asset.id,
-                )
-                const excluded = excludedIds.includes(asset.id)
-                const unsupported =
-                  !acceptedTypes.includes(asset.mime) || asset.sizeBytes > 10 * 1024 * 1024
-                const disabled = excluded || (!checked && selected.length >= limit) || unsupported
-                return (
-                  <div key={asset.id} className="asset-picker-item">
-                    <div className="asset-picker-cover">
-                      <AuthenticatedImage path={asset.thumbnailPath} alt={assetTitle(asset)} />
+            <div className="asset-picker-browser">
+              <div className="asset-picker-grid" aria-label="可用素材" aria-busy={loading}>
+                {assets.map((asset) => {
+                  const checked = selected.some(
+                    (item) => isStoredImage(item) && item.assetId === asset.id,
+                  )
+                  const excluded = excludedIds.includes(asset.id)
+                  const unsupported =
+                    !acceptedTypes.includes(asset.mime) || asset.sizeBytes > 10 * 1024 * 1024
+                  const disabled = excluded || (!checked && selected.length >= limit) || unsupported
+                  return (
+                    <div key={asset.id} className="asset-picker-item">
+                      <div className="asset-picker-cover">
+                        <AuthenticatedImage path={asset.thumbnailPath} alt={assetTitle(asset)} />
+                      </div>
+                      <button
+                        type="button"
+                        className="asset-picker-preview"
+                        aria-label={`查看${assetTitle(asset)}大图`}
+                        onClick={() => setPreview(asset)}
+                      >
+                        <Maximize2 size={15} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className="asset-picker-choice"
+                        aria-pressed={checked}
+                        aria-label={`${excluded ? '已添加：' : ''}${assetTitle(asset)}`}
+                        disabled={disabled}
+                        onClick={() =>
+                          select((previous) =>
+                            checked
+                              ? previous.filter(
+                                  (item) => !isStoredImage(item) || item.assetId !== asset.id,
+                                )
+                              : [...previous, storedImage(asset)],
+                          )
+                        }
+                      >
+                        <span className="asset-picker-check">
+                          {(checked || excluded) && <Check size={14} aria-hidden="true" />}
+                        </span>
+                        <strong>{assetTitle(asset)}</strong>
+                        <small>
+                          {excluded
+                            ? '已在当前素材中'
+                            : unsupported
+                              ? '格式或大小不支持'
+                              : `${asset.width} × ${asset.height}`}
+                        </small>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      className="asset-picker-preview"
-                      aria-label={`查看${assetTitle(asset)}大图`}
-                      onClick={() => setPreview(asset)}
-                    >
-                      <Maximize2 size={15} aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      className="asset-picker-choice"
-                      aria-pressed={checked}
-                      aria-label={`${excluded ? '已添加：' : ''}${assetTitle(asset)}`}
-                      disabled={disabled}
-                      onClick={() =>
-                        select((previous) =>
-                          checked
-                            ? previous.filter(
-                                (item) => !isStoredImage(item) || item.assetId !== asset.id,
-                              )
-                            : [...previous, storedImage(asset)],
-                        )
-                      }
-                    >
-                      <span className="asset-picker-check">
-                        {(checked || excluded) && <Check size={14} aria-hidden="true" />}
-                      </span>
-                      <strong>{assetTitle(asset)}</strong>
-                      <small>
-                        {excluded
-                          ? '已在当前素材中'
-                          : unsupported
-                            ? '格式或大小不支持'
-                            : `${asset.width} × ${asset.height}`}
-                      </small>
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-            {loading && (
-              <p className="library-count" role="status">
-                正在加载素材…
-              </p>
-            )}
-            {!loading && !assets.length && !error && (
-              <div className="asset-picker-empty">
-                <Images size={28} aria-hidden="true" />
-                <p>
-                  {query || favorite || project !== 'all'
-                    ? '没有匹配的素材，试试调整筛选条件。'
-                    : kind === 'uploads'
-                      ? '还没有素材，可以先选择本地图片。'
-                      : '生成作品会出现在这里，可继续用作参考。'}
-                </p>
+                  )
+                })}
               </div>
-            )}
-            {error && (
-              <p className="settings-error" role="alert">
-                {error}
+              {loading && (
+                <p className="library-count" role="status">
+                  正在加载素材…
+                </p>
+              )}
+              {!loading && !assets.length && !error && (
+                <div className="asset-picker-empty">
+                  <Images size={28} aria-hidden="true" />
+                  <p>
+                    {query || favorite || project !== 'all'
+                      ? '没有匹配的素材，试试调整筛选条件。'
+                      : kind === 'uploads'
+                        ? '还没有素材，可以先选择本地图片。'
+                        : '生成作品会出现在这里，可继续用作参考。'}
+                  </p>
+                </div>
+              )}
+              {error && (
+                <p className="settings-error" role="alert">
+                  {error}
+                  <button
+                    type="button"
+                    className="library-command"
+                    onClick={() => setAttempt((value) => value + 1)}
+                  >
+                    重试
+                  </button>
+                </p>
+              )}
+              {cursor && (
                 <button
                   type="button"
-                  className="library-command"
-                  onClick={() => setAttempt((value) => value + 1)}
+                  className="studio-secondary"
+                  disabled={loading}
+                  onClick={() => void more()}
                 >
-                  重试
+                  加载更多
                 </button>
-              </p>
-            )}
-            {cursor && (
-              <button
-                type="button"
-                className="studio-secondary"
-                disabled={loading}
-                onClick={() => void more()}
-              >
-                加载更多
-              </button>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
+      {selectedPreview &&
+        (isStoredImage(selectedPreview) ? (
+          account.authenticated && (
+            <ImageLightbox
+              path={selectedPreview.contentPath}
+              alt={selectedPreview.name}
+              filename={selectedPreview.name}
+              onClose={() => setSelectedPreview(null)}
+            />
+          )
+        ) : (
+          <LocalLightbox file={selectedPreview} onClose={() => setSelectedPreview(null)} />
+        ))}
       {preview && account.authenticated && (
         <ImageLightbox
           path={preview.contentPath}
