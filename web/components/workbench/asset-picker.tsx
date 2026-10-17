@@ -11,7 +11,7 @@ import {
   Star,
   X,
 } from 'lucide-react'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { AccountAccess } from '@/components/account-access'
 import { useAccount } from '@/components/account-provider'
 import { AuthenticatedImage } from '@/components/authenticated-image'
@@ -28,6 +28,10 @@ import {
 import { ImageLightbox } from './image-lightbox'
 
 const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp']
+const sourceOptions = [
+  ['uploads', '我的素材'],
+  ['generated', '生成作品'],
+] as const
 
 function LocalPreview({ file }: { file: File }) {
   const [source, setSource] = useState('')
@@ -207,6 +211,7 @@ export function AssetPicker({
   onSelect: (images: CreationImage[]) => void
 }) {
   const { account } = useAccount()
+  const sourceId = useId()
   const owner = account.user?.id ?? ''
   const [kind, setKind] = useState('uploads')
   const [search, setSearch] = useState('')
@@ -435,32 +440,7 @@ export function AssetPicker({
           </div>
         ) : (
           <>
-            <div className="asset-picker-tabs" role="group" aria-label="素材来源">
-              <button
-                type="button"
-                aria-pressed={kind === 'uploads'}
-                onClick={() => setKind('uploads')}
-              >
-                我的素材
-              </button>
-              <button
-                type="button"
-                aria-pressed={kind === 'generated'}
-                onClick={() => setKind('generated')}
-              >
-                生成作品
-              </button>
-              <button
-                type="button"
-                className="asset-picker-favorite"
-                aria-pressed={favorite}
-                onClick={() => setFavorite(!favorite)}
-              >
-                <Star size={15} aria-hidden="true" />
-                收藏
-              </button>
-            </div>
-            <div className="asset-picker-filters">
+            <div className="asset-picker-filters" role="group" aria-label="筛选素材">
               <label className="library-search">
                 <Search size={16} aria-hidden="true" />
                 <input
@@ -471,6 +451,40 @@ export function AssetPicker({
                   onChange={(event) => setSearch(event.target.value)}
                 />
               </label>
+              <fieldset className="asset-picker-source" role="radiogroup" aria-label="素材来源">
+                <legend className="sr-only">素材来源</legend>
+                {sourceOptions.map(([value, label]) => (
+                  <label key={value} className="asset-picker-source-option">
+                    <input
+                      type="radio"
+                      name={sourceId}
+                      value={value}
+                      checked={kind === value}
+                      onChange={(event) => setKind(event.target.value)}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </fieldset>
+              <div className="asset-picker-source-compact">
+                <LibrarySelect
+                  label="选择素材来源"
+                  value={kind}
+                  onChange={setKind}
+                  options={sourceOptions}
+                />
+              </div>
+              <button
+                type="button"
+                className="asset-picker-favorite"
+                aria-label="只看收藏"
+                title={favorite ? '显示全部素材' : '只看当前来源中已收藏的素材'}
+                aria-pressed={favorite}
+                onClick={() => setFavorite(!favorite)}
+              >
+                <Star size={15} aria-hidden="true" fill={favorite ? 'currentColor' : 'none'} />
+                <span>收藏</span>
+              </button>
               <LibrarySelect
                 label="筛选素材项目"
                 value={project}

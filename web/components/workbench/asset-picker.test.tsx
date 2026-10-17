@@ -120,8 +120,8 @@ it('retains selection across source tabs and cancels without applying', async ()
   )
   await act(async () => button('first').click())
   await act(async () =>
-    [...document.querySelectorAll('button')]
-      .find((item) => item.textContent === '生成作品')!
+    document
+      .querySelector<HTMLInputElement>('.asset-picker-source input[value="generated"]')!
       .click(),
   )
   await act(async () => button('generated').click())
@@ -291,4 +291,34 @@ it('reveals new images and keeps upload fixed while navigating the overflow stri
   viewport.scrollLeft = 0
   await act(async () => resizeMeasurements.forEach((measure) => measure()))
   expect(document.querySelector('.asset-picker-scroll')).toBeNull()
+})
+
+it('combines source and favorite filters while keeping staged images selected', async () => {
+  await act(async () =>
+    root.render(<AssetPicker limit={6} excludedIds={[]} onSelect={vi.fn()} onClose={vi.fn()} />),
+  )
+  await act(async () => button('first').click())
+  await act(async () => button('只看收藏').click())
+  await act(async () =>
+    document
+      .querySelector<HTMLInputElement>('.asset-picker-source input[value="generated"]')!
+      .click(),
+  )
+  expect(button('只看收藏').getAttribute('aria-pressed')).toBe('true')
+  expect(
+    document.querySelector<HTMLInputElement>('.asset-picker-source input[value="generated"]')!
+      .checked,
+  ).toBe(true)
+  expect(
+    document.querySelector<HTMLInputElement>('.asset-picker-source input[value="uploads"]')!
+      .checked,
+  ).toBe(false)
+  expect(document.querySelector('.asset-picker-selection')?.textContent).toContain('first')
+  const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url))
+  expect(urls.some((url) => url.includes('kind=generated') && url.includes('favorite=true'))).toBe(
+    true,
+  )
+  await act(async () => button('只看收藏').click())
+  expect(vi.mocked(fetch).mock.calls.at(-1)?.[0]).toContain('kind=generated')
+  expect(vi.mocked(fetch).mock.calls.at(-1)?.[0]).not.toContain('favorite=true')
 })
