@@ -116,12 +116,7 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
 
   const logoSource = preview || (!removeLogo && original ? siteLogoUrl(original.logoPath) : '')
   return (
-    <section
-      id="site-panel"
-      role="tabpanel"
-      aria-labelledby="site-tab"
-      className="site-settings-panel"
-    >
+    <section id="site-panel" aria-labelledby="site-brand-heading" className="site-settings-panel">
       {loading ? (
         <div className="settings-loading" role="status">
           <LoaderCircle className="settings-spinner" size={20} />
@@ -140,7 +135,7 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
         <form onSubmit={submit} aria-busy={saving}>
           <div className="site-settings-heading">
             <div>
-              <h2>网站品牌</h2>
+              <h2 id="site-brand-heading">网站品牌</h2>
               <p>设置网站名称和 Logo，应用到全站导航、网页标题和浏览器图标。</p>
             </div>
             {dirty && <span className="prompt-dirty-status">未保存更改</span>}

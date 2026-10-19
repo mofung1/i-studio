@@ -36,7 +36,7 @@ func testEndpointInput(purpose, protocol string) endpointInput {
 
 func TestAIEncryptionDefaultAndPersistence(t *testing.T) {
 	s := testAIStore(t)
-	input := testEndpointInput("image", "openai_image")
+	input := testEndpointInput("image", "openai_images")
 	first, err := s.ai.save("", input)
 	if err != nil {
 		t.Fatal(err)
@@ -134,7 +134,7 @@ func TestLegacyAIImportIsIdempotentAndKeepsTemplates(t *testing.T) {
 		t.Fatal(err)
 	}
 	endpoints, err := s.ai.list()
-	if err != nil || len(endpoints) != 5 {
+	if err != nil || len(endpoints) != 1 {
 		t.Fatalf("endpoints=%d err=%v", len(endpoints), err)
 	}
 	if err := s.ai.withConfig(true, func(state *aiConfiguration) error { state.Templates[0].Content = "User edited template"; return nil }); err != nil {
@@ -144,7 +144,7 @@ func TestLegacyAIImportIsIdempotentAndKeepsTemplates(t *testing.T) {
 		t.Fatal(err)
 	}
 	endpoints, _ = s.ai.list()
-	if len(endpoints) != 5 {
+	if len(endpoints) != 1 {
 		t.Fatal("duplicated import")
 	}
 	if err := s.ai.withConfig(false, func(state *aiConfiguration) error {
@@ -154,11 +154,6 @@ func TestLegacyAIImportIsIdempotentAndKeepsTemplates(t *testing.T) {
 		return nil
 	}); err != nil {
 		t.Fatal(err)
-	}
-	for _, e := range endpoints {
-		if e.Purpose == "image" && e.IsDefault && (e.Protocol != "openai_image" || e.Model != "gpt-image-2" || !e.Capabilities["async"]) {
-			t.Fatal("old default not preserved")
-		}
 	}
 	for _, e := range endpoints {
 		if err := s.ai.mutate(e.ID, true); err != nil {
@@ -239,12 +234,12 @@ func TestPromptVisionGuardBlocksImagesBeforeClient(t *testing.T) {
 }
 
 func TestProtocolClientsUseConfiguredProtocolModelAndStandardPaths(t *testing.T) {
-	for _, protocol := range []string{"openai_chat", "openai_image", "gemini_generate_content"} {
+	for _, protocol := range []string{"openai_chat", "openai_images", "gemini_native"} {
 		t.Run(protocol, func(t *testing.T) {
 			var path string
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				path = r.URL.Path
-				if protocol == "gemini_generate_content" {
+				if protocol == "gemini_native" {
 					if r.Header.Get("x-goog-api-key") != "secret" {
 						t.Error("missing Gemini auth")
 					}
@@ -279,28 +274,31 @@ func TestProtocolClientsUseConfiguredProtocolModelAndStandardPaths(t *testing.T)
 			}))
 			defer upstream.Close()
 			e := endpointConfig{Protocol: protocol, BaseURL: upstream.URL + "/v1", Model: "future-model", TimeoutSeconds: 3}
-			if protocol == "gemini_generate_content" {
+			if protocol == "gemini_native" {
 				e.BaseURL = upstream.URL + "/v1beta"
 			}
 			if protocol == "openai_chat" {
-				result, err := newOpenAICompatibleClient(e, "secret").complete(context.Background(), "system", "text", nil, 8)
+				promptClient := newOpenAICompatibleClient(e, "secret")
+				promptClient.client = upstream.Client()
+				result, err := promptClient.complete(context.Background(), "system", "text", nil, 8)
 				if err != nil || result != "OK" || path != "/v1/chat/completions" {
 					t.Fatal(result, err, path)
 				}
 			} else {
 				client := newImageProtocolClient(e, "secret")
+				client.(*imageProtocolTransport).client = upstream.Client()
 				_, err := client.Submit(context.Background(), map[string]any{"prompt": "prompt", "model": "ignored"})
 				if err != nil {
 					t.Fatal(err)
 				}
 				expected := "/v1/images/generations"
-				if protocol == "gemini_generate_content" {
+				if protocol == "gemini_native" {
 					expected = "/v1beta/models/future-model:generateContent"
 				}
 				if path != expected {
 					t.Fatal(path)
 				}
-				if protocol == "openai_image" {
+				if protocol == "openai_images" {
 					_, err = client.Submit(context.Background(), map[string]any{"prompt": "edit", "sourceImages": []map[string]string{{"mime": "image/png", "data": "aW1hZ2U="}}})
 					if err != nil || path != "/v1/images/edits" {
 						t.Fatal(err, path)
@@ -324,12 +322,13 @@ func TestAIConnectionTestCallsActualProtocolAndRedactsErrors(t *testing.T) {
 	}))
 	defer upstream.Close()
 	input := testEndpointInput("prompt", "openai_chat")
-	input.BaseURL = upstream.URL + "/v1"
+	input.BaseURL = "https://mock.example/v1"
+	s.aiHTTPClient = mockUpstreamClient(upstream)
 	e, err := s.ai.save("", input)
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := httptest.NewRequest("POST", "/v1/ai-endpoints/"+e.ID+"/test", nil)
+	r := httptest.NewRequest("POST", "/v1/ai-endpoints/"+e.ID+"/test", strings.NewReader(`{"mode":"generate","confirmCost":true}`))
 	r.Header.Set("Authorization", "Bearer "+s.testAdminToken(domain.User{ID: "admin"}))
 	w := httptest.NewRecorder()
 	s.aiEndpointByID(w, r)
@@ -360,7 +359,9 @@ func TestProtocolClientDoesNotForwardKeysThroughRedirects(t *testing.T) {
 	defer origin.Close()
 	request, _ := http.NewRequest(http.MethodGet, origin.URL, nil)
 	request.Header.Set("x-goog-api-key", "sensitive")
-	response, err := protocolHTTPClient(time.Second).Do(request)
+	client := protocolHTTPClient(time.Second)
+	client.Transport = origin.Client().Transport
+	response, err := client.Do(request)
 	if err != nil {
 		t.Fatal(err)
 	}

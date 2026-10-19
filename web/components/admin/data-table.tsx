@@ -1,5 +1,19 @@
 'use client'
 
+import { Button } from './ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from './ui/dropdown-menu'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
+import { Skeleton } from './ui/skeleton'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from './ui/empty'
 import {
   useEffect,
   useId,
@@ -76,9 +90,19 @@ export function AdminDataTable<T>({
 } & AdminSortProps) {
   const titleId = useId()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const columnMenu = useRef<HTMLDetailsElement>(null)
-  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable')
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('compact')
   const [visibility, setVisibility] = useState<VisibilityState>({})
+  const preferenceKey = `istudio-admin-table:${title}`
+  function remember(nextDensity: typeof density, nextVisibility: VisibilityState) {
+    try {
+      localStorage.setItem(
+        preferenceKey,
+        JSON.stringify({ density: nextDensity, visibility: nextVisibility }),
+      )
+    } catch {
+      /* Table controls remain usable without storage. */
+    }
+  }
   const definitions = useMemo<ColumnDef<T>[]>(
     () =>
       columns.map((column) => ({
@@ -107,7 +131,11 @@ export function AdminDataTable<T>({
         right: columns.filter((column) => column.pin === 'right').map((column) => column.id),
       },
     },
-    onColumnVisibilityChange: setVisibility,
+    onColumnVisibilityChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(visibility) : updater
+      setVisibility(next)
+      remember(density, next)
+    },
     onSortingChange: (updater) =>
       onSortingChange?.(typeof updater === 'function' ? updater(sorting) : updater),
   })
@@ -115,24 +143,25 @@ export function AdminDataTable<T>({
     if (scrollRef.current) scrollRef.current.scrollTop = 0
   }, [scrollKey])
   useEffect(() => {
-    const dismiss = (event: PointerEvent) => {
-      if (columnMenu.current && !columnMenu.current.contains(event.target as Node))
-        columnMenu.current.open = false
-    }
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && columnMenu.current?.open) {
-        event.preventDefault()
-        columnMenu.current.open = false
-        columnMenu.current.querySelector('summary')?.focus()
+    try {
+      const saved = JSON.parse(localStorage.getItem(preferenceKey) ?? 'null') as {
+        density?: unknown
+        visibility?: unknown
+      } | null
+      setDensity(saved?.density === 'comfortable' ? 'comfortable' : 'compact')
+      const next: VisibilityState = {}
+      if (saved?.visibility && typeof saved.visibility === 'object') {
+        for (const column of table.getAllLeafColumns()) {
+          const value = (saved.visibility as Record<string, unknown>)[column.id]
+          if (column.getCanHide() && typeof value === 'boolean') next[column.id] = value
+        }
       }
+      setVisibility(next)
+    } catch {
+      setDensity('compact')
+      setVisibility({})
     }
-    document.addEventListener('pointerdown', dismiss)
-    document.addEventListener('keydown', escape)
-    return () => {
-      document.removeEventListener('pointerdown', dismiss)
-      document.removeEventListener('keydown', escape)
-    }
-  }, [])
+  }, [preferenceKey, table])
   const columnMap = new Map(columns.map((column) => [column.id, column]))
   const visible = table.getVisibleLeafColumns()
   return (
@@ -164,7 +193,10 @@ export function AdminDataTable<T>({
               aria-label="舒适行距"
               title="舒适行距"
               aria-pressed={density === 'comfortable'}
-              onClick={() => setDensity('comfortable')}
+              onClick={() => {
+                setDensity('comfortable')
+                remember('comfortable', visibility)
+              }}
             >
               <Rows3 size={15} />
             </button>
@@ -173,36 +205,57 @@ export function AdminDataTable<T>({
               aria-label="紧凑行距"
               title="紧凑行距"
               aria-pressed={density === 'compact'}
-              onClick={() => setDensity('compact')}
+              onClick={() => {
+                setDensity('compact')
+                remember('compact', visibility)
+              }}
             >
               <ListFilter size={15} />
             </button>
           </div>
-          <details ref={columnMenu} className="admin-data-columns">
-            <summary>
-              <Columns3 size={15} aria-hidden="true" />
-              列设置
-            </summary>
-            <div className="admin-data-column-menu">
-              <strong>显示列</strong>
-              {table.getAllLeafColumns().map((column) => (
-                <label key={column.id}>
-                  <input
-                    type="checkbox"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" aria-label={`${title}列设置`}>
+                <Columns3 data-icon="inline-start" />
+                列设置
+                <span className="admin-column-count">
+                  {visible.length}/{columns.length}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="admin-column-menu">
+              <DropdownMenuLabel>显示列</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                {table.getAllLeafColumns().map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
                     aria-label={`显示${columnMap.get(column.id)?.header}`}
                     checked={column.getIsVisible()}
                     disabled={!column.getCanHide()}
-                    onChange={column.getToggleVisibilityHandler()}
-                  />
-                  <span>{columnMap.get(column.id)?.header}</span>
-                  {!column.getCanHide() && <small>固定</small>}
-                </label>
-              ))}
-              <button type="button" onClick={() => setVisibility({})}>
-                恢复默认列
-              </button>
-            </div>
-          </details>
+                    onSelect={(event) => event.preventDefault()}
+                    onCheckedChange={(checked) => column.toggleVisibility(checked)}
+                  >
+                    {columnMap.get(column.id)?.header}
+                    {!column.getCanHide() && (
+                      <small className="ml-auto text-muted-foreground">固定</small>
+                    )}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    setVisibility({})
+                    remember(density, {})
+                  }}
+                >
+                  恢复默认列
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       <div
@@ -212,21 +265,21 @@ export function AdminDataTable<T>({
         role="region"
         aria-label={`${title}内容`}
       >
-        <table style={{ minWidth: table.getTotalSize() }}>
+        <Table aria-label={title} style={{ minWidth: table.getTotalSize() }}>
           <colgroup>
             {visible.map((column) => (
               <col key={column.id} style={{ width: column.getSize() }} />
             ))}
           </colgroup>
-          <thead>
+          <TableHeader>
             {table.getHeaderGroups().map((group) => (
-              <tr key={group.id}>
+              <TableRow key={group.id}>
                 {group.headers.map((header) => {
                   const column = header.column
                   const order = column.getIsSorted()
                   const pinned = column.getIsPinned()
                   return (
-                    <th
+                    <TableHead
                       key={header.id}
                       title={columnMap.get(column.id)?.header}
                       scope="col"
@@ -263,49 +316,57 @@ export function AdminDataTable<T>({
                       ) : (
                         flexRender(column.columnDef.header, header.getContext())
                       )}
-                    </th>
+                    </TableHead>
                   )
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </thead>
-          <tbody>
+          </TableHeader>
+          <TableBody>
             {table.getRowModel().rows.map((row) => (
-              <tr key={row.id}>
+              <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => {
                   const pinned = cell.column.getIsPinned()
                   return (
-                    <td
+                    <TableCell
                       key={cell.id}
                       data-align={columnMap.get(cell.column.id)?.align}
                       data-pin={pinned || undefined}
                       style={pinnedStyle(cell.column)}
                     >
                       {columnMap.get(cell.column.id)?.cell(row.original)}
-                    </td>
+                    </TableCell>
                   )
                 })}
-              </tr>
+              </TableRow>
             ))}
             {!data.length &&
               loading &&
               Array.from({ length: 5 }, (_, i) => (
-                <tr key={`skeleton-${i}`} aria-hidden="true" className="admin-data-skeleton-row">
+                <TableRow
+                  key={`skeleton-${i}`}
+                  aria-hidden="true"
+                  className="admin-data-skeleton-row"
+                >
                   {visible.map((column) => (
-                    <td key={column.id}>
-                      <span className="admin-data-skeleton" />
-                    </td>
+                    <TableCell key={column.id}>
+                      <Skeleton className="h-4 w-3/4" />
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {!data.length && !loading && (
-          <div className="admin-data-empty" role="status">
-            <Table2 size={28} aria-hidden="true" />
-            <strong>{emptyTitle}</strong>
-            <p>{emptyDescription}</p>
-          </div>
+          <Empty className="admin-data-empty" role="status">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Table2 />
+              </EmptyMedia>
+              <EmptyTitle>{emptyTitle}</EmptyTitle>
+              <EmptyDescription>{emptyDescription}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </section>

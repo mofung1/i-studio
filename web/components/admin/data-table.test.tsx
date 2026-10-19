@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { Button } from '@/components/admin/ui/button'
+import { OverlayRoot } from '../overlay-root'
 import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
@@ -12,7 +14,12 @@ const items: Item[] = [
 const columns: AdminColumn<Item>[] = [
   { id: 'name', header: '账号', pin: 'left', cell: (item) => item.name },
   { id: 'amount', header: '余额', sortable: true, cell: (item) => item.amount },
-  { id: 'actions', header: '操作', pin: 'right', cell: () => <button>编辑</button> },
+  {
+    id: 'actions',
+    header: '操作',
+    pin: 'right',
+    cell: () => <Button variant="outline">编辑</Button>,
+  },
 ]
 const sorted = vi.fn()
 let root: Root
@@ -20,6 +27,15 @@ let container: HTMLDivElement
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  localStorage.clear()
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  )
   sorted.mockReset()
   container = document.createElement('div')
   document.body.append(container)
@@ -28,6 +44,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount())
   container.remove()
+  localStorage.clear()
   vi.unstubAllGlobals()
 })
 
@@ -61,7 +78,13 @@ function heading() {
   return container.querySelector<HTMLTableCellElement>('th[aria-sort]')!
 }
 async function render(props: Parameters<typeof Fixture>[0] = {}) {
-  await act(async () => root.render(<Fixture {...props} />))
+  await act(async () =>
+    root.render(
+      <OverlayRoot className="admin-shell">
+        <Fixture {...props} />
+      </OverlayRoot>,
+    ),
+  )
 }
 
 it('cycles controlled sorting without sorting an already paginated response locally', async () => {
@@ -80,14 +103,19 @@ it('cycles controlled sorting without sorting an already paginated response loca
 
 it('lets users hide optional columns and restore them while preserving fixed identity and action columns', async () => {
   await render()
-  const checkbox = container.querySelector<HTMLInputElement>('[aria-label="显示余额"]')!
-  expect(container.querySelector<HTMLInputElement>('[aria-label="显示账号"]')!.disabled).toBe(true)
-  expect(container.querySelector<HTMLInputElement>('[aria-label="显示操作"]')!.disabled).toBe(true)
+  await openColumns()
+  const checkbox = container.querySelector<HTMLElement>('[aria-label="显示余额"]')!
+  expect(container.querySelector('[aria-label="显示账号"]')!.getAttribute('aria-disabled')).toBe(
+    'true',
+  )
+  expect(container.querySelector('[aria-label="显示操作"]')!.getAttribute('aria-disabled')).toBe(
+    'true',
+  )
   await act(async () => checkbox.click())
   expect(container.querySelectorAll('thead th')).toHaveLength(2)
   expect(container.querySelector('tbody')?.textContent).not.toContain('900')
   expect(container.querySelectorAll('tbody button')).toHaveLength(2)
-  const restore = [...container.querySelectorAll('button')].find(
+  const restore = [...container.querySelectorAll<HTMLElement>('[role=menuitem]')].find(
     (button) => button.textContent === '恢复默认列',
   )!
   await act(async () => restore.click())
@@ -116,13 +144,46 @@ it('keeps rows and scroll position while refreshing, and resets scrolling on a d
   expect(container.querySelector('[role="status"]')?.textContent).toContain('暂无记录')
 })
 
-it('dismisses the column menu with Escape and restores focus to its trigger', async () => {
-  await render()
-  const details = container.querySelector('details')!
-  details.open = true
+async function openColumns() {
+  const trigger = container.querySelector<HTMLButtonElement>('[aria-label="测试列表列设置"]')!
+  trigger.focus()
   await act(async () =>
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })),
   )
-  expect(details.open).toBe(false)
-  expect(document.activeElement).toBe(details.querySelector('summary'))
+  return trigger
+}
+it('dismisses the accessible column menu with Escape and restores focus', async () => {
+  await render()
+  const trigger = await openColumns()
+  expect(container.querySelector('[role="menu"]')).not.toBeNull()
+  await act(async () =>
+    document.activeElement?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    ),
+  )
+  expect(container.querySelector('[role="menu"]')).toBeNull()
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  })
+  expect(document.activeElement).toBe(trigger)
+})
+it('restores saved table preferences without hiding pinned columns and persists changes', async () => {
+  localStorage.setItem(
+    'istudio-admin-table:测试列表',
+    JSON.stringify({
+      density: 'comfortable',
+      visibility: { name: false, amount: false, actions: false, unknown: false },
+    }),
+  )
+  await render()
+  expect(container.querySelectorAll('thead th')).toHaveLength(2)
+  expect(container.textContent).toContain('Alice')
+  expect(container.querySelector('.admin-data-table')?.getAttribute('data-density')).toBe(
+    'comfortable',
+  )
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="紧凑行距"]')!.click(),
+  )
+  const saved = JSON.parse(localStorage.getItem('istudio-admin-table:测试列表')!)
+  expect(saved).toEqual({ density: 'compact', visibility: { amount: false } })
 })

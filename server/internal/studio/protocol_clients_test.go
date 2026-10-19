@@ -65,7 +65,7 @@ func TestPromptProtocolTimeout(t *testing.T) {
 		}
 	}))
 	defer func() { close(release); server.Close() }()
-	client := &openAICompatibleClient{baseURL: server.URL, model: "test", client: protocolHTTPClient(25 * time.Millisecond)}
+	client := &openAICompatibleClient{baseURL: server.URL, model: "test", client: &http.Client{Timeout: 25 * time.Millisecond, Transport: server.Client().Transport}}
 	_, err := client.complete(context.Background(), "重写", "商品", nil, 4096)
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("timeout category was lost: %v", err)

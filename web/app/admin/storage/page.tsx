@@ -1,8 +1,12 @@
 'use client'
+import { AdminPageHeader } from '@/components/admin/page-header'
+import { Input } from '@/components/admin/ui/input'
+import { Button } from '@/components/admin/ui/button'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Cloud, HardDrive, Pencil, Plus, X } from 'lucide-react'
-import { LibraryDialog, LibrarySelect } from '@/components/library-controls'
+import { LibrarySelect } from '@/components/library-controls'
+import { AdminEditorDialog as LibraryDialog } from '@/components/admin/editor-dialog'
 import { adminRequest } from '@/lib/admin'
 
 interface Profile {
@@ -101,28 +105,28 @@ export default function StoragePage() {
     setDraft((previous) => (previous ? { ...previous, ...value } : null))
   return (
     <main className="ops-page storage-admin">
-      <header className="ops-heading">
-        <div>
-          <h1>图片存储</h1>
-          <p>上传素材、生成作品和反推临时图共用存储配置，可随上线环境切换。</p>
-        </div>
-        <button
-          type="button"
-          className="studio-primary"
-          disabled={busy || loading}
-          onClick={() => {
-            setDraft(fresh())
-            setEditorError('')
-          }}
-        >
-          <Plus size={16} />
-          添加存储
-        </button>
-      </header>
+      <AdminPageHeader
+        title="图片存储"
+        description="上传素材、生成作品和反推临时图共用存储配置，可随上线环境切换。"
+        actions={
+          <Button
+            type="button"
+            disabled={busy || loading}
+            onClick={() => {
+              setDraft(fresh())
+              setEditorError('')
+            }}
+          >
+            <Plus data-icon="inline-start" />
+            添加存储
+          </Button>
+        }
+      />
       {error && (
         <p className="settings-error" role="alert">
           {error}
-          <button
+          <Button
+            variant="outline"
             type="button"
             onClick={() =>
               void load()
@@ -131,7 +135,7 @@ export default function StoragePage() {
             }
           >
             重试
-          </button>
+          </Button>
         </p>
       )}
       {message && (
@@ -175,7 +179,8 @@ export default function StoragePage() {
               </div>
               <div className="storage-profile-actions">
                 {profile.id !== 'local' && (
-                  <button
+                  <Button
+                    variant="outline"
                     type="button"
                     className="studio-secondary"
                     disabled={busy}
@@ -189,18 +194,19 @@ export default function StoragePage() {
                       setEditorError('')
                     }}
                   >
-                    <Pencil size={14} />
+                    <Pencil data-icon="inline-start" />
                     编辑
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  variant="outline"
                   type="button"
                   className="studio-secondary"
                   disabled={busy || profile.id === active}
                   onClick={() => void activate(profile.id)}
                 >
                   {profile.id === active ? '正在使用' : '设为默认'}
-                </button>
+                </Button>
               </div>
             </article>
           ))}
@@ -232,7 +238,7 @@ export default function StoragePage() {
             <div className="storage-config-grid">
               <label>
                 配置名称
-                <input
+                <Input
                   required
                   maxLength={100}
                   value={draft.name}
@@ -263,7 +269,7 @@ export default function StoragePage() {
               </label>
               <label>
                 存储区域
-                <input
+                <Input
                   required
                   disabled={!!draft.id}
                   value={draft.region}
@@ -272,7 +278,7 @@ export default function StoragePage() {
               </label>
               <label>
                 存储桶 / 空间名称
-                <input
+                <Input
                   required
                   disabled={!!draft.id}
                   value={draft.bucket}
@@ -281,7 +287,7 @@ export default function StoragePage() {
               </label>
               <label className="storage-config-wide">
                 存储 Endpoint
-                <input
+                <Input
                   type="url"
                   required
                   disabled={!!draft.id}
@@ -293,7 +299,7 @@ export default function StoragePage() {
               </label>
               <label className="storage-config-wide">
                 外网下载 Endpoint <span>可选</span>
-                <input
+                <Input
                   type="url"
                   value={draft.publicEndpoint}
                   placeholder="内网读写时，请在这里填写同一存储的外网 Endpoint"
@@ -302,7 +308,7 @@ export default function StoragePage() {
               </label>
               <label>
                 对象目录前缀 <span>可选</span>
-                <input
+                <Input
                   disabled={!!draft.id}
                   value={draft.prefix}
                   placeholder="例如 istudio"
@@ -322,7 +328,7 @@ export default function StoragePage() {
               )}
               <label>
                 Access Key / SecretId
-                <input
+                <Input
                   type="password"
                   autoComplete="new-password"
                   required={!draft.id}
@@ -333,7 +339,7 @@ export default function StoragePage() {
               </label>
               <label>
                 Secret Key
-                <input
+                <Input
                   type="password"
                   autoComplete="new-password"
                   required={!draft.id}
@@ -350,7 +356,7 @@ export default function StoragePage() {
               <div className="storage-config-grid">
                 <label className="storage-config-wide">
                   CDN 域名
-                  <input
+                  <Input
                     type="url"
                     value={draft.cdnDomain}
                     placeholder="https://images.example.com"
@@ -376,7 +382,7 @@ export default function StoragePage() {
                 {draft.cdnMode !== 'qiniu_private' && (
                   <label>
                     CDN 鉴权密钥
-                    <input
+                    <Input
                       type="password"
                       autoComplete="new-password"
                       value={draft.cdnKey}
@@ -398,18 +404,19 @@ export default function StoragePage() {
               </p>
             )}
             <footer className="asset-picker-footer">
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 className="studio-secondary"
                 disabled={busy}
                 onClick={() => setDraft(null)}
               >
-                <X size={14} />
+                <X data-icon="inline-start" />
                 取消
-              </button>
-              <button type="submit" className="studio-primary" disabled={busy}>
+              </Button>
+              <Button type="submit" disabled={busy}>
                 {busy ? '保存中…' : '保存配置'}
-              </button>
+              </Button>
             </footer>
           </form>
         </LibraryDialog>

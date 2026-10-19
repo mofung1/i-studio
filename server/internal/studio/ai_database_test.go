@@ -12,7 +12,7 @@ func TestAIConfigurationPostgres(t *testing.T) {
 	if err := s.ai.migrateLegacy(); err != nil {
 		t.Fatal(err)
 	}
-	input := testEndpointInput("image", "openai_image")
+	input := testEndpointInput("image", "openai_images")
 	first, err := s.ai.save("", input)
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestAIConfigurationPostgres(t *testing.T) {
 	if err := isolated.QueryRow("SELECT api_key_encrypted FROM ai_endpoints WHERE id=$1", first.ID).Scan(&encrypted); err != nil {
 		t.Fatal(err)
 	}
-	if encrypted == testEndpointInput("image", "openai_image").APIKey {
+	if encrypted == testEndpointInput("image", "openai_images").APIKey {
 		t.Fatal("plaintext key in database")
 	}
 	if _, err := isolated.Exec("UPDATE prompt_templates SET content='custom' WHERE key='rewrite'"); err != nil {

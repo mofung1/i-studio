@@ -3,6 +3,7 @@ package studio
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/istudio/server/internal/domain"
@@ -35,9 +36,6 @@ func New(deps Dependencies) (*Service, error) {
 	if err := s.ai.migrateLegacy(); err != nil {
 		return nil, fmt.Errorf("AI configuration: %w", err)
 	}
-	if err := s.initializePublicModels(); err != nil {
-		return nil, fmt.Errorf("model migration: %w", err)
-	}
 	if err := cleanupLegacyGeneratedAssets(s.db, s.storage); err != nil {
 		fmt.Printf("legacy generated asset cleanup skipped: %v\n", err)
 	}
@@ -55,6 +53,7 @@ func (s *Service) StartWorkers() {
 
 // Service coordinates studio workflows and their shared transaction boundaries.
 type Service struct {
+	aiHTTPClient   *http.Client // Internal transport injection for isolated upstream tests.
 	mu             sync.RWMutex
 	siteMu         sync.Mutex
 	users          map[string]domain.User

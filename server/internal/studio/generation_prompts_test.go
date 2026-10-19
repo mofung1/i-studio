@@ -87,7 +87,7 @@ func TestGenerationTemplateCatalogMigrationAndPersistence(t *testing.T) {
 }
 
 func TestSavedGenerationPromptsReachBothProtocolsAndStayConsistentWithinGroup(t *testing.T) {
-	for _, protocol := range []string{"openai_image", "gemini_generate_content"} {
+	for _, protocol := range []string{"openai_images", "gemini_native"} {
 		t.Run(protocol, func(t *testing.T) {
 			s := testAIStore(t)
 			s.tasks = map[string]domain.GenerationTask{}
@@ -106,7 +106,7 @@ func TestSavedGenerationPromptsReachBothProtocolsAndStayConsistentWithinGroup(t 
 					return
 				}
 				prompt, _ := body["prompt"].(string)
-				if protocol == "gemini_generate_content" {
+				if protocol == "gemini_native" {
 					content := body["contents"].([]any)[0].(map[string]any)
 					prompt = content["parts"].([]any)[0].(map[string]any)["text"].(string)
 				}
@@ -120,7 +120,7 @@ func TestSavedGenerationPromptsReachBothProtocolsAndStayConsistentWithinGroup(t 
 					}
 				}
 				w.Header().Set("Content-Type", "application/json")
-				if protocol == "gemini_generate_content" {
+				if protocol == "gemini_native" {
 					io.WriteString(w, `{"candidates":[{"content":{"parts":[{"inlineData":{"mimeType":"image/png","data":"aW1hZ2U="}}]}}]}`)
 				} else {
 					io.WriteString(w, `{"data":[{"b64_json":"aW1hZ2U="}]}`)
@@ -128,13 +128,15 @@ func TestSavedGenerationPromptsReachBothProtocolsAndStayConsistentWithinGroup(t 
 			}))
 			defer upstream.Close()
 			endpoint := testEndpointInput("image", protocol)
-			endpoint.BaseURL = upstream.URL
+			endpoint.BaseURL = "https://mock.example"
+			s.aiHTTPClient = mockUpstreamClient(upstream)
 			e, err := s.ai.save("", endpoint)
 			if err != nil {
 				t.Fatal(err)
 			}
 			s.provider = &dynamicImageProvider{server: s}
 			input := map[string]any{"mode": "commerce", "taskType": "product-main", "requirements": "保留用户的商品要求", "model": e.Model, "endpointId": e.ID, "moduleMode": "custom", "moduleCounts": map[string]any{"white": float64(2)}, "count": float64(2)}
+			input["protocolClient"] = s.imageProtocolClient(e, endpoint.APIKey)
 			q := &taskQueue{server: s}
 			images, _, err := q.generateBatches("group", input)
 			if err != nil || len(images) != 2 {

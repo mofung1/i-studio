@@ -62,7 +62,8 @@ func testReverseServer(t *testing.T, handler http.HandlerFunc) (*Service, *atomi
 	}))
 	t.Cleanup(upstream.Close)
 	input := testEndpointInput("prompt", "openai_chat")
-	input.BaseURL = upstream.URL + "/v1"
+	input.BaseURL = "https://mock.example/v1"
+	s.aiHTTPClient = mockUpstreamClient(upstream)
 	input.Model = "deepseek-flash"
 	input.Capabilities["vision"] = true
 	if _, err := s.ai.save("", input); err != nil {

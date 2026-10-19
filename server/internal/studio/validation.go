@@ -27,10 +27,10 @@ func validateGenerationInput(input map[string]any) error {
 	if input == nil {
 		return fmt.Errorf("generation input must be an object")
 	}
-	if input["model"] == nil {
-		input["model"] = "gpt-image-2"
-	} else if err := requireText(input, "model", 1, 200); err != nil {
-		return err
+	if input["model"] != nil {
+		if err := requireText(input, "model", 1, 200); err != nil {
+			return err
+		}
 	}
 	if input["endpointId"] != nil {
 		if err := requireText(input, "endpointId", 1, 100); err != nil {

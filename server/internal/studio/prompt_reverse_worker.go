@@ -118,7 +118,7 @@ func (s *Service) processReverseJob(job reverseJob) {
 		}
 	}
 	endpoint.TimeoutSeconds = job.Settings.TimeoutSeconds
-	client := newOpenAICompatibleClient(endpoint, key)
+	client := s.openAIProtocolClient(endpoint, key)
 	client.disableThinking = true
 	text, err := client.complete(ctx, job.SystemPrompt, reverseUserText(job), []promptImage{{Mime: http.DetectContentType(data), Data: base64.StdEncoding.EncodeToString(data), Detail: job.Settings.ImageDetail}}, 4096)
 	if err != nil {

@@ -1,139 +1,147 @@
 package studio
 
 import (
+	"database/sql"
+	"encoding/json"
 	"fmt"
-
-	"github.com/istudio/server/internal/idgen"
 )
 
-type publicModel struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	EndpointID string `json:"endpointId,omitempty"`
-	PriceMinor int64  `json:"priceMinor"`
-	Enabled    bool   `json:"enabled"`
-	IsDefault  bool   `json:"isDefault"`
-	Version    int64  `json:"version"`
+type modelCapabilities struct {
+	ReferenceImages bool     `json:"referenceImages"`
+	AspectRatios    []string `json:"aspectRatios"`
+	Resolutions     []string `json:"resolutions"`
 }
 
-func (s *Service) initializePublicModels() error {
-	if s.db == nil {
-		return nil
-	}
-	endpoints, err := s.ai.list()
-	if err != nil {
-		return err
-	}
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	var migrated bool
-	if err = tx.QueryRow("SELECT models_migrated FROM operation_settings WHERE id=true FOR UPDATE").Scan(&migrated); err != nil {
-		return err
-	}
-	if migrated {
-		return nil
-	}
-	modelCounts := map[string]int{}
-	for _, e := range endpoints {
-		if e.Purpose == "image" {
-			modelCounts[e.Model]++
-		}
-	}
-	for _, e := range endpoints {
-		if e.Purpose != "image" {
-			continue
-		}
-		id := "model_" + idgen.New()
-		if _, err = tx.Exec("INSERT INTO public_models(id,name,endpoint_id,price_minor) VALUES($1,$2,$3,0)", id, e.Name, e.ID); err != nil {
-			return err
-		}
-		// Preserve private presets and their version history through the identifier change.
-		condition := "(config->>'endpointId'=$1 OR (COALESCE(config->>'endpointId','')='' AND config->>'model'=$3 AND $4))"
-		if _, err = tx.Exec("UPDATE personal_prompts SET config=jsonb_set(jsonb_set(config,'{endpointId}',to_jsonb($2::text)),'{model}',to_jsonb($5::text)) WHERE kind='preset' AND "+condition, e.ID, id, e.Model, modelCounts[e.Model] == 1, e.Name); err != nil {
-			return err
-		}
-		if _, err = tx.Exec(`UPDATE personal_prompt_versions SET snapshot=jsonb_set(jsonb_set(snapshot,'{config,endpointId}',to_jsonb($2::text)),'{config,model}',to_jsonb($5::text)) WHERE snapshot->>'kind'='preset' AND (snapshot#>>'{config,endpointId}'=$1 OR (COALESCE(snapshot#>>'{config,endpointId}','')='' AND snapshot#>>'{config,model}'=$3 AND $4))`, e.ID, id, e.Model, modelCounts[e.Model] == 1, e.Name); err != nil {
-			return err
-		}
-		if _, err = tx.Exec(`UPDATE generation_tasks SET input=jsonb_set(jsonb_set(input,'{endpointId}',to_jsonb($2::text)),'{model}',to_jsonb($5::text)) WHERE input->>'endpointId'=$1 OR (COALESCE(input->>'endpointId','')='' AND input->>'model'=$3 AND $4)`, e.ID, id, e.Model, modelCounts[e.Model] == 1, e.Name); err != nil {
-			return err
-		}
-	}
+func defaultModelCapabilities() modelCapabilities {
+	return modelCapabilities{true, []string{"1:1", "3:4", "4:3", "9:16", "16:9"}, []string{"1K", "2K", "4K"}}
+}
 
-	if _, err = tx.Exec("UPDATE operation_settings SET models_migrated=true WHERE id=true"); err != nil {
-		return err
+type modelChannel struct {
+	ID              string `json:"id"`
+	EndpointID      string `json:"endpointId"`
+	UpstreamModelID string `json:"upstreamModelId"`
+	Enabled         bool   `json:"enabled"`
+	IsActive        bool   `json:"isActive"`
+}
+type publicModel struct {
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	PriceMinor   int64             `json:"priceMinor"`
+	Enabled      bool              `json:"enabled"`
+	IsDefault    bool              `json:"isDefault"`
+	Version      int64             `json:"version"`
+	Capabilities modelCapabilities `json:"capabilities"`
+	Channels     []modelChannel    `json:"channels"`
+}
+
+const publicModelColumns = "id,name,price_minor,enabled,is_default,version,capabilities"
+
+func scanPublicModel(row interface{ Scan(...any) error }) (publicModel, error) {
+	var m publicModel
+	var raw []byte
+	err := row.Scan(&m.ID, &m.Name, &m.PriceMinor, &m.Enabled, &m.IsDefault, &m.Version, &raw)
+	if err == nil {
+		err = json.Unmarshal(raw, &m.Capabilities)
 	}
-	return tx.Commit()
+	return m, err
+}
+
+type modelQueryer interface {
+	Query(string, ...any) (*sql.Rows, error)
 }
 
 func (s *Service) publicModels(onlyAvailable bool) ([]publicModel, error) {
-	models := []publicModel{}
 	if s.db == nil {
-		return models, nil
+		return []publicModel{}, nil
 	}
-	rows, err := s.db.Query("SELECT id,name,endpoint_id,price_minor,enabled,is_default,version FROM public_models ORDER BY is_default DESC,created_at,id")
+	return queryPublicModels(s.db, onlyAvailable)
+}
+func queryPublicModels(db modelQueryer, onlyAvailable bool) ([]publicModel, error) {
+	models := []publicModel{}
+	query := "SELECT " + publicModelColumns + " FROM public_models m"
+	if onlyAvailable {
+		query += " WHERE enabled AND EXISTS(SELECT 1 FROM public_model_channels c JOIN ai_endpoints e ON e.id=c.endpoint_id WHERE c.public_model_id=m.id AND c.is_active AND c.enabled AND e.enabled AND e.purpose='image')"
+	}
+	rows, err := db.Query(query + " ORDER BY is_default DESC,created_at,id")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var m publicModel
-		if err = rows.Scan(&m.ID, &m.Name, &m.EndpointID, &m.PriceMinor, &m.Enabled, &m.IsDefault, &m.Version); err != nil {
+		m, err := scanPublicModel(rows)
+		if err != nil {
 			return nil, err
-		}
-		if onlyAvailable {
-			if !m.Enabled {
-				continue
-			}
-			if _, err = s.ai.resolve("image", m.EndpointID, ""); err != nil {
-				continue
-			}
 		}
 		models = append(models, m)
 	}
 	return models, rows.Err()
 }
-
-func (s *Service) resolvePublicModel(id, legacyModel string) (publicModel, error) {
-	models, err := s.publicModels(true)
+func (s *Service) resolvePublicModel(id, name string) (publicModel, error) {
+	if s.db == nil {
+		return publicModel{}, fmt.Errorf("模型配置不可用")
+	}
+	return resolveAvailableModel(s.db, id, name)
+}
+func resolveAvailableModel(db modelQueryer, id, name string) (publicModel, error) {
+	models, err := queryPublicModels(db, true)
 	if err != nil {
 		return publicModel{}, err
 	}
-	if id != "" {
-		for _, m := range models {
-			if m.ID == id {
-				return m, nil
-			}
-		}
-	}
-	// Compatibility for older private presets: only an unambiguous published channel.
-	matches := []publicModel{}
 	for _, m := range models {
-		if id != "" && m.EndpointID == id {
-			matches = append(matches, m)
+		if (id != "" && m.ID == id) || (id == "" && (m.ID == name || (name == "" && m.IsDefault))) {
+			return m, nil
 		}
-		if id == "" && legacyModel != "" {
-			e, eErr := s.ai.resolve("image", m.EndpointID, "")
-			if eErr == nil && (legacyModel == m.ID || legacyModel == e.Model) {
-				matches = append(matches, m)
+	}
+	if id == "" && name == "" && len(models) == 1 {
+		return models[0], nil
+	}
+	return publicModel{}, fmt.Errorf("所选模型未上架、未配置主渠道或已停用，请重新选择")
+}
+
+// resolveChannel only selects the administrator's explicit active binding.
+func resolveChannel(tx *sql.Tx, modelID string) (endpointConfig, error) {
+	var e endpointConfig
+	var raw []byte
+	err := tx.QueryRow(`SELECT e.id,e.name,e.purpose,e.protocol,e.base_url,e.api_key_encrypted,c.upstream_model_id,e.timeout_seconds,e.capabilities,e.enabled FROM public_model_channels c JOIN ai_endpoints e ON e.id=c.endpoint_id WHERE c.public_model_id=$1 AND c.is_active AND c.enabled AND e.enabled AND e.purpose='image'`, modelID).Scan(&e.ID, &e.Name, &e.Purpose, &e.Protocol, &e.BaseURL, &e.APIKeyEncrypted, &e.Model, &e.TimeoutSeconds, &raw, &e.Enabled)
+	if err != nil {
+		return e, fmt.Errorf("模型未配置可用主渠道: %w", err)
+	}
+	err = json.Unmarshal(raw, &e.Capabilities)
+	return e, err
+}
+func validateModelParameters(c modelCapabilities, input map[string]any) error {
+	contains := func(values []string, value string) bool {
+		for _, v := range values {
+			if v == value {
+				return true
+			}
+		}
+		return false
+	}
+	if !contains(c.AspectRatios, stringValue(input["aspectRatio"], "1:1")) || !contains(c.Resolutions, stringValue(input["resolution"], "2K")) {
+		return fmt.Errorf("当前模型不支持所选比例或分辨率")
+	}
+	if !c.ReferenceImages && (len(sourceImages(input)) > 0 || hasInputImages(input)) {
+		return fmt.Errorf("当前模型不支持参考图片")
+	}
+	return nil
+}
+
+func hasInputImages(input map[string]any) bool {
+	if stringValue(input["modelAssetId"], "") != "" || stringValue(input["sceneAssetId"], "") != "" {
+		return true
+	}
+	for _, key := range []string{"referenceAssetIds", "productAssetIds"} {
+		switch v := input[key].(type) {
+		case []any:
+			if len(v) > 0 {
+				return true
+			}
+		case []string:
+			if len(v) > 0 {
+				return true
 			}
 		}
 	}
-	if len(matches) == 1 {
-		return matches[0], nil
-	}
-	if id == "" && legacyModel == "" {
-		for _, m := range models {
-			if m.IsDefault {
-				return m, nil
-			}
-		}
-		if len(models) == 1 {
-			return models[0], nil
-		}
-	}
-	return publicModel{}, fmt.Errorf("所选模型未上架或已停用，请重新选择")
+	return false
 }

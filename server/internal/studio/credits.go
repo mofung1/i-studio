@@ -18,8 +18,15 @@ import (
 )
 
 type frozenProvider struct {
-	Endpoint     endpointConfig `json:"endpoint"`
-	EncryptedKey string         `json:"encryptedKey"`
+	Version         int            `json:"version"`
+	PublicModelID   string         `json:"public_model_id"`
+	EndpointID      string         `json:"endpoint_id"`
+	Protocol        string         `json:"protocol"`
+	BaseURL         string         `json:"base_url"`
+	UpstreamModelID string         `json:"upstream_model_id"`
+	TimeoutSeconds  int            `json:"timeout_seconds"`
+	ModelParameters map[string]any `json:"model_parameters"`
+	CreditPrice     int64          `json:"credit_price"`
 }
 
 type operationError struct {
@@ -108,6 +115,10 @@ func (s *Service) reserveGeneration(uid, key string, expected int64, input map[s
 	if err != nil {
 		return domain.GenerationTask{}, false, err
 	}
+	prompts, err := s.generationPromptSnapshot()
+	if err != nil {
+		return domain.GenerationTask{}, false, err
+	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return domain.GenerationTask{}, false, err
@@ -152,22 +163,15 @@ func (s *Service) reserveGeneration(uid, key string, expected int64, input map[s
 	if err != sql.ErrNoRows {
 		return domain.GenerationTask{}, false, err
 	}
-	if err := s.validateInputOwnership(uid, input); err != nil {
+	if err := validateInputOwnershipTx(tx, uid, input); err != nil {
 		return domain.GenerationTask{}, false, &operationError{400, "GENERATION_ASSET_INVALID", err.Error()}
 	}
 	if _, err = tx.Exec("SELECT pg_advisory_xact_lock(79140001)"); err != nil {
 		return domain.GenerationTask{}, false, err
 	}
-	m, err := s.resolvePublicModel(stringValue(input["endpointId"], ""), stringValue(input["model"], ""))
+	m, err := resolveAvailableModel(tx, stringValue(input["endpointId"], ""), stringValue(input["model"], ""))
 	if err != nil {
 		return domain.GenerationTask{}, false, &operationError{409, "MODEL_UNAVAILABLE", err.Error()}
-	}
-	// Re-read price and availability under the catalog lock.
-	if err = tx.QueryRow("SELECT price_minor,enabled FROM public_models WHERE id=$1", m.ID).Scan(&m.PriceMinor, &m.Enabled); err != nil {
-		return domain.GenerationTask{}, false, err
-	}
-	if !m.Enabled {
-		return domain.GenerationTask{}, false, &operationError{409, "MODEL_UNAVAILABLE", "模型已下架，请重新选择"}
 	}
 	if expected != m.PriceMinor {
 		return domain.GenerationTask{}, false, &operationError{409, "PRICE_CHANGED", "模型价格已变更，请确认最新价格后重新提交"}
@@ -193,15 +197,17 @@ func (s *Service) reserveGeneration(uid, key string, expected int64, input map[s
 	if recent >= c.GenerationRequestsPerHour {
 		return domain.GenerationTask{}, false, &operationError{429, "GENERATION_RATE_LIMIT", "本小时生成任务已达上限，请稍后再试"}
 	}
-	endpoint, err := s.ai.resolve("image", m.EndpointID, "")
+	endpoint, err := resolveChannel(tx, m.ID)
 	if err != nil {
 		return domain.GenerationTask{}, false, &operationError{409, "MODEL_UNAVAILABLE", "模型通道暂时不可用"}
 	}
-	prompts, err := s.generationPromptSnapshot()
-	if err != nil {
-		return domain.GenerationTask{}, false, err
+	if err = validateModelParameters(m.Capabilities, input); err != nil {
+		return domain.GenerationTask{}, false, &operationError{400, "MODEL_PARAMETERS_INVALID", err.Error()}
 	}
-	providerRaw, _ := json.Marshal(frozenProvider{endpoint, endpoint.APIKeyEncrypted})
+	if err = validateImageProtocolParameters(endpoint.Protocol, input); err != nil {
+		return domain.GenerationTask{}, false, &operationError{400, "MODEL_PARAMETERS_INVALID", err.Error()}
+	}
+	providerRaw, _ := json.Marshal(frozenProvider{Version: 1, PublicModelID: m.ID, EndpointID: endpoint.ID, Protocol: endpoint.Protocol, BaseURL: endpoint.BaseURL, UpstreamModelID: endpoint.Model, TimeoutSeconds: endpoint.TimeoutSeconds, ModelParameters: map[string]any{"aspectRatio": stringValue(input["aspectRatio"], "1:1"), "resolution": stringValue(input["resolution"], "2K"), "count": quantity}, CreditPrice: m.PriceMinor})
 	promptsRaw, _ := json.Marshal(prompts)
 	// Persist public model identifiers; real connection details live only in the private charge snapshot.
 	input["endpointId"] = m.ID
@@ -318,7 +324,7 @@ func (s *Service) loadFrozenGeneration(id string, input map[string]any) error {
 	var providerRaw, promptsRaw []byte
 	err := s.db.QueryRow("SELECT provider_snapshot,prompts_snapshot FROM generation_charges WHERE task_id=$1", id).Scan(&providerRaw, &promptsRaw)
 	if err == sql.ErrNoRows {
-		return nil
+		return fmt.Errorf("任务缺少渠道快照")
 	}
 	if err != nil {
 		return err
@@ -331,15 +337,25 @@ func (s *Service) loadFrozenGeneration(id string, input map[string]any) error {
 	if err = json.Unmarshal(promptsRaw, &prompts); err != nil {
 		return err
 	}
-	frozen.Endpoint.APIKeyEncrypted = frozen.EncryptedKey
-	key, err := s.ai.decrypt(frozen.Endpoint)
+	if frozen.Version != 1 || frozen.EndpointID == "" || frozen.UpstreamModelID == "" {
+		return fmt.Errorf("不支持的任务渠道快照，请重新创建开发任务")
+	}
+	current, err := s.ai.resolve("image", frozen.EndpointID, "")
+	if err != nil {
+		return fmt.Errorf("冻结渠道已被删除或禁用: %w", err)
+	}
+	key, err := s.ai.decrypt(current)
 	if err != nil {
 		return err
 	}
+	endpoint := endpointConfig{ID: frozen.EndpointID, Purpose: "image", Protocol: frozen.Protocol, BaseURL: frozen.BaseURL, Model: frozen.UpstreamModelID, TimeoutSeconds: frozen.TimeoutSeconds, Enabled: true}
 	if _, ok := s.provider.(*dynamicImageProvider); ok {
-		input["protocolClient"] = newImageProtocolClient(frozen.Endpoint, key)
+		input["protocolClient"] = s.imageProtocolClient(endpoint, key)
 	}
 	input["generationPrompts"] = prompts
-	input["model"] = frozen.Endpoint.Model
+	for key, value := range frozen.ModelParameters {
+		input[key] = value
+	}
+	input["model"] = frozen.UpstreamModelID
 	return nil
 }

@@ -37,7 +37,10 @@ type endpointConfig struct {
 	UpdatedAt       time.Time       `json:"updatedAt"`
 }
 
+var errEndpointConflict = errors.New("渠道已被修改，请刷新后重试")
+
 type endpointInput struct {
+	UpdatedAt      *time.Time      `json:"updatedAt,omitempty"`
 	Name           string          `json:"name"`
 	Purpose        string          `json:"purpose"`
 	Protocol       string          `json:"protocol"`
@@ -236,6 +239,11 @@ func (a *aiConfigStore) withConfig(write bool, fn func(*aiConfiguration) error) 
 		return err
 	}
 	defer tx.Rollback()
+	if write {
+		if _, err := tx.Exec("SELECT pg_advisory_xact_lock(79140001)"); err != nil {
+			return err
+		}
+	}
 	if _, err := tx.Exec("SELECT pg_advisory_xact_lock(724091024)"); err != nil {
 		return err
 	}
@@ -342,7 +350,15 @@ func normalizeDefaults(state *aiConfiguration, selected string) {
 		}
 		for i := range state.Endpoints {
 			if state.Endpoints[i].Purpose == purpose {
-				state.Endpoints[i].IsDefault = state.Endpoints[i].ID == chosen
+				active := state.Endpoints[i].ID == chosen
+				if state.Endpoints[i].IsDefault != active {
+					timestamp := time.Now().UTC().Truncate(time.Microsecond)
+					if !timestamp.After(state.Endpoints[i].UpdatedAt) {
+						timestamp = state.Endpoints[i].UpdatedAt.Add(time.Microsecond)
+					}
+					state.Endpoints[i].UpdatedAt = timestamp
+				}
+				state.Endpoints[i].IsDefault = active
 			}
 		}
 	}
@@ -388,16 +404,22 @@ func validateEndpoint(input *endpointInput) error {
 	input.BaseURL = strings.TrimRight(strings.TrimSpace(input.BaseURL), "/")
 	input.Model = strings.TrimSpace(input.Model)
 	input.APIKey = strings.TrimSpace(input.APIKey)
-	if input.Name == "" || len(input.Name) > 120 || input.Model == "" || len(input.Model) > 200 {
+	if input.Name == "" || len(input.Name) > 120 || (input.Purpose == "prompt" && input.Model == "") || len(input.Model) > 200 {
 		return errors.New("名称和 Model 不能为空，且长度不能超过 120 / 200 个字符")
 	}
-	valid := (input.Purpose == "prompt" && input.Protocol == "openai_chat") || (input.Purpose == "image" && (input.Protocol == "openai_image" || input.Protocol == "gemini_generate_content"))
+	valid := (input.Purpose == "prompt" && input.Protocol == "openai_chat") || (input.Purpose == "image" && (input.Protocol == "openai_images" || input.Protocol == "openai_chat" || input.Protocol == "gemini_native"))
 	if !valid {
 		return errors.New("用途与协议不匹配，当前支持 OpenAI Chat、OpenAI Image 和 Gemini GenerateContent")
 	}
 	u, err := url.Parse(input.BaseURL)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return errors.New("Base URL 必须是有效的 HTTP(S) 地址，不能包含凭据、查询或片段")
+	}
+	if err := validateAIBaseURL(input.BaseURL); err != nil {
+		return err
+	}
+	if input.Capabilities["async"] {
+		return errors.New("生图渠道仅支持同步协议，请关闭远程 async 配置")
 	}
 	if input.TimeoutSeconds < 1 || input.TimeoutSeconds > 600 {
 		return errors.New("Timeout 必须在 1–600 秒之间")
@@ -425,13 +447,16 @@ func (a *aiConfigStore) save(id string, input endpointInput) (endpointConfig, er
 				break
 			}
 		}
+		if index >= 0 && input.UpdatedAt != nil && !result.UpdatedAt.Equal(*input.UpdatedAt) {
+			return errEndpointConflict
+		}
 		if id != "" && index < 0 {
 			return sql.ErrNoRows
 		}
 		if id == "" {
 			id = idgen.New()
 			result.ID = id
-			result.CreatedAt = time.Now().UTC()
+			result.CreatedAt = time.Now().UTC().Truncate(time.Microsecond)
 		}
 		if input.APIKey != "" {
 			encrypted, err := a.encrypt(id, input.APIKey)
@@ -452,7 +477,11 @@ func (a *aiConfigStore) save(id string, input endpointInput) (endpointConfig, er
 		result.Capabilities = input.Capabilities
 		result.Enabled = input.Enabled
 		result.IsDefault = input.IsDefault
-		result.UpdatedAt = time.Now().UTC()
+		updatedAt := time.Now().UTC().Truncate(time.Microsecond)
+		if !updatedAt.After(result.UpdatedAt) {
+			updatedAt = result.UpdatedAt.Add(time.Microsecond)
+		}
+		result.UpdatedAt = updatedAt
 		if index >= 0 {
 			state.Endpoints[index] = result
 		} else {
@@ -515,7 +544,7 @@ func (a *aiConfigStore) public(e endpointConfig) (map[string]any, error) {
 	return result, nil
 }
 
-// Instance settings are shared and editable by every signed-in account.
+// Instance settings are restricted to the isolated administrator session.
 func (s *Service) requireSettingsUser(w http.ResponseWriter, r *http.Request) bool {
 	return s.requireAdmin(w, r)
 }
@@ -526,27 +555,6 @@ func (a *aiConfigStore) migrateLegacy() error {
 			inputs := []endpointInput{}
 			if key := strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")); key != "" {
 				inputs = append(inputs, endpointInput{Name: "DeepSeek", Purpose: "prompt", Protocol: "openai_chat", BaseURL: runtimeconfig.Env("DEEPSEEK_BASE_URL", "https://api.deepseek.com"), APIKey: key, Model: runtimeconfig.Env("DEEPSEEK_MODEL", "deepseek-flash"), TimeoutSeconds: clampInt(parseQueryInt(runtimeconfig.Env("DEEPSEEK_TIMEOUT_SECONDS", "60"), 60), 1, 600), Capabilities: map[string]bool{"vision": true}, Enabled: true, IsDefault: true})
-			}
-			if key := strings.TrimSpace(os.Getenv("BANANA_ROUTER_API_KEY")); key != "" {
-				// The previous transport offered both protocols and four selectable models.
-				// Preserve those choices, including its default GPT model and async paths.
-				models := []string{"gpt-image-2", "gemini-2.5-flash-image", "gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview"}
-				if model := os.Getenv("BANANA_ROUTER_MODEL"); model != "" {
-					models = []string{model}
-				}
-				enabled := !strings.EqualFold(runtimeconfig.Env("AI_PROVIDER_ENABLED", "true"), "false")
-				for i, model := range models {
-					protocol := "openai_image"
-					caps := map[string]bool{"async": true}
-					base := strings.TrimRight(runtimeconfig.Env("BANANA_ROUTER_BASE_URL", "https://api.bananarouter.com"), "/")
-					if strings.HasPrefix(model, "gemini-") {
-						protocol = "gemini_generate_content"
-						caps = map[string]bool{}
-					} else if !strings.HasSuffix(base, "/v1") {
-						base += "/v1"
-					}
-					inputs = append(inputs, endpointInput{Name: "Legacy · " + model, Purpose: "image", Protocol: protocol, BaseURL: base, APIKey: key, Model: model, TimeoutSeconds: clampInt(parseQueryInt(runtimeconfig.Env("BANANA_ROUTER_TIMEOUT_SECONDS", "300"), 300), 1, 600), Capabilities: caps, Enabled: enabled, IsDefault: enabled && i == 0})
-				}
 			}
 			for _, input := range inputs {
 				if err := validateEndpoint(&input); err != nil {

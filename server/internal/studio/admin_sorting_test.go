@@ -14,7 +14,7 @@ func TestAdminSortingAppliesBeforePaginationAndRejectsSQLIdentifiersFromClients(
 	for _, query := range []string{
 		`INSERT INTO users(id,username,password_hash,created_at) SELECT 'customer-'||lpad(n::text,3,'0'),'customer-'||lpad(n::text,3,'0'),'fixture','2026-10-16T00:00:00Z'::timestamptz FROM generate_series(1,123) n`,
 		`INSERT INTO credit_accounts(user_id,available,held) SELECT 'customer-'||lpad(n::text,3,'0'),n,0 FROM generate_series(1,123) n`,
-		`INSERT INTO public_models(id,name,endpoint_id,price_minor,created_at) SELECT 'model-'||lpad(n::text,3,'0'),'模型'||n,'channel',n,'2026-10-16T00:00:00Z'::timestamptz FROM generate_series(1,123) n`,
+		`INSERT INTO public_models(id,name,price_minor,created_at) SELECT 'model-'||lpad(n::text,3,'0'),'模型'||n,n,'2026-10-16T00:00:00Z'::timestamptz FROM generate_series(1,123) n`,
 		`INSERT INTO generation_tasks(id,user_id,status,input,created_at) SELECT 'task-'||lpad(n::text,3,'0'),'customer-001','succeeded','{}','2026-10-16T00:00:00Z'::timestamptz+make_interval(secs=>n) FROM generate_series(1,123) n`,
 		`INSERT INTO admin_audit(actor_id,action,created_at) SELECT 'operator','fixture','2026-10-16T00:00:00Z'::timestamptz+make_interval(secs=>n) FROM generate_series(1,123) n`,
 	} {

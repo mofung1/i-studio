@@ -23,12 +23,15 @@ func operationTestServer(t *testing.T) (*Service, string, string) {
 	s.db = isolatedTestDatabase(t)
 	s.testToken(domain.User{ID: "member"})
 	s.testAdminToken(domain.User{ID: "operator"})
-	e, err := s.ai.save("", testEndpointInput("image", "openai_image"))
+	e, err := s.ai.save("", testEndpointInput("image", "openai_images"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	id := "public-model"
-	if _, err = s.db.Exec("INSERT INTO public_models(id,name,endpoint_id,price_minor,enabled,is_default) VALUES($1,'高级绘图',$2,125,true,true)", id, e.ID); err != nil {
+	if _, err = s.db.Exec("INSERT INTO public_models(id,name,price_minor,enabled,is_default) VALUES($1,'高级绘图',125,true,true)", id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.db.Exec("INSERT INTO public_model_channels(id,public_model_id,endpoint_id,upstream_model_id,is_active) VALUES('binding',$1,$2,$3,true)", id, e.ID, e.Model); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = s.db.Exec("UPDATE credit_accounts SET available=10000 WHERE user_id='member'"); err != nil {
@@ -68,7 +71,7 @@ func TestOperationalPermissionsAndPrivateConfiguration(t *testing.T) {
 		t.Fatal(w.Body.String())
 	}
 	w := operationRequest(s, "GET", "/v1/generation/capabilities", "", member, s.capabilities)
-	for _, private := range []string{endpoint, "endpoint.example", "apiKey", "sk-private", "openai_image", "custom/future-model", "clothingPlanDefaults"} {
+	for _, private := range []string{endpoint, "endpoint.example", "apiKey", "sk-private", "openai_images", "custom/future-model", "clothingPlanDefaults"} {
 		if strings.Contains(w.Body.String(), private) {
 			t.Fatalf("private configuration leaked %s: %s", private, w.Body.String())
 		}
@@ -258,43 +261,6 @@ func TestMigrationAndRegistrationNeverPromoteUsers(t *testing.T) {
 	}
 }
 
-func TestLegacyPresetsMigrateOnceWithoutGrantingFreeModels(t *testing.T) {
-	s := testAIStore(t)
-	s.db = isolatedTestDatabase(t)
-	s.testToken(domain.User{ID: "legacy"})
-	e, err := s.ai.save("", testEndpointInput("image", "openai_image"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	raw, _ := json.Marshal(map[string]any{"mode": "general", "model": e.Model, "endpointId": e.ID, "count": 1})
-	if _, err = s.db.Exec("INSERT INTO personal_prompts(id,user_id,kind,title,config) VALUES('preset','legacy','preset','原预设',$1::jsonb)", raw); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = s.db.Exec("INSERT INTO personal_prompt_versions(prompt_id,version,snapshot) VALUES('preset',1,jsonb_build_object('kind','preset','config',$1::jsonb))", raw); err != nil {
-		t.Fatal(err)
-	}
-	if err = s.initializePublicModels(); err != nil {
-		t.Fatal(err)
-	}
-	if err = s.initializePublicModels(); err != nil {
-		t.Fatal(err)
-	}
-	models, err := s.publicModels(false)
-	if err != nil || len(models) != 1 || models[0].Enabled {
-		t.Fatal(models, err)
-	}
-	var id, model, versionID string
-	if err = s.db.QueryRow("SELECT config->>'endpointId',config->>'model' FROM personal_prompts WHERE id='preset'").Scan(&id, &model); err != nil {
-		t.Fatal(err)
-	}
-	if err = s.db.QueryRow("SELECT snapshot#>>'{config,endpointId}' FROM personal_prompt_versions WHERE prompt_id='preset'").Scan(&versionID); err != nil {
-		t.Fatal(err)
-	}
-	if id != models[0].ID || versionID != id || model != e.Name {
-		t.Fatal("preset migration changed selection", id, model, versionID)
-	}
-}
-
 func TestAuthSourceNeverTrustsUnconfiguredForwardedHeaders(t *testing.T) {
 	t.Setenv("AUTH_TRUSTED_PROXY_CIDRS", "127.0.0.0/8,10.0.0.0/8")
 	r := httptest.NewRequest("POST", "/v1/auth/login", nil)
@@ -332,8 +298,9 @@ func TestHTTPGenerationPipelineReservesSettlesAndNeverSubmitsDuplicate(t *testin
 				fmt.Fprintf(w, `{"data":[{"b64_json":%q}]}`, encoded)
 			}))
 			defer upstream.Close()
-			e := testEndpointInput("image", "openai_image")
-			e.BaseURL = upstream.URL
+			e := testEndpointInput("image", "openai_images")
+			e.BaseURL = "https://mock.example"
+			s.aiHTTPClient = mockUpstreamClient(upstream)
 			if _, err := s.ai.save(endpointID, e); err != nil {
 				t.Fatal(err)
 			}

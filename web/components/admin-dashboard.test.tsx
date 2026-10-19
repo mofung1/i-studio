@@ -5,7 +5,10 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { adminRequest } from '@/lib/admin'
 import { AdminDashboard } from './admin-dashboard'
 
-vi.mock('@/lib/admin', () => ({ adminRequest: vi.fn() }))
+vi.mock('@/lib/admin', async (original) => ({
+  ...(await original<object>()),
+  adminRequest: vi.fn(),
+}))
 vi.mock('./library-controls', async (original) => ({
   ...(await original<object>()),
   LibrarySelect: ({
@@ -131,7 +134,11 @@ it('submits precise model pricing and clears the default flag when taking it off
   const model = {
     id: 'model-1',
     name: '测试模型',
-    endpointId: 'endpoint-1',
+    version: 1,
+    channels: [
+      { endpointId: 'endpoint-1', upstreamModelId: 'upstream', enabled: true, isActive: true },
+    ],
+    capabilities: { referenceImages: true, aspectRatios: ['1:1'], resolutions: ['1K'] },
     priceMinor: 125,
     enabled: true,
     isDefault: true,
@@ -247,7 +254,7 @@ it('requests backend pages and resets to page one when changing page size', asyn
   await act(async () => root.render(<AdminDashboard view="tasks" />))
   await flushTaskRequest()
   expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=20')
-  expect(container.textContent).toContain('共 45 条任务 · 第 1 / 3 页')
+  expect(container.textContent).toContain('第 1–20 条，共 45 条任务')
   expect(previousTaskPage().disabled).toBe(true)
   await act(async () => nextTaskPage().click())
   expect(nextTaskPage().disabled).toBe(true)
@@ -262,7 +269,7 @@ it('requests backend pages and resets to page one when changing page size', asyn
   })
   await flushTaskRequest()
   expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=50')
-  expect(container.textContent).toContain('共 45 条任务 · 第 1 / 1 页')
+  expect(container.textContent).toContain('第 1–45 条，共 45 条任务')
   expect(nextTaskPage().disabled).toBe(true)
   expect(previousTaskPage().disabled).toBe(true)
 })
@@ -284,7 +291,7 @@ it('allows retrying a failed page without getting stuck loading', async () => {
   expect(nextTaskPage().disabled).toBe(false)
   await act(async () => nextTaskPage().click())
   await flushTaskRequest()
-  expect(container.textContent).toContain('共 45 条任务 · 第 2 / 3 页')
+  expect(container.textContent).toContain('第 21–40 条，共 45 条任务')
   expect(container.querySelector('[role="alert"]')).toBeNull()
   expect(nextTaskPage().disabled).toBe(false)
 })

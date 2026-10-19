@@ -1,10 +1,30 @@
 import { apiBaseUrl, getAdminAccessToken, readApiError } from './api'
 import { assertRequestScope } from './request-scope'
 
+export interface ModelChannel {
+  id?: string
+  endpointId: string
+  upstreamModelId: string
+  enabled: boolean
+  isActive: boolean
+}
+export interface ModelCapabilities {
+  referenceImages: boolean
+  aspectRatios: string[]
+  resolutions: string[]
+}
+export const defaultModelCapabilities: ModelCapabilities = {
+  referenceImages: true,
+  aspectRatios: ['1:1', '3:4', '4:3', '9:16', '16:9'],
+  resolutions: ['1K', '2K', '4K'],
+}
+
 export interface AdminModel {
   id: string
   name: string
-  endpointId: string
+  version: number
+  channels: ModelChannel[]
+  capabilities: ModelCapabilities
   priceMinor: number
   enabled: boolean
   isDefault: boolean
