@@ -1,6 +1,7 @@
 'use client'
 
-import { Check, Download, Maximize2, Pencil, Star, Trash2 } from 'lucide-react'
+import { Check, Download, FolderInput, Maximize2, Pencil, Trash2 } from 'lucide-react'
+import { FavoriteStar } from '@/components/favorite-star'
 import { AssetImageCover } from '@/components/asset-image-cover'
 import { taskModeLabel } from '@/components/workbench/use-task-history'
 import { assetTitle, formatLibraryDate, type LibraryAsset } from '@/lib/library'
@@ -8,6 +9,7 @@ import { assetTitle, formatLibraryDate, type LibraryAsset } from '@/lib/library'
 interface AssetGridProps {
   assets: LibraryAsset[]
   selected: string[]
+  selectionMode: boolean
   density: 'comfortable' | 'compact'
   busy: boolean
   onPreview: (asset: LibraryAsset) => void
@@ -17,11 +19,13 @@ interface AssetGridProps {
   onEdit: (asset: LibraryAsset) => void
   onDownload: (asset: LibraryAsset) => void
   onDelete: (asset: LibraryAsset) => void
+  onMove: (asset: LibraryAsset) => void
 }
 
 export function AssetGrid({
   assets,
   selected,
+  selectionMode,
   density,
   busy,
   onPreview,
@@ -31,8 +35,8 @@ export function AssetGrid({
   onEdit,
   onDownload,
   onDelete,
+  onMove,
 }: AssetGridProps) {
-  const selectionMode = selected.length > 0
   return (
     <div className={`asset-grid is-${density}`}>
       {assets.map((asset) => (
@@ -63,16 +67,18 @@ export function AssetGrid({
               </button>
             )}
           </AssetImageCover>
-          <label className="asset-checkbox">
-            <input
-              type="checkbox"
-              aria-label={`选择 ${assetTitle(asset)}`}
-              checked={selected.includes(asset.id)}
-              disabled={busy}
-              onChange={() => onSelect(asset.id)}
-            />
-            <Check size={13} aria-hidden="true" />
-          </label>
+          {selectionMode && (
+            <label className="asset-checkbox">
+              <input
+                type="checkbox"
+                aria-label={`选择 ${assetTitle(asset)}`}
+                checked={selected.includes(asset.id)}
+                disabled={busy}
+                onChange={() => onSelect(asset.id)}
+              />
+              <Check size={13} aria-hidden="true" />
+            </label>
+          )}
           <button
             className={`asset-star${asset.favorite ? ' is-favorite' : ''}`}
             aria-label={
@@ -82,7 +88,7 @@ export function AssetGrid({
             disabled={!!busy}
             onClick={() => onFavorite(asset)}
           >
-            <Star size={16} fill={asset.favorite ? 'currentColor' : 'none'} />
+            <FavoriteStar active={asset.favorite} />
           </button>
           <div className="asset-card-copy">
             <strong title={assetTitle(asset)}>{assetTitle(asset)}</strong>
@@ -101,14 +107,41 @@ export function AssetGrid({
             )}
           </div>
           <div className="asset-card-actions">
-            <button onClick={() => onEdit(asset)}>
+            <button
+              type="button"
+              title="整理图片"
+              aria-label={`整理 ${assetTitle(asset)}`}
+              disabled={busy}
+              onClick={() => onEdit(asset)}
+            >
               <Pencil size={14} />
-              整理
+              <span className="asset-card-edit-label">整理</span>
             </button>
-            <button aria-label={`下载 ${assetTitle(asset)}`} onClick={() => onDownload(asset)}>
+            <button
+              type="button"
+              title="移至项目"
+              aria-label={`移动 ${assetTitle(asset)} 至项目`}
+              disabled={busy}
+              onClick={() => onMove(asset)}
+            >
+              <FolderInput size={15} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title="下载原图"
+              disabled={busy}
+              aria-label={`下载 ${assetTitle(asset)}`}
+              onClick={() => onDownload(asset)}
+            >
               <Download size={15} />
             </button>
-            <button aria-label={`删除 ${assetTitle(asset)}`} onClick={() => onDelete(asset)}>
+            <button
+              type="button"
+              title="删除图片"
+              disabled={busy}
+              aria-label={`删除 ${assetTitle(asset)}`}
+              onClick={() => onDelete(asset)}
+            >
               <Trash2 size={15} />
             </button>
           </div>

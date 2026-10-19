@@ -1,16 +1,7 @@
 'use client'
 
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Images,
-  Maximize2,
-  Plus,
-  Search,
-  Star,
-  X,
-} from 'lucide-react'
+import { FavoriteStar } from '@/components/favorite-star'
+import { Check, ChevronLeft, ChevronRight, Images, Maximize2, Plus, Search, X } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { AccountAccess } from '@/components/account-access'
 import { useAccount } from '@/components/account-provider'
@@ -482,7 +473,7 @@ export function AssetPicker({
                 aria-pressed={favorite}
                 onClick={() => setFavorite(!favorite)}
               >
-                <Star size={15} aria-hidden="true" fill={favorite ? 'currentColor' : 'none'} />
+                <FavoriteStar size={15} active={favorite} />
                 <span>收藏</span>
               </button>
               <LibrarySelect

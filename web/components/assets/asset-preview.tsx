@@ -1,6 +1,6 @@
 'use client'
 
-import { Maximize2, Pencil, ScanText, X } from 'lucide-react'
+import { Columns2, Maximize2, Pencil, ScanText, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRef } from 'react'
 import { createPortal } from 'react-dom'
@@ -19,12 +19,16 @@ export function AssetPreview({
   onEdit,
   onZoom,
   onReverse,
+  onCompare,
+  onCompareOriginal,
 }: {
   asset: LibraryAsset
   onClose: () => void
   onEdit: () => void
   onZoom: () => void
   onReverse: () => void
+  onCompare: () => void
+  onCompareOriginal?: () => void
 }) {
   const panel = useRef<HTMLDivElement>(null)
   useDialogFocus(panel, onClose)
@@ -45,9 +49,15 @@ export function AssetPreview({
       >
         <header>
           <strong>{assetTitle(asset)}</strong>
-          <button aria-label="关闭作品预览" onClick={onClose}>
-            <X size={20} />
-          </button>
+          <div className="asset-preview-header-actions">
+            <button type="button" className="asset-preview-compare" onClick={onCompare}>
+              <Columns2 size={15} aria-hidden="true" />
+              对比
+            </button>
+            <button aria-label="关闭作品预览" onClick={onClose}>
+              <X size={20} />
+            </button>
+          </div>
         </header>
         <div className="asset-preview-body">
           <div className="asset-preview-image">
@@ -90,6 +100,12 @@ export function AssetPreview({
               ))}
             </div>
             <div className="asset-preview-actions">
+              {onCompareOriginal && (
+                <button type="button" className="studio-secondary" onClick={onCompareOriginal}>
+                  <Columns2 size={15} aria-hidden="true" />
+                  与原图对比
+                </button>
+              )}
               {asset.task && (
                 <SavePersonalPrompt
                   seed={{
