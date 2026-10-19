@@ -165,7 +165,7 @@ func (q *taskQueue) processTask(id string) {
 	}
 	images, modules, err := q.generateBatches(id, input)
 	if err != nil {
-		fmt.Printf("task %s generation failed: %s\n", id, publicGenerationError(err.Error()))
+		fmt.Printf("task %s generation failed (%s): %s\n", id, generationFailureReason(err), publicGenerationError(err.Error()))
 		paths, persistErr := q.server.persistGeneratedImages(id, images)
 		if persistErr != nil {
 			err = fmt.Errorf("%v；已生成图片保存失败：%w", err, persistErr)
@@ -175,6 +175,7 @@ func (q *taskQueue) processTask(id string) {
 	}
 	paths, err := q.server.persistGeneratedImages(id, images)
 	if err != nil {
+		fmt.Printf("task %s image persistence failed (%s): %s\n", id, generationFailureReason(err), publicGenerationError(err.Error()))
 		q.server.updateTaskResult(id, "failed", paths, modules, publicGenerationError(err.Error()))
 		return
 	}

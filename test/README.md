@@ -19,6 +19,7 @@
 
 ## 现有记录
 
+- [生图真实账号复测（2026-10-19）](reports/generation-live-2026-10-19.md)
 - [项目结构与安全检查（2026-10-15）](reports/project-review-2026-10-15.md)
 - [早期项目检查（2026-10-12）](reports/project-review-2026-10-12.md)
 - [电商工具真实出图对照](reports/commerce-effects-2026-10-13.md)
