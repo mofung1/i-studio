@@ -1,6 +1,12 @@
 'use client'
 
-import { isStoredImage, sameCreationImage, type CreationImage } from '@/lib/creation-images'
+import {
+  isStoredImage,
+  reuseExistingCreationImage,
+  sameCreationImage,
+  type CreationImage,
+} from '@/lib/creation-images'
+import { loadProtectedImage } from '@/components/authenticated-image'
 
 import { RotateCcw, ScanText, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -355,7 +361,14 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                                   ),
                                 }),
                             currentPrompt: prompt,
-                            onApply: ({ text, referenceFile, action }) => {
+                            onApply: async ({ text, referenceFile, action }) => {
+                              if (referenceFile)
+                                referenceFile = await reuseExistingCreationImage(
+                                  referenceFile,
+                                  referenceFiles,
+                                  async (image) =>
+                                    (await loadProtectedImage(image.contentPath)).blob,
+                                )
                               const alreadyIncluded =
                                 referenceFile &&
                                 referenceFiles.some((image) =>

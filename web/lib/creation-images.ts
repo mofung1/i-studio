@@ -19,6 +19,30 @@ export function isStoredImage(image: CreationImage): image is StoredImage {
 export function sameCreationImage(a: CreationImage, b: CreationImage) {
   return a === b || (isStoredImage(a) && isStoredImage(b) && a.assetId === b.assetId)
 }
+
+/** A restored reverse task contains a new File, even when its original is already selected. */
+export async function reuseExistingCreationImage(
+  image: CreationImage,
+  candidates: CreationImage[],
+  loadStored: (image: StoredImage) => Promise<Blob>,
+): Promise<CreationImage> {
+  const existing = candidates.find((candidate) => sameCreationImage(candidate, image))
+  if (existing) return existing
+  if (isStoredImage(image)) return image
+  const possibleMatches = candidates.filter(
+    (candidate) => candidate.size === image.size && candidate.type === image.type,
+  )
+  if (!possibleMatches.length) return image
+  const bytes = new Uint8Array(await image.arrayBuffer())
+  for (const candidate of possibleMatches) {
+    const blob = isStoredImage(candidate) ? await loadStored(candidate) : candidate
+    const other = new Uint8Array(await blob.arrayBuffer())
+    if (bytes.length === other.length && bytes.every((byte, index) => byte === other[index]))
+      return candidate
+  }
+  return image
+}
+
 export function storedImage(asset: LibraryAsset): StoredImage {
   return {
     kind: 'asset',

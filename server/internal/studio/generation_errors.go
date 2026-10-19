@@ -2,6 +2,25 @@ package studio
 
 import "strings"
 
+// Log only known diagnostic labels; upstream errors can contain credentials and
+// signed image URLs and must never be written verbatim.
+func generationFailureReason(err error) string {
+	for _, reason := range []string{
+		"provider response missing taskID", "decode AI response", "decode AI poll response",
+		"供应商返回成功状态，但没有生成图片", "供应商返回失败状态，但未提供错误详情",
+		"unsupported generated image content", "generated image content type mismatch",
+		"generated image header invalid or dimensions too large", "remote image response invalid",
+		"invalid image data URL", "invalid base64 image", "unsupported generated image type",
+		"private image host is not allowed", "image host unavailable", "unsupported image URL",
+		"AI request failed", "AI endpoint", "等待供应商结果超时",
+	} {
+		if strings.Contains(err.Error(), reason) {
+			return reason
+		}
+	}
+	return "unclassified"
+}
+
 // Provider bodies and transport errors may contain channel URLs, signed image
 // links, credentials or internal model names. Return only fixed user-facing text.
 func publicGenerationError(message string) string {
