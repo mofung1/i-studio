@@ -269,6 +269,7 @@ func (p *imageProtocolTransport) Poll(ctx context.Context, id string) (providerP
 	}
 	var payload struct {
 		Status            string          `json:"status"`
+		StatusMessage     string          `json:"statusMessage"`
 		ErrorMessage      string          `json:"errorMessage"`
 		ErrorMessageSnake string          `json:"error_message"`
 		FailureReason     string          `json:"failureReason"`
@@ -288,12 +289,18 @@ func (p *imageProtocolTransport) Poll(ctx context.Context, id string) (providerP
 			images = append(images, image.URL)
 		}
 	}
-	errorMessage := firstNonEmpty(payload.ErrorMessage, payload.ErrorMessageSnake, payload.FailureReason, payload.FailureReasonAlt, payload.Message)
+	errorMessage := firstNonEmpty(payload.ErrorMessage, payload.ErrorMessageSnake, payload.FailureReason, payload.FailureReasonAlt)
 	if errorMessage == "" && len(payload.Error) > 0 && string(payload.Error) != "null" {
 		errorMessage = providerErrorMessage(payload.Error)
 	}
-	if errorMessage == "" && strings.EqualFold(payload.Status, "failed") {
-		errorMessage = providerErrorMessage(data)
+	if errorMessage == "" {
+		switch strings.ToLower(payload.Status) {
+		case "failed", "cancelled", "expired":
+			errorMessage = firstNonEmpty(strings.TrimSpace(payload.StatusMessage), strings.TrimSpace(payload.Message))
+			if errorMessage == "" {
+				errorMessage = providerErrorMessage(data)
+			}
+		}
 	}
 	return providerPollResult{Status: strings.ToLower(payload.Status), Images: images, Error: safeAIError(fmt.Errorf("%s", errorMessage), p.apiKey)}, nil
 }
@@ -316,7 +323,7 @@ func nestedProviderMessage(value any) string {
 	case string:
 		return strings.TrimSpace(current)
 	case map[string]any:
-		for _, key := range []string{"message", "errorMessage", "error_message", "failureReason", "failure_reason", "reason", "detail", "error"} {
+		for _, key := range []string{"message", "errorMessage", "error_message", "failureReason", "failure_reason", "reason", "detail", "error", "statusMessage"} {
 			if message := nestedProviderMessage(current[key]); message != "" {
 				return message
 			}
@@ -367,15 +374,17 @@ func openAISize(ratio, resolution string) string {
 			return "2048x2048"
 		}
 	}
+	// Keep the largest exact aspect ratio on the 16-pixel grid within OpenAI's
+	// 8,294,400-pixel and 3840-pixel edge limits, including non-widescreen 4K.
 	switch ratio {
 	case "2:3":
-		return "2560x3840"
+		return "2336x3504"
 	case "3:4":
-		return "2880x3840"
+		return "2448x3264"
 	case "9:16":
 		return "2160x3840"
 	case "4:3":
-		return "3840x2880"
+		return "3264x2448"
 	case "16:9":
 		return "3840x2160"
 	default:
