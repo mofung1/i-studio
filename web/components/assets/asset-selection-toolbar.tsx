@@ -4,14 +4,13 @@ import {
   Check,
   CheckCheck,
   ChevronDown,
-  Columns2,
   Download,
   FolderInput,
   LoaderCircle,
   MoreHorizontal,
-  Star,
   X,
 } from 'lucide-react'
+import { FavoriteStar } from '@/components/favorite-star'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
 interface SelectionAction {
@@ -19,7 +18,6 @@ interface SelectionAction {
   icon: ReactNode
   onClick: () => void
   disabled?: boolean
-  className?: string
 }
 
 function SelectionMenu({
@@ -124,7 +122,6 @@ function SelectionMenu({
               type="button"
               role="menuitem"
               key={action.label}
-              className={action.className}
               disabled={action.disabled || disabled}
               onClick={() => {
                 setOpen(false)
@@ -155,7 +152,7 @@ export function AssetSelectionToolbar({
   onDownload,
   onMove,
   onFavorite,
-  onCompare,
+  onExit,
 }: {
   count: number
   loadedCount: number
@@ -168,16 +165,11 @@ export function AssetSelectionToolbar({
   onDownload: () => void
   onMove: () => void
   onFavorite: () => void
-  onCompare: () => void
+  onExit: () => void
 }) {
   const disabled = !!busy
+  const actionDisabled = disabled || count === 0
   const favoriteLabel = allFavorite ? '取消收藏' : '收藏'
-  const compare = {
-    label: '图片对比',
-    icon: <Columns2 size={15} aria-hidden="true" />,
-    onClick: onCompare,
-    disabled: count !== 2,
-  }
   return (
     <div
       className="asset-selection-toolbar"
@@ -212,7 +204,7 @@ export function AssetSelectionToolbar({
         <button
           type="button"
           className="asset-selection-download"
-          disabled={disabled}
+          disabled={actionDisabled}
           onClick={onDownload}
         >
           {busy === 'download' ? (
@@ -225,7 +217,7 @@ export function AssetSelectionToolbar({
         <button
           type="button"
           className="asset-selection-desktop"
-          disabled={disabled}
+          disabled={actionDisabled}
           onClick={onMove}
         >
           <FolderInput size={15} aria-hidden="true" />
@@ -234,48 +226,35 @@ export function AssetSelectionToolbar({
         <button
           type="button"
           className="asset-selection-desktop"
-          disabled={disabled}
+          disabled={actionDisabled}
           onClick={onFavorite}
         >
           {busy === 'favorite' ? (
             <LoaderCircle size={15} className="animate-spin" aria-hidden="true" />
           ) : (
-            <Star size={15} fill={allFavorite ? 'currentColor' : 'none'} aria-hidden="true" />
+            <FavoriteStar size={15} active={allFavorite} />
           )}
           {favoriteLabel}
         </button>
-        {count === 2 && (
-          <button
-            type="button"
-            className="asset-selection-desktop"
-            disabled={disabled}
-            onClick={onCompare}
-          >
-            {compare.icon}
-            {compare.label}
-          </button>
-        )}
       </div>
       <SelectionMenu
         label="更多图片操作"
-        className={`asset-selection-more${count === 2 ? ' is-pair' : ''}`}
+        className="asset-selection-more"
         disabled={disabled}
         actions={[
           {
             label: '移至项目',
             icon: <FolderInput size={15} aria-hidden="true" />,
             onClick: onMove,
-            className: 'asset-selection-mobile',
+            disabled: actionDisabled,
           },
           {
             label: favoriteLabel,
-            icon: <Star size={15} aria-hidden="true" />,
+            icon: <FavoriteStar size={15} active={allFavorite} />,
             onClick: onFavorite,
-            className: 'asset-selection-mobile',
+            disabled: actionDisabled,
           },
-          { ...compare, className: count === 2 ? 'asset-selection-mobile' : undefined },
         ]}
-        hint={count !== 2 ? '请选择两张图片进行对比。' : undefined}
       >
         <MoreHorizontal size={18} aria-hidden="true" />
         <span className="asset-selection-more-label">更多</span>
@@ -283,10 +262,10 @@ export function AssetSelectionToolbar({
       <button
         type="button"
         className="asset-selection-cancel"
-        aria-label="取消选择"
-        title="取消选择（Esc）"
+        aria-label="退出批量管理"
+        title="退出批量管理（Esc）"
         disabled={disabled}
-        onClick={onClear}
+        onClick={onExit}
       >
         <X size={17} aria-hidden="true" />
       </button>

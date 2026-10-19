@@ -8,6 +8,7 @@ import {
   ArrowUp,
   Columns2,
   GripVertical,
+  Images,
   Maximize,
   RefreshCw,
   SplitSquareHorizontal,
@@ -15,10 +16,18 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
-import { useRef, useState, type CSSProperties, type PointerEvent, type KeyboardEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+  type KeyboardEvent,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { useProtectedImageUrl } from './authenticated-image'
 import { LibrarySelect } from './library-controls'
+import { ComparisonAssetBrowser } from './assets/comparison-asset-browser'
 import { useDialogFocus } from './use-dialog-focus'
 import {
   clampComparisonPan,
@@ -34,25 +43,39 @@ export function ImageComparisonDialog({
   candidates,
   initialLeft,
   initialRight,
+  browseLibrary,
   onClose,
 }: {
   candidates: ComparisonImage[]
   initialLeft?: string
   initialRight?: string
+  browseLibrary?: { projectId?: string }
   onClose: () => void
 }) {
-  const images = comparisonCandidates(candidates)
+  const [pickedImages, setPickedImages] = useState<ComparisonImage[]>([])
+  const images = comparisonCandidates([...candidates, ...pickedImages])
   const [leftPath, setLeftPath] = useState(initialLeft ?? images[0]?.path ?? '')
   const [rightPath, setRightPath] = useState(
-    initialRight ?? images.find((item) => item.path !== leftPath)?.path ?? '',
+    initialRight ??
+      (browseLibrary ? '' : (images.find((item) => item.path !== leftPath)?.path ?? '')),
+  )
+  const [choosing, setChoosing] = useState<'a' | 'b' | null>(
+    browseLibrary && !initialRight ? 'b' : null,
   )
   const [mode, setMode] = useState<'side' | 'slider'>(() =>
-    typeof window !== 'undefined' && window.innerWidth < 700 ? 'slider' : 'side',
+    !browseLibrary && typeof window !== 'undefined' && window.innerWidth < 700 ? 'slider' : 'side',
   )
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState<ComparisonPan>({ x: 0, y: 0 })
   const [divider, setDivider] = useState(50)
   const panel = useRef<HTMLDivElement>(null)
+  const libraryEnabled = !!browseLibrary
+  useEffect(() => {
+    if (libraryEnabled && !choosing)
+      panel.current
+        ?.querySelector<HTMLButtonElement>('button[aria-label="更换图片 B"]')
+        ?.focus({ preventScroll: true })
+  }, [choosing, libraryEnabled])
   const drag = useRef<{
     pointerId: number
     x: number
@@ -61,11 +84,19 @@ export function ImageComparisonDialog({
     height: number
     pan: ComparisonPan
   } | null>(null)
-  useDialogFocus(panel, onClose, 'button[aria-label="关闭图片对比"]')
+  useDialogFocus(
+    panel,
+    () => {
+      if (choosing && left && right) setChoosing(null)
+      else onClose()
+    },
+    'button[aria-label="关闭图片对比"]',
+  )
   const left = images.find((item) => item.path === leftPath) ?? images[0]
-  const right =
-    images.find((item) => item.path === rightPath && item.path !== left?.path) ??
-    images.find((item) => item.path !== left?.path)
+  const right = rightPath
+    ? (images.find((item) => item.path === rightPath && item.path !== left?.path) ??
+      images.find((item) => item.path !== left?.path))
+    : undefined
   function reset() {
     setZoom(1)
     setPan({ x: 0, y: 0 })
@@ -162,57 +193,85 @@ export function ImageComparisonDialog({
         <header className="comparison-header">
           <div>
             <h2 id="comparison-title">图片对比</h2>
-            <p>挑选细节，比较不同版本</p>
+            <p>{choosing ? '固定当前图片，再选择另一张进行比较' : '挑选细节，比较不同版本'}</p>
           </div>
-          <div className="comparison-mode" role="group" aria-label="对比模式">
-            <button
-              type="button"
-              aria-label="并排对比"
-              aria-pressed={mode === 'side'}
-              onClick={() => {
-                setMode('side')
-                reset()
-              }}
-            >
-              <Columns2 size={16} />
-              <span className="comparison-desktop-label">并排</span>
-              <span className="comparison-mobile-label">上下</span>
-            </button>
-            <button
-              type="button"
-              aria-label="滑杆对比"
-              aria-pressed={mode === 'slider'}
-              onClick={() => {
-                setMode('slider')
-                reset()
-              }}
-            >
-              <SplitSquareHorizontal size={16} />
-              滑杆
-            </button>
-          </div>
+          {!choosing && (
+            <div className="comparison-mode" role="group" aria-label="对比模式">
+              <button
+                type="button"
+                aria-label="并排对比"
+                aria-pressed={mode === 'side'}
+                onClick={() => {
+                  setMode('side')
+                  reset()
+                }}
+              >
+                <Columns2 size={16} />
+                <span className="comparison-desktop-label">并排</span>
+                <span className="comparison-mobile-label">上下</span>
+              </button>
+              <button
+                type="button"
+                aria-label="滑杆对比"
+                aria-pressed={mode === 'slider'}
+                onClick={() => {
+                  setMode('slider')
+                  reset()
+                }}
+              >
+                <SplitSquareHorizontal size={16} />
+                滑杆
+              </button>
+            </div>
+          )}
           <button className="comparison-close" aria-label="关闭图片对比" onClick={onClose}>
             <X size={20} />
           </button>
         </header>
-        {left && right ? (
+        {choosing && browseLibrary ? (
+          <ComparisonAssetBrowser
+            key={choosing}
+            side={choosing}
+            anchor={choosing === 'a' ? right : left}
+            projectId={browseLibrary.projectId}
+            suggestions={images}
+            onBack={left && right ? () => setChoosing(null) : undefined}
+            onSelect={(image) => {
+              if (!comparisonCandidates([image]).length) return
+              setPickedImages((current) => comparisonCandidates([...current, image]))
+              if (choosing === 'a') setLeftPath(image.path)
+              else setRightPath(image.path)
+              reset()
+              setDivider(50)
+              setChoosing(null)
+            }}
+          />
+        ) : left && right ? (
           <>
             <div className="comparison-pickers">
               <label>
                 <span>图片 A</span>
-                <LibrarySelect
-                  label="对比图片 A"
-                  value={left.path}
-                  title={left.label}
-                  onChange={(value) => {
-                    reset()
-                    setDivider(50)
-                    setLeftPath(value)
-                  }}
-                  options={images
-                    .filter((item) => item.path !== right.path)
-                    .map((item) => [item.path, item.label])}
-                />
+                {browseLibrary ? (
+                  <ComparisonChoice
+                    image={left}
+                    label="更换图片 A"
+                    onClick={() => setChoosing('a')}
+                  />
+                ) : (
+                  <LibrarySelect
+                    label="对比图片 A"
+                    value={left.path}
+                    title={left.label}
+                    onChange={(value) => {
+                      reset()
+                      setDivider(50)
+                      setLeftPath(value)
+                    }}
+                    options={images
+                      .filter((item) => item.path !== right.path)
+                      .map((item) => [item.path, item.label])}
+                  />
+                )}
               </label>
               <button
                 className="library-command"
@@ -229,19 +288,27 @@ export function ImageComparisonDialog({
               </button>
               <label>
                 <span>图片 B</span>
-                <LibrarySelect
-                  label="对比图片 B"
-                  value={right.path}
-                  title={right.label}
-                  onChange={(value) => {
-                    reset()
-                    setDivider(50)
-                    setRightPath(value)
-                  }}
-                  options={images
-                    .filter((item) => item.path !== left.path)
-                    .map((item) => [item.path, item.label])}
-                />
+                {browseLibrary ? (
+                  <ComparisonChoice
+                    image={right}
+                    label="更换图片 B"
+                    onClick={() => setChoosing('b')}
+                  />
+                ) : (
+                  <LibrarySelect
+                    label="对比图片 B"
+                    value={right.path}
+                    title={right.label}
+                    onChange={(value) => {
+                      reset()
+                      setDivider(50)
+                      setRightPath(value)
+                    }}
+                    options={images
+                      .filter((item) => item.path !== left.path)
+                      .map((item) => [item.path, item.label])}
+                  />
+                )}
               </label>
             </div>
             <div className="comparison-toolbar" role="toolbar" aria-label="同步查看控制">
@@ -323,6 +390,33 @@ export function ImageComparisonDialog({
       </div>
     </div>,
     document.body,
+  )
+}
+
+function ComparisonChoice({
+  image,
+  label,
+  onClick,
+}: {
+  image: ComparisonImage
+  label: string
+  onClick: () => void
+}) {
+  const { source, state } = useProtectedImageUrl(image.path)
+  return (
+    <button
+      type="button"
+      className="comparison-image-choice"
+      aria-label={label}
+      title={image.label}
+      onClick={onClick}
+    >
+      <span className="comparison-choice-thumb">
+        {state === 'loaded' && source && <img src={source} alt="" />}
+      </span>
+      <strong>{image.label}</strong>
+      <Images size={16} aria-hidden="true" />
+    </button>
   )
 }
 

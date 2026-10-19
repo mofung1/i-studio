@@ -25,7 +25,7 @@
 }
 
 :root {
-  /* Monochrome AI Workspace：UI 只用黑白灰，色彩全部来自商品图本身 */
+  /* 主界面使用黑白灰，收藏与错误状态使用独立语义色。 */
   --background: #ffffff;
   --surface: #ffffff;
   --surface-subtle: #f5f6f8;
@@ -50,6 +50,8 @@
   --danger: #8a3129;
   --danger-soft: #f9e9e7;
   --danger-line: #efc4bd;
+  --favorite-stroke: #956300;
+  --favorite-fill: #e6ad24;
 
   --focus: rgba(23, 23, 23, 0.22);
   --focus-soft: rgba(23, 23, 23, 0.08);
@@ -98,11 +100,17 @@ html[data-theme='dark'] {
   --danger: #ffaaa0;
   --danger-soft: #392421;
   --danger-line: #6f3f39;
+  --favorite-stroke: #f3c75b;
+  --favorite-fill: #f3c75b;
   --focus: rgba(240, 241, 243, 0.3);
   --focus-soft: rgba(240, 241, 243, 0.1);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.15);
   --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.28);
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.favorite-star.is-active {
+  color: var(--favorite-stroke);
 }
 
 /* Theme changes reveal the target theme from the button that triggered them. */

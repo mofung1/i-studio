@@ -21,8 +21,19 @@ vi.mock('@/components/prompt-reverse-provider', () => ({
   usePromptReverse: () => ({ openReverse: vi.fn() }),
 }))
 vi.mock('@/components/assets/asset-preview', () => ({
-  AssetPreview: ({ asset }: { asset: LibraryAsset }) => (
-    <div role="dialog" data-preview={asset.id} />
+  AssetPreview: ({
+    asset,
+    onCompare,
+    onCompareOriginal,
+  }: {
+    asset: LibraryAsset
+    onCompare: () => void
+    onCompareOriginal?: () => void
+  }) => (
+    <div role="dialog" data-preview={asset.id}>
+      <button onClick={onCompare}>对比</button>
+      {onCompareOriginal && <button onClick={onCompareOriginal}>与原图对比</button>}
+    </div>
   ),
 }))
 vi.mock('@/components/image-comparison-button', async () => ({
@@ -67,6 +78,7 @@ const escape = async (target: EventTarget = document) =>
     )
   })
 const render = () => act(async () => root.render(<AssetLibrary view="images" />))
+const enterBatch = () => act(async () => button('批量管理').click())
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.stubGlobal(
@@ -88,7 +100,13 @@ beforeEach(() => {
       const method = init?.method ?? 'GET'
       const body = init?.body ? JSON.parse(String(init.body)) : undefined
       requests.push({ path: url.pathname, method, body })
-      if (url.pathname === '/v1/projects') return Response.json({ projects: [] })
+      if (url.pathname === '/v1/projects')
+        return Response.json({
+          projects: [
+            { id: 'launch', name: '新品上架' },
+            { id: 'summer', name: '夏季活动' },
+          ],
+        })
       if (method === 'PATCH') {
         assets = assets.map((item) =>
           body.ids.includes(item.id) ? { ...item, favorite: body.favorite ?? item.favorite } : item,
@@ -114,30 +132,39 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('explains why comparison is unavailable and closes a menu before exiting selection', async () => {
+it('keeps normal browsing free of checkboxes and only enters selection on request', async () => {
   await render()
-  await act(async () => select(1).click())
-  expect(container.querySelector('.asset-context-row')?.contains(group())).toBe(true)
-  expect(container.querySelector('.library-filter-row')).toBeNull()
-  expect(button('图片对比')).toBeUndefined()
-  await act(async () => button('更多图片操作').click())
-  expect(button('图片对比').disabled).toBe(true)
-  expect(group().textContent).toContain('请选择两张图片进行对比')
-  await escape(button('更多图片操作'))
-  expect(container.querySelector('[role="menu"]')).toBeNull()
-  expect(group()).not.toBeNull()
-  await escape()
+  expect(select(1)).toBeNull()
   expect(group()).toBeNull()
-  expect(container.querySelector('.library-filter-row')).not.toBeNull()
+  await act(async () => button('查看 作品 1').click())
+  expect(document.querySelector('[data-preview]')?.getAttribute('data-preview')).toBe('asset-1')
 })
 
-it('opens the two selected images, supports comparison controls and preserves selection on close', async () => {
+it('enters an empty batch mode, closes its menu before exiting, and clears without leaving', async () => {
   await render()
-  await act(async () => {
-    select(2).click()
-    select(1).click()
-  })
-  await act(async () => button('图片对比').click())
+  await enterBatch()
+  expect(button('打包下载', group()).disabled).toBe(true)
+  await act(async () => select(1).click())
+  await act(async () => button('已选 1 张，选择范围').click())
+  await escape(button('已选 1 张，选择范围'))
+  expect(container.querySelector('[role="menu"]')).toBeNull()
+  expect(select(1).checked).toBe(true)
+  await act(async () => button('已选 1 张，选择范围').click())
+  await act(async () => button('清空选择').click())
+  expect(group().textContent).toContain('已选 0 张')
+  await escape()
+  expect(group()).toBeNull()
+  expect(select(1)).toBeNull()
+})
+
+it('starts comparison from one image, chooses B visually, and supports comparison controls', async () => {
+  await render()
+  await act(async () => button('查看 作品 2').click())
+  await act(async () => button('对比').click())
+  expect(document.querySelector('.comparison-choose-layout')).not.toBeNull()
+  expect(document.querySelector('[data-preview]')).toBeNull()
+  expect(button('选择对比图片 作品 2', document)).toBeUndefined()
+  await act(async () => button('选择对比图片 作品 1', document).click())
   const images = Array.from(document.querySelectorAll<HTMLImageElement>('.comparison-image'))
   expect(images.map((image) => image.getAttribute('src'))).toEqual([
     '/v1/assets/asset-2/content',
@@ -147,19 +174,19 @@ it('opens the two selected images, supports comparison controls and preserves se
   expect(document.querySelector('[aria-label="对比缩放倍率"]')?.textContent).toContain('1.25')
   await act(async () => button('滑杆对比', document).click())
   expect(document.querySelector('.comparison-overlay')).not.toBeNull()
-  await act(async () => button('交换两张图片', document).click())
-  expect(
-    document.querySelector('.comparison-overlay > .comparison-image')?.getAttribute('src'),
-  ).toBe('/v1/assets/asset-2/content')
+  await act(async () => button('更换图片 B', document).click())
+  expect(document.querySelector('.comparison-choose-layout')).not.toBeNull()
+  await escape()
+  expect(document.querySelector('.comparison-choose-layout')).toBeNull()
+  expect(document.querySelector('.comparison-dialog')).not.toBeNull()
   await escape()
   expect(document.querySelector('.comparison-dialog')).toBeNull()
-  expect(group().textContent).toContain('已选 2 张')
-  await escape()
-  expect(group()).toBeNull()
+  expect(select(1)).toBeNull()
 })
 
 it('downloads one original and uses the archive endpoint for multiple images', async () => {
   await render()
+  await enterBatch()
   await act(async () => select(2).click())
   await act(async () => button('下载原图', group()).click())
   expect(downloadProtectedAsset).toHaveBeenCalledWith('/v1/assets/asset-2/content', '作品 2.png')
@@ -172,6 +199,7 @@ it('downloads one original and uses the archive endpoint for multiple images', a
 
 it('toggles favorite for mixed selections without clearing them or reloading the gallery', async () => {
   await render()
+  await enterBatch()
   await act(async () => {
     select(1).click()
     select(2).click()
@@ -191,16 +219,19 @@ it('toggles favorite for mixed selections without clearing them or reloading the
 
 it('removes unfavorited images and clears their selection in the favorites view', async () => {
   await render()
+  await enterBatch()
   await act(async () => button('我的收藏').click())
+  await enterBatch()
   await act(async () => select(1).click())
   await act(async () => button('取消收藏', group()).click())
-  expect(group()).toBeNull()
+  expect(group().textContent).toContain('已选 0 张')
   expect(select(1)).toBeNull()
   expect(container.querySelector('.library-count')?.textContent).toBe('0 张图片')
 })
 
 it('uses cover clicks to continue selecting and keeps a separate preview control', async () => {
   await render()
+  await enterBatch()
   await act(async () => select(1).click())
   await act(async () =>
     container
@@ -217,6 +248,7 @@ it('uses cover clicks to continue selecting and keeps a separate preview control
 it('limits select-loaded to 100 and supports keyboard navigation in its menu', async () => {
   assets = Array.from({ length: 120 }, (_, index) => asset(index + 1))
   await render()
+  await enterBatch()
   await act(async () => select(1).click())
   await act(async () => button('已选 1 张，选择范围').click())
   expect(document.activeElement?.textContent).toBe('选择已加载图片')
@@ -231,16 +263,39 @@ it('limits select-loaded to 100 and supports keyboard navigation in its menu', a
   expect(group().textContent).toContain('已选 100 张')
 })
 
-it('shows a clear error instead of silently comparing other assets for an invalid pair', async () => {
-  assets[1]!.contentPath = assets[0]!.contentPath
+it('provides an original-image shortcut when the generation has reference images', async () => {
+  assets[0]!.task = {
+    id: 'task',
+    status: 'succeeded',
+    createdAt: assets[0]!.createdAt,
+    input: { productAssetIds: ['original'] },
+  }
   await render()
-  await act(async () => {
-    select(1).click()
-    select(2).click()
+  await act(async () => button('查看 作品 1').click())
+  await act(async () => button('与原图对比').click())
+  expect(document.querySelector('.comparison-choose-layout')).toBeNull()
+  expect(
+    Array.from(document.querySelectorAll<HTMLImageElement>('.comparison-image')).map((image) =>
+      image.getAttribute('src'),
+    ),
+  ).toEqual(['/v1/assets/original/content', '/v1/assets/asset-1/content'])
+})
+
+it('moves one image from its card and prevents submitting its current project', async () => {
+  await render()
+  await act(async () => button('移动 作品 2 至项目').click())
+  expect(button('已在此项目', document).disabled).toBe(true)
+  await act(async () =>
+    document.querySelector<HTMLInputElement>('input[type="radio"][value="launch"]')!.click(),
+  )
+  await act(async () => button('确认移动', document).click())
+  expect(requests.find((item) => item.method === 'PATCH')?.body).toEqual({
+    ids: ['asset-2'],
+    projectId: 'launch',
   })
-  await act(async () => button('图片对比').click())
-  expect(document.querySelector('.comparison-dialog')).toBeNull()
-  expect(group().querySelector('[role="alert"]')?.textContent).toContain('两张不同且可读取的图片')
+  expect(container.querySelector('.asset-card:nth-child(2)')?.textContent).toContain('新品上架')
+  expect(select(1)).toBeNull()
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
 it('locks the selection while a batch action is pending and restores controls afterward', async () => {
@@ -257,12 +312,13 @@ it('locks the selection while a batch action is pending and restores controls af
     ),
   )
   await render()
+  await enterBatch()
   await act(async () => select(2).click())
   await act(async () => button('收藏', group()).click())
   expect(group().getAttribute('aria-busy')).toBe('true')
   expect(select(2).disabled).toBe(true)
   expect(container.querySelector<HTMLButtonElement>('.asset-cover-open')?.disabled).toBe(true)
-  expect(button('取消选择').disabled).toBe(true)
+  expect(button('退出批量管理').disabled).toBe(true)
   await act(async () => finish(Response.json({ updated: 1 })))
   expect(group().getAttribute('aria-busy')).toBe('false')
   expect(select(2).checked).toBe(true)
@@ -290,11 +346,13 @@ it('fills an emptied favorites page when more favorite images remain', async () 
     }),
   )
   await render()
+  await enterBatch()
   await act(async () => button('我的收藏').click())
+  await enterBatch()
   expect(container.querySelector('.library-count')?.textContent).toBe('2 张图片')
   await act(async () => select(1).click())
   await act(async () => button('取消收藏', group()).click())
-  expect(group()).toBeNull()
+  expect(group().textContent).toContain('已选 0 张')
   expect(select(1)).toBeNull()
   expect(select(2)).not.toBeNull()
   expect(container.querySelector('.library-count')?.textContent).toBe('1 张图片')

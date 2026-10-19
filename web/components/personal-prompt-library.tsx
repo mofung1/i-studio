@@ -1,5 +1,6 @@
 'use client'
 
+import { FavoriteStar } from '@/components/favorite-star'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -10,7 +11,6 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
-  Star,
   Trash2,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -219,7 +219,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
             aria-pressed={favorite}
             onClick={() => setFavorite(!favorite)}
           >
-            <Star size={15} />
+            <FavoriteStar size={15} active={favorite} />
             收藏
           </button>
           <button
@@ -275,7 +275,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
                       disabled={!!busy}
                       onClick={() => void action(item.id, () => updateFavorite(item))}
                     >
-                      <Star size={16} fill={item.favorite ? 'currentColor' : 'none'} />
+                      <FavoriteStar active={item.favorite} />
                     </button>
                   )}
                 </header>

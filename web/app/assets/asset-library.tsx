@@ -5,12 +5,11 @@ import {
   Clock3,
   Folder,
   Image as ImageIcon,
+  ListChecks,
   Pencil,
   Plus,
   RefreshCw,
   Search,
-  SlidersHorizontal,
-  Star,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -20,6 +19,9 @@ import { downloadProtectedAsset } from '@/components/authenticated-image'
 import { AccountBoundary } from '@/components/account-access'
 import { AssetGrid } from '@/components/assets/asset-grid'
 import { AssetSelectionToolbar } from '@/components/assets/asset-selection-toolbar'
+import { AssetAdvancedFilters } from '@/components/assets/asset-advanced-filters'
+import { AssetProjectDialog } from '@/components/assets/asset-project-dialog'
+import { FavoriteStar } from '@/components/favorite-star'
 import { TaskGrid } from '@/components/assets/task-grid'
 import { AssetPreview } from '@/components/assets/asset-preview'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -102,9 +104,15 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [selected, setSelected] = useState<string[]>([])
+  const [batchMode, setBatchMode] = useState(false)
   const [preview, setPreview] = useState<LibraryAsset | null>(null)
   const [lightbox, setLightbox] = useState<LibraryAsset | null>(null)
-  const [comparison, setComparison] = useState<ComparisonImage[] | null>(null)
+  const [comparison, setComparison] = useState<{
+    candidates: ComparisonImage[]
+    initialLeft: string
+    initialRight?: string
+    projectId?: string
+  } | null>(null)
   const [detailTask, setDetailTask] = useState<HistoryTask | null>(null)
   const [editing, setEditing] = useState<LibraryAsset | null>(null)
   const [titleDraft, setTitleDraft] = useState('')
@@ -112,8 +120,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
   const [projectDraft, setProjectDraft] = useState('')
   const [projectForm, setProjectForm] = useState<LibraryProject | 'new' | null>(null)
   const [projectName, setProjectName] = useState('')
-  const [moveOpen, setMoveOpen] = useState(false)
-  const [moveProject, setMoveProject] = useState('unfiled')
+  const [moveAssets, setMoveAssets] = useState<LibraryAsset[] | null>(null)
   const [confirm, setConfirm] = useState<{
     asset?: LibraryAsset
     task?: HistoryTask
@@ -213,6 +220,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     setAssets([])
     setTasks([])
     setSelected([])
+    setBatchMode(false)
     setCursor('')
     setTotal(0)
     setMoreBusy(false)
@@ -252,7 +260,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
   }, [tasks])
 
   useEffect(() => {
-    if (!selected.length || busy) return
+    if (!batchMode || busy) return
     function clearOnEscape(event: KeyboardEvent) {
       if (
         event.key !== 'Escape' ||
@@ -263,18 +271,19 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       )
         return
       setSelected([])
+      setBatchMode(false)
       setNotice('')
       setError('')
     }
     document.addEventListener('keydown', clearOnEscape)
     return () => document.removeEventListener('keydown', clearOnEscape)
-  }, [selected.length, busy])
+  }, [batchMode, busy])
 
   useEffect(() => {
-    if (!notice || !selected.length) return
+    if (!notice) return
     const timer = window.setTimeout(() => setNotice(''), 3500)
     return () => window.clearTimeout(timer)
-  }, [notice, selected.length])
+  }, [notice])
 
   async function act(key: string, action: () => Promise<void>, success = '') {
     if (busy) return
@@ -300,7 +309,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     setSelected([])
   }
   function toggleSelect(id: string) {
-    if (busy) return
+    if (busy || !batchMode) return
     setNotice('')
     setError('')
     setSelected((previous) =>
@@ -314,10 +323,8 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
   const selectedAssets = assets.filter((item) => selected.includes(item.id))
   const allSelectedFavorite =
     selectedAssets.length > 0 && selectedAssets.every((item) => item.favorite)
-  async function favoriteSelected() {
+  async function updateFavorites(ids: string[], nextFavorite: boolean) {
     const requestFilter = filterKey
-    const ids = [...selected]
-    const nextFavorite = !allSelectedFavorite
     await libraryRequest('library/assets', {
       method: 'PATCH',
       body: JSON.stringify({ ids, favorite: nextFavorite }),
@@ -347,36 +354,87 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       await downloadProtectedAsset(asset.contentPath, assetFilename(asset))
     } else await downloadLibraryAssets(selected)
   }
-  function compareSelected() {
-    const chosen = selected
-      .map((id) => assets.find((item) => item.id === id))
-      .filter((item): item is LibraryAsset => !!item)
-    const pair = comparisonCandidates(
-      chosen.map((item) => ({
-        path: item.contentPath,
-        label: `${formatLibraryDate(item.createdAt)} · ${assetTitle(item)}`,
-        width: item.width,
-        height: item.height,
-      })),
+  function compareAsset(asset: LibraryAsset, original = false) {
+    const current = {
+      path: asset.contentPath,
+      label: assetTitle(asset),
+      width: asset.width,
+      height: asset.height,
+    }
+    const references = comparisonReferences(asset.task?.input).filter(
+      (item) => item.path !== asset.contentPath,
     )
-    if (chosen.length !== 2 || pair.length !== 2) {
-      setError('请选择两张不同且可读取的图片进行对比')
+    const candidates = comparisonCandidates([
+      current,
+      ...references,
+      ...(asset.task?.resultImages ?? []).map((path, index) => ({
+        path,
+        label: `同次生成 · ${index + 1}`,
+      })),
+      ...assets
+        .filter(
+          (item) =>
+            item.id !== asset.id &&
+            ((asset.task?.id && item.task?.id === asset.task.id) ||
+              (asset.projectId && item.projectId === asset.projectId)),
+        )
+        .map((item) => ({
+          path: item.contentPath,
+          label: assetTitle(item),
+          width: item.width,
+          height: item.height,
+        })),
+    ])
+    setPreview(null)
+    if (!candidates.some((item) => item.path === current.path)) {
+      setError('这张图片暂不支持对比，请选择其他图片')
       return
     }
     setError('')
     setNotice('')
-    setComparison(
-      comparisonCandidates([
-        ...pair,
-        ...chosen.flatMap((item) => comparisonReferences(item.task?.input)),
-        ...assets.map((item) => ({
-          path: item.contentPath,
-          label: `${formatLibraryDate(item.createdAt)} · ${assetTitle(item)}`,
-          width: item.width,
-          height: item.height,
-        })),
-      ]),
-    )
+    setComparison({
+      candidates,
+      initialLeft: original && references[0] ? references[0].path : current.path,
+      ...(original && references.length ? { initialRight: current.path } : {}),
+      projectId: asset.projectId || undefined,
+    })
+  }
+  async function moveToProject(projectId: string) {
+    if (!moveAssets?.length) return
+    const requestFilter = filterKey
+    const ids = moveAssets.map((asset) => asset.id)
+    await libraryRequest('library/assets', {
+      method: 'PATCH',
+      body: JSON.stringify({ ids, projectId }),
+    })
+    setMoveAssets(null)
+    if (currentFilter.current === requestFilter) {
+      const leaving = project !== 'all' && project !== (projectId || 'unfiled')
+      setAssets((current) =>
+        current.flatMap((item) =>
+          !ids.includes(item.id)
+            ? [item]
+            : leaving
+              ? []
+              : [
+                  {
+                    ...item,
+                    projectId,
+                    projectName: projects.find((item) => item.id === projectId)?.name || '',
+                  },
+                ],
+        ),
+      )
+      if (leaving) {
+        setSelected((current) => current.filter((id) => !ids.includes(id)))
+        setTotal((current) => Math.max(0, current - ids.length))
+        if (assets.length === ids.length && total > ids.length) {
+          setLoading(true)
+          await latestLoad.current()
+        }
+      }
+    }
+    await loadProjects()
   }
   function openEdit(asset: LibraryAsset) {
     setError('')
@@ -478,12 +536,13 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
             {view !== 'tasks' && (
               <button
                 className={favorite ? 'active' : ''}
+                aria-pressed={favorite}
                 onClick={() => {
                   setFavorite(!favorite)
                   setProject('all')
                 }}
               >
-                <Star size={16} />
+                <FavoriteStar active={favorite} />
                 我的收藏
               </button>
             )}
@@ -589,7 +648,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
               </button>
             </div>
             <div className="asset-context-row">
-              {selected.length > 0 ? (
+              {batchMode ? (
                 <AssetSelectionToolbar
                   count={selected.length}
                   loadedCount={assets.length}
@@ -605,78 +664,63 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                   }}
                   onDownload={() => void act('download', downloadSelected)}
                   onMove={() => {
-                    setMoveOpen(true)
-                    setMoveProject('unfiled')
+                    setError('')
+                    setMoveAssets(selectedAssets)
                   }}
                   onFavorite={() =>
                     void act(
                       'favorite',
-                      favoriteSelected,
+                      () => updateFavorites(selected, !allSelectedFavorite),
                       allSelectedFavorite ? '已取消收藏' : '已加入收藏',
                     )
                   }
-                  onCompare={compareSelected}
+                  onExit={() => {
+                    setBatchMode(false)
+                    setSelected([])
+                    setNotice('')
+                    setError('')
+                  }}
                 />
               ) : (
                 <div className="library-filter-row">
-                  <details className="library-advanced">
-                    <summary>
-                      <SlidersHorizontal size={14} />
-                      更多筛选{(tag || from || to) && <span>已设置</span>}
-                    </summary>
-                    <div>
-                      {view !== 'tasks' && (
-                        <label>
-                          标签
-                          <input
-                            aria-label="筛选标签"
-                            placeholder="输入完整标签"
-                            value={tag}
-                            onChange={(event) => setTag(event.target.value)}
-                          />
-                        </label>
-                      )}
-                      <label>
-                        开始日期
-                        <input
-                          type="date"
-                          aria-label="开始日期"
-                          value={from}
-                          max={to || undefined}
-                          onChange={(event) => setFrom(event.target.value)}
-                        />
-                      </label>
-                      <label>
-                        结束日期
-                        <input
-                          type="date"
-                          aria-label="结束日期"
-                          value={to}
-                          min={from || undefined}
-                          onChange={(event) => setTo(event.target.value)}
-                        />
-                      </label>
+                  <AssetAdvancedFilters
+                    showTag={view !== 'tasks'}
+                    tag={tag}
+                    from={from}
+                    to={to}
+                    onTag={setTag}
+                    onFrom={setFrom}
+                    onTo={setTo}
+                    onReset={() => {
+                      setTag('')
+                      setFrom('')
+                      setTo('')
+                    }}
+                  />
+                  {view !== 'tasks' && (
+                    <div className="asset-list-options">
                       <button
-                        className="library-command"
+                        type="button"
+                        className="library-command asset-batch-enter"
+                        disabled={loading || !!busy || !assets.length}
                         onClick={() => {
-                          setTag('')
-                          setFrom('')
-                          setTo('')
+                          setBatchMode(true)
+                          setError('')
+                          setNotice('')
                         }}
                       >
-                        清除筛选
+                        <ListChecks size={15} aria-hidden="true" />
+                        批量管理
+                      </button>
+                      <button
+                        className="library-density"
+                        onClick={() =>
+                          setDensity(density === 'comfortable' ? 'compact' : 'comfortable')
+                        }
+                      >
+                        {density === 'comfortable' ? '紧凑视图' : '舒适视图'}
                       </button>
                     </div>
-                  </details>
-                  {view !== 'tasks' && (
-                    <button
-                      className="library-density"
-                      onClick={() =>
-                        setDensity(density === 'comfortable' ? 'compact' : 'comfortable')
-                      }
-                    >
-                      {density === 'comfortable' ? '紧凑视图' : '舒适视图'}
-                    </button>
                   )}
                 </div>
               )}
@@ -727,13 +771,13 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 </div>
               </div>
             )}
-            {error && !selected.length && (
+            {error && !batchMode && (
               <div className="library-feedback is-error" role="alert">
                 {error}
                 <button onClick={() => void load()}>重试</button>
               </div>
             )}
-            {notice && !selected.length && (
+            {notice && !batchMode && (
               <p className="library-feedback" role="status">
                 {notice}
               </p>
@@ -760,6 +804,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 <AssetGrid
                   assets={assets}
                   selected={selected}
+                  selectionMode={batchMode}
                   density={density}
                   busy={!!busy}
                   onPreview={setPreview}
@@ -767,7 +812,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                   onTag={setTag}
                   onEdit={openEdit}
                   onFavorite={(asset) =>
-                    void act(asset.id, () => editAssets([asset.id], { favorite: !asset.favorite }))
+                    void act(asset.id, () => updateFavorites([asset.id], !asset.favorite))
                   }
                   onDownload={(asset) =>
                     void act('download', () =>
@@ -775,6 +820,10 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                     )
                   }
                   onDelete={(asset) => setConfirm({ asset })}
+                  onMove={(asset) => {
+                    setError('')
+                    setMoveAssets([asset])
+                  }}
                 />
               ) : (
                 <TaskGrid
@@ -824,6 +873,14 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       {preview && (
         <AssetPreview
           asset={preview}
+          onCompare={() => compareAsset(preview)}
+          onCompareOriginal={
+            comparisonReferences(preview.task?.input).some(
+              (item) => item.path !== preview.contentPath,
+            )
+              ? () => compareAsset(preview, true)
+              : undefined
+          }
           onClose={() => setPreview(null)}
           onEdit={() => openEdit(preview)}
           onZoom={() => {
@@ -958,60 +1015,15 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
           </form>
         </LibraryDialog>
       )}
-      {moveOpen && (
-        <LibraryDialog
-          title={`移动 ${selected.length} 张图片`}
-          onClose={() => {
-            if (!busy) setMoveOpen(false)
-          }}
-        >
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              void act(
-                'move',
-                async () => {
-                  await editAssets(selected, {
-                    projectId: moveProject === 'unfiled' ? '' : moveProject,
-                  })
-                  setMoveOpen(false)
-                },
-                '图片已移动',
-              )
-            }}
-          >
-            <label>
-              目标项目
-              <LibrarySelect
-                label="目标项目"
-                value={moveProject}
-                onChange={setMoveProject}
-                disabled={!!busy}
-                options={projectOptions.filter(
-                  ([id]) => !projects.find((item) => item.id === id)?.archived,
-                )}
-              />
-            </label>
-            {error && (
-              <p role="alert" className="settings-error">
-                {error}
-              </p>
-            )}
-            <div className="library-form-actions">
-              <button
-                className="studio-secondary"
-                type="button"
-                disabled={!!busy}
-                onClick={() => setMoveOpen(false)}
-              >
-                取消
-              </button>
-              <button className="studio-primary" disabled={!!busy}>
-                确认移动
-              </button>
-            </div>
-          </form>
-        </LibraryDialog>
+      {moveAssets && (
+        <AssetProjectDialog
+          assets={moveAssets}
+          projects={projects}
+          busy={!!busy}
+          error={error}
+          onClose={() => setMoveAssets(null)}
+          onMove={(projectId) => void act('move', () => moveToProject(projectId), '图片已移动')}
+        />
       )}
       {confirm && (
         <ConfirmDialog
@@ -1070,9 +1082,10 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       )}
       {comparison && (
         <LazyImageComparison
-          candidates={comparison}
-          initialLeft={comparison[0]?.path}
-          initialRight={comparison[1]?.path}
+          candidates={comparison.candidates}
+          initialLeft={comparison.initialLeft}
+          initialRight={comparison.initialRight}
+          browseLibrary={{ projectId: comparison.projectId }}
           onClose={() => setComparison(null)}
         />
       )}
