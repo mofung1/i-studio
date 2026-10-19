@@ -27,7 +27,7 @@ type openAICompatibleClient struct {
 }
 
 func protocolHTTPClient(timeout time.Duration) *http.Client {
-	return &http.Client{Timeout: timeout, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
+	return secureProtocolHTTPClient(timeout)
 }
 
 func newOpenAICompatibleClient(e endpointConfig, key string) *openAICompatibleClient {
@@ -160,7 +160,7 @@ func (c *dynamicPromptClient) complete(ctx context.Context, system, userText str
 	if len(images) > 0 && !e.Capabilities["vision"] {
 		return "", errors.New("当前提示词模型不支持图片识别，请先输入大概的生图内容")
 	}
-	client := newOpenAICompatibleClient(e, key)
+	client := c.server.openAIProtocolClient(e, key)
 	client.disableThinking = true
 	return client.complete(ctx, system, userText, images, maxTokens)
 }
@@ -168,15 +168,7 @@ func (c *dynamicPromptClient) complete(ctx context.Context, system, userText str
 type dynamicImageProvider struct{ server *Service }
 
 func (p *dynamicImageProvider) clientFor(input map[string]any) (imageProvider, error) {
-	e, err := p.server.ai.resolve("image", stringValue(input["endpointId"], ""), stringValue(input["model"], ""))
-	if err != nil {
-		return nil, err
-	}
-	key, err := p.server.ai.decrypt(e)
-	if err != nil {
-		return nil, err
-	}
-	return newImageProtocolClient(e, key), nil
+	return nil, errors.New("任务缺少冻结渠道配置，禁止执行时重新选择渠道")
 }
 
 func (p *dynamicImageProvider) Submit(ctx context.Context, input map[string]any) (providerTask, error) {
@@ -191,14 +183,6 @@ func (p *dynamicImageProvider) Poll(context.Context, string) (providerPollResult
 	return providerPollResult{}, errors.New("image endpoint requires task-specific client")
 }
 
-type openAIImageClient struct{ *imageProtocolTransport }
-
-type geminiGenerateContentClient struct{ *imageProtocolTransport }
-
 func newImageProtocolClient(e endpointConfig, key string) imageProvider {
-	transport := &imageProtocolTransport{baseURL: strings.TrimRight(e.BaseURL, "/"), apiKey: key, model: e.Model, protocol: e.Protocol, standard: !e.Capabilities["async"], client: protocolHTTPClient(time.Duration(e.TimeoutSeconds) * time.Second)}
-	if e.Protocol == "gemini_generate_content" {
-		return &geminiGenerateContentClient{transport}
-	}
-	return &openAIImageClient{transport}
+	return &imageProtocolTransport{baseURL: strings.TrimRight(e.BaseURL, "/"), apiKey: key, model: e.Model, protocol: e.Protocol, client: protocolHTTPClient(time.Duration(e.TimeoutSeconds) * time.Second)}
 }

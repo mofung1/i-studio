@@ -11,7 +11,8 @@ import (
 )
 
 // 数据库回归只操作独立 schema，不读取或迁移运行中的业务数据。
-func isolatedTestDatabase(t *testing.T) *sql.DB {
+func isolatedTestDatabase(t *testing.T) *sql.DB { return isolatedDatabase(t, true) }
+func isolatedDatabase(t *testing.T, migrate bool) *sql.DB {
 	t.Helper()
 	rawURL := os.Getenv("TEST_DATABASE_URL")
 	if rawURL == "" {
@@ -47,8 +48,10 @@ func isolatedTestDatabase(t *testing.T) *sql.DB {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { isolated.Close() })
-	if err := database.Migrate(isolated); err != nil {
-		t.Fatal(err)
+	if migrate {
+		if err := database.Migrate(isolated); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return isolated
 }

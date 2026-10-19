@@ -54,7 +54,7 @@ func TestImageProtocolGeminiSubmit(t *testing.T) {
 		}, nil
 	})}
 
-	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client, protocol: "gemini_generate_content"}
+	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client, protocol: "gemini_native"}
 	result, err := provider.Submit(context.Background(), map[string]any{
 		"model": "gemini-3.1-flash-image", "prompt": "product photo", "count": 4,
 		"sourceImages": []map[string]string{{"mime": "image/png", "data": imageData}},
@@ -123,7 +123,7 @@ func TestPromptIgnoresUnknownEnhancements(t *testing.T) {
 
 func TestImageProtocolOpenAIGenerationSubmit(t *testing.T) {
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
-		if request.URL.Path != "/v1/images/generations/async" {
+		if request.URL.Path != "/v1/images/generations" {
 			t.Fatalf("unexpected path %s", request.URL.Path)
 		}
 		if request.Header.Get("Authorization") != "Bearer test-key" {
@@ -145,17 +145,17 @@ func TestImageProtocolOpenAIGenerationSubmit(t *testing.T) {
 		if body["n"] != float64(1) {
 			t.Fatalf("OpenAI image request n = %#v, want 1", body["n"])
 		}
-		return jsonResponse(request, `{"taskID":"generation-task","status":"pending"}`), nil
+		return jsonResponse(request, `{"data":[{"b64_json":"aW1hZ2U="}]}`), nil
 	})}
 
-	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{protocol: "openai_images", baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Submit(context.Background(), map[string]any{
 		"model": "gpt-image-2", "prompt": "product photo", "aspectRatio": "1:1", "resolution": "1K", "count": 4,
 	})
 	if err != nil {
 		t.Fatalf("Submit() error = %v", err)
 	}
-	if result.ID != "generation-task" || result.Status != "pending" || len(result.Images) != 0 {
+	if result.ID != "" || result.Status != "success" || len(result.Images) != 1 {
 		t.Fatalf("unexpected result %#v", result)
 	}
 }
@@ -164,7 +164,7 @@ func TestImageProtocolOpenAIEditSubmit(t *testing.T) {
 	sourceData := []byte("source-image")
 	secondSourceData := []byte("second-source-image")
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
-		if request.URL.Path != "/v1/images/edits/async" {
+		if request.URL.Path != "/v1/images/edits" {
 			t.Fatalf("unexpected path %s", request.URL.Path)
 		}
 		if !strings.HasPrefix(request.Header.Get("Content-Type"), "multipart/form-data; boundary=") {
@@ -180,7 +180,7 @@ func TestImageProtocolOpenAIEditSubmit(t *testing.T) {
 				t.Fatalf("unexpected %s field %q", name, actual)
 			}
 		}
-		files := request.MultipartForm.File["image"]
+		files := request.MultipartForm.File["image[]"]
 		if len(files) != 2 || files[0].Filename != "source-1.png" || files[1].Filename != "source-2.jpg" {
 			t.Fatalf("unexpected image parts %#v", files)
 		}
@@ -196,10 +196,10 @@ func TestImageProtocolOpenAIEditSubmit(t *testing.T) {
 		if err != nil || string(data) != string(sourceData) {
 			t.Fatalf("unexpected multipart image %q, %v", data, err)
 		}
-		return jsonResponse(request, `{"task_id":"edit-task","status":"queued"}`), nil
+		return jsonResponse(request, `{"data":[{"url":"https://images.example/edit.png"}]}`), nil
 	})}
 
-	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{protocol: "openai_images", baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	result, err := provider.Submit(context.Background(), map[string]any{
 		"model": "gpt-image-2", "prompt": "edit product photo", "aspectRatio": "1:1", "resolution": "2K", "count": 4,
 		"sourceImages": []map[string]string{
@@ -210,25 +210,8 @@ func TestImageProtocolOpenAIEditSubmit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Submit() error = %v", err)
 	}
-	if result.ID != "edit-task" || result.Status != "queued" || len(result.Images) != 0 {
+	if result.ID != "" || result.Status != "success" || len(result.Images) != 1 {
 		t.Fatalf("unexpected result %#v", result)
-	}
-}
-
-func TestImageProtocolPoll(t *testing.T) {
-	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
-		if request.URL.Path != "/v1/async-tasks/provider-task" {
-			t.Fatalf("unexpected path %s", request.URL.Path)
-		}
-		return jsonResponse(request, `{"status":"success","resultImages":[{"url":"https://images.example/result.png"}]}`), nil
-	})}
-	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
-	result, err := provider.Poll(context.Background(), "provider-task")
-	if err != nil {
-		t.Fatalf("Poll() error = %v", err)
-	}
-	if result.Status != "success" || len(result.Images) != 1 || result.Images[0] != "https://images.example/result.png" {
-		t.Fatalf("unexpected poll result %#v", result)
 	}
 }
 
@@ -241,38 +224,10 @@ func TestImageProtocolSubmitPreservesProviderError(t *testing.T) {
 			Request:    request,
 		}, nil
 	})}
-	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
+	provider := &imageProtocolTransport{protocol: "openai_images", baseURL: "https://provider.example", apiKey: "test-key", client: client}
 	_, err := provider.Submit(context.Background(), map[string]any{"model": "gpt-image-2", "prompt": "product photo"})
 	if err == nil || !strings.Contains(err.Error(), "upstream model unavailable") {
 		t.Fatalf("unexpected error %v", err)
-	}
-}
-
-func TestImageProtocolPollReadsNestedError(t *testing.T) {
-	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
-		return jsonResponse(request, `{"status":"failed","error":{"message":"reference image rejected"}}`), nil
-	})}
-	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
-	result, err := provider.Poll(context.Background(), "provider-task")
-	if err != nil {
-		t.Fatalf("Poll() error = %v", err)
-	}
-	if result.Status != "failed" || result.Error != "reference image rejected" {
-		t.Fatalf("unexpected poll result %#v", result)
-	}
-}
-
-func TestImageProtocolPollReadsStringError(t *testing.T) {
-	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
-		return jsonResponse(request, `{"status":"failed","error":"model rejected image dimensions"}`), nil
-	})}
-	provider := &imageProtocolTransport{baseURL: "https://provider.example", apiKey: "test-key", client: client}
-	result, err := provider.Poll(context.Background(), "provider-task")
-	if err != nil {
-		t.Fatalf("Poll() error = %v", err)
-	}
-	if result.Error != "model rejected image dimensions" {
-		t.Fatalf("unexpected poll result %#v", result)
 	}
 }
 

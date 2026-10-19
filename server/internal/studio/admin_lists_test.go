@@ -41,7 +41,7 @@ func TestAdminListsReadEveryPageBeyondOneHundred(t *testing.T) {
 					`INSERT INTO users(id,username,password_hash,created_at) SELECT 'customer-'||lpad(n::text,3,'0'),'customer-'||lpad(n::text,3,'0'),'private-hash','2026-10-16T00:00:00Z'::timestamptz FROM generate_series(1,123) n`,
 					`INSERT INTO credit_accounts(user_id,available,held) SELECT id,125,25 FROM users`,
 				},
-				"models": {`INSERT INTO public_models(id,name,endpoint_id,price_minor,created_at) SELECT 'model-'||lpad(n::text,3,'0'),'模型'||n,'channel',125,'2026-10-16T00:00:00Z'::timestamptz FROM generate_series(1,123) n`},
+				"models": {`INSERT INTO public_models(id,name,price_minor,created_at) SELECT 'model-'||lpad(n::text,3,'0'),'模型'||n,125,'2026-10-16T00:00:00Z'::timestamptz FROM generate_series(1,123) n`},
 				"audit":  {`INSERT INTO admin_audit(actor_id,action,target_id,detail) SELECT 'operator','fixture.change',n::text,'操作记录'||n FROM generate_series(1,123) n`},
 			}
 			for _, query := range queries[resource] {

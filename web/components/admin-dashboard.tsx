@@ -1,4 +1,8 @@
 'use client'
+import { AdminPageHeader } from './admin/page-header'
+import { Alert, AlertDescription } from '@/components/admin/ui/alert'
+import { Input } from '@/components/admin/ui/input'
+import { Button } from '@/components/admin/ui/button'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Plus, RefreshCw } from 'lucide-react'
 import type { AIEndpoint } from '@/lib/ai-settings'
@@ -26,7 +30,7 @@ import { AdminOperationsForm } from './admin/operations-form'
 import { AdminModelEditor } from './admin/model-editor'
 import { AdminBalanceEditor } from './admin/balance-editor'
 import { AdminPagination } from './admin/pagination'
-import { InfoDialog } from './info-dialog'
+import { AdminEditorDialog as InfoDialog } from './admin/editor-dialog'
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : '请求失败，请重试')
 
@@ -198,7 +202,13 @@ export function AdminDashboard({
       model ?? {
         id: '',
         name: '',
-        endpointId: endpoints[0]?.id ?? '',
+        version: 0,
+        channels: [],
+        capabilities: {
+          referenceImages: true,
+          aspectRatios: ['1:1', '3:4', '4:3', '9:16', '16:9'],
+          resolutions: ['1K', '2K', '4K'],
+        },
         priceMinor: 0,
         enabled: false,
         isDefault: false,
@@ -255,68 +265,65 @@ export function AdminDashboard({
     )
       setAdjusting(null)
   }
-  const meta = {
-    overview: ['运营概览', '查看账户、任务和积分使用情况。'],
-    models: ['模型与定价', `每张图片单独计价，保存后对新任务生效。价格单位：${unit}。`],
-    users: ['用户与余额', '管理账户权限，发放或调整可用余额。'],
-    operations: ['运营设置', '统一前台积分名称、注册策略与使用上限。'],
-    tasks: ['生成任务', '查看生成状态、结算与退款；用户图片和提示词保持私有。'],
-    audit: ['操作日志', '记录管理员的配置、权限和余额变更。'],
-  }[view]
+  const meta = (
+    {
+      overview: ['运营概览', '查看账户、任务和积分使用情况。'],
+      models: ['模型与定价', `每张图片单独计价，保存后对新任务生效。价格单位：${unit}。`],
+      users: ['用户与余额', '管理账户权限，发放或调整可用余额。'],
+      operations: ['运营设置', '统一前台积分名称、注册策略与使用上限。'],
+      tasks: ['生成任务', '查看生成状态、结算与退款；用户图片和提示词保持私有。'],
+      audit: ['操作日志', '记录管理员的配置、权限和余额变更。'],
+    } as const
+  )[view]
   return (
     <main ref={editorHost} className={`ops-page${isList ? ' admin-list-page' : ''}`}>
-      <div className="ops-heading">
-        <div>
-          <p className="ops-eyebrow">平台管理</p>
-          <h1>{meta[0]}</h1>
-          <p>{meta[1]}</p>
-        </div>
-        <div className="ops-heading-actions">
-          {view === 'models' && (
-            <button
-              className="settings-primary"
-              onClick={() => edit()}
-              disabled={busy || !endpoints.length}
-            >
-              <Plus size={16} />
-              添加模型
-            </button>
-          )}
-          <button
-            className="settings-command"
-            disabled={busy || loading}
-            onClick={() => void refresh()}
-          >
-            <RefreshCw size={15} />
-            刷新
-          </button>
-        </div>
-      </div>
+      <AdminPageHeader
+        title={meta[0]}
+        description={meta[1]}
+        actions={
+          <div className="ops-heading-actions">
+            {view === 'models' && (
+              <Button onClick={() => edit()} disabled={busy || !endpoints.length}>
+                <Plus data-icon="inline-start" />
+                添加模型
+              </Button>
+            )}
+            <Button variant="outline" disabled={busy || loading} onClick={() => void refresh()}>
+              <RefreshCw data-icon="inline-start" />
+              刷新
+            </Button>
+          </div>
+        }
+        tools={
+          view === 'users' ? (
+            <form className="ops-search" onSubmit={(event) => event.preventDefault()}>
+              <label className="sr-only" htmlFor="member-search">
+                搜索账号
+              </label>
+              <Input
+                id="member-search"
+                type="search"
+                placeholder="输入用户名"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value)
+                  setPage(1)
+                }}
+                maxLength={80}
+              />
+            </form>
+          ) : undefined
+        }
+      />
       {error && !editing && !adjusting && (
-        <p className="settings-error" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive" className="settings-error" role="alert">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
       {success && (
-        <p className="settings-saved" role="status">
-          {success}
-        </p>
-      )}
-      {view === 'users' && (
-        <form className="ops-search" onSubmit={(event) => event.preventDefault()}>
-          <label htmlFor="member-search">搜索账号</label>
-          <input
-            id="member-search"
-            type="search"
-            placeholder="输入用户名"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value)
-              setPage(1)
-            }}
-            maxLength={80}
-          />
-        </form>
+        <Alert className="settings-saved" role="status">
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
       )}
       <div ref={listRegion} className={isList ? 'admin-list-region' : undefined}>
         {view === 'tasks' ? (
@@ -432,9 +439,9 @@ export function AdminDashboard({
           portalContainer={editorHost.current}
         >
           {error && (
-            <p className="settings-error" role="alert">
-              {error}
-            </p>
+            <Alert variant="destructive" className="settings-error" role="alert">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
           <AdminModelEditor
             editing={editing}
@@ -459,9 +466,9 @@ export function AdminDashboard({
           portalContainer={editorHost.current}
         >
           {error && (
-            <p className="settings-error" role="alert">
-              {error}
-            </p>
+            <Alert variant="destructive" className="settings-error" role="alert">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
           <AdminBalanceEditor
             amount={amount}

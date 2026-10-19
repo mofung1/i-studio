@@ -1,4 +1,5 @@
 'use client'
+import { AdminPageHeader } from './admin/page-header'
 
 import Link from 'next/link'
 import {
@@ -335,6 +336,10 @@ export function InspirationPromptManager() {
 
   return (
     <main className="inspiration-manager admin-list-page">
+      <AdminPageHeader
+        title="公共灵感库"
+        description="管理公开的灵感提示词、案例图片与分类，控制前台展示内容。"
+      />
       <div className="inspiration-manager-toolbar" role="search" aria-label="搜索与筛选提示词">
         <label className="inspiration-manager-search">
           <Search size={17} aria-hidden="true" />

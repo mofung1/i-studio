@@ -39,19 +39,27 @@ type imageProtocolTransport struct {
 	client   *http.Client
 	protocol string
 	model    string
-	standard bool
 }
 
 func (p *imageProtocolTransport) Submit(ctx context.Context, input map[string]any) (providerTask, error) {
-	model := stringValue(input["model"], "gpt-image-2")
+	model := stringValue(input["model"], "")
 	if p.model != "" {
 		model = p.model
+	}
+	if model == "" {
+		return providerTask{}, fmt.Errorf("upstream model ID is required")
+	}
+	if err := validateImageProtocolParameters(p.protocol, input); err != nil {
+		return providerTask{}, err
 	}
 	prompt := promptForInput(input)
 	if prompt == "" {
 		return providerTask{}, fmt.Errorf("generation prompt is required")
 	}
-	if p.protocol == "gemini_generate_content" {
+	if p.protocol == "openai_chat" {
+		return p.submitChat(ctx, model, prompt, input)
+	}
+	if p.protocol == "gemini_native" {
 		return p.submitGemini(ctx, model, prompt, input)
 	}
 	if images := sourceImages(input); len(images) > 0 {
@@ -67,7 +75,7 @@ func (p *imageProtocolTransport) submitGemini(ctx context.Context, model, prompt
 	}
 	// Gemini 图像生成文档不保证单次请求的精确图片数量。为保证用户
 	// 选择的张数，多图统一由队列拆成多次单图调用，不依赖 candidateCount。
-	generationConfig := map[string]any{"responseModalities": []string{"IMAGE"}, "imageConfig": map[string]any{"aspectRatio": stringValue(input["aspectRatio"], "1:1")}}
+	generationConfig := map[string]any{"responseModalities": []string{"TEXT", "IMAGE"}, "imageConfig": map[string]any{"aspectRatio": stringValue(input["aspectRatio"], "1:1")}}
 	if size := stringValue(input["resolution"], ""); size != "" && size != "auto" {
 		generationConfig["imageConfig"].(map[string]any)["imageSize"] = size
 	}
@@ -82,10 +90,7 @@ func (p *imageProtocolTransport) submitOpenAIGeneration(ctx context.Context, mod
 		"n":      1,
 		"size":   openAISize(stringValue(input["aspectRatio"], "1:1"), stringValue(input["resolution"], "1K")),
 	}
-	path := "/v1/images/generations/async"
-	if p.standard {
-		path = "/v1/images/generations"
-	}
+	path := "/v1/images/generations"
 	return p.submitJSON(ctx, path, input, body, false)
 }
 
@@ -103,7 +108,7 @@ func (p *imageProtocolTransport) submitOpenAIEdit(ctx context.Context, model, pr
 		}
 		filename := fmt.Sprintf("source-%d%s", index+1, extension)
 		headers := make(textproto.MIMEHeader)
-		headers.Set("Content-Disposition", fmt.Sprintf(`form-data; name="image"; filename="%s"`, filename))
+		headers.Set("Content-Disposition", fmt.Sprintf(`form-data; name="image[]"; filename="%s"`, filename))
 		headers.Set("Content-Type", image["mime"])
 		part, err := writer.CreatePart(headers)
 		if err != nil {
@@ -127,10 +132,7 @@ func (p *imageProtocolTransport) submitOpenAIEdit(ctx context.Context, model, pr
 	if err := writer.Close(); err != nil {
 		return providerTask{}, err
 	}
-	path := "/v1/images/edits/async"
-	if p.standard {
-		path = "/v1/images/edits"
-	}
+	path := "/v1/images/edits"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, joinProtocolURL(p.baseURL, path), &body)
 	if err != nil {
 		return providerTask{}, err
@@ -150,9 +152,10 @@ func (p *imageProtocolTransport) submitJSON(ctx context.Context, path string, in
 }
 
 func (p *imageProtocolTransport) sendProviderRequest(req *http.Request, input map[string]any, gemini bool) (providerTask, error) {
-	req.Header.Set("Authorization", "Bearer "+p.apiKey)
 	if gemini {
 		req.Header.Set("x-goog-api-key", p.apiKey)
+	} else {
+		req.Header.Set("Authorization", "Bearer "+p.apiKey)
 	}
 	req.Header.Set("Idempotency-Key", stringValue(input["taskId"], idgen.New()))
 	resp, err := p.client.Do(req)
@@ -168,11 +171,7 @@ func (p *imageProtocolTransport) sendProviderRequest(req *http.Request, input ma
 		return providerTask{}, fmt.Errorf("AI endpoint %s: %s", resp.Status, safeAIError(fmt.Errorf("%s", providerErrorMessage(data)), p.apiKey))
 	}
 	var payload struct {
-		TaskID      string `json:"taskID"`
-		TaskIDCamel string `json:"taskId"`
-		TaskIDSnake string `json:"task_id"`
-		Status      string `json:"status"`
-		Data        []struct {
+		Data []struct {
 			URL     string `json:"url"`
 			B64JSON string `json:"b64_json"`
 		} `json:"data"`
@@ -196,15 +195,49 @@ func (p *imageProtocolTransport) sendProviderRequest(req *http.Request, input ma
 	if err := json.Unmarshal(data, &payload); err != nil {
 		return providerTask{}, fmt.Errorf("decode AI response: %w", err)
 	}
+	if payload.Error.Message != "" {
+		return providerTask{}, fmt.Errorf("AI endpoint error: %s", safeAIError(fmt.Errorf("%s", payload.Error.Message), p.apiKey))
+	}
+	if p.protocol == "openai_chat" {
+		return parseChatImages(data, p.apiKey)
+	}
+	if gemini {
+		var safety struct {
+			PromptFeedback struct {
+				BlockReason string `json:"blockReason"`
+			} `json:"promptFeedback"`
+			Candidates []struct {
+				FinishReason string `json:"finishReason"`
+			} `json:"candidates"`
+		}
+		if err := json.Unmarshal(data, &safety); err != nil {
+			return providerTask{}, err
+		}
+		if safety.PromptFeedback.BlockReason != "" {
+			return providerTask{}, fmt.Errorf("Gemini safety refusal: %s", safety.PromptFeedback.BlockReason)
+		}
+		for _, candidate := range safety.Candidates {
+			if candidate.FinishReason != "" && candidate.FinishReason != "STOP" {
+				return providerTask{}, fmt.Errorf("Gemini generation refused or incomplete: %s", candidate.FinishReason)
+			}
+		}
+	}
 	images := providerResponseImages(payload.Data, payload.Candidates)
 	if len(images) > 0 {
+		for _, image := range images {
+			if strings.HasPrefix(image, "data:") {
+				header, _, _ := strings.Cut(strings.TrimPrefix(image, "data:"), ";base64,")
+				if extensionForMime(header) == "" {
+					return providerTask{}, fmt.Errorf("unsupported image MIME %q", header)
+				}
+			}
+		}
 		return providerTask{Status: "success", Images: images}, nil
 	}
-	taskID := firstNonEmpty(payload.TaskID, payload.TaskIDCamel, payload.TaskIDSnake)
-	if taskID == "" {
-		return providerTask{}, fmt.Errorf("provider response missing taskID")
+	if gemini {
+		return providerTask{}, fmt.Errorf("Gemini 未返回图片，可能被安全策略拒绝: %s", safeAIError(fmt.Errorf("%s", providerErrorMessage(data)), p.apiKey))
 	}
-	return providerTask{ID: taskID, Status: strings.ToLower(payload.Status)}, nil
+	return providerTask{}, fmt.Errorf("同步生图接口未返回支持的图片，远程任务 ID 不受支持")
 }
 
 func sourceImages(input map[string]any) []map[string]string {
@@ -249,60 +282,9 @@ func providerResponseImages(data []struct {
 	return images
 }
 
-func (p *imageProtocolTransport) Poll(ctx context.Context, id string) (providerPollResult, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, joinProtocolURL(p.baseURL, "v1/async-tasks/"+id), nil)
-	if err != nil {
-		return providerPollResult{}, err
-	}
-	req.Header.Set("Authorization", "Bearer "+p.apiKey)
-	resp, err := p.client.Do(req)
-	if err != nil {
-		return providerPollResult{}, fmt.Errorf("AI poll failed: %s", safeAIError(err, p.apiKey))
-	}
-	defer resp.Body.Close()
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
-	if err != nil {
-		return providerPollResult{}, fmt.Errorf("read provider poll response: %w", err)
-	}
-	if resp.StatusCode >= 300 {
-		return providerPollResult{}, fmt.Errorf("AI poll %s: %s", resp.Status, safeAIError(fmt.Errorf("%s", providerErrorMessage(data)), p.apiKey))
-	}
-	var payload struct {
-		Status            string          `json:"status"`
-		StatusMessage     string          `json:"statusMessage"`
-		ErrorMessage      string          `json:"errorMessage"`
-		ErrorMessageSnake string          `json:"error_message"`
-		FailureReason     string          `json:"failureReason"`
-		FailureReasonAlt  string          `json:"failure_reason"`
-		Message           string          `json:"message"`
-		Error             json.RawMessage `json:"error"`
-		ResultImages      []struct {
-			URL string `json:"url"`
-		} `json:"resultImages"`
-	}
-	if err := json.Unmarshal(data, &payload); err != nil {
-		return providerPollResult{}, fmt.Errorf("decode AI poll response: %w", err)
-	}
-	images := make([]string, 0, len(payload.ResultImages))
-	for _, image := range payload.ResultImages {
-		if image.URL != "" {
-			images = append(images, image.URL)
-		}
-	}
-	errorMessage := firstNonEmpty(payload.ErrorMessage, payload.ErrorMessageSnake, payload.FailureReason, payload.FailureReasonAlt)
-	if errorMessage == "" && len(payload.Error) > 0 && string(payload.Error) != "null" {
-		errorMessage = providerErrorMessage(payload.Error)
-	}
-	if errorMessage == "" {
-		switch strings.ToLower(payload.Status) {
-		case "failed", "cancelled", "expired":
-			errorMessage = firstNonEmpty(strings.TrimSpace(payload.StatusMessage), strings.TrimSpace(payload.Message))
-			if errorMessage == "" {
-				errorMessage = providerErrorMessage(data)
-			}
-		}
-	}
-	return providerPollResult{Status: strings.ToLower(payload.Status), Images: images, Error: safeAIError(fmt.Errorf("%s", errorMessage), p.apiKey)}, nil
+// The worker interface is retained, but configured adapters never submit remote jobs.
+func (p *imageProtocolTransport) Poll(context.Context, string) (providerPollResult, error) {
+	return providerPollResult{}, fmt.Errorf("当前协议为同步生图，不支持远程任务轮询")
 }
 
 func providerErrorMessage(data []byte) string {
@@ -487,13 +469,4 @@ func intValue(v any, fallback int) int {
 		}
 	}
 	return fallback
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if value != "" {
-			return value
-		}
-	}
-	return ""
 }

@@ -31,21 +31,6 @@ func UserByUsername(db *sql.DB, username string) (domain.User, bool, error) {
 	return u, err == nil, err
 }
 
-func InsertUser(db *sql.DB, u domain.User) error {
-	_, err := db.Exec("INSERT INTO users (id, username, password_hash) VALUES ($1, $2, $3)", u.ID, u.Username, u.PasswordHash)
-	return err
-}
-
-func InsertTask(db *sql.DB, t domain.GenerationTask, userID string, input []byte) error {
-	if _, err := db.Exec("INSERT INTO generation_tasks (id, user_id, project_id, status, input, created_at) VALUES ($1, $2, $3, $4, $5::jsonb, $6)", t.ID, userID, NullableString(t.ProjectID), t.Status, input, t.CreatedAt); err != nil {
-		return err
-	}
-	if t.ProjectID != "" {
-		_, _ = db.Exec("UPDATE projects SET updated_at=now() WHERE id=$1 AND user_id=$2", t.ProjectID, userID)
-	}
-	return nil
-}
-
 func NullableString(value string) any {
 	if value == "" {
 		return nil

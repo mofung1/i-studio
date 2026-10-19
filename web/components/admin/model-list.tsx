@@ -1,7 +1,8 @@
 'use client'
+import { Button } from '@/components/admin/ui/button'
 
 import { formatCredits } from '@/lib/credits'
-import type { AIEndpoint } from '@/lib/ai-settings'
+import { imageProtocolLabels, type AIEndpoint } from '@/lib/ai-settings'
 import type { AdminModel as Model } from '@/lib/admin'
 import { AdminDataTable, type AdminColumn, type AdminSortProps } from './data-table'
 import Link from 'next/link'
@@ -38,9 +39,22 @@ export function AdminModelList({
     },
     {
       id: 'endpoint',
-      header: '服务通道',
-      size: 200,
-      cell: (model) => endpoints.find((item) => item.id === model.endpointId)?.name ?? '通道已删除',
+      header: '当前主渠道',
+      size: 250,
+      cell: (model) => {
+        const endpoint = endpoints.find(
+          (item) => item.id === model.channels?.find((channel) => channel.isActive)?.endpointId,
+        )
+        return (
+          <div className="model-channel-table-cell">
+            <strong>{endpoint?.name ?? '未配置主渠道'}</strong>
+            <span>
+              {endpoint ? imageProtocolLabels[endpoint.protocol] : '编辑模型以选择渠道'}
+              {model.channels?.length ? ` · 共 ${model.channels.length} 个绑定` : ''}
+            </span>
+          </div>
+        )
+      },
     },
     {
       id: 'priceMinor',
@@ -67,10 +81,10 @@ export function AdminModelList({
       size: 100,
       pin: 'right',
       cell: (model) => (
-        <button className="settings-command" disabled={loading} onClick={() => onEdit(model)}>
-          <Pencil size={14} />
+        <Button size="sm" variant="outline" disabled={loading} onClick={() => onEdit(model)}>
+          <Pencil data-icon="inline-start" />
           编辑
-        </button>
+        </Button>
       ),
     },
   ]

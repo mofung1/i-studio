@@ -1,4 +1,5 @@
 'use client'
+import { Button } from '@/components/admin/ui/button'
 
 import type { AdminMember } from '@/lib/admin'
 import { formatCredits } from '@/lib/credits'
@@ -26,16 +27,16 @@ export function AdminUserTable({
     {
       id: 'username',
       header: '账号',
-      size: 200,
+      size: 180,
       pin: 'left',
       sortable: true,
       cell: (member) => <strong>{member.username}</strong>,
     },
-    { id: 'role', header: '角色', size: 90, cell: () => '用户' },
+    { id: 'role', header: '角色', size: 80, cell: () => '用户' },
     {
       id: 'available',
       header: `可用余额（${unit}）`,
-      size: 180,
+      size: 160,
       align: 'right',
       sortable: true,
       cell: (member) => (
@@ -45,7 +46,7 @@ export function AdminUserTable({
     {
       id: 'held',
       header: '预留余额',
-      size: 130,
+      size: 120,
       align: 'right',
       sortable: true,
       cell: (member) => <span className="admin-cell-number">{formatCredits(member.held)}</span>,
@@ -64,25 +65,28 @@ export function AdminUserTable({
     {
       id: 'actions',
       header: '操作',
-      size: 220,
+      size: 195,
       pin: 'right',
       cell: (member) => (
         <div className="ops-row-actions">
-          <button
-            className="settings-command"
+          <Button
+            size="sm"
+            variant="outline"
             disabled={loading || busy}
             onClick={() => onAdjust(member)}
           >
             调整余额
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             className="settings-command admin-action"
             data-tone={member.status === 'active' ? 'danger' : 'success'}
             disabled={loading || busy}
             onClick={() => onToggle(member)}
           >
             {member.status === 'active' ? '停用' : '启用'}
-          </button>
+          </Button>
         </div>
       ),
     },

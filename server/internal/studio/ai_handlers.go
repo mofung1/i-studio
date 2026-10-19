@@ -3,6 +3,8 @@ package studio
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -92,8 +94,16 @@ func (s *Service) aiEndpointByID(w http.ResponseWriter, r *http.Request) {
 			s.error(w, 400, "AI_CONFIG_INVALID", "配置格式不正确")
 			return
 		}
+		if input.UpdatedAt == nil {
+			s.error(w, 400, "AI_CONFIG_VERSION_REQUIRED", "请刷新配置后携带 updatedAt 保存")
+			return
+		}
 		e, err := s.ai.save(id, input)
 		if err != nil {
+			if errors.Is(err, errEndpointConflict) {
+				s.error(w, 409, "AI_CONFIG_CONFLICT", err.Error())
+				return
+			}
 			s.error(w, 400, "AI_CONFIG_INVALID", err.Error())
 			return
 		}
@@ -105,7 +115,7 @@ func (s *Service) aiEndpointByID(w http.ResponseWriter, r *http.Request) {
 		s.json(w, 200, map[string]any{"endpoint": public})
 	case http.MethodDelete:
 		if err := s.ai.mutate(id, true); err != nil {
-			s.error(w, 404, "AI_ENDPOINT_NOT_FOUND", "服务不存在或删除失败")
+			s.error(w, 409, "AI_ENDPOINT_IN_USE", "服务仍有模型绑定，请先移除绑定后再删除")
 			return
 		}
 		s.json(w, 200, map[string]any{"deleted": id})
@@ -138,42 +148,78 @@ func (s *Service) testAIEndpoint(w http.ResponseWriter, r *http.Request, id stri
 		s.error(w, 500, "AI_KEY_UNAVAILABLE", "无法解密 API Key")
 		return
 	}
+	var input struct {
+		Mode            string `json:"mode"`
+		ConfirmCost     bool   `json:"confirmCost"`
+		UpstreamModelID string `json:"upstreamModelId"`
+	}
+	if !decode(r, &input) || (input.Mode != "connection" && input.Mode != "generate") {
+		s.error(w, 400, "TEST_INVALID", "请选择连接测试或真实生图测试")
+		return
+	}
+	if input.Mode == "generate" && !input.ConfirmCost {
+		s.error(w, 400, "TEST_COST_CONFIRMATION_REQUIRED", "真实测试可能产生 API 费用，请明确确认")
+		return
+	}
+	if input.UpstreamModelID != "" {
+		endpoint.Model = strings.TrimSpace(input.UpstreamModelID)
+	}
+	if input.Mode == "generate" && (endpoint.Model == "" || len(endpoint.Model) > 200) {
+		s.error(w, 400, "TEST_MODEL_REQUIRED", "请填写真实上游模型 ID")
+		return
+	}
+	if !endpoint.Enabled {
+		s.error(w, 409, "AI_ENDPOINT_DISABLED", "请先启用渠道")
+		return
+	}
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(r.Context(), time.Duration(endpoint.TimeoutSeconds)*time.Second)
 	defer cancel()
-	if endpoint.Purpose == "prompt" {
-		_, err = newOpenAICompatibleClient(endpoint, key).complete(ctx, "Reply with OK.", "Connection test.", nil, 8)
-	} else {
-		client := newImageProtocolClient(endpoint, key)
-		var result providerTask
-		result, err = client.Submit(ctx, map[string]any{"prompt": "A plain white square.", "model": endpoint.Model, "aspectRatio": "1:1", "resolution": "1K", "count": 1})
-		if err == nil && len(result.Images) == 0 {
-			ticker := time.NewTicker(time.Second)
-			defer ticker.Stop()
-			for err == nil && len(result.Images) == 0 {
-				select {
-				case <-ctx.Done():
-					err = ctx.Err()
-				case <-ticker.C:
-					polled, pollErr := client.Poll(ctx, result.ID)
-					if pollErr != nil {
-						err = pollErr
-						break
-					}
-					if polled.Status == "failed" || polled.Status == "cancelled" || polled.Status == "expired" {
-						err = errors.New(polled.Error)
-						break
-					}
-					result.Images = polled.Images
+	images := []string{}
+	if input.Mode == "connection" {
+		path := "v1/models"
+		if endpoint.Protocol == "gemini_native" {
+			path = "v1beta/models"
+		}
+		req, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, joinProtocolURL(endpoint.BaseURL, path), nil)
+		err = requestErr
+		if err == nil {
+			if endpoint.Protocol == "gemini_native" {
+				req.Header.Set("x-goog-api-key", key)
+			} else {
+				req.Header.Set("Authorization", "Bearer "+key)
+			}
+			client := protocolHTTPClient(time.Duration(endpoint.TimeoutSeconds) * time.Second)
+			if s.aiHTTPClient != nil {
+				client = s.aiHTTPClient
+			}
+			resp, requestErr := client.Do(req)
+			err = requestErr
+			if err == nil {
+				raw, readErr := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+				resp.Body.Close()
+				err = readErr
+				if resp.StatusCode >= 300 {
+					err = fmt.Errorf("连接测试 %s: %s", resp.Status, providerErrorMessage(raw))
 				}
 			}
 		}
+	} else if endpoint.Purpose == "prompt" {
+		_, err = s.openAIProtocolClient(endpoint, key).complete(ctx, "Reply with OK.", "Connection test.", nil, 8)
+	} else {
+		var result providerTask
+		result, err = s.imageProtocolClient(endpoint, key).Submit(ctx, map[string]any{"prompt": "A plain white square.", "model": endpoint.Model, "aspectRatio": "1:1", "resolution": "1K", "count": 1})
+		images = result.Images
 	}
-	payload := map[string]any{"success": err == nil, "model": endpoint.Model, "responseTimeMs": time.Since(start).Milliseconds()}
+	payload := map[string]any{"success": err == nil, "model": endpoint.Model, "responseTimeMs": time.Since(start).Milliseconds(), "images": images}
 	if err != nil {
 		payload["message"] = safeAIError(err, key)
 	} else {
-		payload["message"] = "连接成功"
+		if input.Mode == "generate" && endpoint.Purpose == "image" {
+			payload["message"] = "生图成功"
+		} else {
+			payload["message"] = "连接成功"
+		}
 	}
 	s.json(w, 200, payload)
 }

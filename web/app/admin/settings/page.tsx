@@ -1,15 +1,27 @@
 'use client'
+import { AdminPageHeader } from '@/components/admin/page-header'
+import { Alert, AlertDescription } from '@/components/admin/ui/alert'
+import { Field, FieldLabel, FieldLegend, FieldSet } from '@/components/admin/ui/field'
+import { Input } from '@/components/admin/ui/input'
+import { Button } from '@/components/admin/ui/button'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/admin/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/admin/ui/tabs'
 import {
   Check,
-  Globe,
   Images,
   LoaderCircle,
   Pencil,
   Plus,
-  RotateCcw,
   Save,
   ScanText,
   Settings2,
@@ -17,15 +29,26 @@ import {
   X,
   Zap,
 } from 'lucide-react'
-import { PromptTemplateBrowser } from '@/components/prompt-template-browser'
-import { promptGroupLabel } from '@/lib/prompt-groups'
-import { SiteSettingsPanel } from '@/components/site-settings-panel'
 import { PromptReverseSettingsPanel } from '@/components/prompt-reverse-settings-panel'
 import { AdminStatusBadge } from '@/components/admin/status-badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/select'
+import {
+  confirmAdminNavigation,
+  useAdminUnsavedChanges,
+} from '@/components/admin/use-unsaved-changes'
 import { getAdminAccessToken } from '@/lib/api'
 import { adminRequest } from '@/lib/admin'
 import {
+  imageProtocolLabels,
+  imageProtocolHelp,
+  imageEndpointPresets,
   type AIEndpoint,
   type AIProtocol,
   type EndpointInput,
@@ -35,20 +58,14 @@ import {
 } from '@/lib/ai-settings'
 
 const protocolLabels: Record<AIProtocol, string> = {
-  openai_chat: 'OpenAI Compatible',
-  openai_image: 'OpenAI Image API',
-  gemini_generate_content: 'Gemini generateContent',
-}
-const promptVariableLabels: Record<string, string> = {
-  prompt: '用户输入的画面描述',
-  style: '所选创作风格的指令',
-  language: '本次选择的画面文字语言',
+  ...imageProtocolLabels,
+  openai_chat: 'OpenAI 兼容对话接口',
 }
 function newEndpoint(purpose: EndpointPurpose): EndpointInput {
   return {
     name: '',
     purpose,
-    protocol: purpose === 'prompt' ? 'openai_chat' : 'openai_image',
+    protocol: purpose === 'prompt' ? 'openai_chat' : 'openai_images',
     baseUrl: '',
     model: '',
     apiKey: '',
@@ -63,8 +80,10 @@ function errorMessage(error: unknown) {
 }
 
 export default function AISettingsPage() {
-  const [view, setView] = useState<'services' | 'prompts' | 'reverse' | 'site'>('services')
-  const [siteDirty, setSiteDirty] = useState(false)
+  const router = useRouter()
+  const [view, setView] = useState<'services' | 'reverse'>('services')
+  const [reverseDirty, setReverseDirty] = useState(false)
+  useAdminUnsavedChanges(reverseDirty)
   const [reverseSaving, setReverseSaving] = useState(false)
   const [endpoints, setEndpoints] = useState<AIEndpoint[]>([])
   const [templates, setTemplates] = useState<PromptTemplate[]>([])
@@ -75,12 +94,10 @@ export default function AISettingsPage() {
   const [saved, setSaved] = useState('')
   const [busy, setBusy] = useState('')
   const [editing, setEditing] = useState<{ id?: string; input: EndpointInput } | null>(null)
-  const [tests, setTests] = useState<Record<string, AIConnectionTest>>({})
-  const [selectedKey, setSelectedKey] = useState('rewrite')
-  const [promptDraft, setPromptDraft] = useState('')
-  const [promptEnabled, setPromptEnabled] = useState(true)
-  const [promptDefault, setPromptDefault] = useState('')
-  const dialogRef = useRef<HTMLDialogElement>(null)
+  const [tests, setTests] = useState<
+    Record<string, AIConnectionTest & { mode: 'connection' | 'generate' }>
+  >({})
+  const dialogRef = useRef<HTMLDivElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const keyRef = useRef<HTMLInputElement>(null)
 
@@ -97,7 +114,11 @@ export default function AISettingsPage() {
   }, [])
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get('tab')
-    if (tab === 'reverse' || tab === 'site' || tab === 'prompts') setView(tab)
+    if (tab === 'site' || tab === 'prompts') {
+      window.location.replace(tab === 'site' ? '/admin/site' : '/admin/prompts')
+      return
+    }
+    if (tab === 'reverse') setView(tab)
     if (!getAdminAccessToken()) {
       setLoggedIn(false)
       setLoading(false)
@@ -107,25 +128,10 @@ export default function AISettingsPage() {
       .catch((error) => setMessage(errorMessage(error)))
       .finally(() => setLoading(false))
   }, [load])
-  useEffect(() => {
-    const template = templates.find((item) => item.key === selectedKey)
-    if (template) {
-      setPromptDraft(template.content)
-      setPromptDefault(template.defaultContent)
-      setPromptEnabled(template.enabled)
-    }
-  }, [templates, selectedKey])
-  useEffect(() => {
-    if (editing) dialogRef.current?.showModal()
-    else {
-      dialogRef.current?.close()
-      returnFocus.current?.focus()
-    }
-  }, [editing])
-
   function edit(endpoint?: AIEndpoint, purpose: EndpointPurpose = 'prompt') {
     returnFocus.current = document.activeElement as HTMLElement
     setMessage('')
+    setSaved('')
     setEditing(
       endpoint
         ? { id: endpoint.id, input: { ...endpoint, apiKey: '' } }
@@ -157,24 +163,48 @@ export default function AISettingsPage() {
       await adminRequest(`ai-endpoints${id ? `/${id}` : ''}`, id ? 'PUT' : 'POST', input)
       if (keyRef.current) keyRef.current.value = ''
       setEditing(null)
+      setTests((previous) => {
+        const next = { ...previous }
+        if (id) delete next[id]
+        return next
+      })
       await load()
+      setSaved(
+        input.purpose === 'image'
+          ? '生图渠道已保存。请在「模型与定价」中绑定渠道并选择主渠道。'
+          : '提示词服务已保存',
+      )
     } catch (error) {
       setMessage(errorMessage(error))
     } finally {
       setBusy('')
     }
   }
-  async function testEndpoint(endpoint: AIEndpoint) {
+  async function testEndpoint(
+    endpoint: AIEndpoint,
+    mode: 'connection' | 'generate' = 'connection',
+  ) {
+    if (mode === 'generate' && !window.confirm('真实测试可能产生 API 费用，确认继续？')) return
     setBusy(endpoint.id)
     setMessage('')
     try {
       const result = await adminRequest<AIConnectionTest>(
         `ai-endpoints/${endpoint.id}/test`,
         'POST',
+        { mode, confirmCost: mode === 'generate' },
       )
-      setTests((previous) => ({ ...previous, [endpoint.id]: result }))
+      setTests((previous) => ({ ...previous, [endpoint.id]: { ...result, mode } }))
     } catch (error) {
-      setMessage(errorMessage(error))
+      setTests((previous) => ({
+        ...previous,
+        [endpoint.id]: {
+          success: false,
+          model: endpoint.model,
+          responseTimeMs: 0,
+          message: errorMessage(error),
+          mode,
+        },
+      }))
     } finally {
       setBusy('')
     }
@@ -184,66 +214,49 @@ export default function AISettingsPage() {
       previous ? { ...previous, input: { ...previous.input, ...patch } } : null,
     )
   }
-  async function savePrompt(restoreDefault = false) {
-    const success = await action('prompt', () =>
-      adminRequest('prompt-templates', 'PUT', {
-        key: selectedKey,
-        content: promptDraft,
-        enabled: promptEnabled,
-        restoreDefault,
-      }),
-    )
-    if (success) setSaved(restoreDefault ? '已恢复默认提示词' : '提示词已保存')
-  }
-  const activeTemplate = templates.find((template) => template.key === selectedKey)
-  const promptDirty =
-    !!activeTemplate &&
-    (promptDraft !== activeTemplate.content || promptEnabled !== activeTemplate.enabled)
-
-  function selectTemplate(key: string) {
-    if (key === selectedKey || busy) return
-    if (promptDirty && !window.confirm('放弃未保存的修改？')) return
-    setSelectedKey(key)
-    setSaved('')
-    setMessage('')
-  }
-
   function switchView(next: typeof view) {
     if (next === view) return true
     if (busy || reverseSaving) return false
     if (
-      ((view === 'prompts' && promptDirty) ||
-        ((view === 'site' || view === 'reverse') && siteDirty)) &&
+      view === 'reverse' &&
+      reverseDirty &&
       !window.confirm('当前配置尚未保存，仍要切换设置分类？')
     )
       return false
-    setSiteDirty(false)
+    setReverseDirty(false)
     setSaved('')
     setMessage('')
     setView(next)
     return true
   }
 
-  useEffect(() => {
-    if (!promptDirty) return
-    const warnOnLeave = (event: BeforeUnloadEvent) => {
-      event.preventDefault()
-      event.returnValue = ''
-    }
-    window.addEventListener('beforeunload', warnOnLeave)
-    return () => window.removeEventListener('beforeunload', warnOnLeave)
-  }, [promptDirty])
-
   return (
     <>
       <main className="ai-settings">
-        <header className="admin-settings-heading">
-          <h1>AI 与网站配置</h1>
-          <p>统一管理平台使用的模型、系统提示词与网站品牌。</p>
-        </header>
+        <AdminPageHeader title="AI 服务" description="管理生图渠道、提示词服务与图片反推配置。">
+          {' '}
+          <aside className="ai-channel-guide" aria-label="生图配置顺序">
+            <div>
+              <h2>先连接渠道，再发布模型</h2>
+              <p>渠道负责连接 API；用户看到的模型名称、价格和主渠道在「模型与定价」中设置。</p>
+            </div>
+            <ol>
+              <li>
+                <span>1</span>添加并启用生图渠道
+              </li>
+              <li>
+                <span>2</span>绑定模型并填写上游 ID
+              </li>
+              <li>
+                <span>3</span>测试后选择主渠道并上架
+              </li>
+            </ol>
+            <Link href="/admin/models">前往模型与定价</Link>
+          </aside>
+        </AdminPageHeader>
         {!loggedIn ? (
           <p>
-            请先<Link href="/admin/login?next=%2Fadmin%2Fsettings">登录</Link>后管理网站与 AI 配置。
+            请先<Link href="/admin/login?next=%2Fadmin%2Fsettings">登录</Link>后管理 AI 服务。
           </p>
         ) : loading ? (
           <div className="settings-loading" role="status">
@@ -252,553 +265,522 @@ export default function AISettingsPage() {
           </div>
         ) : (
           <>
-            <div
-              className="settings-tabs"
-              role="tablist"
-              aria-label="设置分类"
-              onKeyDown={(event) => {
-                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
-                const tabs = Array.from(
-                  event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
-                )
-                const index = tabs.indexOf(document.activeElement as HTMLButtonElement)
-                const next =
-                  event.key === 'Home'
-                    ? 0
-                    : event.key === 'End'
-                      ? tabs.length - 1
-                      : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
-                event.preventDefault()
-                tabs[next]?.focus()
-              }}
-            >
-              <button
-                id="services-tab"
-                role="tab"
-                disabled={reverseSaving}
-                aria-selected={view === 'services'}
-                aria-controls="services-panel"
-                onClick={() => switchView('services')}
-              >
-                <Settings2 size={16} />
-                <span>
-                  AI 服务<small>连接模型与接口</small>
-                </span>
-              </button>
-              {canManage && (
-                <>
-                  <button
-                    id="prompts-tab"
-                    role="tab"
-                    disabled={reverseSaving}
-                    aria-selected={view === 'prompts'}
-                    aria-controls="prompts-panel"
-                    onClick={() => switchView('prompts')}
-                  >
-                    <Pencil size={16} />
-                    <span>
-                      系统提示词<small>按用途维护创作指令</small>
-                    </span>
-                  </button>
-                  <button
-                    id="reverse-tab"
-                    role="tab"
-                    disabled={reverseSaving}
-                    aria-selected={view === 'reverse'}
-                    aria-controls="reverse-panel"
-                    onClick={() => switchView('reverse')}
-                  >
-                    <ScanText size={16} aria-hidden="true" />
-                    <span>
-                      图片反推<small>选择识图服务与偏好</small>
-                    </span>
-                  </button>
-                  <button
-                    id="site-tab"
-                    role="tab"
-                    disabled={reverseSaving}
-                    aria-selected={view === 'site'}
-                    aria-controls="site-panel"
-                    onClick={() => switchView('site')}
-                  >
-                    <Globe size={16} />
-                    <span>
-                      网站配置<small>名称与 Logo</small>
-                    </span>
-                  </button>
-                </>
+            <Tabs value={view} onValueChange={(value) => switchView(value as typeof view)}>
+              <TabsList aria-label="设置分类">
+                <TabsTrigger value="services" disabled={reverseSaving}>
+                  <Settings2 />
+                  AI 服务
+                </TabsTrigger>
+                {canManage && (
+                  <>
+                    <TabsTrigger value="reverse" disabled={reverseSaving}>
+                      <ScanText />
+                      图片反推
+                    </TabsTrigger>
+                  </>
+                )}
+              </TabsList>
+              {message && !editing && (
+                <Alert variant="destructive" className="settings-error" role="alert">
+                  <AlertDescription>{message}</AlertDescription>
+                </Alert>
               )}
-            </div>
-            {message && !editing && (
-              <p className="settings-error" role="alert">
-                {message}
-              </p>
-            )}
-            {saved && !(view === 'prompts' && promptDirty) && (
-              <p className="settings-saved" role="status">
-                {saved}
-              </p>
-            )}
-            {view === 'site' ? (
-              <SiteSettingsPanel onDirtyChange={setSiteDirty} />
-            ) : view === 'reverse' ? (
-              <PromptReverseSettingsPanel
-                endpoints={endpoints}
-                templates={templates}
-                onDirtyChange={setSiteDirty}
-                onSavingChange={setReverseSaving}
-                onOpenServices={() => switchView('services')}
-                onOpenTemplates={(key) => {
-                  if (switchView('prompts')) selectTemplate(key)
-                }}
-              />
-            ) : view === 'services' ? (
-              <div id="services-panel" role="tabpanel" aria-labelledby="services-tab">
-                {(['prompt', 'image'] as const).map((purpose) => (
-                  <section className="endpoint-section" key={purpose}>
-                    <div className="endpoint-section-head">
-                      <div className="admin-service-heading">
-                        <span className="admin-service-icon" aria-hidden="true">
-                          {purpose === 'prompt' ? <ScanText size={20} /> : <Images size={20} />}
-                        </span>
-                        <div>
-                          <h2>{purpose === 'prompt' ? '提示词与识图服务' : '图片生成服务'}</h2>
-                          <p>
-                            {purpose === 'prompt'
-                              ? '用于提示词优化、服装分析和图片反推；反推需支持识图。'
-                              : '连接生图接口，前台展示名称与积分消耗在「模型与定价」中设置。'}
-                          </p>
-                        </div>
-                      </div>
-                      {canManage && (
-                        <button
-                          className="settings-command"
-                          onClick={() => edit(undefined, purpose)}
-                        >
-                          <Plus size={16} />
-                          添加服务
-                        </button>
-                      )}
-                    </div>
-                    {!endpoints.some((endpoint) => endpoint.purpose === purpose) ? (
-                      <p className="settings-empty">
-                        尚未配置{purpose === 'prompt' ? '提示词' : '生图'} AI 服务
-                      </p>
-                    ) : (
-                      <div className="endpoint-list">
-                        {endpoints
-                          .filter((endpoint) => endpoint.purpose === purpose)
-                          .map((endpoint) => (
-                            <article className="endpoint-row" key={endpoint.id}>
-                              <div className="endpoint-details">
-                                <div className="endpoint-name">
-                                  <h3>{endpoint.name}</h3>
-                                  {endpoint.isDefault && (
-                                    <span className="admin-default-badge">
-                                      <Check size={12} />
-                                      默认
-                                    </span>
-                                  )}
-                                  <label className="settings-switch">
-                                    <input
-                                      type="checkbox"
-                                      checked={endpoint.enabled}
-                                      disabled={!canManage || !!busy}
-                                      onChange={() =>
-                                        action(endpoint.id, () =>
-                                          adminRequest(`ai-endpoints/${endpoint.id}`, 'PUT', {
-                                            ...endpoint,
-                                            enabled: !endpoint.enabled,
-                                            isDefault: false,
-                                          }),
-                                        )
-                                      }
-                                    />
-                                    <span
-                                      className="admin-switch-label"
-                                      data-tone={endpoint.enabled ? 'success' : 'danger'}
-                                    >
-                                      {endpoint.enabled ? '已启用' : '已停用'}
-                                    </span>
-                                  </label>
-                                </div>
-                                <div className="endpoint-meta">
-                                  <span>{protocolLabels[endpoint.protocol]}</span>
-                                  <span aria-hidden="true">·</span>
-                                  <span>{endpoint.model}</span>
-                                  {purpose === 'prompt' && (
-                                    <AdminStatusBadge
-                                      tone={endpoint.capabilities.vision ? 'success' : 'neutral'}
-                                    >
-                                      {endpoint.capabilities.vision ? '已启用识图' : '仅文本'}
-                                    </AdminStatusBadge>
-                                  )}
-                                  <span>{endpoint.timeoutSeconds} 秒超时</span>
-                                </div>
-                                {canManage && (
-                                  <p className="endpoint-url">
-                                    {endpoint.baseUrl}
-                                    <span>{endpoint.apiKeyMasked}</span>
-                                  </p>
-                                )}
-                                {tests[endpoint.id] && (
-                                  <p
-                                    className={
-                                      tests[endpoint.id]?.success
-                                        ? 'connection-result'
-                                        : 'settings-error'
-                                    }
-                                    role="status"
-                                  >
-                                    {tests[endpoint.id]?.message} · {tests[endpoint.id]?.model} ·{' '}
-                                    {tests[endpoint.id]?.responseTimeMs} ms
-                                  </p>
-                                )}
-                              </div>
-                              {canManage && (
-                                <div className="endpoint-actions">
-                                  {endpoint.enabled && !endpoint.isDefault && (
-                                    <button
-                                      className="endpoint-default-action"
-                                      disabled={!!busy}
-                                      onClick={() =>
-                                        action(endpoint.id, () =>
-                                          adminRequest(
-                                            `ai-endpoints/${endpoint.id}/default`,
-                                            'POST',
-                                          ),
-                                        )
-                                      }
-                                    >
-                                      设为默认
-                                    </button>
-                                  )}
-                                  <button
-                                    className="endpoint-edit-action"
-                                    title="编辑"
-                                    aria-label={`编辑 ${endpoint.name}`}
-                                    disabled={!!busy}
-                                    onClick={() => edit(endpoint)}
-                                  >
-                                    <Pencil size={17} />
-                                    编辑
-                                  </button>
-                                  <button
-                                    className="endpoint-test-action"
-                                    title={
-                                      purpose === 'image'
-                                        ? '会实际生成一张测试图，可能产生 API 费用'
-                                        : '发送一次文本请求以验证服务配置'
-                                    }
-                                    aria-label={`测试 ${endpoint.name} 连接`}
-                                    disabled={!!busy}
-                                    onClick={() => testEndpoint(endpoint)}
-                                  >
-                                    {busy === endpoint.id ? (
-                                      <LoaderCircle className="settings-spinner" size={15} />
-                                    ) : (
-                                      <Zap size={15} />
-                                    )}
-                                    测试连接
-                                  </button>
-                                  <button
-                                    className="settings-icon endpoint-delete-action admin-action"
-                                    data-tone="danger"
-                                    title="删除"
-                                    aria-label={`删除 ${endpoint.name}`}
-                                    disabled={!!busy}
-                                    onClick={() => {
-                                      if (window.confirm(`删除“${endpoint.name}”？`))
-                                        action(endpoint.id, () =>
-                                          adminRequest(`ai-endpoints/${endpoint.id}`, 'DELETE'),
-                                        )
-                                    }}
-                                  >
-                                    <Trash2 size={17} />
-                                  </button>
-                                </div>
-                              )}
-                            </article>
-                          ))}
-                      </div>
-                    )}
-                  </section>
-                ))}
-              </div>
-            ) : (
-              <section
-                id="prompts-panel"
-                role="tabpanel"
-                aria-labelledby="prompts-tab"
-                className="prompt-settings"
-              >
-                <div className="prompt-settings-intro">
-                  <h2>内置提示词</h2>
-                  <p>
-                    按用途分组管理，所有账号共享此配置。停用一般模板后不再附加指令；停用反推模板后，对应分析模式不可用。
-                  </p>
-                </div>
-                <PromptTemplateBrowser
-                  templates={templates}
-                  selectedKey={selectedKey}
-                  busy={!!busy}
-                  onSelect={selectTemplate}
-                />
-                <div className="prompt-settings-editor">
-                  {activeTemplate && (
-                    <p className="prompt-editor-breadcrumb">{promptGroupLabel(activeTemplate)}</p>
-                  )}
-                  <div className="prompt-editor-heading">
-                    <div className="prompt-editor-title">
-                      <h2>{activeTemplate?.name}</h2>
-                      {promptDirty && <span className="prompt-dirty-status">未保存更改</span>}
-                    </div>
-                    <label className="settings-switch">
-                      <input
-                        type="checkbox"
-                        checked={promptEnabled}
-                        disabled={!!busy}
-                        onChange={(event) => setPromptEnabled(event.target.checked)}
-                      />
-                      <span
-                        className="admin-switch-label"
-                        data-tone={promptEnabled ? 'success' : 'danger'}
-                      >
-                        {promptEnabled ? '已启用' : '已停用'}
-                      </span>
-                    </label>
-                  </div>
-                  {activeTemplate?.description && (
-                    <p className="prompt-template-purpose">{activeTemplate.description}</p>
-                  )}
-                  {!!activeTemplate?.variables?.length && (
-                    <p className="prompt-template-variables">
-                      可用变量：
-                      {activeTemplate.variables.map((variable) => (
-                        <span key={variable}>
-                          <code>{`{{${variable}}}`}</code>{' '}
-                          {promptVariableLabels[variable] ?? variable}
-                        </span>
-                      ))}
-                    </p>
-                  )}
-                  <textarea
-                    className="prompt-content-editor"
-                    aria-label="提示词模板内容"
-                    value={promptDraft}
-                    disabled={!!busy}
-                    maxLength={20000}
-                    rows={18}
-                    onChange={(event) => setPromptDraft(event.target.value)}
+              {saved && (
+                <Alert className="settings-saved" role="status">
+                  <AlertDescription>{saved}</AlertDescription>
+                </Alert>
+              )}
+              <TabsContent value={view}>
+                {view === 'reverse' ? (
+                  <PromptReverseSettingsPanel
+                    endpoints={endpoints}
+                    templates={templates}
+                    onDirtyChange={setReverseDirty}
+                    onSavingChange={setReverseSaving}
+                    onOpenServices={() => switchView('services')}
+                    onOpenTemplates={(key) => {
+                      if (confirmAdminNavigation())
+                        router.push(`/admin/prompts?template=${encodeURIComponent(key)}`)
+                    }}
                   />
-                  <details className="prompt-default">
-                    <summary>查看默认 Prompt</summary>
-                    <pre>{promptDefault}</pre>
-                  </details>
-                  <div className="settings-form-actions">
-                    <button
-                      className="settings-command"
-                      disabled={!!busy}
-                      onClick={() => {
-                        if (window.confirm('恢复默认提示词？当前修改将被替换。')) savePrompt(true)
-                      }}
-                    >
-                      <RotateCcw size={16} />
-                      恢复默认
-                    </button>
-                    <button
-                      className="settings-primary"
-                      disabled={!!busy || !promptDraft.trim()}
-                      onClick={() => savePrompt()}
-                    >
-                      <Save size={16} />
-                      {busy === 'prompt' ? '保存中' : '保存'}
-                    </button>
+                ) : (
+                  <div id="services-panel">
+                    {(['image', 'prompt'] as const).map((purpose) => (
+                      <section className="endpoint-section" key={purpose}>
+                        <div className="endpoint-section-head">
+                          <div className="admin-service-heading">
+                            <span className="admin-service-icon" aria-hidden="true">
+                              {purpose === 'prompt' ? <ScanText size={20} /> : <Images size={20} />}
+                            </span>
+                            <div>
+                              <h2>{purpose === 'prompt' ? '提示词与识图服务' : '生图渠道'}</h2>
+                              <p>
+                                {purpose === 'prompt'
+                                  ? '用于提示词优化、服装分析和图片反推；反推需支持识图。'
+                                  : '连接生图接口，前台展示名称与积分消耗在「模型与定价」中设置。'}
+                              </p>
+                            </div>
+                          </div>
+                          {canManage && (
+                            <Button variant="outline" onClick={() => edit(undefined, purpose)}>
+                              <Plus data-icon="inline-start" />
+                              {purpose === 'image' ? '添加生图渠道' : '添加提示词服务'}
+                            </Button>
+                          )}
+                        </div>
+                        {!endpoints.some((endpoint) => endpoint.purpose === purpose) ? (
+                          <p className="settings-empty">
+                            {purpose === 'image'
+                              ? '还没有生图渠道。添加官方服务或中转站，保存后前往「模型与定价」完成绑定。'
+                              : '还没有提示词服务。添加后可用于 AI 帮写和图片识别。'}
+                          </p>
+                        ) : (
+                          <div className="endpoint-list">
+                            {endpoints
+                              .filter((endpoint) => endpoint.purpose === purpose)
+                              .map((endpoint) => (
+                                <article className="endpoint-row" key={endpoint.id}>
+                                  <div className="endpoint-details">
+                                    <div className="endpoint-name">
+                                      <h3>{endpoint.name}</h3>
+                                      {purpose === 'prompt' && endpoint.isDefault && (
+                                        <span className="admin-default-badge">
+                                          <Check size={12} />
+                                          默认
+                                        </span>
+                                      )}
+                                      <label className="settings-switch">
+                                        <input
+                                          type="checkbox"
+                                          checked={endpoint.enabled}
+                                          disabled={!canManage || !!busy}
+                                          onChange={() =>
+                                            action(endpoint.id, () =>
+                                              adminRequest(`ai-endpoints/${endpoint.id}`, 'PUT', {
+                                                ...endpoint,
+                                                enabled: !endpoint.enabled,
+                                                isDefault: false,
+                                              }),
+                                            )
+                                          }
+                                        />
+                                        <span
+                                          className="admin-switch-label"
+                                          data-tone={endpoint.enabled ? 'success' : 'danger'}
+                                        >
+                                          {endpoint.enabled ? '已启用' : '已停用'}
+                                        </span>
+                                      </label>
+                                    </div>
+                                    <div className="endpoint-meta">
+                                      <span>
+                                        {purpose === 'image'
+                                          ? imageProtocolLabels[endpoint.protocol]
+                                          : protocolLabels[endpoint.protocol]}
+                                      </span>
+                                      <span aria-hidden="true">·</span>
+                                      {endpoint.model && (
+                                        <span>
+                                          {purpose === 'image' ? '测试模型：' : '模型：'}
+                                          {endpoint.model}
+                                        </span>
+                                      )}
+                                      {purpose === 'prompt' && (
+                                        <AdminStatusBadge
+                                          tone={
+                                            endpoint.capabilities.vision ? 'success' : 'neutral'
+                                          }
+                                        >
+                                          {endpoint.capabilities.vision ? '已启用识图' : '仅文本'}
+                                        </AdminStatusBadge>
+                                      )}
+                                      <span>{endpoint.timeoutSeconds} 秒超时</span>
+                                    </div>
+                                    {canManage && (
+                                      <p className="endpoint-url">
+                                        {endpoint.baseUrl}
+                                        <span>{endpoint.apiKeyMasked}</span>
+                                      </p>
+                                    )}
+                                    {tests[endpoint.id] && (
+                                      <p
+                                        className={
+                                          tests[endpoint.id]?.success
+                                            ? 'connection-result'
+                                            : 'settings-error'
+                                        }
+                                        role="status"
+                                      >
+                                        <strong>
+                                          {tests[endpoint.id]?.mode === 'generate'
+                                            ? '生图测试'
+                                            : '连接测试'}
+                                          {tests[endpoint.id]?.success ? '通过' : '失败'}
+                                        </strong>
+                                        <span>
+                                          {' '}
+                                          · {tests[endpoint.id]?.message} ·{' '}
+                                          {tests[endpoint.id]?.responseTimeMs} ms
+                                        </span>
+                                      </p>
+                                    )}
+                                  </div>
+                                  {canManage && (
+                                    <div className="endpoint-actions">
+                                      {purpose === 'prompt' &&
+                                        endpoint.enabled &&
+                                        !endpoint.isDefault && (
+                                          <Button
+                                            variant="outline"
+                                            className="endpoint-default-action"
+                                            disabled={!!busy}
+                                            onClick={() =>
+                                              action(endpoint.id, () =>
+                                                adminRequest(
+                                                  `ai-endpoints/${endpoint.id}/default`,
+                                                  'POST',
+                                                ),
+                                              )
+                                            }
+                                          >
+                                            设为默认
+                                          </Button>
+                                        )}
+                                      <Button
+                                        variant="outline"
+                                        className="endpoint-edit-action"
+                                        title="编辑"
+                                        aria-label={`编辑 ${endpoint.name}`}
+                                        disabled={!!busy}
+                                        onClick={() => edit(endpoint)}
+                                      >
+                                        <Pencil data-icon="inline-start" />
+                                        编辑
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        className="endpoint-test-action"
+                                        title="只查询模型列表，验证地址和密钥；不生成图片"
+                                        aria-label={`测试 ${endpoint.name} 连接`}
+                                        disabled={!!busy}
+                                        onClick={() => testEndpoint(endpoint)}
+                                      >
+                                        {busy === endpoint.id ? (
+                                          <LoaderCircle className="settings-spinner" size={15} />
+                                        ) : (
+                                          <Zap data-icon="inline-start" />
+                                        )}
+                                        测试连接
+                                      </Button>
+                                      {purpose === 'image' && (
+                                        <Button
+                                          variant="outline"
+                                          disabled={
+                                            !!busy || !endpoint.enabled || !endpoint.model.trim()
+                                          }
+                                          onClick={() => testEndpoint(endpoint, 'generate')}
+                                        >
+                                          测试生图（可能收费）
+                                        </Button>
+                                      )}
+                                      <Button
+                                        variant="outline"
+                                        className="settings-icon endpoint-delete-action admin-action"
+                                        data-tone="danger"
+                                        title="删除"
+                                        aria-label={`删除 ${endpoint.name}`}
+                                        disabled={!!busy}
+                                        onClick={() => {
+                                          if (window.confirm(`删除“${endpoint.name}”？`))
+                                            action(endpoint.id, () =>
+                                              adminRequest(`ai-endpoints/${endpoint.id}`, 'DELETE'),
+                                            )
+                                        }}
+                                      >
+                                        <Trash2 data-icon="inline-start" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </article>
+                              ))}
+                          </div>
+                        )}
+                      </section>
+                    ))}
                   </div>
-                </div>
-              </section>
-            )}
+                )}
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </main>
-      <dialog
-        ref={dialogRef}
-        className="endpoint-dialog"
-        onCancel={(event) => {
-          if (busy) event.preventDefault()
-          else setEditing(null)
-        }}
-        onClose={() => {
-          if (!busy) setEditing(null)
+      <Dialog
+        open={!!editing}
+        onOpenChange={(open) => {
+          if (!open && !busy) setEditing(null)
         }}
       >
-        {editing && (
-          <form onSubmit={saveEndpoint}>
-            <div className="endpoint-section-head">
-              <h2>{editing.id ? '编辑服务' : '添加服务'}</h2>
-              <button
-                type="button"
-                className="settings-icon"
-                title="关闭"
-                aria-label="关闭编辑"
-                disabled={!!busy}
-                onClick={() => setEditing(null)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            {message && (
-              <p className="settings-error" role="alert">
-                {message}
-              </p>
-            )}
-            <fieldset className="endpoint-form-group" disabled={!!busy}>
-              <legend>服务连接</legend>
-              <label className="settings-field">
-                <span>名称</span>
-                <input
-                  autoFocus
-                  required
-                  maxLength={120}
-                  value={editing.input.name}
-                  onChange={(e) => field({ name: e.target.value })}
-                />
-              </label>
-              <label className="settings-field">
-                <span>协议</span>
-                <Select
-                  value={editing.input.protocol}
+        <DialogContent
+          ref={dialogRef}
+          className="admin-editor-dialog"
+          showCloseButton={false}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            returnFocus.current?.focus()
+          }}
+        >
+          {editing && (
+            <form onSubmit={saveEndpoint}>
+              <div className="endpoint-section-head">
+                <DialogHeader>
+                  <DialogTitle id="endpoint-editor-title">
+                    {editing.input.purpose === 'image'
+                      ? editing.id
+                        ? '编辑生图渠道'
+                        : '添加生图渠道'
+                      : editing.id
+                        ? '编辑提示词服务'
+                        : '添加提示词服务'}
+                  </DialogTitle>
+                  <DialogDescription className="endpoint-editor-description">
+                    {editing.input.purpose === 'image'
+                      ? '连接信息仅供后台使用，保存后再到模型中绑定。'
+                      : '用于提示词优化和图片识别。'}
+                  </DialogDescription>
+                </DialogHeader>
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="settings-icon"
+                  title="关闭"
+                  aria-label="关闭编辑"
                   disabled={!!busy}
-                  onValueChange={(value) => field({ protocol: value as AIProtocol })}
+                  onClick={() => setEditing(null)}
                 >
-                  <SelectTrigger size="lg" className="settings-select" aria-label="协议">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent
-                    portalContainer={dialogRef.current}
-                    className="endpoint-dialog-select-content"
-                  >
-                    {(editing.input.purpose === 'prompt'
-                      ? ['openai_chat']
-                      : ['openai_image', 'gemini_generate_content']
-                    ).map((protocol) => (
-                      <SelectItem value={protocol} key={protocol}>
-                        {protocolLabels[protocol as AIProtocol]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </label>
-              <label className="settings-field">
-                <span>Base URL</span>
-                <input
-                  type="url"
-                  required
-                  value={editing.input.baseUrl}
-                  placeholder="https://api.example.com/v1"
-                  onChange={(e) => field({ baseUrl: e.target.value })}
-                />
-              </label>
-              <label className="settings-field">
-                <span>API Key</span>
-                <input
-                  ref={keyRef}
-                  type="password"
-                  autoComplete="new-password"
-                  required={!editing.id}
-                  value={editing.input.apiKey ?? ''}
-                  placeholder={editing.id ? '留空保留现有密钥' : ''}
-                  onChange={(e) => field({ apiKey: e.target.value })}
-                />
-              </label>
-            </fieldset>
-            <fieldset className="endpoint-form-group" disabled={!!busy}>
-              <legend>模型参数</legend>
-              <div className="endpoint-form-grid">
-                <label className="settings-field">
-                  <span>Model</span>
-                  <input
-                    required
-                    maxLength={200}
-                    value={editing.input.model}
-                    onChange={(e) => field({ model: e.target.value })}
-                  />
-                </label>
-                <label className="settings-field">
-                  <span>Timeout / 秒</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={600}
-                    required
-                    value={editing.input.timeoutSeconds}
-                    onChange={(e) => field({ timeoutSeconds: Number(e.target.value) })}
-                  />
-                </label>
+                  <X data-icon="inline-start" />
+                </Button>
               </div>
-            </fieldset>
-            <div className="settings-checks">
-              {editing.input.purpose === 'prompt' && (
+              {message && (
+                <Alert variant="destructive" className="settings-error" role="alert">
+                  <AlertDescription>{message}</AlertDescription>
+                </Alert>
+              )}
+              {!editing.id && editing.input.purpose === 'image' && (
+                <FieldSet className="endpoint-presets" disabled={!!busy}>
+                  <FieldLegend>快捷填写</FieldLegend>
+                  <div>
+                    {imageEndpointPresets.map((preset) => (
+                      <Button
+                        variant="outline"
+                        key={preset.id}
+                        type="button"
+                        onClick={() =>
+                          field({
+                            name: preset.name,
+                            protocol: preset.protocol,
+                            baseUrl: preset.baseUrl,
+                            apiKey: '',
+                            model: '',
+                          })
+                        }
+                      >
+                        {preset.label}
+                      </Button>
+                    ))}
+                  </div>
+                  <small>切换预设会清空未保存的密钥和测试模型，请按所选服务重新填写。</small>
+                </FieldSet>
+              )}
+              <FieldSet className="endpoint-form-group" disabled={!!busy}>
+                <FieldLegend>服务连接</FieldLegend>
+                <Field>
+                  <FieldLabel className="settings-field">
+                    <span>名称</span>
+                    <Input
+                      autoFocus
+                      required
+                      maxLength={120}
+                      value={editing.input.name}
+                      onChange={(e) => field({ name: e.target.value })}
+                    />
+                  </FieldLabel>
+                </Field>
+                <Field>
+                  <FieldLabel className="settings-field">
+                    <span>接口协议</span>
+                    <Select
+                      value={editing.input.protocol}
+                      disabled={!!busy}
+                      onValueChange={(value) => field({ protocol: value as AIProtocol })}
+                    >
+                      <SelectTrigger size="lg" className="settings-select" aria-label="协议">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent
+                        portalContainer={dialogRef.current}
+                        className="endpoint-dialog-select-content"
+                      >
+                        <SelectGroup>
+                          {(editing.input.purpose === 'prompt'
+                            ? ['openai_chat']
+                            : ['openai_images', 'openai_chat', 'gemini_native']
+                          ).map((protocol) => (
+                            <SelectItem value={protocol} key={protocol}>
+                              {editing.input.purpose === 'image'
+                                ? imageProtocolLabels[protocol as AIProtocol]
+                                : protocolLabels[protocol as AIProtocol]}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {editing.input.purpose === 'image' && (
+                      <small>{imageProtocolHelp[editing.input.protocol].description}</small>
+                    )}
+                  </FieldLabel>
+                </Field>
+                <Field>
+                  <FieldLabel className="settings-field">
+                    <span>API 地址（Base URL）</span>
+                    <Input
+                      type="url"
+                      required
+                      value={editing.input.baseUrl}
+                      placeholder={
+                        editing.input.purpose === 'image'
+                          ? imageProtocolHelp[editing.input.protocol].baseUrl
+                          : 'https://api.example.com/v1'
+                      }
+                      onChange={(e) => field({ baseUrl: e.target.value })}
+                    />
+                    <small>填写接口根地址，保留 /v1 或 /v1beta；无需填写具体生图路径。</small>
+                  </FieldLabel>
+                </Field>
+                <Field>
+                  <FieldLabel className="settings-field">
+                    <span>API Key</span>
+                    <Input
+                      ref={keyRef}
+                      type="password"
+                      autoComplete="new-password"
+                      required={!editing.id}
+                      value={editing.input.apiKey ?? ''}
+                      placeholder={editing.id ? '留空保留现有密钥' : ''}
+                      onChange={(e) => field({ apiKey: e.target.value })}
+                    />
+                    <small>
+                      {editing.id
+                        ? '留空保留已保存的密钥；填写新值会替换密钥。'
+                        : '密钥加密保存，不会展示给前台用户。'}
+                    </small>
+                  </FieldLabel>
+                </Field>
+              </FieldSet>
+              <FieldSet className="endpoint-form-group" disabled={!!busy}>
+                <FieldLegend>
+                  {editing.input.purpose === 'image' ? '测试与请求设置' : '模型与请求设置'}
+                </FieldLegend>
+                <div className="endpoint-form-grid">
+                  <Field>
+                    <FieldLabel className="settings-field">
+                      <span>
+                        {editing.input.purpose === 'image' ? '测试模型 ID（可选）' : 'Model'}
+                      </span>
+                      <Input
+                        required={editing.input.purpose === 'prompt'}
+                        maxLength={200}
+                        value={editing.input.model}
+                        onChange={(e) => field({ model: e.target.value })}
+                      />
+                      {editing.input.purpose === 'image' && (
+                        <small>仅用于此页的生图测试。正式生成使用模型绑定中的上游 ID。</small>
+                      )}
+                    </FieldLabel>
+                  </Field>
+                  <Field>
+                    <FieldLabel className="settings-field">
+                      <span>请求超时（秒）</span>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={600}
+                        required
+                        value={editing.input.timeoutSeconds}
+                        onChange={(e) => field({ timeoutSeconds: Number(e.target.value) })}
+                      />
+                    </FieldLabel>
+                  </Field>
+                </div>
+              </FieldSet>
+              <div className="settings-checks">
+                {editing.input.purpose === 'prompt' && (
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!!editing.input.capabilities.vision}
+                      disabled={!!busy}
+                      onChange={(e) =>
+                        field({
+                          capabilities: { ...editing.input.capabilities, vision: e.target.checked },
+                        })
+                      }
+                    />
+                    支持图片识别
+                  </label>
+                )}
                 <label>
                   <input
                     type="checkbox"
-                    checked={!!editing.input.capabilities.vision}
+                    checked={editing.input.enabled}
                     disabled={!!busy}
                     onChange={(e) =>
                       field({
-                        capabilities: { ...editing.input.capabilities, vision: e.target.checked },
+                        enabled: e.target.checked,
+                        isDefault: e.target.checked && editing.input.isDefault,
                       })
                     }
                   />
-                  支持图片识别
+                  启用
                 </label>
+                {editing.input.purpose === 'prompt' && (
+                  <label>
+                    <input
+                      type="checkbox"
+                      disabled={!!busy || !editing.input.enabled}
+                      checked={editing.input.isDefault}
+                      onChange={(e) => field({ isDefault: e.target.checked })}
+                    />
+                    默认服务
+                  </label>
+                )}
+              </div>
+              {editing.input.purpose === 'prompt' && (
+                <p className="admin-field-hint">
+                  请先确认模型支持图片输入，再勾选「支持图片识别」。图片反推可单独指定此服务，无需设为默认。
+                </p>
               )}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={editing.input.enabled}
+              <div className="settings-form-actions">
+                <Button
+                  variant="outline"
+                  type="button"
                   disabled={!!busy}
-                  onChange={(e) =>
-                    field({
-                      enabled: e.target.checked,
-                      isDefault: e.target.checked && editing.input.isDefault,
-                    })
-                  }
-                />
-                启用
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  disabled={!!busy || !editing.input.enabled}
-                  checked={editing.input.isDefault}
-                  onChange={(e) => field({ isDefault: e.target.checked })}
-                />
-                默认服务
-              </label>
-            </div>
-            {editing.input.purpose === 'prompt' && (
-              <p className="admin-field-hint">
-                请先确认模型支持图片输入，再勾选「支持图片识别」。图片反推可单独指定此服务，无需设为默认。
-              </p>
-            )}
-            <div className="settings-form-actions">
-              <button
-                type="button"
-                className="settings-command"
-                disabled={!!busy}
-                onClick={() => setEditing(null)}
-              >
-                取消
-              </button>
-              <button type="submit" className="settings-primary" disabled={!!busy}>
-                <Save size={16} />
-                {busy === 'save' ? '保存中' : '保存'}
-              </button>
-            </div>
-          </form>
-        )}
-      </dialog>
+                  onClick={() => setEditing(null)}
+                >
+                  取消
+                </Button>
+                <Button type="submit" disabled={!!busy}>
+                  <Save data-icon="inline-start" />
+                  {busy === 'save'
+                    ? '保存中…'
+                    : editing.input.purpose === 'image'
+                      ? '保存渠道'
+                      : '保存服务'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

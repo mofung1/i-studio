@@ -173,7 +173,8 @@ func TestLegacyAdministratorsSplitOnceWithoutMovingCustomerData(t *testing.T) {
 	_, err := s.db.Exec(`UPDATE users SET role='admin' WHERE id='legacy';
  UPDATE operation_settings SET admin_auth_migrated=false;
  CREATE TABLE environment_admin(id BOOLEAN PRIMARY KEY,user_id TEXT REFERENCES users(id));
- INSERT INTO environment_admin VALUES(true,'legacy')`)
+ INSERT INTO environment_admin VALUES(true,'legacy');
+ DELETE FROM schema_file_migrations WHERE name='010_admin_identity.sql'`)
 	if err != nil {
 		t.Fatal(err)
 	}
