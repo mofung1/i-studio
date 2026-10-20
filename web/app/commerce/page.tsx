@@ -85,7 +85,7 @@ export default function CommercePage() {
         <h1 className="sr-only">电商工具</h1>
         <div className={styles.grid}>
           {examples.map(({ id, layout, description, image }) => {
-            const href = `/workbench?mode=commerce&task=${id}`
+            const href = `/studio?mode=commerce&task=${id}`
             const title = taskMeta[id].title
             return (
               <article className={`${styles.card} ${styles[layout]}`} key={id}>

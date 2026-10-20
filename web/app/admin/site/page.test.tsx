@@ -6,6 +6,8 @@ import Page from './page'
 import { readSiteBranding } from '@/lib/site-settings'
 import { saveSiteBranding } from '@/lib/admin-site-settings'
 import { confirmAdminNavigation } from '@/components/admin/use-unsaved-changes'
+const refresh = vi.hoisted(() => vi.fn())
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
 vi.mock('@/lib/site-settings', async (original) => ({
   ...(await original<object>()),
   readSiteBranding: vi.fn(),
@@ -47,6 +49,7 @@ it('uses the existing branding form and protects edits until they are saved', as
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
   )
   expect(saveSiteBranding).toHaveBeenCalledWith('我的工作台', null, false)
+  expect(refresh).toHaveBeenCalled()
   expect(host.textContent).toContain('网站配置已保存')
   expect(confirmAdminNavigation()).toBe(true)
 })

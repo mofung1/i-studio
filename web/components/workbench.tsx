@@ -426,7 +426,7 @@ function StandardWorkbench({
     setPanelOpen(false)
     setNotice(null)
     router.replace(
-      nextMode === 'general' ? '/workbench?mode=general' : `/workbench?mode=commerce&task=${task}`,
+      nextMode === 'general' ? '/studio?mode=general' : `/studio?mode=commerce&task=${task}`,
     )
   }
 
@@ -438,7 +438,7 @@ function StandardWorkbench({
     commerceLayout.setCollapsed(false)
     setPanelOpen(false)
     setNotice(null)
-    router.replace(`/workbench?mode=commerce&task=${nextTask}`)
+    router.replace(`/studio?mode=commerce&task=${nextTask}`)
   }
 
   /** 把一张结果图取回成可以直接放进素材区的文件 */
@@ -496,8 +496,8 @@ function StandardWorkbench({
         setHistoryOpen(false)
         router.replace(
           targetMode === 'general'
-            ? '/workbench?mode=general'
-            : `/workbench?mode=commerce&task=${targetTask}`,
+            ? '/studio?mode=general'
+            : `/studio?mode=commerce&task=${targetTask}`,
         )
       }
       const message = sameScope
@@ -568,9 +568,7 @@ function StandardWorkbench({
       setHistoryTask(null)
       setHistoryOpen(false)
       router.replace(
-        nextMode === 'general'
-          ? '/workbench?mode=general'
-          : `/workbench?mode=commerce&task=${nextTask}`,
+        nextMode === 'general' ? '/studio?mode=general' : `/studio?mode=commerce&task=${nextTask}`,
       )
       const message = '已载入历史记录的配置，可继续调整后生成'
       if (nextMode === mode && (nextMode === 'general' || nextTask === task))

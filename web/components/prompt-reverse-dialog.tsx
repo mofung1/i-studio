@@ -475,7 +475,7 @@ export function PromptReverseDialog({
             createdAt: Date.now(),
           }),
         )
-        router.push(`/workbench?mode=general&reversePrompt=${encodeURIComponent(task.id)}`)
+        router.push(`/studio?mode=general&reversePrompt=${encodeURIComponent(task.id)}`)
       }
       onClose()
     } catch (reason) {

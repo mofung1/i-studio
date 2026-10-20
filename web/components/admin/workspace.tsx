@@ -78,7 +78,7 @@ function AccountMenu({ sidebar = false }: { sidebar?: boolean }) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link href="/workbench?mode=general">
+            <Link href="/studio?mode=general">
               <ArrowUpRight />
               返回创作工作台
             </Link>

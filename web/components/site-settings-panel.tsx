@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
 import { LoaderCircle, RotateCcw, Save, Upload, X } from 'lucide-react'
 import {
   defaultSiteBranding,
@@ -13,6 +14,7 @@ import { BrandLogo } from './brand'
 import { useSiteBranding } from './site-branding-provider'
 
 export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void }) {
+  const router = useRouter()
   const { updateBranding } = useSiteBranding()
   const [original, setOriginal] = useState<SiteBranding | null>(null)
   const [name, setName] = useState('')
@@ -106,6 +108,7 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
       setLogo(null)
       setRemoveLogo(false)
       updateBranding(settings)
+      router.refresh()
       setSaved('网站配置已保存，全站品牌已更新')
     } catch (error) {
       setError(error instanceof Error ? error.message : '网站配置保存失败')

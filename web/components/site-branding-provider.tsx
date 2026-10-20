@@ -13,7 +13,6 @@ import {
   defaultSiteBranding,
   readSiteBranding,
   siteLogoUrl,
-  siteTitle,
   type SiteBranding,
 } from '@/lib/site-settings'
 
@@ -70,7 +69,7 @@ export function SiteBrandingProvider({
   }, [])
 
   useEffect(() => {
-    document.title = siteTitle(branding.name)
+    // Next.js owns page titles. Updating branding must not erase route-specific metadata.
     const icons = document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]')
     const url = siteLogoUrl(branding.logoPath) || '/icon.svg'
     icons.forEach((icon) => {

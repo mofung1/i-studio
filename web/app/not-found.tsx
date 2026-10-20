@@ -19,7 +19,7 @@ export default function NotFound() {
               <ArrowLeft size={15} />
               返回首页
             </Link>
-            <Link className="route-fallback-secondary" href="/workbench">
+            <Link className="route-fallback-secondary" href="/studio">
               前往工作台
             </Link>
           </div>

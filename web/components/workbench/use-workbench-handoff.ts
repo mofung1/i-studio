@@ -13,14 +13,14 @@ export function historyWorkbenchUrl(record: HistoryTask, regenerate = false) {
   })
   if (record.input.mode === 'commerce') query.set('task', record.input.taskType ?? 'product-main')
   if (regenerate) query.set('review', '1')
-  return `/workbench?${query}`
+  return `/studio?${query}`
 }
 export function referenceWorkbenchUrl(path: string, mode: WorkbenchMode, taskType: string) {
   const match = path.match(/^\/v1\/assets\/([^/]+)\/content$/)
   if (!match?.[1]) return null
   const query = new URLSearchParams({ mode, referenceAsset: match[1] })
   if (mode === 'commerce') query.set('task', taskType)
-  return `/workbench?${query}`
+  return `/studio?${query}`
 }
 
 /** Transfer protected task/asset IDs between the two workbench components. */

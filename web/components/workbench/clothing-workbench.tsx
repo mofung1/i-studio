@@ -574,9 +574,9 @@ export function ClothingWorkbench({
           mode="commerce"
           task="clothing-set"
           onChangeMode={(mode) =>
-            router.replace(mode === 'general' ? '/workbench?mode=general' : '/commerce')
+            router.replace(mode === 'general' ? '/studio?mode=general' : '/commerce')
           }
-          onChangeTask={(task) => router.replace(`/workbench?mode=commerce&task=${task}`)}
+          onChangeTask={(task) => router.replace(`/studio?mode=commerce&task=${task}`)}
         />
         <WorkbenchHeader
           collectionTools={

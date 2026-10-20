@@ -6,7 +6,7 @@ import { LoginLink } from './login-link'
 
 const location = vi.hoisted(() => ({ search: 'mode=general' }))
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/workbench',
+  usePathname: () => '/studio',
   useSearchParams: () => new URLSearchParams(location.search),
 }))
 let root: Root
@@ -26,12 +26,12 @@ afterEach(async () => {
 it('updates the login destination when switching tools on the same route', async () => {
   await act(async () => root.render(<LoginLink>登录</LoginLink>))
   expect(container.querySelector('a')?.getAttribute('href')).toBe(
-    '/login?next=%2Fworkbench%3Fmode%3Dgeneral',
+    '/login?next=%2Fstudio%3Fmode%3Dgeneral',
   )
   location.search = 'mode=commerce&task=clothing-set'
   await act(async () => root.render(<LoginLink>登录</LoginLink>))
   expect(container.querySelector('a')?.getAttribute('href')).toBe(
-    `/login?next=${encodeURIComponent('/workbench?mode=commerce&task=clothing-set')}`,
+    `/login?next=${encodeURIComponent('/studio?mode=commerce&task=clothing-set')}`,
   )
 })
 it('preserves an explicit destination for private pages', async () => {
