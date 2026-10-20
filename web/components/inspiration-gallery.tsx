@@ -93,7 +93,7 @@ export function InspirationCard({
         ) : (
           <Link
             className="inspire-start-button"
-            href={`/workbench?mode=general&prompt=${encodeURIComponent(item.prompt)}`}
+            href={`/studio?mode=general&prompt=${encodeURIComponent(item.prompt)}`}
           >
             去生图
             <ArrowUpRight size={15} />
@@ -221,7 +221,7 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
             ) : (
               <>
                 <span>灵感库还没有内容</span>
-                <Link className="studio-primary" href="/workbench?mode=general">
+                <Link className="studio-primary" href="/studio?mode=general">
                   开始创作
                   <ArrowUpRight size={15} />
                 </Link>
@@ -310,7 +310,7 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
             ) : (
               <Link
                 className="studio-primary"
-                href={`/workbench?mode=general&prompt=${encodeURIComponent(selectedPrompt.prompt)}`}
+                href={`/studio?mode=general&prompt=${encodeURIComponent(selectedPrompt.prompt)}`}
               >
                 去生图
                 <ArrowUpRight size={15} />

@@ -58,7 +58,7 @@ export function useReversePromptHandoff({
         localStorage.removeItem(reverseStorageKey('handoff'))
         const params = new URLSearchParams(search.toString())
         params.delete('reversePrompt')
-        router.replace(`/workbench?${params}`)
+        router.replace(`/studio?${params}`)
       } catch (reason) {
         if (!controller.signal.aborted) {
           handled.current = id!

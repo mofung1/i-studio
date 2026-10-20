@@ -8,7 +8,7 @@ describe('login return path', () => {
   it.each([null, 'https://example.com', '//example.com', '/\\example.com', '/\n/example.com'])(
     'rejects external or normalized external routes: %s',
     (path) => {
-      expect(safeReturnPath(path)).toBe('/workbench?mode=general')
+      expect(safeReturnPath(path)).toBe('/studio?mode=general')
     },
   )
 })

@@ -491,7 +491,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       actions={
         <Link
           className="studio-primary"
-          href={`/workbench?mode=general${currentProject && !currentProject.archived ? `&projectId=${encodeURIComponent(currentProject.id)}` : ''}`}
+          href={`/studio?mode=general${currentProject && !currentProject.archived ? `&projectId=${encodeURIComponent(currentProject.id)}` : ''}`}
         >
           <Plus size={16} />
           {currentProject && !currentProject.archived ? '在项目中创作' : '开始创作'}
@@ -844,7 +844,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                         : '从第一张图片开始'}
                   </strong>
                   <p>可以调整筛选条件，或开始一次新的创作。</p>
-                  <Link className="studio-primary" href="/workbench?mode=general">
+                  <Link className="studio-primary" href="/studio?mode=general">
                     开始创作
                   </Link>
                 </div>

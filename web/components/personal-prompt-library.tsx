@@ -165,7 +165,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
             新增提示词
           </button>
         ) : (
-          <Link className="studio-primary" href="/workbench?mode=general">
+          <Link className="studio-primary" href="/studio?mode=general">
             <Plus size={16} />
             到工作台保存预设
           </Link>

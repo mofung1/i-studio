@@ -3,6 +3,7 @@ import { WorkbenchSkeleton } from '@/components/workbench/workbench-skeleton'
 import type { CommerceTaskType } from '@/lib/contracts'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
+import { StudioToolLauncher } from '@/components/workbench/studio-tool-launcher'
 
 const commerceTasks: CommerceTaskType[] = [
   'product-main',
@@ -36,6 +37,7 @@ export default async function WorkbenchPage({ searchParams }: WorkbenchPageProps
 
   return (
     <Suspense fallback={<WorkbenchSkeleton mode={initialMode} />}>
+      <StudioToolLauncher />
       <Workbench
         initialMode={initialMode}
         initialPrompt={params.prompt}

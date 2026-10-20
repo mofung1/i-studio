@@ -99,12 +99,7 @@ export function WorkbenchRail({
           {collapsed ? '展开侧边栏' : '收起侧边栏'}
         </span>
       </button>
-      <a
-        className="studio-new"
-        href="/workbench?mode=general"
-        aria-label="新建创作"
-        title="新建创作"
-      >
+      <a className="studio-new" href="/studio?mode=general" aria-label="新建创作" title="新建创作">
         <Plus size={18} />
         <span>新建创作</span>
       </a>
@@ -123,7 +118,7 @@ export function WorkbenchRail({
           </button>
         ) : (
           <Link
-            href="/workbench?mode=general"
+            href="/studio?mode=general"
             className={section === 'general' ? 'active' : ''}
             aria-label="AI 生图"
             title="AI 生图"
@@ -167,7 +162,7 @@ export function WorkbenchRail({
               ) : (
                 <Link
                   key={id}
-                  href={`/workbench?mode=commerce&task=${id}`}
+                  href={`/studio?mode=commerce&task=${id}`}
                   aria-label={meta.title}
                   title={meta.title}
                   aria-current={task === id ? 'page' : undefined}

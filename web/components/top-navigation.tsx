@@ -25,7 +25,7 @@ export function TopNavigation() {
         {navOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
       <nav id="primary-navigation" aria-label="主导航" data-open={navOpen}>
-        <Link href="/workbench?mode=general" onClick={() => setNavOpen(false)}>
+        <Link href="/studio?mode=general" onClick={() => setNavOpen(false)}>
           AI 生图
         </Link>
         <Link href="/commerce" onClick={() => setNavOpen(false)}>

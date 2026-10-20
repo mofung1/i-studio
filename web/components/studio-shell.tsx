@@ -37,7 +37,7 @@ export function StudioShell({
         <div className="studio-topbar-actions">
           {actions ??
             (section !== 'commerce' && section !== 'inspire' ? (
-              <Link className="studio-primary" href="/workbench?mode=general">
+              <Link className="studio-primary" href="/studio?mode=general">
                 <Plus size={16} />
                 开始创作
               </Link>

@@ -121,7 +121,7 @@ export function personalWorkbenchURL(item: PersonalPrompt, values: Record<string
   })
   if (application.config?.mode === 'commerce')
     query.set('task', application.config.taskType as CommerceTaskType)
-  return `/workbench?${query}`
+  return `/studio?${query}`
 }
 export async function readPersonalApplication(
   id: string,
