@@ -60,5 +60,33 @@
       "source": "/Users/mofung/.codex/generated_images/01a15cf5-1a76-72b1-babe-134bb7289f95/exec-1fe8b088-e243-48d1-8957-95de606a59b5.png",
       "referenceId": "skincare-base"
     }
-  ]
+  ],
+  "scope": "Sunny 批次来源台账；当前首页混用 neutral 与 chromatic 归档，见 manifest.json 与 currentSelection。",
+  "currentSelection": {
+    "manifest": "manifest.json",
+    "archives": {
+      "sunny": "archive/2026-10-21-sunny/manifest.json",
+      "neutral": "archive/2026-10-21-neutral/manifest.json",
+      "chromatic": "archive/2026-10-21-chromatic/manifest.json"
+    }
+  },
+  "heroRegeneration": {
+    "id": "ai-story-city-4k",
+    "tool": "iStudio generation API",
+    "model": "gemini-3-pro-image-preview",
+    "resolution": "4K",
+    "taskId": "31de4a35b66901272f451134339e64f4",
+    "referenceId": "ai-story-city-sunny",
+    "source": "test/artifacts/marketing-hero-4k-2026-10-21/originals/ai-story-city-4k.png",
+    "sourceSha256": "abc8ce2ecdc9b973ee6f8c5d5a8791ddde5b15e92f1b03968e8ca1afad85b955",
+    "published": "web/public/images/marketing/hero/coastal-creator-2x.webp"
+  },
+  "workbench": {
+    "id": "workbench-creation",
+    "tool": "Playwright capture of the running workbench",
+    "captured": "2026-10-21",
+    "source": "test/artifacts/marketing-hero-4k-2026-10-21/workbench/workbench-creation.png",
+    "published": "web/public/images/marketing/workbench/workbench-creation-2026-10.webp",
+    "redaction": "账户标识替换为通用署名"
+  }
 }

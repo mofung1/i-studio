@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowDown, ArrowUpRight } from 'lucide-react'
+import { ArrowDown, ArrowUpRight, Monitor } from 'lucide-react'
 import { heroArtwork } from '@/lib/marketing-assets'
 import { HeroCanvas } from './hero-canvas'
 
@@ -49,7 +49,8 @@ export function EditorialHero() {
               </div>
             </div>
             <div className="editorial-hero-copy" data-hero-copy>
-              <p className="editorial-hero-description">AI 图片创作与电商视觉。</p>
+              <span className="editorial-hero-eyebrow">AI 图片生成 · 商品视觉 · 服装模特</span>
+              <p className="editorial-hero-description">从一个想法，到可用的创意画面与商品图。</p>
               <div className="editorial-hero-actions">
                 <Link className="marketing-button" href="/studio">
                   开始 AI 创作 <ArrowUpRight size={17} aria-hidden="true" />
@@ -61,6 +62,10 @@ export function EditorialHero() {
                   探索电商工具
                 </Link>
               </div>
+              <span className="editorial-hero-device-hint">
+                <Monitor size={14} aria-hidden="true" />
+                电脑端体验更完整，可先浏览
+              </span>
             </div>
           </div>
           <span className="editorial-hero-scroll" data-hero-scroll aria-hidden="true">

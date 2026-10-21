@@ -1,43 +1,48 @@
 {
-  "tool": "Official built-in image_gen",
+  "tool": "iStudio image API for the 4K hero; archived built-in image_gen batches for supporting artwork; live UI capture for the workbench.",
   "started": "2026-10-21",
   "completed": "2026-10-21",
   "assets": [
     {
       "id": "ai-story-city",
-      "src": "/images/marketing/sunny/hero/coastal-creator.webp",
-      "width": 1664,
-      "height": 936,
-      "bytes": 258608,
-      "sourceSha256": "461c2047343522219c2aae47d2db6d96c85dbdb5ea59c03c9e29f288113d2006",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ai-story-city.png",
-      "referenceId": null,
-      "mode": "new-generation",
-      "disclosure": "AI 视觉概念示例"
+      "src": "/images/marketing/hero/coastal-creator-2x.webp",
+      "width": 3328,
+      "height": 1872,
+      "bytes": 398592,
+      "sourceSha256": "abc8ce2ecdc9b973ee6f8c5d5a8791ddde5b15e92f1b03968e8ca1afad85b955",
+      "original": "test/artifacts/marketing-hero-4k-2026-10-21/originals/ai-story-city-4k.png",
+      "referenceId": "ai-story-city-sunny",
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例；在上一版主视觉基础上重绘为高分辨率版本。",
+      "generator": {
+        "model": "gemini-3-pro-image-preview",
+        "taskId": "31de4a35b66901272f451134339e64f4",
+        "resolution": "4K"
+      }
     },
     {
       "id": "skincare-base",
-      "src": "/images/marketing/sunny/commerce/skincare-base.webp",
-      "width": 1280,
-      "height": 960,
-      "bytes": 107650,
-      "sourceSha256": "5af5f630f57bdafc6207bfe0c27bbd60fa88b14bea462e1a0ff789a0f1717b58",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/skincare-base.png",
+      "src": "/images/marketing/chromatic/commerce/skincare-base.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 42072,
+      "sourceSha256": "9fba4b6c2a897073afb47dea4775c8820f6456e5f69fdf84c6c9951a8e88e833",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/skincare-base.png",
       "referenceId": null,
       "mode": "new-generation",
       "disclosure": "AI 视觉概念示例"
     },
     {
       "id": "hero-fashion",
-      "src": "/images/marketing/sunny/gallery/fashion-doll.webp",
+      "src": "/images/marketing/hero/editorial-fashion.webp",
       "width": 1120,
       "height": 1400,
-      "bytes": 197252,
-      "sourceSha256": "5faf71f8dc295fd4f0fdfe03ea870a768f448cd094aa486e0c5d60d5ac7526e0",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/hero-fashion.png",
+      "bytes": 137422,
+      "sourceSha256": "de84691aa06c6c0b3034422e2a85b465b9dc60ee3bb2eb7bdb87214ea5e89883",
+      "original": "test/artifacts/marketing-visuals-2026-10-20/originals/hero-fashion.png",
       "referenceId": null,
       "mode": "new-generation",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例；不是 iStudio 产品内的实际生成记录。"
     },
     {
       "id": "hero-still-life",
@@ -65,101 +70,121 @@
     },
     {
       "id": "ecommerce-perfume",
-      "src": "/images/marketing/sunny/commerce/perfume.webp",
+      "src": "/images/marketing/ecommerce/amber-perfume.webp",
       "width": 1120,
       "height": 1400,
-      "bytes": 100132,
-      "sourceSha256": "d8f61a522d87d5977a77f5001f6f4a8a4e298691e1611ad41301d4aa62a57ed3",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ecommerce-perfume.png",
+      "bytes": 158732,
+      "sourceSha256": "4014afb0805efd58596eb016a9e7d384afc307763f12676d64b3b523a328642f",
+      "original": "test/artifacts/marketing-visuals-2026-10-20/originals/ecommerce-perfume.png",
       "referenceId": null,
       "mode": "new-generation",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例；不是 iStudio 产品内的实际生成记录。"
     },
     {
       "id": "ecommerce-coffee",
-      "src": "/images/marketing/sunny/gallery/coffee-corner.webp",
+      "src": "/images/marketing/ecommerce/coffee-ritual.webp",
       "width": 1120,
       "height": 1400,
-      "bytes": 118634,
-      "sourceSha256": "d3251557f9f42c88dbcbd2306d38490611abcdd96da704489b78c0c679571899",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ecommerce-coffee.png",
+      "bytes": 141612,
+      "sourceSha256": "c7a6994eac12d0e5a846b57121e45524f5ceb81feb512c2c6c20c9e0b4f9406d",
+      "original": "test/artifacts/marketing-visuals-2026-10-20/originals/ecommerce-coffee.png",
       "referenceId": null,
       "mode": "new-generation",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例；不是 iStudio 产品内的实际生成记录。"
     },
     {
       "id": "ecommerce-lifestyle",
-      "src": "/images/marketing/sunny/commerce/atelier-lamp.webp",
+      "src": "/images/marketing/ecommerce/sculptural-light.webp",
       "width": 1120,
       "height": 1400,
-      "bytes": 100376,
-      "sourceSha256": "9d0cc7146ed8d06ae8705cf3a3fe3c979898668203e7afe8c54157ee5841aec4",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ecommerce-lifestyle.png",
+      "bytes": 133406,
+      "sourceSha256": "701f4a6398e89d8e4d164ad477b3c92de02f246ada14534483a051c8f3602f42",
+      "original": "test/artifacts/marketing-visuals-2026-10-20/originals/ecommerce-lifestyle.png",
       "referenceId": null,
       "mode": "new-generation",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例；不是 iStudio 产品内的实际生成记录。"
     },
     {
       "id": "ecommerce-accessory",
-      "src": "/images/marketing/sunny/gallery/little-handbag.webp",
+      "src": "/images/marketing/ecommerce/leather-accessory.webp",
       "width": 1120,
       "height": 1400,
-      "bytes": 139468,
-      "sourceSha256": "1ed32b6566b8da583ae6d0836494299d0b4e45f4908c9401eee99696957e3626",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ecommerce-accessory.png",
+      "bytes": 155916,
+      "sourceSha256": "d4910b40a6833ff5553aedf34097c78bcfc22596c5d3c7c724bf991bb4dd5082",
+      "original": "test/artifacts/marketing-visuals-2026-10-20/originals/ecommerce-accessory.png",
       "referenceId": null,
       "mode": "new-generation",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例；不是 iStudio 产品内的实际生成记录。"
     },
     {
       "id": "hero-future",
-      "src": "/images/marketing/sunny/gallery/creative-atelier.webp",
+      "src": "/images/marketing/hero/future-conservatory.webp",
       "width": 1120,
       "height": 1400,
-      "bytes": 170968,
-      "sourceSha256": "dee6a673cdc0ffa575cfffacb95626d1cb6b9065e323c73cae37cae56fb07b44",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/hero-future.png",
+      "bytes": 365978,
+      "sourceSha256": "d745c3504655aef1100a753bd23967784a69767c0830160f9ae0b9f7f6446e5f",
+      "original": "test/artifacts/marketing-visuals-2026-10-20/originals/hero-future.png",
       "referenceId": null,
       "mode": "new-generation",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例；不是 iStudio 产品内的实际生成记录。"
     },
     {
       "id": "hero-skincare",
-      "src": "/images/marketing/sunny/commerce/skincare-scene.webp",
-      "width": 1280,
-      "height": 960,
-      "bytes": 58388,
-      "sourceSha256": "5f91d86147d06776a656b6a674907b22dd3a754f48ecbf628b667a0839eca5d4",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/hero-skincare.png",
+      "src": "/images/marketing/chromatic/commerce/chromatic-skincare.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 51462,
+      "sourceSha256": "3fe1903b21042cc524f9ccf015a8fc0fa6710a9abdd60181fc460f88971d3c9f",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/hero-skincare.png",
       "referenceId": "skincare-base",
       "mode": "reference-image-edit",
       "disclosure": "AI 视觉概念示例"
     },
     {
       "id": "gallery-city",
-      "src": "/images/marketing/sunny/gallery/coastal-detail.webp",
+      "src": "/images/marketing/gallery/coastal-detail-2x.webp",
       "width": 840,
       "height": 1050,
-      "bytes": 105796,
+      "bytes": 104122,
       "derivedFrom": "ai-story-city",
       "crop": {
-        "left": 660,
+        "left": 2520,
         "top": 0,
-        "width": 748,
-        "height": 936
+        "width": 2458,
+        "height": 3072
       },
       "mode": "resize-and-crop",
       "disclosure": "AI 视觉概念示例"
     },
     {
       "id": "social-cover",
-      "src": "/images/marketing/sunny/hero/coastal-og.webp",
+      "src": "/images/marketing/hero/coastal-og-2x.webp",
       "width": 1200,
       "height": 630,
-      "bytes": 123982,
+      "bytes": 116486,
       "derivedFrom": "ai-story-city",
       "mode": "resize-and-crop",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例",
+      "crop": {
+        "left": 0,
+        "top": 91,
+        "width": 5504,
+        "height": 2889
+      }
+    },
+    {
+      "id": "workbench-creation",
+      "src": "/images/marketing/workbench/workbench-creation-2026-10.webp",
+      "width": 2880,
+      "height": 1800,
+      "bytes": 263512,
+      "captured": "2026-10-21",
+      "original": "test/artifacts/marketing-hero-4k-2026-10-21/workbench/workbench-creation.png",
+      "mode": "product-screenshot",
+      "model": "gemini-3-pro-image-preview",
+      "disclosure": "iStudio 创作工作台的真实界面截图；界面中的画面由 AI 生成。",
+      "redacted": "账户标识已替换为通用署名"
     }
-  ]
+  ],
+  "note": "Current homepage selection across the sunny, neutral and chromatic archives. Source SHA-256 values identify the archived render behind each published WebP; derived crops reference their parent."
 }
