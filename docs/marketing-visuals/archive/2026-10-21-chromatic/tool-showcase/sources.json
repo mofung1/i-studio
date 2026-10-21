@@ -1,0 +1,37 @@
+{
+  "tool": "Official built-in image_gen",
+  "completed": "2026-10-21",
+  "archive": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals",
+  "assets": [
+    {
+      "id": "tool-generator",
+      "source": "/Users/mofung/.codex/generated_images/01a15cf5-1a76-72b1-babe-134bb7289f95/exec-56af9dc5-3030-4175-b72f-362efb7c1c66.png",
+      "referenceId": null,
+      "derivedFrom": "hero-fantasy"
+    },
+    {
+      "id": "tool-prompt",
+      "source": "/Users/mofung/.codex/generated_images/01a15cf5-1a76-72b1-babe-134bb7289f95/exec-bccd6688-b0b7-4a14-8a5f-796f066c2007.png",
+      "referenceId": "hero-still-life",
+      "derivedFrom": null
+    },
+    {
+      "id": "tool-product",
+      "source": "/Users/mofung/.codex/generated_images/01a15cf5-1a76-72b1-babe-134bb7289f95/exec-2309f228-806d-4711-b1c8-1a1cc458c519.png",
+      "referenceId": null,
+      "derivedFrom": "ecommerce-perfume"
+    },
+    {
+      "id": "tool-retouch",
+      "source": "/Users/mofung/.codex/generated_images/01a15cf5-1a76-72b1-babe-134bb7289f95/exec-d10a026b-1efc-45f7-a375-07304df84c06.png",
+      "referenceId": "tool-product",
+      "derivedFrom": null
+    },
+    {
+      "id": "tool-fashion",
+      "source": "/Users/mofung/.codex/generated_images/01a15cf5-1a76-72b1-babe-134bb7289f95/exec-bcabb29a-c504-4b6c-a673-3257cf729fc3.png",
+      "referenceId": "hero-fashion",
+      "derivedFrom": null
+    }
+  ]
+}

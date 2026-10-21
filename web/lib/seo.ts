@@ -1,4 +1,5 @@
 import type { Metadata, MetadataRoute } from 'next'
+import { marketingAssets } from './marketing-assets'
 
 type SeoEnvironment = Record<string, string | undefined>
 
@@ -59,7 +60,7 @@ export function marketingMetadata({
   const images = origin
     ? [
         {
-          url: `${origin}/images/marketing/share.png`,
+          url: `${origin}${marketingAssets.social.src}`,
           width: 1200,
           height: 630,
           alt: `${name} AI 图片创作平台`,

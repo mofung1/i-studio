@@ -1,0 +1,91 @@
+{
+  "tool": "Official built-in image_gen",
+  "completed": "2026-10-21",
+  "assets": [
+    {
+      "id": "tool-generator",
+      "src": "/images/marketing/tool-showcase/chromatic-generator.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 98442,
+      "sourceDimensions": [
+        1122,
+        1402
+      ],
+      "sourceSha256": "d6e1f5f239bbcbb968070bbf5ebf5aec3a964cc5059ea33322bf755cfaf11c34",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals/tool-generator.png",
+      "referenceId": null,
+      "derivedFrom": "hero-fantasy",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "tool-prompt",
+      "src": "/images/marketing/tool-showcase/chromatic-prompt.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 52622,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "e426fb1428920e9c7a5f613dc400d78cb553b8dd454db473e6642178a38b37c1",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals/tool-prompt.png",
+      "referenceId": "hero-still-life",
+      "derivedFrom": null,
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "tool-product",
+      "src": "/images/marketing/tool-showcase/chromatic-product.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 71860,
+      "sourceDimensions": [
+        1122,
+        1402
+      ],
+      "sourceSha256": "45665d04eff46ce2e10d0596f84697d8a8225ca7451b4562bb0bf9ebc6a926a2",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals/tool-product.png",
+      "referenceId": null,
+      "derivedFrom": "ecommerce-perfume",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "tool-retouch",
+      "src": "/images/marketing/tool-showcase/chromatic-retouch.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 68708,
+      "sourceDimensions": [
+        1122,
+        1402
+      ],
+      "sourceSha256": "fa191cf2ee0c74287232881867871ff6b1498e3d355e188239dcfc8f1437b469",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals/tool-retouch.png",
+      "referenceId": "tool-product",
+      "derivedFrom": null,
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "tool-fashion",
+      "src": "/images/marketing/tool-showcase/chromatic-fashion.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 117484,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "df90d16dbc56f6f44274bfb524261f363432378a3534c0fff09e304dbb00799c",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals/tool-fashion.png",
+      "referenceId": "hero-fashion",
+      "derivedFrom": null,
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例"
+    }
+  ]
+}

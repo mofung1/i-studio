@@ -2,7 +2,7 @@
 
 ## 页面与业务边界
 
-前端采用 `web/app` App Router。`(marketing)` 路由组包含官网和功能页，正文、功能介绍、内部链接、步骤与 FAQ 均由 Server Components 输出。只有导航、主题、登录状态等交互使用客户端组件；FAQ 使用原生 details。
+前端采用 `web/app` App Router。`(marketing)` 路由组包含官网和功能页，正文、功能介绍、内部链接、步骤与 FAQ 均由 Server Components 输出。导航、主题、登录状态及视觉交互使用客户端控制器，Hero 的标题与介绍通过服务端 children 传入；FAQ 使用原生 details。
 
 | 路径 | 用途 |
 | --- | --- |
@@ -59,10 +59,10 @@ SITE_ENV=production
 ## 内容与素材维护
 
 - 文案集中于 `web/lib/marketing-content.ts`。每个功能页有独立介绍、能力边界、步骤、FAQ 与 CTA。
-- 首页艺术和摄影区域保留明确的待补充状态，尚无真实生成作品可作为公开案例。不把未知授权的灵感库或用户私有资产用于营销。
-- 商品、精修与服装图复用 `web/public/images/commerce/`。来源记录见 [电商展示素材](commerce-bento.md)，这些是项目内 AI 生成功能示意，不是 iStudio 真实任务的前后效果或承诺。
+- 官网现使用官方内置生图工具专属制作的新素材，统一标注「AI 视觉概念示例」。不复用旧作品、未知授权的灵感库或用户私有资产；不将外部工具的概念图宣传为 iStudio 实际任务。
+- 素材统一由 `web/lib/marketing-assets.ts` 维护，保存于 `web/public/images/marketing/`。Prompt、来源、同商品编辑关系和优化尺寸见 [专属视觉素材](marketing-visuals/README.md)。旧电商工具选择页的素材保留，官网及五个 SEO 页不再引用它们。
 - `MarketingExample.image` 支持维护本地图片路径、alt 和真实宽高。确认公开展示权利后替换。建议 WebP/AVIF，保留稳定尺寸。
-- `web/public/images/marketing/share.png` 为自制 1200×630 品牌分享图，使用项目默认 iStudio 标志。更换正式品牌时可同步替换此文件。
+- 分享图使用本批云海城市的 1200×630 裁切，由统一素材配置维护。原 `share.png` 留存但不再作为官网 OG/Twitter 图。
 - 未创建教程、隐私政策或用户条款的空链接；应在有正式内容后补充页面与 Footer。
 
 使用 Next.js 原生 [Metadata API](https://nextjs.org/docs/15/app/api-reference/functions/generate-metadata) 与 [Metadata 文件约定](https://nextjs.org/docs/app/api-reference/file-conventions/metadata)，没有新增运行时依赖。

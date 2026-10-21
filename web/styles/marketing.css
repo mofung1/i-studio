@@ -1,5 +1,7 @@
 /* Marketing inherits the workspace's monochrome palette, system type and theme. */
 .marketing-site {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --duration-preview: 250ms;
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
@@ -127,61 +129,12 @@
 .marketing-mobile-login {
   display: none !important;
 }
-.marketing-hero {
-  padding-top: 92px;
-  padding-bottom: 28px;
-}
-.marketing-hero-copy {
-  text-align: center;
-}
-.marketing-product-line {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--foreground-2);
-}
-.marketing-product-line > span {
-  width: 6px;
-  height: 6px;
-  background: var(--foreground);
-  border-radius: 50%;
-}
-.marketing-hero h1 {
-  font-size: clamp(42px, 5.3vw, 72px);
-  line-height: 1.23;
-  font-weight: 600;
-  margin: 22px auto 24px;
-}
-.marketing-hero-description {
-  color: var(--foreground-2);
-  line-height: 1.9;
-  max-width: 780px;
-  margin-inline: auto !important;
-}
-.marketing-hero-actions {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 30px;
-}
 .marketing-cta-note {
   display: block;
   margin-top: 14px !important;
   font-size: 12px;
   line-height: 1.7;
   color: var(--foreground-3);
-}
-.marketing-hero-gallery {
-  display: grid;
-  grid-template-columns: 0.8fr 1.3fr 1.3fr 0.8fr;
-  align-items: start;
-  gap: 14px;
-  margin-top: 60px;
-}
-.marketing-hero-gallery .marketing-example:nth-child(odd) {
-  margin-top: 24px;
 }
 .marketing-example {
   min-width: 0;
@@ -202,32 +155,7 @@
   height: 100%;
   object-fit: contain;
 }
-.marketing-example-focus {
-  container-type: size;
-}
-.marketing-example-photo-frame {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: max(100cqw, calc(100cqh * var(--frame-ratio)));
-  height: max(100cqh, calc(100cqw / var(--frame-ratio)));
-  transform: translate(-50%, -50%);
-}
-.marketing-example-photo-frame img {
-  width: calc(100% * var(--frames));
-  max-width: none;
-  height: 100%;
-  transform: translateX(var(--frame-offset));
-}
-.marketing-hero-gallery .marketing-example-media {
-  aspect-ratio: 1 / 1.12;
-}
-.marketing-hero-gallery .marketing-example[data-kind='product'] .marketing-example-media {
-  background: #ddd4c7;
-}
-.marketing-hero-gallery .marketing-example[data-kind='fashion'] .marketing-example-media {
-  background: #ddd9d1;
-}
+
 .marketing-example-placeholder {
   flex-direction: column;
   gap: 18px;
@@ -295,53 +223,6 @@
 .marketing-section-heading p {
   color: var(--foreground-3);
   max-width: 400px;
-}
-.marketing-tool-group + .marketing-tool-group {
-  margin-top: 36px;
-}
-.marketing-group-title {
-  font-size: 14px !important;
-  color: var(--foreground-3);
-  font-weight: 500 !important;
-  margin-bottom: 16px !important;
-}
-.marketing-tool-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-.marketing-tool-card {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  padding: 28px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-}
-.marketing-tool-card:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-subtle);
-}
-.marketing-tool-card > svg {
-  margin-bottom: 22px;
-}
-.marketing-tool-card h3 {
-  margin-bottom: 10px;
-}
-.marketing-tool-card p {
-  font-size: 14px;
-  color: var(--foreground-2);
-  line-height: 1.9;
-  margin-bottom: 24px;
-}
-.marketing-tool-card > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: auto;
-  font-size: 13px;
-  font-weight: 500;
 }
 .marketing-split {
   display: grid;
@@ -556,19 +437,6 @@
   padding: 40px 0 72px;
   max-width: 860px;
 }
-.marketing-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--foreground-3);
-  font-size: 13px;
-  margin-bottom: 56px;
-}
-.marketing-breadcrumb a {
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-}
 .marketing-tool-hero h1 {
   font-size: clamp(36px, 5vw, 62px);
   font-weight: 600;
@@ -649,33 +517,12 @@
   .marketing-faq-section {
     gap: 40px;
   }
-  .marketing-hero-gallery {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .marketing-hero-gallery .marketing-example:nth-child(odd) {
-    margin-top: 0;
-  }
-  .marketing-hero-gallery .marketing-example-media {
-    aspect-ratio: 1.8;
-  }
-  .marketing-hero-gallery .marketing-example:nth-child(1) {
-    order: 3;
-  }
-  .marketing-hero-gallery .marketing-example:nth-child(4) {
-    order: 4;
-  }
-  .marketing-hero-gallery .marketing-placeholder-art {
-    width: 70px;
-    height: 70px;
-  }
+
   .marketing-checks {
     grid-template-columns: 1fr;
   }
   .marketing-prompt-board {
     padding: 28px;
-  }
-  .marketing-tool-card {
-    padding: 24px;
   }
   .marketing-footer-top {
     grid-template-columns: 1.5fr 1fr 1fr;
@@ -741,43 +588,12 @@
   .marketing-nav a {
     min-height: 44px;
   }
-  .marketing-hero {
-    padding-top: 56px;
-  }
-  .marketing-product-line {
-    font-size: 12px;
-  }
-  .marketing-hero h1 {
-    font-size: clamp(36px, 7.4vw, 54px);
-    margin-top: 22px;
-  }
-  .marketing-hero-description {
-    font-size: 15px;
-  }
-  .marketing-desktop-break {
-    display: none;
-  }
-  .marketing-hero-actions {
-    margin-top: 26px;
-    gap: 10px;
-  }
   .marketing-button {
     padding-inline: 18px;
     min-height: 48px;
     font-size: 14px;
   }
-  .marketing-hero-gallery {
-    gap: 18px 12px;
-    margin-top: 36px;
-  }
-  .marketing-hero-gallery .marketing-example-media {
-    aspect-ratio: 1;
-    border-radius: 8px;
-  }
-  .marketing-hero-gallery .marketing-example:nth-child(1),
-  .marketing-hero-gallery .marketing-example:nth-child(4) {
-    display: none;
-  }
+
   .marketing-example figcaption strong {
     font-size: 13px;
   }
@@ -795,19 +611,6 @@
   }
   .marketing-section-heading p {
     font-size: 14px;
-  }
-  .marketing-tool-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .marketing-tool-card {
-    padding: 24px;
-  }
-  .marketing-tool-card > svg {
-    margin-bottom: 18px;
-  }
-  .marketing-tool-card p {
-    margin-bottom: 18px;
   }
   .marketing-split,
   .marketing-faq-section {
@@ -879,9 +682,6 @@
   .marketing-tool-hero {
     padding-top: 24px;
     padding-bottom: 48px;
-  }
-  .marketing-breadcrumb {
-    margin-bottom: 36px;
   }
   .marketing-tool-hero h1 {
     font-size: 36px;

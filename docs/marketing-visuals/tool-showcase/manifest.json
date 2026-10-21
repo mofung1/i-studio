@@ -1,0 +1,91 @@
+{
+  "tool": "Official built-in image_gen",
+  "completed": "2026-10-21",
+  "assets": [
+    {
+      "id": "tool-generator",
+      "src": "/images/marketing/tool-showcase/sunny-generator.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 208272,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "b0e417635bd7991a33d3863c70c6aee487da36a735a32177c0646dbd96a7e7a8",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-generator.png",
+      "referenceId": "hero-fantasy",
+      "derivedFrom": "hero-fantasy",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "tool-prompt",
+      "src": "/images/marketing/tool-showcase/sunny-prompt.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 105882,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "6b0f2eb5c5bc370fb0230208fb76541707e04157df943035a1de1b052758a24f",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-prompt.png",
+      "referenceId": "hero-still-life",
+      "derivedFrom": "hero-still-life",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "tool-product",
+      "src": "/images/marketing/tool-showcase/sunny-product.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 128896,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "d8f61a522d87d5977a77f5001f6f4a8a4e298691e1611ad41301d4aa62a57ed3",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-product.png",
+      "referenceId": "ecommerce-perfume",
+      "derivedFrom": "ecommerce-perfume",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "tool-retouch",
+      "src": "/images/marketing/tool-showcase/sunny-retouch.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 129666,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "007d89febf63e917fee289da1d145a4abe0e66d255826ca4134328458d946012",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-retouch.png",
+      "referenceId": "tool-product",
+      "derivedFrom": null,
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "tool-fashion",
+      "src": "/images/marketing/tool-showcase/sunny-fashion.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 201720,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "5faf71f8dc295fd4f0fdfe03ea870a768f448cd094aa486e0c5d60d5ac7526e0",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-fashion.png",
+      "referenceId": "hero-fashion",
+      "derivedFrom": "hero-fashion",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    }
+  ]
+}

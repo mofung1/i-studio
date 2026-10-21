@@ -2,17 +2,14 @@ import Link from 'next/link'
 import { ArrowUpRight } from 'lucide-react'
 import { tools, type ToolContent } from '@/lib/marketing-content'
 import { BottomCta, Example, Faq, Steps } from './sections'
+import { ProductComparison } from './product-comparison'
+import { productComparison } from '@/lib/marketing-assets'
 
 export function ToolPage({ tool }: { tool: ToolContent }) {
   return (
     <>
       <main id="marketing-main" className="marketing-container" tabIndex={-1}>
         <div className="marketing-tool-hero">
-          <nav className="marketing-breadcrumb" aria-label="面包屑">
-            <Link href="/">首页</Link>
-            <span aria-hidden="true">/</span>
-            <span>{tool.name}</span>
-          </nav>
           <h1>{tool.h1}</h1>
           <p>{tool.intro}</p>
           <Link className="marketing-button" href={tool.href}>
@@ -43,6 +40,7 @@ export function ToolPage({ tool }: { tool: ToolContent }) {
             <p>先了解适用方向，再带着自己的素材开始。</p>
           </div>
           <div className="marketing-tool-examples">
+            {tool.slug === 'ai-product-photo' && <ProductComparison {...productComparison} />}
             {tool.examples.map((example, i) => (
               <Example key={example.title} example={example} priority={i === 0} />
             ))}

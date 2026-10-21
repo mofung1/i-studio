@@ -1,0 +1,159 @@
+{
+  "tool": "Official built-in image_gen",
+  "started": "2026-10-21",
+  "completed": "2026-10-21",
+  "assets": [
+    {
+      "id": "ai-story-city",
+      "src": "/images/marketing/chromatic/hero/chromatic-landscape.webp",
+      "width": 1664,
+      "height": 936,
+      "bytes": 205962,
+      "sourceSha256": "f4f894948fcd23a478d67ac128ad3c81a780c6e85ca877ef830952988803951b",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/ai-story-city.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "skincare-base",
+      "src": "/images/marketing/chromatic/commerce/skincare-base.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 42072,
+      "sourceSha256": "9fba4b6c2a897073afb47dea4775c8820f6456e5f69fdf84c6c9951a8e88e833",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/skincare-base.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-fashion",
+      "src": "/images/marketing/chromatic/gallery/chromatic-fashion.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 136700,
+      "sourceSha256": "efa6d2e154948f872fab68db749e48973f12630e12eb247a7a13e4ca29465abf",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/hero-fashion.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-fantasy",
+      "src": "/images/marketing/chromatic/gallery/chromatic-architecture.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 138986,
+      "sourceSha256": "d6e1f5f239bbcbb968070bbf5ebf5aec3a964cc5059ea33322bf755cfaf11c34",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/hero-fantasy.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-still-life",
+      "src": "/images/marketing/chromatic/gallery/chromatic-still-life.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 90128,
+      "sourceSha256": "ee5d2a4056674c3f02c31da1804c4a8e60fddc98ea2331e3e45134d9ab970362",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/hero-still-life.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "ecommerce-perfume",
+      "src": "/images/marketing/chromatic/commerce/chromatic-perfume.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 71820,
+      "sourceSha256": "45665d04eff46ce2e10d0596f84697d8a8225ca7451b4562bb0bf9ebc6a926a2",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/ecommerce-perfume.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-future",
+      "src": "/images/marketing/chromatic/gallery/chromatic-interior.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 124330,
+      "sourceSha256": "13719b28ca219d6befae823f206e237d9981d76a0a32c98dce6dedd3e58c8f27",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/hero-future.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-skincare",
+      "src": "/images/marketing/chromatic/commerce/chromatic-skincare.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 51462,
+      "sourceSha256": "3fe1903b21042cc524f9ccf015a8fc0fa6710a9abdd60181fc460f88971d3c9f",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/hero-skincare.png",
+      "referenceId": "skincare-base",
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "ecommerce-coffee",
+      "src": "/images/marketing/chromatic/commerce/chromatic-coffee.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 70290,
+      "sourceSha256": "9d0ebc110491c7dc0048da04101c69b37a1cbeac0f2c7d5dfeb6984d1ad3cb43",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/ecommerce-coffee.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "ecommerce-lifestyle",
+      "src": "/images/marketing/chromatic/commerce/chromatic-light.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 72312,
+      "sourceSha256": "8865cc63a78d77c2427da1c3b5ab694d6c96bdbb30d9fa8ed704395778351d4f",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/ecommerce-lifestyle.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "ecommerce-accessory",
+      "src": "/images/marketing/chromatic/commerce/chromatic-bag.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 128854,
+      "sourceSha256": "03206c76ba28d2bc83cd9712e4281df74dd36fa655953b7edfb9ca586dd5f500",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/ecommerce-accessory.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "gallery-city",
+      "src": "/images/marketing/chromatic/gallery/landscape-detail.webp",
+      "width": 840,
+      "height": 1050,
+      "bytes": 85644,
+      "derivedFrom": "ai-story-city",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "social-cover",
+      "src": "/images/marketing/chromatic/hero/chromatic-og.webp",
+      "width": 1200,
+      "height": 630,
+      "bytes": 87166,
+      "derivedFrom": "ai-story-city",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    }
+  ]
+}
