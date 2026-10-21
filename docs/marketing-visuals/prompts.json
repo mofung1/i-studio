@@ -65,5 +65,34 @@
       "referenceId": "skincare-base",
       "prompt": "Use case: precise-object-edit. Input image is the EDIT TARGET. Preserve the butter-yellow cosmetic jar, green rim and coral carton EXACTLY: same geometry, colors, positions, size, camera angle, lid seam and paper texture. Change ONLY the environment and lighting into a polished handcrafted 3D product campaign set: a warm cream tabletop and backdrop, a large softly curved seafoam-green arch behind the carton, pastel peach rounded steps far in the background and a few tiny white daisies at the far edges. Remove the coastal buildings and the sea completely. Soft golden afternoon sun from upper left with a graceful leaf shadow on the far backdrop and subtle product shadows. Keep the whole jar and box fully visible. Warm sunny miniature toy/clay aesthetic consistent with the source, tactile tiny imperfections, softer polished packaging presentation. No new products, faces, lettering, labels or logos. Landscape 4:3."
     }
+  ],
+  "scope": "Sunny 批次提示词；首页当前还使用 neutral 与 chromatic 归档素材，当前发布清单见 manifest.json。",
+  "currentSelection": {
+    "manifest": "manifest.json",
+    "summary": "首页混用 sunny 手作 3D、neutral 写实摄影与 chromatic 商品摄影；主视觉与工作台截图为本轮新增。",
+    "toolShowcase": "tool-showcase/manifest.json"
+  },
+  "regeneration": [
+    {
+      "id": "ai-story-city-4k",
+      "destination": "hero/coastal-creator-2x.webp",
+      "model": "gemini-3-pro-image-preview",
+      "resolution": "4K",
+      "aspectRatio": "16:9",
+      "taskId": "31de4a35b66901272f451134339e64f4",
+      "referenceId": "ai-story-city-sunny",
+      "prompt": "Recreate this exact scene at ultra high resolution as a premium website hero: the same butter-yellow handmade miniature robot on a mint-green scooter carrying tiny art canvases through a sunlit Mediterranean seaside town, warm peach houses, teal shutters, flowers, turquoise sea and distant sailboat. Preserve the left third as calm shaded teal sea and hills for white website text. Match the charming handcrafted miniature 3D aesthetic with tactile clay and painted resin, soft cinematic depth of field, warm afternoon light. Keep composition identical. No text, letters, logos, watermark, UI or borders.",
+      "output": "5504×3072 原始 PNG，发布裁切为 3328×1872 WebP"
+    }
+  ],
+  "screenshots": [
+    {
+      "id": "workbench-creation",
+      "destination": "workbench/workbench-creation-2026-10.webp",
+      "captured": "2026-10-21",
+      "viewport": "1440×900 @2x",
+      "context": "真实任务：gemini-3-pro-image-preview，16:9，4K；从历史记录载入配置并重新打开结果。",
+      "redaction": "账户标识已替换为 iStudio 创作者；积分余额保留界面真实状态。"
+    }
   ]
 }

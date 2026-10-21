@@ -22,7 +22,7 @@ function ToolArtwork({ tool }: { tool: ShowcaseTool }) {
       {tool.visual === 'prompt' && (
         <div className="tool-showcase-prompt">
           <span>提示词示意</span>
-          <p>薄荷绿花瓶，白色雏菊。暖阳、柔和色彩与手作质感。</p>
+          <p>绿色玻璃花器，红色掌花。阳光、鲜明撞色与摄影质感。</p>
         </div>
       )}
       {tool.input && (

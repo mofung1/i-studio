@@ -7,6 +7,7 @@ import { legacyStudioQuery } from '@/lib/studio-navigation'
 import { EditorialHero } from '@/components/marketing/editorial-hero'
 import { EcommerceShowcase, CreativeGallery } from '@/components/marketing/visual-sections'
 import { ToolShowcase } from '@/components/marketing/tool-showcase'
+import { WorkbenchPreview } from '@/components/marketing/workbench-preview'
 
 export async function generateMetadata() {
   const { name } = await getSiteBranding()
@@ -39,6 +40,7 @@ export default async function HomePage({
         <EditorialHero />
         <div className="marketing-container">
           <ToolShowcase />
+          <WorkbenchPreview />
           <EcommerceShowcase />
           <CreativeGallery />
           <section className="marketing-section marketing-faq-section" aria-labelledby="home-faq">

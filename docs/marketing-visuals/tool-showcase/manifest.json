@@ -8,10 +8,7 @@
       "width": 1280,
       "height": 960,
       "bytes": 208272,
-      "sourceDimensions": [
-        1448,
-        1086
-      ],
+      "sourceDimensions": [1448, 1086],
       "sourceSha256": "b0e417635bd7991a33d3863c70c6aee487da36a735a32177c0646dbd96a7e7a8",
       "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-generator.png",
       "referenceId": "hero-fantasy",
@@ -25,10 +22,7 @@
       "width": 1280,
       "height": 960,
       "bytes": 105882,
-      "sourceDimensions": [
-        1448,
-        1086
-      ],
+      "sourceDimensions": [1448, 1086],
       "sourceSha256": "6b0f2eb5c5bc370fb0230208fb76541707e04157df943035a1de1b052758a24f",
       "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-prompt.png",
       "referenceId": "hero-still-life",
@@ -38,33 +32,27 @@
     },
     {
       "id": "tool-product",
-      "src": "/images/marketing/tool-showcase/sunny-product.webp",
+      "src": "/images/marketing/tool-showcase/chromatic-product.webp",
       "width": 1280,
       "height": 960,
-      "bytes": 128896,
-      "sourceDimensions": [
-        1448,
-        1086
-      ],
-      "sourceSha256": "d8f61a522d87d5977a77f5001f6f4a8a4e298691e1611ad41301d4aa62a57ed3",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-product.png",
-      "referenceId": "ecommerce-perfume",
+      "bytes": 71860,
+      "sourceDimensions": [1122, 1402],
+      "sourceSha256": "45665d04eff46ce2e10d0596f84697d8a8225ca7451b4562bb0bf9ebc6a926a2",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals/tool-product.png",
+      "referenceId": null,
       "derivedFrom": "ecommerce-perfume",
       "mode": "resize-and-crop",
       "disclosure": "AI 视觉概念示例"
     },
     {
       "id": "tool-retouch",
-      "src": "/images/marketing/tool-showcase/sunny-retouch.webp",
+      "src": "/images/marketing/tool-showcase/chromatic-retouch.webp",
       "width": 1280,
       "height": 960,
-      "bytes": 129666,
-      "sourceDimensions": [
-        1448,
-        1086
-      ],
-      "sourceSha256": "007d89febf63e917fee289da1d145a4abe0e66d255826ca4134328458d946012",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-retouch.png",
+      "bytes": 68708,
+      "sourceDimensions": [1122, 1402],
+      "sourceSha256": "fa191cf2ee0c74287232881867871ff6b1498e3d355e188239dcfc8f1437b469",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals/tool-retouch.png",
       "referenceId": "tool-product",
       "derivedFrom": null,
       "mode": "reference-image-edit",
@@ -72,20 +60,18 @@
     },
     {
       "id": "tool-fashion",
-      "src": "/images/marketing/tool-showcase/sunny-fashion.webp",
+      "src": "/images/marketing/tool-showcase/chromatic-fashion.webp",
       "width": 1280,
       "height": 960,
-      "bytes": 201720,
-      "sourceDimensions": [
-        1448,
-        1086
-      ],
-      "sourceSha256": "5faf71f8dc295fd4f0fdfe03ea870a768f448cd094aa486e0c5d60d5ac7526e0",
-      "original": "test/artifacts/marketing-sunny-2026-10-21/tool-originals/tool-fashion.png",
+      "bytes": 117484,
+      "sourceDimensions": [1448, 1086],
+      "sourceSha256": "df90d16dbc56f6f44274bfb524261f363432378a3534c0fff09e304dbb00799c",
+      "original": "test/artifacts/marketing-chromatic-2026-10-21/tool-originals/tool-fashion.png",
       "referenceId": "hero-fashion",
-      "derivedFrom": "hero-fashion",
-      "mode": "resize-and-crop",
+      "derivedFrom": null,
+      "mode": "reference-image-edit",
       "disclosure": "AI 视觉概念示例"
     }
-  ]
+  ],
+  "note": "Current homepage tool previews: two sunny concept pieces and three chromatic photographic demos. Source SHA-256 values are inherited from their archived renders."
 }

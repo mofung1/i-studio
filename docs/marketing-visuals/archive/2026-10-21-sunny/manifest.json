@@ -1,0 +1,165 @@
+{
+  "tool": "Official built-in image_gen",
+  "started": "2026-10-21",
+  "completed": "2026-10-21",
+  "assets": [
+    {
+      "id": "ai-story-city",
+      "src": "/images/marketing/sunny/hero/coastal-creator.webp",
+      "width": 1664,
+      "height": 936,
+      "bytes": 258608,
+      "sourceSha256": "461c2047343522219c2aae47d2db6d96c85dbdb5ea59c03c9e29f288113d2006",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ai-story-city.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "skincare-base",
+      "src": "/images/marketing/sunny/commerce/skincare-base.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 107650,
+      "sourceSha256": "5af5f630f57bdafc6207bfe0c27bbd60fa88b14bea462e1a0ff789a0f1717b58",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/skincare-base.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-fashion",
+      "src": "/images/marketing/sunny/gallery/fashion-doll.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 197252,
+      "sourceSha256": "5faf71f8dc295fd4f0fdfe03ea870a768f448cd094aa486e0c5d60d5ac7526e0",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/hero-fashion.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-still-life",
+      "src": "/images/marketing/sunny/gallery/flower-still-life.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 104288,
+      "sourceSha256": "6b0f2eb5c5bc370fb0230208fb76541707e04157df943035a1de1b052758a24f",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/hero-still-life.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-fantasy",
+      "src": "/images/marketing/sunny/gallery/little-art-shop.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 190628,
+      "sourceSha256": "b0e417635bd7991a33d3863c70c6aee487da36a735a32177c0646dbd96a7e7a8",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/hero-fantasy.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "ecommerce-perfume",
+      "src": "/images/marketing/sunny/commerce/perfume.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 100132,
+      "sourceSha256": "d8f61a522d87d5977a77f5001f6f4a8a4e298691e1611ad41301d4aa62a57ed3",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ecommerce-perfume.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "ecommerce-coffee",
+      "src": "/images/marketing/sunny/gallery/coffee-corner.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 118634,
+      "sourceSha256": "d3251557f9f42c88dbcbd2306d38490611abcdd96da704489b78c0c679571899",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ecommerce-coffee.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "ecommerce-lifestyle",
+      "src": "/images/marketing/sunny/commerce/atelier-lamp.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 100376,
+      "sourceSha256": "9d0cc7146ed8d06ae8705cf3a3fe3c979898668203e7afe8c54157ee5841aec4",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ecommerce-lifestyle.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "ecommerce-accessory",
+      "src": "/images/marketing/sunny/gallery/little-handbag.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 139468,
+      "sourceSha256": "1ed32b6566b8da583ae6d0836494299d0b4e45f4908c9401eee99696957e3626",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/ecommerce-accessory.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-future",
+      "src": "/images/marketing/sunny/gallery/creative-atelier.webp",
+      "width": 1120,
+      "height": 1400,
+      "bytes": 170968,
+      "sourceSha256": "dee6a673cdc0ffa575cfffacb95626d1cb6b9065e323c73cae37cae56fb07b44",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/hero-future.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "hero-skincare",
+      "src": "/images/marketing/sunny/commerce/skincare-scene.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 58388,
+      "sourceSha256": "5f91d86147d06776a656b6a674907b22dd3a754f48ecbf628b667a0839eca5d4",
+      "original": "test/artifacts/marketing-sunny-2026-10-21/originals/hero-skincare.png",
+      "referenceId": "skincare-base",
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "gallery-city",
+      "src": "/images/marketing/sunny/gallery/coastal-detail.webp",
+      "width": 840,
+      "height": 1050,
+      "bytes": 105796,
+      "derivedFrom": "ai-story-city",
+      "crop": {
+        "left": 660,
+        "top": 0,
+        "width": 748,
+        "height": 936
+      },
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    },
+    {
+      "id": "social-cover",
+      "src": "/images/marketing/sunny/hero/coastal-og.webp",
+      "width": 1200,
+      "height": 630,
+      "bytes": 123982,
+      "derivedFrom": "ai-story-city",
+      "mode": "resize-and-crop",
+      "disclosure": "AI 视觉概念示例"
+    }
+  ]
+}

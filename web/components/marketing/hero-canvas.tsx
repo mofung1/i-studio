@@ -49,16 +49,16 @@ export function HeroCanvas({ children }: { children: ReactNode }) {
       scrollFrame = 0
       if (!media.matches) return
       const progress = clamp((headerHeight - element.getBoundingClientRect().top) / distance)
-      const expansion = between(progress, 0.04, 0.86)
+      const expansion = between(progress, 0.3, 0.88)
       const remaining = 1 - expansion
-      const exit = between(progress, 0.04, 0.66)
-      // Keep controls clear as the picture expands, while the foreground title lingers.
-      const copyExit = between(progress, 0, 0.1)
+      // Copy and title clear the frame before the artwork starts expanding over them.
+      const exit = between(progress, 0.08, 0.34)
+      const copyExit = between(progress, 0.02, 0.13)
       const introduction = between(progress, 0.78, 1)
       frame.style.clipPath = `inset(${top * remaining}px ${right * remaining}px ${bottom * remaining}px ${left * remaining}px)`
       reframe.style.transform = `translate3d(${translateX * expansion}px, ${translateY * expansion}px, 0) scale(${1 + (scale - 1) * expansion})`
-      const headingX = -exit * 12
-      const headingY = -exit * 24
+      const headingX = -exit * 18
+      const headingY = -exit * 36
       heading.style.transform = `translate3d(${headingX}px, ${headingY}px, 0)`
       heading.style.opacity = String(1 - exit)
       // Clip the light glyphs to the same rectangular picture boundary, never the picture itself.
@@ -83,7 +83,7 @@ export function HeroCanvas({ children }: { children: ReactNode }) {
       story.style.opacity = String(introduction)
       story.style.transform = `translate3d(0, ${(1 - introduction) * 28}px, 0)`
       story.inert = introduction === 0
-      element.dataset.heroPhase = progress < 0.66 ? 'opening' : progress < 0.86 ? 'expand' : 'story'
+      element.dataset.heroPhase = progress < 0.34 ? 'opening' : progress < 0.88 ? 'expand' : 'story'
       element.dataset.heroProgress = progress.toFixed(4)
     }
     function schedule() {
