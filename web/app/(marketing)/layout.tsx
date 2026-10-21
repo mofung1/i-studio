@@ -2,6 +2,9 @@ import type { ReactNode } from 'react'
 import { MarketingNavigation } from '@/components/marketing/navigation'
 import { MarketingFooter } from '@/components/marketing/sections'
 import { getSiteBranding } from '@/lib/site-settings-server'
+import '../../styles/marketing-visuals.css'
+import '../../styles/marketing-hero.css'
+import '../../styles/tool-showcase.css'
 
 // Branding and deployment indexing flags must not freeze to an API-offline build fallback.
 export const dynamic = 'force-dynamic'

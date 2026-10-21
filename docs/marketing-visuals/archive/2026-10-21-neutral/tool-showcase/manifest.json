@@ -1,0 +1,102 @@
+{
+  "tool": "official built-in image_gen",
+  "completed": "2026-10-21",
+  "assets": [
+    {
+      "id": "tool-generator",
+      "src": "/images/marketing/tool-showcase/image-generator.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 142946,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "f5da50ef5ccb9e3962dce82b22db3b977ae44eabcd4d9e95b565e4643c5b1b11",
+      "original": "test/artifacts/tool-showcase-2026-10-21/originals/tool-generator.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例，非 iStudio 实际生成案例"
+    },
+    {
+      "id": "tool-prompt",
+      "src": "/images/marketing/tool-showcase/image-to-prompt.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 108128,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "ddf8c46ad2632cef70eb3c5cae1470aa1e2ab76f039a2f2d71c872ae75c33c00",
+      "original": "test/artifacts/tool-showcase-2026-10-21/originals/tool-prompt.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例，非 iStudio 实际生成案例"
+    },
+    {
+      "id": "tool-reference",
+      "src": "/images/marketing/tool-showcase/reference-creation.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 160196,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "92a20ecbcc65a70667a53cdd44a5d11d8ed2f448b36b019d6b742ee1569ced2c",
+      "original": "test/artifacts/tool-showcase-2026-10-21/originals/tool-reference.png",
+      "referenceId": "tool-generator",
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例，非 iStudio 实际生成案例"
+    },
+    {
+      "id": "tool-product",
+      "src": "/images/marketing/tool-showcase/product-photo.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 100098,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "b0613a4ffcd6e8f6434a7988bb70e43d816d4ae014b6cfcbf37012134bc79b2a",
+      "original": "test/artifacts/tool-showcase-2026-10-21/originals/tool-product.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例，非 iStudio 实际生成案例"
+    },
+    {
+      "id": "tool-retouch",
+      "src": "/images/marketing/tool-showcase/product-retouch.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 112026,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "48f006fd645c7e78e5aa1f810fc4a2b6a523cb5b3aed637f8817b0b81953c09d",
+      "original": "test/artifacts/tool-showcase-2026-10-21/originals/tool-retouch.png",
+      "referenceId": "tool-product",
+      "mode": "reference-image-edit",
+      "disclosure": "AI 视觉概念示例，非 iStudio 实际生成案例"
+    },
+    {
+      "id": "tool-fashion",
+      "src": "/images/marketing/tool-showcase/fashion-model.webp",
+      "width": 1280,
+      "height": 960,
+      "bytes": 94594,
+      "sourceDimensions": [
+        1448,
+        1086
+      ],
+      "sourceSha256": "675537f1924aa0416b3ea41b1fe4a8b82d8f9e9a911e382b40b3fd9832034086",
+      "original": "test/artifacts/tool-showcase-2026-10-21/originals/tool-fashion.png",
+      "referenceId": null,
+      "mode": "new-generation",
+      "disclosure": "AI 视觉概念示例，非 iStudio 实际生成案例"
+    }
+  ]
+}

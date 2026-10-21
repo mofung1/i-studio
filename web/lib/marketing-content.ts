@@ -1,3 +1,5 @@
+import { marketingAssets, conceptDisclosure, type MarketingAsset } from './marketing-assets'
+
 export interface FaqItem {
   question: string
   answer: string
@@ -11,7 +13,6 @@ export interface MarketingExample {
     alt: string
     width: number
     height: number
-    heroFrame?: { frames: number; index: number; alt: string }
   }
   kind: 'art' | 'product' | 'fashion' | 'photo' | 'retouch' | 'prompt'
 }
@@ -34,33 +35,16 @@ export interface ToolContent {
 
 export const homeDescription =
   'iStudio 是一站式 AI 图片创作平台，支持文字生成图片、参考图创作、AI 商品主图制作、产品精修、服装组图及图片提示词反推，帮助个人创作者和电商商家高效完成图片创作。'
+function visualExample(asset: MarketingAsset, kind: MarketingExample['kind']): MarketingExample {
+  return { kind, title: asset.title, description: conceptDisclosure, image: asset }
+}
+
 export const homeExamples: MarketingExample[] = [
-  { kind: 'art', title: '想象，不止一种画面', description: 'AI 艺术创作 · 待补充授权案例' },
-  {
-    kind: 'product',
-    title: '给商品一个好场景',
-    description: '电商商品图 · 功能示意',
-    image: {
-      src: '/images/commerce/main.webp',
-      width: 1800,
-      height: 607,
-      alt: 'AI 生成的面霜商品摄影前后场景示意，非真实任务结果',
-      heroFrame: { frames: 2, index: 1, alt: '面霜在暖光石材场景中的商品展示功能示意' },
-    },
-  },
-  {
-    kind: 'fashion',
-    title: '让穿搭有更多表达',
-    description: '服装展示 · 功能示意',
-    image: {
-      src: '/images/commerce/clothing.webp',
-      width: 1774,
-      height: 887,
-      alt: 'AI 生成的米白衬衫平铺及模特上身功能示意',
-      heroFrame: { frames: 3, index: 1, alt: '米白衬衫的正面模特上身功能示意' },
-    },
-  },
-  { kind: 'photo', title: '把光影写进灵感', description: '商业摄影 · 待补充授权案例' },
+  visualExample(marketingAssets.fantasy, 'art'),
+  visualExample(marketingAssets.skincare, 'product'),
+  visualExample(marketingAssets.fashion, 'fashion'),
+  visualExample(marketingAssets.stillLife, 'photo'),
+  visualExample(marketingAssets.future, 'art'),
 ]
 
 export const homeSteps = [
@@ -145,8 +129,8 @@ export const tools: ToolContent[] = [
         text: '确认预计积分后生成；下载满意的图片，或载入历史参数进一步调整。',
       },
     ],
-    examples: [homeExamples[0]!, homeExamples[3]!],
-    note: '风格与参考强度通过文字指令传递给模型；实际尺寸和参考效果取决于所选模型。案例区域将在获得展示授权后补充真实作品。',
+    examples: [visualExample(marketingAssets.city, 'art'), homeExamples[0]!],
+    note: '风格与参考强度通过文字指令传递给模型；实际尺寸和参考效果取决于所选模型。页面图片由官方内置生图工具制作，标注为 AI 视觉概念示例，不代表 iStudio 内的实际任务。',
     faqs: [
       homeFaqs[3]!,
       {
@@ -198,13 +182,7 @@ export const tools: ToolContent[] = [
         text: '复制提示词、存入个人提示词库，或带入 AI 生图并按需附上原图参考。',
       },
     ],
-    examples: [
-      {
-        kind: 'prompt',
-        title: '把画面变成创作语言',
-        description: '上传图片 → 选择分析方向 → 编辑双语提示词 · 流程示意',
-      },
-    ],
+    examples: [visualExample(marketingAssets.stillLife, 'prompt')],
     note: '图片反推需要管理员启用支持视觉识别的 Prompt 服务和对应分析模板。结果是对图片的分析，不能恢复原作者的原始提示词。',
     faqs: [
       {
@@ -268,8 +246,8 @@ export const tools: ToolContent[] = [
         text: '确认预计积分后生成，比较商品轮廓、标识和包装文字，下载合适的结果。',
       },
     ],
-    examples: [homeExamples[1]!],
-    note: '展示图由 AI 生成，用于说明商品主图流程，不是实际任务的前后效果保证。模型可能改动轮廓、包装小字或材质，请对照原图审核。',
+    examples: [visualExample(marketingAssets.perfume, 'product')],
+    note: '展示图由官方内置生图工具制作；护肤品编辑图以本次基础图为参考，属于 AI 视觉概念示例，不是 iStudio 实际任务或效果保证。模型可能改动轮廓、包装小字或材质，请对照原图审核。',
     faqs: [
       {
         question: '可以制作哪些商品图片？',
@@ -330,19 +308,10 @@ export const tools: ToolContent[] = [
       },
     ],
     examples: [
-      {
-        kind: 'retouch',
-        title: '从平淡光线，到更清楚的材质',
-        description: '金属杯精修前后 · 功能示意',
-        image: {
-          src: '/images/commerce/retouch.webp',
-          width: 1800,
-          height: 600,
-          alt: 'AI 生成的金属杯精修功能示意，比较表面质感与光影',
-        },
-      },
+      visualExample(marketingAssets.skincare, 'retouch'),
+      visualExample(marketingAssets.lifestyle, 'retouch'),
     ],
-    note: '精修并非无损修图。AI 可能改变产品边缘、反光、文字和细节；这里的对照为 AI 功能示意，正式使用前请检查结果。',
+    note: '精修并非无损修图。AI 可能改变产品边缘、反光、文字和细节；这里的图片为 AI 视觉概念示例，不是 iStudio 精修任务结果，正式使用前请检查结果。',
     faqs: [
       {
         question: '精修会自动更换商品背景吗？',
@@ -401,7 +370,7 @@ export const tools: ToolContent[] = [
       },
     ],
     examples: [homeExamples[2]!],
-    note: '示意图用于解释平铺到上身展示的方向。实际结果可能出现印花、纽扣、版型或人物一致性偏差，不能替代对商品实物的核验。',
+    note: '时装人像为本次生成的 AI 视觉概念示例，不是服装平铺到上身的真实任务对照。实际结果可能出现印花、纽扣、版型或人物一致性偏差，不能替代对商品实物的核验。',
     faqs: [
       {
         question: '服装组图和模特上身有什么区别？',

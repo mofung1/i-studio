@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-21",
+  "tool": "official built-in image_gen / imagegen skill",
+  "disclosure": "AI 视觉概念示例，非 iStudio 实际生成案例",
+  "artDirection": "Premium AI creative studio / editorial art direction, coherent restrained ivory, mineral gray, muted teal and amber palette, convincing physical materials, clear focal subject, refined cinematic light, not a generic stock image. Landscape 4:3 composition for a website tool preview, approximately 1408 by 1056, no text, lettering, logos, watermark or interface elements.",
+  "assets": [
+    {
+      "id": "tool-generator",
+      "destination": "image-generator.webp",
+      "mode": "generate",
+      "prompt": "Use case: ads-marketing. Create an original cinematic architectural artwork. Premium AI creative studio / editorial art direction, coherent restrained ivory, mineral gray, muted teal and amber palette, convincing physical materials, clear focal subject, refined cinematic light, not a generic stock image. Landscape 4:3 composition for a website tool preview, approximately 1408 by 1056, no text, lettering, logos, watermark or interface elements. A single monumental circular limestone pavilion stands on a very shallow still sea, its complete circular opening framing a distant pale horizon and a tiny solitary cypress. The pavilion sits slightly right of center, occupying the middle 55 percent of the composition, with full silhouette visible and ample open water and sky around it. A narrow stone causeway enters from the lower right, giving strong spatial depth. Eye-level 35mm architectural camera, meticulous perspective, tactile limestone grain, subtle water ripples and a physically coherent reflection. Cool blue-gray early morning with a single warm shaft of sunlight through the opening. This is imaginative yet photorealistic fine-art architecture, clean and compelling rather than futuristic neon. The lower left water area is quiet negative space for a small reference-image inset to be added in HTML later. Avoid clutter, crowds, impossible disconnected edges and visual defects."
+    },
+    {
+      "id": "tool-prompt",
+      "destination": "image-to-prompt.webp",
+      "mode": "generate",
+      "prompt": "Use case: photorealistic-natural. Create an original premium still-life editorial photograph. Premium AI creative studio / editorial art direction, coherent restrained ivory, mineral gray, muted teal and amber palette, convincing physical materials, clear focal subject, refined cinematic light, not a generic stock image. Landscape 4:3 composition for a website tool preview, approximately 1408 by 1056, no text, lettering, logos, watermark or interface elements. A single elegant matte ivory ceramic pitcher with a coherent curved handle and a slender olive branch stands on a pale limestone plinth against a soft mineral-gray studio wall. Position the complete pitcher and branch in the left 55 percent of the picture; the right 40 percent is clean softly lit wall, deliberately available for an explanatory text overlay that will be rendered separately in HTML. Slightly low three-quarter eye-level 70mm camera, entire silhouette including branch tips inside the frame. Strong but soft diagonal daylight from the upper left creates a legible long shadow; natural unglazed ceramic texture, a few olive leaves with genuine organic shapes and fine veins, believable stone grain. Quiet ivory, olive green and gray palette. Exceptional realistic surface detail and considered asymmetric composition. Do not render any words, labels, diagrams, text boxes or typography; the photograph alone is the deliverable."
+    },
+    {
+      "id": "tool-reference",
+      "destination": "reference-creation.webp",
+      "mode": "edit",
+      "referenceId": "tool-generator",
+      "prompt": "Use case: lighting-weather. Image 1 is the edit target and exact architectural reference. Produce a new creative direction from this reference photograph, preserving the single circular limestone pavilion's complete silhouette, ring proportions, cypress placement, causeway, camera position, cropping and sea reflection geometry. Change only the lighting and atmosphere: a sophisticated blue-hour scene with muted deep teal water and sky, a delicate pale peach line at the horizon, and warm amber light grazing the inner face of the circular opening. Keep natural limestone material and convincing restrained light spill/reflections. No extra buildings, people or objects; no redesigned geometry. Maintain the same 4:3 landscape framing and subject position. Premium editorial architectural photograph with cinematic but realistic exposure, readable details, no crushed blacks or saturated neon. No text, branding, watermark or UI. This output will be explicitly labeled a reference-image concept edit rather than a real iStudio result."
+    },
+    {
+      "id": "tool-product",
+      "destination": "product-photo.webp",
+      "mode": "generate",
+      "prompt": "Use case: product-mockup. Create an original luxury commercial product photograph. Premium AI creative studio / editorial art direction, coherent restrained ivory, mineral gray, muted teal and amber palette, convincing physical materials, clear focal subject, refined cinematic light, not a generic stock image. Landscape 4:3 composition for a website tool preview, approximately 1408 by 1056, no text, lettering, logos, watermark or interface elements. A single fictional unbranded perfume bottle made of thick pale smoke-gray rectangular glass, filled with a small amount of warm amber liquid, topped by one smooth satin-silver cylindrical cap. The bottle is entirely blank and has a simple, structurally coherent silhouette with softly rounded rectangular corners. Full product stands upright slightly right of center on a pale gray limestone ledge, with a calm mineral-gray background and a few soft water caustics on the far wall. No packaging box and no other product. Three-quarter eye-level 85mm lens, entire bottle and cap inside the central 50 percent of the frame. Soft broad window light with gentle contrast and natural contact shadows, credible glass thickness, readable amber fluid level, precise cap geometry and understated refined reflections. Attractive, professionally photographed base image with clean commercial quality; do not intentionally make it damaged or poor. Leave generous quiet negative space in the lower left for a reference thumbnail to be added later in HTML."
+    },
+    {
+      "id": "tool-retouch",
+      "destination": "product-retouch.webp",
+      "mode": "edit",
+      "referenceId": "tool-product",
+      "prompt": "Use case: precise-object-edit. Image 1 is the exact edit target. Retouch only the lighting, glass readability and surface reflections of the SAME unbranded perfume bottle. Lock the camera, 4:3 crop, product position and scale, rectangular glass outline and softly rounded corners, satin-silver cylindrical cap dimensions, amber liquid level, gray limestone ledge and existing background. Preserve every structural detail and do not add or remove objects. Refine the commercial lighting with a slightly clearer controlled vertical highlight along the glass edge, more readable natural amber light transmission, subtle cleaner specular reflections and a polished but realistic stone texture. The result should feel like professional product retouching within the original scene, not a different set or a new product. Keep the restrained ivory/mineral-gray/amber palette and fine physical imperfections; no plastic-looking overprocessing, excess glow or oversharpening. No words, logos, watermark, UI, fake labels or claims. Match the original framing exactly so it can be traced and compared as a reference edit concept."
+    },
+    {
+      "id": "tool-fashion",
+      "destination": "fashion-model.webp",
+      "mode": "generate",
+      "prompt": "Use case: photorealistic-natural. Create an original high-fashion editorial photograph of a fictional adult woman. Premium AI creative studio / editorial art direction, coherent restrained ivory, mineral gray, muted teal and amber palette, convincing physical materials, clear focal subject, refined cinematic light, not a generic stock image. Landscape 4:3 composition for a website tool preview, approximately 1408 by 1056, no text, lettering, logos, watermark or interface elements. A poised East Asian woman in her late twenties wears a beautifully tailored unbranded ivory cotton trench coat over muted slate-blue trousers, standing in a quiet limestone architectural studio with one softly sunlit wall. The clothing is the focus: coherent lapels, symmetrical belt construction, realistic seams, tactile cotton weave, elegant natural folds and accurate proportions. Show her full body from head to shoes with comfortable breathing space, placed slightly right of center; both hands rest naturally fully inside the trench coat pockets so no exposed fingers are necessary. Professional 70mm camera at waist height, understated confident posture, natural detailed face and restrained editorial styling, realistic skin without heavy smoothing. Soft directional studio daylight and a faint long architectural shadow, restrained ivory and slate palette that matches the other tool photography. No extreme beauty retouching, brand marks, extra limbs, text, logos, watermarks or collage."
+    }
+  ]
+}

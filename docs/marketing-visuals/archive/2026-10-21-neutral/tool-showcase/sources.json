@@ -1,0 +1,42 @@
+{
+  "tool": "official built-in image_gen",
+  "completed": "2026-10-21",
+  "assets": [
+    {
+      "id": "tool-generator",
+      "source": "/Users/mofung/.codex/generated_images/01a159a6-1c3e-7542-a4dc-f50f386e23a4/exec-094af2c8-2065-4f48-a125-cef7c5e5da62.png",
+      "mode": "generate",
+      "referenceId": null
+    },
+    {
+      "id": "tool-prompt",
+      "source": "/Users/mofung/.codex/generated_images/01a159a6-1c3e-7542-a4dc-f50f386e23a4/exec-ff8e7745-0dad-4921-82ed-22aa54fa89dc.png",
+      "mode": "generate",
+      "referenceId": null
+    },
+    {
+      "id": "tool-reference",
+      "source": "/Users/mofung/.codex/generated_images/01a159a6-1c3e-7542-a4dc-f50f386e23a4/exec-a85fbcba-edfa-4ec9-a76b-a54a8da49801.png",
+      "mode": "edit",
+      "referenceId": "tool-generator"
+    },
+    {
+      "id": "tool-product",
+      "source": "/Users/mofung/.codex/generated_images/01a159a6-1c3e-7542-a4dc-f50f386e23a4/exec-e4d25bb4-0ac3-455b-b280-d60dae870d9e.png",
+      "mode": "generate",
+      "referenceId": null
+    },
+    {
+      "id": "tool-retouch",
+      "source": "/Users/mofung/.codex/generated_images/01a159a6-1c3e-7542-a4dc-f50f386e23a4/exec-c6b89033-9113-401c-9626-95034a79c6b9.png",
+      "mode": "edit",
+      "referenceId": "tool-product"
+    },
+    {
+      "id": "tool-fashion",
+      "source": "/Users/mofung/.codex/generated_images/01a159a6-1c3e-7542-a4dc-f50f386e23a4/exec-85365e7c-ca3b-4675-9d65-a0306c8ab19c.png",
+      "mode": "generate",
+      "referenceId": null
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "style": "Chromatic contemporary editorial — cobalt, coral and lime, graphic daylight, tactile materials.",
+  "disclosure": "AI 视觉概念示例",
+  "assets": [
+    {
+      "id": "ai-story-city",
+      "destination": "chromatic/hero/chromatic-landscape.webp",
+      "prompt": "Use case: stylized-concept. Asset type: ultra-wide website hero artwork, landscape 16:9. A monumental flowing coral-red architectural loop made of satin anodized metal rises from a perfectly still deep cobalt alpine lake; distant sharp slate mountains beneath a clear pale blue sky. Minimal surreal architectural photography, breathtaking scale, reflection and a small island. Composition: loop concentrated center-right, its apex well below the upper frame edge, left third is darker quiet blue water and mountain shadow for white title overlap. No people, no buildings or city. Wide 28mm camera, realistic metal edges and rippled reflections. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "skincare-base",
+      "destination": "chromatic/commerce/skincare-base.webp",
+      "prompt": "Use case: product-mockup. Asset type: portrait 4:5 product source photograph. An unbranded sculptural coral-orange cylindrical cosmetic jar with flat matching lid, subtle thin silver ring at lid seam, and a plain cobalt-blue rectangular carton, both standing on a neutral cool grey studio tabletop. Jar centered slightly left, carton immediately behind on right, complete objects visible with generous top and bottom margins. Medium front-facing camera, soft basic even studio light, gentle contact shadows, realistic matte enamel and paper. This is the clean input for a later same-product campaign edit. No letters, logos or designs on packaging. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "hero-fashion",
+      "destination": "chromatic/gallery/chromatic-fashion.webp",
+      "prompt": "Use case: photorealistic-natural. Asset type: portrait 4:5 fashion editorial photograph. Full-length fictional adult East Asian woman, about 28, wearing a sharply tailored cobalt-blue oversized trouser suit over a white tank top, short black bob, walking diagonally with relaxed confident expression in a minimal bright coral-orange architectural courtyard. Full feet and head visible, not close cropped, asymmetric modern editorial composition, crisp shadows, subtle fabric movement, a single blue sky rectangle above. Luxury contemporary fashion campaign, 50mm lens, realistic skin and tailoring, no brands. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "hero-fantasy",
+      "destination": "chromatic/gallery/chromatic-architecture.webp",
+      "prompt": "Use case: stylized-concept. Asset type: portrait 4:5 artwork for a creative studio gallery. A futuristic coral-orange angular stair and cantilevered geometric pavilion floating over a tranquil cobalt-blue sea, a small intensely yellow door at the top, crisp cerulean sky. Monumental asymmetric forms with striking negative space, believable architectural photograph, strong shadow, three-quarter low angle, no people. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "hero-still-life",
+      "destination": "chromatic/gallery/chromatic-still-life.webp",
+      "prompt": "Use case: photorealistic-natural. Asset type: portrait 4:5 editorial still life, also cropped to landscape 4:3. A translucent electric lime-green hand-blown glass loop vase and one polished cobalt blue sphere on a coral-orange lacquer platform, background soft sky blue, a single deep red anthurium flower curving from the vase. Subjects clustered in center, ample open space top and lower-right for an HTML prompt overlay. Close-up contemporary design magazine product photograph, refined caustics, tactile surface, crisp diagonal afternoon shadow. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "ecommerce-perfume",
+      "destination": "chromatic/commerce/chromatic-perfume.webp",
+      "prompt": "Use case: product-mockup. Asset type: portrait 4:5 fragrance campaign photography. An unbranded square cobalt-blue translucent perfume bottle with a spherical polished silver cap and pale gold liquid visible at the base, centered on a low coral-orange glossy cube. Background azure blue with a hard diagonal light stripe. Camera straight-on at bottle mid-height, full bottle clearly visible, simple fixed composition with space around every edge. Elegant realistic glass refraction, a few tiny honest irregular reflections, refined contemporary high-color campaign. No lettering, no labels. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "hero-future",
+      "destination": "chromatic/gallery/chromatic-interior.webp",
+      "prompt": "Use case: stylized-concept. Asset type: portrait 4:5 architectural editorial. A minimal modern blue-walled indoor swimming pool with a large circular skylight, brilliant tangerine-orange sculptural diving platform and cobalt water. A small chartreuse lounge chair on the far deck. Precise symmetry slightly offset, soft azure sky seen overhead, long reflections, hyperreal architecture photography, rich colors but refined finish, no people. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "hero-skincare",
+      "destination": "chromatic/commerce/chromatic-skincare.webp",
+      "prompt": "Use case: lighting-weather. Edit target: the attached cosmetic product photograph. Change ONLY the grey backdrop and tabletop into a vibrant cobalt-blue seamless campaign set with a shallow glossy blue surface, clear sun from upper left and a crisp architectural diagonal shadow behind the products. Keep the coral-orange jar and cobalt carton EXACTLY as in the input: same position, same size, same cylindrical silhouette and lid shape, same silver ring, same carton shape, same front-facing camera and crop. Preserve both products completely; do not add labels, letters, logos or objects. Improve the light with a refined sunlit campaign feel, realistic contact shadow and a subtle reflection below. Portrait 4:5. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage.",
+      "referenceId": "skincare-base"
+    },
+    {
+      "id": "ecommerce-coffee",
+      "destination": "chromatic/commerce/chromatic-coffee.webp",
+      "prompt": "Use case: product-mockup. Asset type: portrait 4:5 coffee campaign photograph. A plain unbranded cobalt-blue coffee bag with no lettering, a sculptural coral-orange espresso cup filled with dark coffee, and three coffee beans on an electric lemon-yellow lacquer tabletop. Background is a simple blue wall, crisp slanting sunlight, precise realistic paper folds and ceramic glaze, modern graphic still life, generous margins, eye-level 70mm product lens. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "ecommerce-lifestyle",
+      "destination": "chromatic/commerce/chromatic-light.webp",
+      "prompt": "Use case: product-mockup. Asset type: portrait 4:5 furniture campaign photograph. A bold orange mushroom-shaped aluminum table lamp with a rounded dome and slender cylindrical stem on a cobalt-blue rectangular plinth; pale blue background with one sharp diagonal shadow. Single centered whole lamp, generous margins, realistic powder-coated orange metal, a subtle warm light under the shade, clean modern industrial design, excellent material detail, no other objects. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    },
+    {
+      "id": "ecommerce-accessory",
+      "destination": "chromatic/commerce/chromatic-bag.webp",
+      "prompt": "Use case: product-mockup. Asset type: portrait 4:5 contemporary accessories campaign photograph. A minimalist unbranded lime-green structured leather shoulder bag with brushed silver rectangular buckle, resting on a coral-orange cube against a cobalt-blue background. Full bag and short strap visible, strong off-center graphic composition, crisp sunlight, believable supple leather grain and precise stitching, elegant clean luxury commercial photo, no logos and no letters. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage."
+    }
+  ]
+}

@@ -122,11 +122,18 @@ func (s *Service) accountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var available, held int64
-	if err = s.db.QueryRow("SELECT available,held FROM credit_accounts WHERE user_id=$1", u.ID).Scan(&available, &held); err != nil {
+	// Reuse the existing read-only pagination snapshot, scoped to the current user.
+	tx, page, err := s.beginAdminPage(r, "SELECT count(*) FROM credit_ledger WHERE user_id=$1", u.ID)
+	if err != nil {
+		s.error(w, 503, "ACCOUNT_UNAVAILABLE", "流水暂时不可用")
+		return
+	}
+	defer tx.Rollback()
+	if err = tx.QueryRowContext(r.Context(), "SELECT available,held FROM credit_accounts WHERE user_id=$1", u.ID).Scan(&available, &held); err != nil {
 		s.error(w, 503, "ACCOUNT_UNAVAILABLE", "账户暂时不可用")
 		return
 	}
-	rows, err := s.db.Query(`SELECT id,kind,available_delta,held_delta,available_after,held_after,task_id,note,created_at FROM credit_ledger WHERE user_id=$1 ORDER BY id DESC LIMIT 100`, u.ID)
+	rows, err := tx.QueryContext(r.Context(), `SELECT id,kind,available_delta,held_delta,available_after,held_after,task_id,note,created_at FROM credit_ledger WHERE user_id=$1 ORDER BY id DESC LIMIT $2 OFFSET $3`, u.ID, page.PageSize, page.offset())
 	if err != nil {
 		s.error(w, 503, "ACCOUNT_UNAVAILABLE", "流水暂时不可用")
 		return
@@ -145,7 +152,18 @@ func (s *Service) accountHandler(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 503, "ACCOUNT_UNAVAILABLE", "流水暂时不可用")
 		return
 	}
-	s.json(w, 200, map[string]any{"user": map[string]string{"id": u.ID, "username": u.Username, "role": u.Role}, "available": available, "held": held, "creditName": c.CreditName, "creditScale": creditScale, "ledger": ledger})
+	if err = rows.Close(); err == nil {
+		err = tx.Commit()
+	}
+	if err != nil {
+		s.error(w, 503, "ACCOUNT_UNAVAILABLE", "流水暂时不可用")
+		return
+	}
+	response := page.response("ledger", ledger)
+	response["user"] = map[string]string{"id": u.ID, "username": u.Username, "role": u.Role}
+	response["available"], response["held"] = available, held
+	response["creditName"], response["creditScale"] = c.CreditName, creditScale
+	s.json(w, 200, response)
 }
 
 func (s *Service) allowAuthAttempt(r *http.Request) bool {

@@ -1,6 +1,5 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import type { CSSProperties } from 'react'
 import {
   ArrowUpRight,
   ImagePlus,
@@ -21,23 +20,19 @@ const exampleIcons = {
   retouch: WandSparkles,
   prompt: ScanText,
 }
-const toolIcons = [ImagePlus, ScanText, Package, WandSparkles, Shirt]
 
 export function Example({
   example,
   priority = false,
-  focus = false,
 }: {
   example: MarketingExample
   priority?: boolean
-  focus?: boolean
 }) {
   const Icon = exampleIcons[example.kind]
-  const frame = focus ? example.image?.heroFrame : undefined
   const photo = example.image ? (
     <Image
       src={example.image.src}
-      alt={frame?.alt ?? example.image.alt}
+      alt={example.image.alt}
       width={example.image.width}
       height={example.image.height}
       sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 620px"
@@ -47,25 +42,15 @@ export function Example({
   return (
     <figure className="marketing-example" data-kind={example.kind}>
       <div
-        className={`marketing-example-media${example.image ? '' : ' marketing-example-placeholder'}${frame ? ' marketing-example-focus' : ''}`}
+        className={`marketing-example-media${example.image ? '' : ' marketing-example-placeholder'}`}
+        style={
+          example.image
+            ? { aspectRatio: `${example.image.width} / ${example.image.height}` }
+            : undefined
+        }
       >
         {example.image ? (
-          frame ? (
-            <div
-              className="marketing-example-photo-frame"
-              style={
-                {
-                  '--frames': frame.frames,
-                  '--frame-ratio': example.image.width / example.image.height / frame.frames,
-                  '--frame-offset': `${(-100 * frame.index) / frame.frames}%`,
-                } as CSSProperties
-              }
-            >
-              {photo}
-            </div>
-          ) : (
-            photo
-          )
+          photo
         ) : (
           <>
             <div className="marketing-placeholder-art" aria-hidden="true">
@@ -84,38 +69,6 @@ export function Example({
         <span>{example.description}</span>
       </figcaption>
     </figure>
-  )
-}
-
-export function ToolCards({ group }: { group: 'ai' | 'commerce' }) {
-  return (
-    <div className="marketing-tool-grid">
-      {tools
-        .filter((tool) => tool.group === group)
-        .map((tool) => {
-          const Icon = toolIcons[tools.indexOf(tool)]!
-          return (
-            <Link key={tool.slug} className="marketing-tool-card" href={`/tools/${tool.slug}`}>
-              <Icon size={26} strokeWidth={1.5} aria-hidden="true" />
-              <h3>{tool.name}</h3>
-              <p>{tool.description}</p>
-              <span>
-                了解工具 <ArrowUpRight size={16} aria-hidden="true" />
-              </span>
-            </Link>
-          )
-        })}
-      {group === 'ai' && (
-        <Link className="marketing-tool-card" href="/tools/ai-image-generator#reference">
-          <ImagePlus size={26} strokeWidth={1.5} aria-hidden="true" />
-          <h3>参考图创作</h3>
-          <p>加入自己的图片，用参考强度和文字描述继续探索画面，让已有灵感拥有新的表达。</p>
-          <span>
-            了解参考图创作 <ArrowUpRight size={16} aria-hidden="true" />
-          </span>
-        </Link>
-      )}
-    </div>
   )
 }
 

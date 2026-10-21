@@ -1,0 +1,41 @@
+{
+  "style": "Chromatic contemporary editorial",
+  "disclosure": "AI 视觉概念示例",
+  "assets": [
+    {
+      "id": "tool-generator",
+      "destination": "chromatic-generator.webp",
+      "prompt": "Use case: stylized-concept. Asset type: portrait 4:5 artwork for a creative studio gallery. A futuristic coral-orange angular stair and cantilevered geometric pavilion floating over a tranquil cobalt-blue sea, a small intensely yellow door at the top, crisp cerulean sky. Monumental asymmetric forms with striking negative space, believable architectural photograph, strong shadow, three-quarter low angle, no people. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage.",
+      "mode": "resize-and-crop",
+      "derivedFrom": "hero-fantasy"
+    },
+    {
+      "id": "tool-prompt",
+      "destination": "chromatic-prompt.webp",
+      "prompt": "Use case: precise-object-edit. Input image is the scene reference and edit target. Reframe this exact editorial still life into a WIDE LANDSCAPE 4:3 composition by moving the camera farther back and expanding the same pale blue backdrop and coral-orange tabletop sideways. Preserve the electric lime ring glass vase, red anthurium, blue glass sphere, materials, direction of daylight and color palette. Show the ENTIRE vase, flower and sphere with comfortable margins. Arrange them together slightly left of center, leave a calm area in the lower-right for HTML copy. No added objects, text, logos, borders or collage. Premium high-color contemporary photographic art direction.",
+      "referenceId": "hero-still-life",
+      "mode": "reference-image-edit"
+    },
+    {
+      "id": "tool-product",
+      "destination": "chromatic-product.webp",
+      "prompt": "Use case: product-mockup. Asset type: portrait 4:5 fragrance campaign photography. An unbranded square cobalt-blue translucent perfume bottle with a spherical polished silver cap and pale gold liquid visible at the base, centered on a low coral-orange glossy cube. Background azure blue with a hard diagonal light stripe. Camera straight-on at bottle mid-height, full bottle clearly visible, simple fixed composition with space around every edge. Elegant realistic glass refraction, a few tiny honest irregular reflections, refined contemporary high-color campaign. No lettering, no labels. Art direction: chromatic contemporary editorial photography, precise graphic composition, tactile real-world materials, clear hard daylight, sophisticated cobalt blue, coral orange and occasional citrus accents. Photographic detail and believable light, no beige limestone aesthetic, no text, no logos, no watermarks, no interface, no collage.",
+      "mode": "resize-and-crop",
+      "derivedFrom": "ecommerce-perfume"
+    },
+    {
+      "id": "tool-retouch",
+      "destination": "chromatic-retouch.webp",
+      "referenceId": "tool-product",
+      "prompt": "Use case: precise-object-edit. Edit target: the attached cobalt perfume bottle photograph. Keep the SAME bottle, spherical cap, exact square silhouette, gold liquid line, position and size, the SAME orange cube, blue backdrop, camera angle and framing. Refine only the light and reflections for a polished luxury product retouch: replace the busy outdoor reflection and photographer shape in the silver cap with a pristine large rectangular studio softbox reflection and an elegant dark edge, clean tiny glass edge irregularities, improve subtle glass highlight definition. Retain the diagonal sunlight on the background. Do not add or remove objects or change colors, shape, labels or composition. No lettering or watermark. Portrait 4:5, crisp realistic high-end commercial photography.",
+      "mode": "reference-image-edit"
+    },
+    {
+      "id": "tool-fashion",
+      "destination": "chromatic-fashion.webp",
+      "prompt": "Use case: identity-preserve. Input image is the edit target. Reframe this exact fashion editorial into a WIDE LANDSCAPE 4:3 composition by moving the camera farther back and expanding the same orange courtyard sideways. Preserve the same fictional adult woman, exact face and short black hair, cobalt blue tailored trouser suit and white tank top, same walking pose and sun direction. Show her complete body from head to shoes with comfortable margins. Place her slightly right of center, with graphic orange architectural shadows and a narrow blue sky opening. No added people, no text or brands. Refined realistic contemporary fashion photography.",
+      "referenceId": "hero-fashion",
+      "mode": "reference-image-edit"
+    }
+  ]
+}

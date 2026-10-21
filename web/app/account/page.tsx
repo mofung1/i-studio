@@ -1,12 +1,13 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Coins, RefreshCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Coins, RefreshCw } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
 import { useAccount } from '@/components/account-provider'
 import { AccountAccess } from '@/components/account-access'
 import { frontendRequest } from '@/lib/frontend-request'
 import { getAccessToken } from '@/lib/api'
 import { formatCredits } from '@/lib/credits'
+import { LibrarySelect } from '@/components/library-controls'
 interface Entry {
   id: number
   kind: string
@@ -23,6 +24,10 @@ interface AccountDetail {
   held: number
   creditName: string
   ledger: Entry[]
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
 }
 const kinds: Record<string, string> = {
   signup: '注册赠送',
@@ -39,28 +44,34 @@ export default function AccountPage() {
   const controller = useRef<AbortController | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const load = useCallback(async () => {
-    const token = getAccessToken()
-    if (!owner || !token) return
-    const version = ++requestVersion.current
-    controller.current?.abort()
-    const pending = new AbortController()
-    controller.current = pending
-    const current = () => version === requestVersion.current && token === getAccessToken()
-    setBusy(true)
-    setError('')
-    try {
-      const result = await frontendRequest<AccountDetail>('account', { signal: pending.signal })
-      if (!current()) return
-      setSnapshot({ owner, data: result })
-      refresh()
-    } catch (error) {
-      if (current() && !pending.signal.aborted)
-        setError(error instanceof Error ? error.message : '读取失败')
-    } finally {
-      if (current()) setBusy(false)
-    }
-  }, [owner, refresh])
+  const load = useCallback(
+    async (page = 1, pageSize = 20) => {
+      const token = getAccessToken()
+      if (!owner || !token) return
+      const version = ++requestVersion.current
+      controller.current?.abort()
+      const pending = new AbortController()
+      controller.current = pending
+      const current = () => version === requestVersion.current && token === getAccessToken()
+      setBusy(true)
+      setError('')
+      try {
+        const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+        const result = await frontendRequest<AccountDetail>(`account?${query}`, {
+          signal: pending.signal,
+        })
+        if (!current()) return
+        setSnapshot({ owner, data: result })
+        refresh()
+      } catch (error) {
+        if (current() && !pending.signal.aborted)
+          setError(error instanceof Error ? error.message : '读取失败')
+      } finally {
+        if (current()) setBusy(false)
+      }
+    },
+    [owner, refresh],
+  )
   useEffect(() => {
     setSnapshot(null)
     setError('')
@@ -80,7 +91,7 @@ export default function AccountPage() {
           <button
             className="studio-secondary"
             disabled={busy || !account.authenticated}
-            onClick={() => void load()}
+            onClick={() => void load(data?.page ?? 1, data?.pageSize ?? 20)}
           >
             <RefreshCw size={15} />
             刷新余额
@@ -118,10 +129,10 @@ export default function AccountPage() {
                 <small>生成完成后按实际交付结算，未使用部分自动退回</small>
               </article>
             </div>
-            <section className="ops-card">
+            <section className="ops-card" aria-labelledby="account-ledger-title" aria-busy={busy}>
               <div className="ops-card-heading">
-                <h2>余额流水</h2>
-                <span>最近 100 条</span>
+                <h2 id="account-ledger-title">流水记录</h2>
+                <span>共 {data?.total ?? 0} 条</span>
               </div>
               <div className="ops-table-scroll">
                 <table className="ops-table">
@@ -157,13 +168,55 @@ export default function AccountPage() {
                 {!data?.ledger.length && (
                   <p className="ops-empty" role={busy ? 'status' : undefined}>
                     {busy
-                      ? '正在读取余额流水…'
+                      ? '正在读取流水记录…'
                       : error
-                        ? '余额流水读取失败，请刷新重试。'
+                        ? '流水记录读取失败，请刷新重试。'
                         : '暂无余额变动；需要增加余额时请联系网站管理员。'}
                   </p>
                 )}
               </div>
+              <nav className="ops-pagination account-pagination" aria-label="流水记录分页">
+                <div className="ops-pagination-summary" aria-live="polite">
+                  <span>
+                    第 {data?.total ? (data.page - 1) * data.pageSize + 1 : 0}–
+                    {data ? Math.min(data.page * data.pageSize, data.total) : 0} 条，共{' '}
+                    {data?.total ?? 0} 条
+                  </span>
+                  {busy && <span role="status">正在读取…</span>}
+                </div>
+                <LibrarySelect
+                  label="每页流水记录条数"
+                  value={String(data?.pageSize ?? 20)}
+                  options={[
+                    ['20', '20 条 / 页'],
+                    ['50', '50 条 / 页'],
+                    ['100', '100 条 / 页'],
+                  ]}
+                  disabled={busy || !data}
+                  onChange={(value) => void load(1, Number(value))}
+                />
+                <span>
+                  第 {data?.page ?? 1} / {data?.totalPages ?? 1} 页
+                </span>
+                <div className="ops-pagination-buttons">
+                  <button
+                    type="button"
+                    aria-label="上一页流水记录"
+                    disabled={busy || !data || data.page <= 1}
+                    onClick={() => data && void load(data.page - 1, data.pageSize)}
+                  >
+                    <ChevronLeft size={16} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="下一页流水记录"
+                    disabled={busy || !data || data.page >= data.totalPages}
+                    onClick={() => data && void load(data.page + 1, data.pageSize)}
+                  >
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              </nav>
             </section>
           </>
         )}
