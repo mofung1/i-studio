@@ -1,8 +1,8 @@
 module github.com/istudio/server
 
-go 1.26.0
+go 1.27.0
 
-toolchain go1.26.9
+toolchain go1.27.3
 
 require (
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.0
