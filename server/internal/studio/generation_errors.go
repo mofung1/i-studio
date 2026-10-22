@@ -33,7 +33,10 @@ func publicGenerationError(message string) string {
 		"生成服务请求较多，请稍后重试。",
 		"生成服务暂时不可用，请联系管理员检查服务配置。",
 		"任务处理已中断，已完成的图片会保留，可重新发起生成。",
+		"任务处理已中断，已保存图片保留，其余预留余额退回；当前同步服务无法重新查询，重新生成会创建新任务并计费。",
 		"参考图片无法读取，请重新选择素材。",
+		"所选模型在当前通道暂不可用，请选择其他模型或联系管理员检查上架配置；未交付部分会退回预留积分。",
+		"账号存储额度不足，已保存图片保留，其余预留积分退回；请清理不再需要的作品、素材或反推记录后重试。",
 	} {
 		if message == safe {
 			return safe
@@ -41,6 +44,10 @@ func publicGenerationError(message string) string {
 	}
 	text := strings.ToLower(message)
 	switch {
+	case strings.Contains(text, "model unavailable"), strings.Contains(text, "model_not_found"), strings.Contains(text, "model not found"):
+		return "所选模型在当前通道暂不可用，请选择其他模型或联系管理员检查上架配置；未交付部分会退回预留积分。"
+	case strings.Contains(text, "存储额度"), strings.Contains(text, "storage quota"):
+		return "账号存储额度不足，已保存图片保留，其余预留积分退回；请清理不再需要的作品、素材或反推记录后重试。"
 	case strings.Contains(text, "safety"), strings.Contains(text, "content policy"), strings.Contains(text, "内容安全"):
 		return "提示词或参考图未通过生成服务的内容检查，请调整后重试。"
 	case strings.Contains(text, "timeout"), strings.Contains(text, "timed out"), strings.Contains(text, "deadline"), strings.Contains(text, "超时"):
@@ -50,7 +57,7 @@ func publicGenerationError(message string) string {
 	case strings.Contains(text, "quota"), strings.Contains(text, "insufficient"), strings.Contains(text, "401"), strings.Contains(text, "unauthorized"):
 		return "生成服务暂时不可用，请联系管理员检查服务配置。"
 	case strings.Contains(text, "中断"):
-		return "任务处理已中断，已完成的图片会保留，可重新发起生成。"
+		return "任务处理已中断，已保存图片保留，其余预留余额退回；当前同步服务无法重新查询，重新生成会创建新任务并计费。"
 	default:
 		return "图片生成失败，请稍后重试；已完成的图片会保留。"
 	}

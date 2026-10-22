@@ -1,6 +1,7 @@
 package studio
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -163,6 +164,13 @@ func (s *Service) reserveGeneration(uid, key string, expected int64, input map[s
 	if err != sql.ErrNoRows {
 		return domain.GenerationTask{}, false, err
 	}
+	var usedBytes, storageLimit int64
+	if err = tx.QueryRow("SELECT account_storage_bytes($1),COALESCE((config->>'accountStorageLimitBytes')::bigint,1073741824) FROM operation_settings WHERE id=true", uid).Scan(&usedBytes, &storageLimit); err != nil {
+		return domain.GenerationTask{}, false, err
+	}
+	if usedBytes >= storageLimit {
+		return domain.GenerationTask{}, false, &operationError{413, "ACCOUNT_STORAGE_QUOTA", "账号存储额度已满，请先清理不再需要的作品、素材或反推记录"}
+	}
 	if err := validateInputOwnershipTx(tx, uid, input); err != nil {
 		return domain.GenerationTask{}, false, &operationError{400, "GENERATION_ASSET_INVALID", err.Error()}
 	}
@@ -236,6 +244,7 @@ func formatCredits(minor int64) string {
 
 func (s *Service) attachBilling(t *domain.GenerationTask) {
 	t.ErrorMessage = publicGenerationError(t.ErrorMessage)
+	s.attachImageDetails(t)
 	if s.db == nil {
 		return
 	}
@@ -246,12 +255,23 @@ func (s *Service) attachBilling(t *domain.GenerationTask) {
 }
 
 // Task result and wallet settlement commit together; repeated completion is harmless.
-func (s *Service) settleGeneration(id, status string, images, modules []string, message string) error {
+func (s *Service) settleGeneration(id, status string, images, modules []string, message string, leaseTokens ...string) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
+	if len(leaseTokens) > 0 && leaseTokens[0] != "" {
+		run := generationRun{server: s, id: id, token: leaseTokens[0]}
+		if err = run.lock(context.Background(), tx); err != nil {
+			return err
+		}
+	} else {
+		var taskID string
+		if err = tx.QueryRow("SELECT id FROM generation_tasks WHERE id=$1 FOR UPDATE", id).Scan(&taskID); err != nil {
+			return err
+		}
+	}
 	var uid string
 	var price int64
 	var quantity int
@@ -260,7 +280,7 @@ func (s *Service) settleGeneration(id, status string, images, modules []string, 
 	if err == sql.ErrNoRows {
 		raw, _ := json.Marshal(images)
 		mods, _ := json.Marshal(modules)
-		_, err = tx.Exec("UPDATE generation_tasks SET status=$2,result_images=$3::jsonb,result_modules=$4::jsonb,error_message=$5,lease_until=NULL WHERE id=$1", id, status, raw, mods, repository.NullableString(message))
+		_, err = tx.Exec("UPDATE generation_tasks SET status=$2,result_images=$3::jsonb,result_modules=$4::jsonb,error_message=$5,lease_until=NULL,lease_token='' WHERE id=$1", id, status, raw, mods, repository.NullableString(message))
 		if err == nil {
 			err = tx.Commit()
 		}
@@ -271,6 +291,16 @@ func (s *Service) settleGeneration(id, status string, images, modules []string, 
 	}
 	if settled {
 		return nil
+	}
+	var journaled bool
+	if err = tx.QueryRow("SELECT EXISTS(SELECT 1 FROM generation_deliveries WHERE task_id=$1)", id).Scan(&journaled); err != nil {
+		return err
+	}
+	if journaled {
+		images, modules, err = savedDeliveryImages(context.Background(), tx, id)
+		if err != nil {
+			return err
+		}
 	}
 	// Never charge for inaccessible results, duplicates, or excess upstream output.
 	seen := map[string]bool{}
@@ -309,7 +339,10 @@ func (s *Service) settleGeneration(id, status string, images, modules []string, 
 	raw, _ := json.Marshal(saved)
 	mods, _ := json.Marshal(attribution)
 	if err == nil {
-		_, err = tx.Exec("UPDATE generation_tasks SET status=$2,result_images=$3::jsonb,result_modules=$4::jsonb,error_message=$5,lease_until=NULL WHERE id=$1", id, status, raw, mods, repository.NullableString(message))
+		_, err = tx.Exec("UPDATE generation_tasks SET status=$2,result_images=$3::jsonb,result_modules=$4::jsonb,error_message=$5,lease_until=NULL,lease_token='' WHERE id=$1", id, status, raw, mods, repository.NullableString(message))
+	}
+	if err == nil {
+		_, err = tx.Exec("UPDATE generation_deliveries SET result_source_encrypted='',error_message=CASE WHEN status='saved' THEN error_message ELSE $2 END,status=CASE WHEN status='saved' THEN status ELSE 'failed' END,updated_at=now() WHERE task_id=$1", id, publicGenerationError(message))
 	}
 	if err == nil {
 		err = tx.Commit()

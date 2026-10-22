@@ -126,9 +126,25 @@ export function ResultWorkspace({
   const isHistoryView = Boolean(historyTask)
   const images = isHistoryView
     ? (historyTask?.resultImages ?? [])
-    : (activeResult?.resultImages ?? [])
+    : isGenerating
+      ? (generationTask?.resultImages ?? [])
+      : (activeResult?.resultImages ?? [])
+  const displayTaskId = isHistoryView
+    ? historyTask?.id
+    : isGenerating
+      ? generationTask?.id
+      : activeResult?.id
+  const displayModules = isHistoryView
+    ? historyTask?.resultModules
+    : isGenerating
+      ? generationTask?.resultModules
+      : activeResult?.resultModules
+  const imageDetails = (isHistoryView ? historyTask : isGenerating ? generationTask : activeResult)
+    ?.resultDetails
+  const generationTotal = generationTask?.input?.count ?? generatingCount ?? expectedCount
   const safeIndex = Math.min(activeImageIndex, Math.max(images.length - 1, 0))
   const heroImage = images[safeIndex] ?? ''
+  const actualDetail = imageDetails?.find((item) => item.contentPath === heroImage)
   const hasResults = images.length > 0
   const displayInput = isHistoryView
     ? historyTask?.input
@@ -149,7 +165,7 @@ export function ResultWorkspace({
   const displayResolution = displayInput?.resolution ?? resolution
   // 主图走缓存：同一组结果内左右切换时保留上一张直到新图就绪，不会闪白；
   // 换组（新的一次生成 / 另一条历史记录）则重新显示占位，避免显示过期画面。
-  const heroGroup = isHistoryView ? (historyTask?.id ?? 'history') : (activeResult?.id ?? 'current')
+  const heroGroup = displayTaskId ?? 'current'
   const {
     source: heroSource,
     state: heroState,
@@ -186,7 +202,7 @@ export function ResultWorkspace({
     setActiveImageIndex(pendingImageRef.current ?? 0)
     pendingImageRef.current = null
     setLightboxOpen(false)
-  }, [activeResult?.id, historyTask?.id])
+  }, [displayTaskId])
 
   // 生成完成后刷新历史抽屉，新结果会立刻出现在记录里
   useEffect(() => {
@@ -195,7 +211,7 @@ export function ResultWorkspace({
 
   function downloadCurrent() {
     if (!heroImage) return
-    const prefix = isHistoryView ? historyTask?.id.slice(0, 8) : activeResult?.id.slice(0, 8)
+    const prefix = displayTaskId?.slice(0, 8)
     downloadImage(heroImage, `istudio-${prefix ?? 'result'}-${safeIndex + 1}.png`)
   }
 
@@ -285,7 +301,7 @@ export function ResultWorkspace({
               {(hasResults || isGenerating) && (
                 <>
                   <span className="meta-chip">{displayRatio}</span>
-                  <span className="meta-chip">{displayResolution}</span>
+                  <span className="meta-chip">请求档位 {displayResolution}</span>
                   <button
                     type="button"
                     className="meta-action is-primary"
@@ -311,14 +327,14 @@ export function ResultWorkspace({
 
       <div className={`result-layout${recentHistory ? ' has-recent-history' : ''}`}>
         <div className="result-body">
-          {isGenerating && !isHistoryView && (
+          {isGenerating && !isHistoryView && !hasResults && (
             <div className="result-generating">
               <div className={`result-stage${generatingImages > 1 ? ' has-strip' : ''}`}>
                 {/* 占位尺寸与生成后的主图一致：同比例、同最大高度 */}
                 <ImageViewport aspectRatio={heroRatio} loading>
                   <GenerationLoading
                     status={generationTask?.status ?? 'processing'}
-                    count={generatingCount ?? expectedCount}
+                    count={generationTotal}
                   />
                 </ImageViewport>
                 {generatingImages > 1 && (
@@ -332,6 +348,12 @@ export function ResultWorkspace({
                 )}
               </div>
             </div>
+          )}
+
+          {isGenerating && !isHistoryView && hasResults && (
+            <p className="form-notice" role="status" aria-live="polite" aria-atomic="true">
+              已保存 {images.length} / {generationTotal} 张，可先查看和下载；其余图片仍在生成。
+            </p>
           )}
 
           {!isGenerating && !hasResults && !isHistoryView && (
@@ -378,7 +400,7 @@ export function ResultWorkspace({
             <FailureNotice message={failureMessage} compact />
           )}
 
-          {heroImage !== '' && (!isGenerating || isHistoryView) && (
+          {heroImage !== '' && (
             <div className="result-result">
               <div className="result-image-toolbar" role="group" aria-label="图片查看操作">
                 <span className="result-image-info" aria-live="polite">
@@ -387,8 +409,11 @@ export function ResultWorkspace({
                   </strong>
                   {heroReady && currentImageSize && (
                     <span>
-                      {currentImageSize.width} × {currentImageSize.height} px
+                      实际 {currentImageSize.width} × {currentImageSize.height} px
                     </span>
+                  )}
+                  {actualDetail?.elapsedMs != null && (
+                    <span>生成耗时 {(actualDetail.elapsedMs / 1000).toFixed(1)} 秒</span>
                   )}
                 </span>
                 <div className="result-image-commands">
@@ -401,7 +426,7 @@ export function ResultWorkspace({
                     <Download size={15} aria-hidden="true" />
                     下载图片
                   </button>
-                  {onDownloadAll && (
+                  {onDownloadAll && (!isGenerating || isHistoryView) && (
                     <button
                       type="button"
                       className="studio-secondary"
@@ -490,19 +515,9 @@ export function ResultWorkspace({
                       </div>
                     )}
 
-                    {moduleLabel(
-                      imageSource.taskType,
-                      (isHistoryView
-                        ? historyTask?.resultModules?.[safeIndex]
-                        : activeResult?.resultModules?.[safeIndex]) ?? '',
-                    ) && (
+                    {moduleLabel(imageSource.taskType, displayModules?.[safeIndex] ?? '') && (
                       <span className="module-badge">
-                        {moduleLabel(
-                          imageSource.taskType,
-                          (isHistoryView
-                            ? historyTask?.resultModules?.[safeIndex]
-                            : activeResult?.resultModules?.[safeIndex]) ?? '',
-                        )}
+                        {moduleLabel(imageSource.taskType, displayModules?.[safeIndex] ?? '')}
                       </span>
                     )}
                   </ImageViewport>
@@ -574,7 +589,7 @@ export function ResultWorkspace({
         <ImageLightbox
           path={heroImage}
           alt={`${title}生成结果 ${safeIndex + 1}`}
-          filename={`istudio-${(isHistoryView ? historyTask?.id : activeResult?.id)?.slice(0, 8) ?? 'result'}-${safeIndex + 1}`}
+          filename={`istudio-${displayTaskId?.slice(0, 8) ?? 'result'}-${safeIndex + 1}`}
           fullscreen
           hasPrev={images.length > 1 && safeIndex > 0}
           hasNext={images.length > 1 && safeIndex < images.length - 1}

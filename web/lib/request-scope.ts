@@ -1,5 +1,6 @@
 const adminResources = new Set([
   'overview',
+  'monitoring',
   'models',
   'users',
   'settings',
@@ -7,6 +8,7 @@ const adminResources = new Set([
   'tasks',
   'audit',
   'ai-endpoints',
+  'image-measurements',
   'prompt-templates',
   'prompt-reverse-settings',
   'site-settings',

@@ -244,7 +244,14 @@ func (s *Service) clothingPlanHandler(w http.ResponseWriter, r *http.Request) {
 	starter, _ := json.Marshal(plan)
 	system := templates["clothing.plan"] + "\n" + clothingPlanOutputContract
 	userText := fmt.Sprintf("模式：%s；风格：%s；比例：%s；平台：%s；画面文字语言：%s\n补充要求：%s\n%s\n请优化这份规划：%s", mode, options["clothingStyle"], options["aspectRatio"], options["platform"], options["outputLanguage"], requirements, strings.Join(roles, "\n"), starter)
-	text, err := s.promptClient.complete(r.Context(), system, userText, images, 4000)
+	uid, _ := s.authenticatedUserID(r)
+	ctx, release, err := s.acquireAuxiliary(r.Context(), uid, "clothing_plan")
+	if err != nil {
+		s.auxiliaryFailure(w, err)
+		return
+	}
+	defer release()
+	text, err := s.promptClient.complete(ctx, system, userText, images, 4000)
 	if err != nil {
 		s.error(w, 502, "CLOTHING_ANALYSIS_FAILED", "服装分析失败，请重试或使用手动规划")
 		return

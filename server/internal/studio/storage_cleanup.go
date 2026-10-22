@@ -97,6 +97,9 @@ func (s *Service) retryStorageDeletions() error {
 func (s *Service) startStorageMaintenance() {
 	go func() {
 		run := func() {
+			if _, err := s.db.Exec("DELETE FROM storage_failures WHERE created_at<now()-interval '30 days'"); err != nil {
+				fmt.Printf("storage monitoring retention cleanup deferred\n")
+			}
 			if err := s.cleanupHiddenAssets(); err != nil {
 				fmt.Printf("hidden asset cleanup deferred\n")
 			}

@@ -117,3 +117,36 @@ it.each(['general', 'commerce'] as const)(
     }
   },
 )
+
+it('shows only saved images from the running task and keeps them downloadable before completion', async () => {
+  await act(async () =>
+    root.render(
+      <ResultWorkspace
+        {...props}
+        isGenerating
+        generationTask={{ id: 'running', status: 'processing', resultImages: ['data:saved-first'] }}
+      />,
+    ),
+  )
+  expect(container.textContent).toContain('已保存 1 / 3 张')
+  expect(container.querySelector<HTMLImageElement>('.result-hero-image')?.src).toBe(
+    'data:saved-first',
+  )
+  expect(container.querySelector('.result-generating')).toBeNull()
+  const button = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+    (button) => button.textContent === '下载图片',
+  )!
+  await act(async () => button.click())
+  expect(download).toHaveBeenCalledWith('data:saved-first', 'istudio-running-1.png')
+  await act(async () =>
+    root.render(
+      <ResultWorkspace
+        {...props}
+        isGenerating
+        generationTask={{ id: 'next-running', status: 'processing', resultImages: [] }}
+      />,
+    ),
+  )
+  expect(container.querySelector('.result-hero-image')).toBeNull()
+  expect(container.querySelector('.result-generating')).not.toBeNull()
+})

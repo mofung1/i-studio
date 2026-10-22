@@ -151,10 +151,24 @@ func (s *Service) testAIEndpoint(w http.ResponseWriter, r *http.Request, id stri
 	var input struct {
 		Mode            string `json:"mode"`
 		ConfirmCost     bool   `json:"confirmCost"`
+		AspectRatio     string `json:"aspectRatio"`
+		Resolution      string `json:"resolution"`
 		UpstreamModelID string `json:"upstreamModelId"`
 	}
 	if !decode(r, &input) || (input.Mode != "connection" && input.Mode != "generate") {
 		s.error(w, 400, "TEST_INVALID", "请选择连接测试或真实生图测试")
+		return
+	}
+	if input.AspectRatio == "" {
+		input.AspectRatio = "1:1"
+	}
+	if input.Resolution == "" {
+		input.Resolution = "1K"
+	}
+	_, ratioOK := allowedRatios[input.AspectRatio]
+	_, resolutionOK := allowedResolutions[input.Resolution]
+	if !ratioOK || !resolutionOK {
+		s.error(w, 400, "TEST_PARAMETERS_INVALID", "请选择有效的比例与请求档位")
 		return
 	}
 	if input.Mode == "generate" && !input.ConfirmCost {
@@ -208,10 +222,31 @@ func (s *Service) testAIEndpoint(w http.ResponseWriter, r *http.Request, id stri
 		_, err = s.openAIProtocolClient(endpoint, key).complete(ctx, "Reply with OK.", "Connection test.", nil, 8)
 	} else {
 		var result providerTask
-		result, err = s.imageProtocolClient(endpoint, key).Submit(ctx, map[string]any{"prompt": "A plain white square.", "model": endpoint.Model, "aspectRatio": "1:1", "resolution": "1K", "count": 1})
+		result, err = s.imageProtocolClient(endpoint, key).Submit(ctx, map[string]any{"prompt": "A plain white square.", "model": endpoint.Model, "aspectRatio": input.AspectRatio, "resolution": input.Resolution, "count": 1})
 		images = result.Images
 	}
-	payload := map[string]any{"success": err == nil, "model": endpoint.Model, "responseTimeMs": time.Since(start).Milliseconds(), "images": images}
+	elapsed := time.Since(start).Milliseconds()
+	var measurement *imageMeasurement
+	if input.Mode == "generate" && endpoint.Purpose == "image" {
+		m := imageMeasurement{EndpointID: endpoint.ID, Model: endpoint.Model, AspectRatio: input.AspectRatio, Resolution: input.Resolution, ElapsedMS: elapsed, Currency: "CNY"}
+		if err == nil && len(images) != 1 {
+			err = fmt.Errorf("预期一张测试图片，实际返回 %d 张", len(images))
+		}
+		if err == nil {
+			m.Width, m.Height, m.SizeBytes, err = actualImageDimensions(images[0])
+		}
+		m.Success = err == nil
+		if err != nil {
+			m.ErrorMessage = publicGenerationError(err.Error())
+		}
+		saved, saveErr := s.recordImageMeasurement(r, m)
+		if saveErr != nil {
+			s.error(w, 503, "MEASUREMENT_SAVE_FAILED", "测试已发起，但核验记录保存失败；请勿直接重复付费测试")
+			return
+		}
+		measurement = &saved
+	}
+	payload := map[string]any{"measurement": measurement, "success": err == nil, "model": endpoint.Model, "responseTimeMs": time.Since(start).Milliseconds(), "images": images}
 	if err != nil {
 		payload["message"] = safeAIError(err, key)
 	} else {

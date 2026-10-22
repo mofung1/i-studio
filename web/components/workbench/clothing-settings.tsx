@@ -1,6 +1,7 @@
 'use client'
 
 import type { CreationImage } from '@/lib/creation-images'
+import type { PublicImageModel } from '@/lib/generation-models'
 
 import { Shirt, UserRound } from 'lucide-react'
 import type { ClothingMode, ClothingStyle } from '@/lib/contracts'
@@ -34,9 +35,14 @@ export function ClothingSettings({
 }: {
   value: ClothingSettingsValue
   onChange: (patch: Partial<ClothingSettingsValue>) => void
-  endpoints: { id: string; name: string; model: string }[]
+  endpoints: PublicImageModel[]
 }) {
   const total = Object.values(value.counts).reduce((sum, count) => sum + count, 0)
+  const capabilities = endpoints.find((endpoint) => endpoint.id === value.endpointId)?.capabilities
+  const referenceDisabledReason =
+    capabilities?.referenceImages === false
+      ? '服装工具需要图片输入，请选择支持参考图片的模型；已有素材仍会保留。'
+      : undefined
   function count(key: string, amount: number) {
     const counts = { ...value.counts }
     if (Number.isFinite(amount) && amount > 0) counts[key] = Math.min(4, Math.floor(amount))
@@ -74,6 +80,7 @@ export function ClothingSettings({
             : '上传同套搭配中的服装，模特将穿着这套搭配。'}
         </p>
         <ReferenceUploader
+          disabledReason={referenceDisabledReason}
           collapseAt={2}
           files={value.garments}
           max={6}
@@ -94,6 +101,7 @@ export function ClothingSettings({
             <p className="clothing-field-help">建议上传人物清晰、身体完整的照片。</p>
             <ReferenceUploader
               files={value.models}
+              disabledReason={referenceDisabledReason}
               max={1}
               onChange={(models) => onChange({ models })}
               labelFor={() => '模特'}
@@ -109,6 +117,7 @@ export function ClothingSettings({
             </div>
             <ReferenceUploader
               files={value.scenes}
+              disabledReason={referenceDisabledReason}
               max={1}
               onChange={(scenes) => onChange({ scenes })}
               labelFor={() => '场景'}
@@ -274,14 +283,16 @@ export function ClothingSettings({
               onValueChange={(aspectRatio) => onChange({ aspectRatio })}
             >
               <SelectTrigger aria-label="服装画面比例">
-                <SelectValue />
+                <SelectValue>{value.aspectRatio}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {ratioOptions.map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
+                {ratioOptions
+                  .filter(([key]) => !capabilities || capabilities.aspectRatios.includes(key))
+                  .map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </label>
@@ -292,14 +303,16 @@ export function ClothingSettings({
               onValueChange={(resolution) => onChange({ resolution })}
             >
               <SelectTrigger aria-label="服装清晰度">
-                <SelectValue />
+                <SelectValue>{value.resolution}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {resolutionOptions.map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
+                {resolutionOptions
+                  .filter(([key]) => !capabilities || capabilities.resolutions.includes(key))
+                  .map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </label>

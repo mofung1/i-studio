@@ -247,7 +247,8 @@ func TestMigrationAndRegistrationNeverPromoteUsers(t *testing.T) {
 	if err := database.Migrate(s.db); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.registerAccount(domain.User{ID: "new-account", Username: "new_account", PasswordHash: "fixture"}, 250); err != nil {
+	s.db.Exec(`UPDATE operation_settings SET config=config||'{"signupGiftMinor":250}'::jsonb`)
+	if err := s.registerAccount(domain.User{ID: "new-account", Username: "new_account", PasswordHash: "fixture"}, ""); err != nil {
 		t.Fatal(err)
 	}
 	var role string

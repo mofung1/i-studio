@@ -23,6 +23,7 @@ import type { AdminSorting } from './admin/data-table'
 import { AdminUserTable } from './admin/user-table'
 import { adminRequest as request } from '@/lib/admin'
 import { AdminOverview } from './admin/overview'
+import { AdminMonitoring } from './admin/monitoring'
 import { AdminModelList } from './admin/model-list'
 import { AdminTaskTable } from './admin/task-table'
 import { AdminAuditTable } from './admin/audit-table'
@@ -58,6 +59,8 @@ export function AdminDashboard({
   const [overview, setOverview] = useState<Record<string, number>>({})
   const [ops, setOps] = useState<Operations | null>(null)
   const [gift, setGift] = useState('0')
+  const [giftBudget, setGiftBudget] = useState('1000')
+  const [creditAlert, setCreditAlert] = useState('1000')
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -117,6 +120,8 @@ export function AdminDashboard({
       if (current()) {
         setOps(settings)
         setGift(String(settings.signupGiftMinor / 100))
+        setGiftBudget(String((settings.signupGiftDailyBudgetMinor ?? 100000) / 100))
+        setCreditAlert(String((settings.dailyCreditAlertMinor ?? 100000) / 100))
       }
     }
     if (view === 'tasks') {
@@ -242,7 +247,20 @@ export function AdminDashboard({
       setError('注册赠送金额格式不正确')
       return
     }
-    await action(() => request('settings', 'PUT', { ...ops, signupGiftMinor: minor }))
+    const budget = parseCredits(giftBudget),
+      alert = parseCredits(creditAlert)
+    if (budget === null || alert === null || budget < 0 || alert < 0) {
+      setError('每日赠送预算和消耗告警需为有效非负数量，最多两位小数')
+      return
+    }
+    await action(() =>
+      request('settings', 'PUT', {
+        ...ops,
+        signupGiftMinor: minor,
+        signupGiftDailyBudgetMinor: budget,
+        dailyCreditAlertMinor: alert,
+      }),
+    )
   }
   async function adjust(event: FormEvent) {
     event.preventDefault()
@@ -337,7 +355,12 @@ export function AdminDashboard({
           <p role="status">正在读取…</p>
         ) : (
           <>
-            {view === 'overview' && <AdminOverview overview={overview} unit={unit} />}
+            {view === 'overview' && (
+              <>
+                <AdminMonitoring unit={unit} />
+                <AdminOverview overview={overview} unit={unit} />
+              </>
+            )}
             {view === 'models' && (
               <AdminModelList
                 models={models}
@@ -383,6 +406,10 @@ export function AdminDashboard({
               <AdminOperationsForm
                 ops={ops}
                 gift={gift}
+                giftBudget={giftBudget}
+                creditAlert={creditAlert}
+                onGiftBudgetChange={setGiftBudget}
+                onCreditAlertChange={setCreditAlert}
                 busy={busy}
                 onChange={setOps}
                 onGiftChange={setGift}

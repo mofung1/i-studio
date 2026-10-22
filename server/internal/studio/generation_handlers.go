@@ -23,7 +23,7 @@ func (s *Service) capabilities(w http.ResponseWriter, r *http.Request) {
 	}
 	images := []map[string]any{}
 	for _, m := range models {
-		images = append(images, map[string]any{"id": m.ID, "name": m.Name, "model": m.Name, "isDefault": m.IsDefault, "priceMinor": m.PriceMinor})
+		images = append(images, map[string]any{"id": m.ID, "name": m.Name, "model": m.Name, "isDefault": m.IsDefault, "priceMinor": m.PriceMinor, "capabilities": m.Capabilities})
 	}
 	config, err := s.operationSettings()
 	if err != nil {

@@ -11,9 +11,13 @@ func (s Handlers) registerAdminRoutes(admin *gin.RouterGroup) {
 	registerMethods(admin, "/settings", s.AdminSettings, "GET", "PUT")
 	registerMethods(admin, "/storage", s.AdminStorage, "GET", "POST", "PUT")
 	admin.GET("/overview", gin.WrapF(s.AdminOverview))
+	admin.GET("/monitoring", gin.WrapF(s.AdminMonitoring))
 	admin.GET("/tasks", gin.WrapF(s.AdminTasks))
 	admin.GET("/audit", gin.WrapF(s.AdminAudit))
 
+	measurements := func(c *gin.Context) { s.AdminImageMeasurements(c.Writer, c.Request, c.Param("id")) }
+	admin.GET("/image-measurements", measurements)
+	admin.PUT("/image-measurements/:id", measurements)
 	models := func(c *gin.Context) { s.AdminModels(c.Writer, c.Request, c.Param("id")) }
 	admin.GET("/models", models)
 	admin.POST("/models", models)

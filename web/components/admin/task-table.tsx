@@ -71,6 +71,28 @@ export function AdminTaskTable({
         </div>
       ),
     },
+    {
+      id: 'output',
+      header: '请求档位 / 实际输出',
+      size: 250,
+      cell: (task) => (
+        <div className="admin-cell-stack">
+          <span>
+            请求 {task.aspectRatio || '未知'} / {task.resolution || '未知'}
+          </span>
+          {task.resultDetails?.length ? (
+            task.resultDetails.map((item, index) => (
+              <span className="admin-cell-secondary" key={index}>
+                实际 {item.width} × {item.height} px
+                {item.elapsedMs !== null && ` · ${(item.elapsedMs / 1000).toFixed(1)} 秒`}
+              </span>
+            ))
+          ) : (
+            <span className="admin-cell-secondary">暂无可交付图片</span>
+          )}
+        </div>
+      ),
+    },
     ...(['reserved', 'charged', 'refunded'] as const).map((id) => ({
       id,
       header: { reserved: '预留', charged: '实扣', refunded: '退回' }[id],

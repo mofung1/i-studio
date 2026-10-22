@@ -128,7 +128,7 @@ func TestAdministratorAndCustomerCredentialsAndSessionsAreIsolated(t *testing.T)
 	if err := s.syncEnvironmentAdmin(); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.registerAccount(domain.User{ID: "customer", Username: "same_name", PasswordHash: authn.HashPassword("Customer-secret-5678")}, 1000); err != nil {
+	if err := registerAccountForTest(t, s, domain.User{ID: "customer", Username: "same_name", PasswordHash: authn.HashPassword("Customer-secret-5678")}, 1000); err != nil {
 		t.Fatal(err)
 	}
 	admin, status := loginToken(t, s, "/v1/admin/auth/login", "Administrator-secret-1234")
@@ -167,7 +167,7 @@ func TestAdministratorAndCustomerCredentialsAndSessionsAreIsolated(t *testing.T)
 
 func TestLegacyAdministratorsSplitOnceWithoutMovingCustomerData(t *testing.T) {
 	s := environmentAdminTestServer(t)
-	if err := s.registerAccount(domain.User{ID: "legacy", Username: "legacy_operator", PasswordHash: authn.HashPassword("Legacy-fixture-1234")}, 500); err != nil {
+	if err := registerAccountForTest(t, s, domain.User{ID: "legacy", Username: "legacy_operator", PasswordHash: authn.HashPassword("Legacy-fixture-1234")}, 500); err != nil {
 		t.Fatal(err)
 	}
 	_, err := s.db.Exec(`UPDATE users SET role='admin' WHERE id='legacy';

@@ -107,7 +107,9 @@ async function save() {
 it('adds a second binding, switches the primary and keeps the public price', async () => {
   await act(async () => root.render(<Editor />))
   await act(async () => {
-    const select = container.querySelector('select')!
+    const select = Array.from(container.querySelectorAll('select')).find((select) =>
+      select.querySelector('option[value="relay"]'),
+    )!
     select.value = 'relay'
     select.dispatchEvent(new Event('change', { bubbles: true }))
   })
@@ -160,6 +162,8 @@ it('requires explicit cost confirmation and tests the selected upstream model on
     mode: 'generate',
     confirmCost: true,
     upstreamModelId: 'official-model',
+    aspectRatio: '1:1',
+    resolution: '1K',
   })
   expect(container.textContent).toContain('生图成功')
 })

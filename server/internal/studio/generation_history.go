@@ -43,7 +43,7 @@ func (s *Service) listGenerationTasks(w http.ResponseWriter, r *http.Request, ui
 		s.error(w, 400, "CURSOR_INVALID", "分页已失效，请刷新列表")
 		return
 	}
-	rows, err := s.db.Query("SELECT t.id,COALESCE(t.project_id,''),t.status,t.created_at,t.input,t.result_images,t.result_modules,COALESCE(t.error_message,'') FROM generation_tasks t"+q.where()+order, q.args...)
+	rows, err := s.db.Query("SELECT t.id,COALESCE(t.project_id,''),t.status,t.created_at,t.input,t.result_images,t.result_modules,COALESCE(t.error_message,''),COALESCE((SELECT jsonb_agg(jsonb_build_object('contentPath','/v1/assets/'||a.id||'/content','width',a.width,'height',a.height,'sizeBytes',a.size_bytes,'elapsedMs',d.elapsed_ms)) FROM assets a LEFT JOIN generation_deliveries d ON d.task_id=a.task_id AND d.asset_id=a.id WHERE a.task_id=t.id AND a.user_id=t.user_id),'[]'::jsonb) FROM generation_tasks t"+q.where()+order, q.args...)
 	if err != nil {
 		s.error(w, 500, "TASK_STORAGE_ERROR", "记录查询失败")
 		return
@@ -54,10 +54,12 @@ func (s *Service) listGenerationTasks(w http.ResponseWriter, r *http.Request, ui
 	for rows.Next() {
 		var t domain.GenerationTask
 		var date time.Time
-		var input, images, modules []byte
-		if err = rows.Scan(&t.ID, &t.ProjectID, &t.Status, &date, &input, &images, &modules, &t.ErrorMessage); err != nil {
+		var input, images, modules, details []byte
+		if err = rows.Scan(&t.ID, &t.ProjectID, &t.Status, &date, &input, &images, &modules, &t.ErrorMessage, &details); err != nil {
 			break
 		}
+		t.UserID = uid
+		_ = json.Unmarshal(details, &t.ResultDetails)
 		t.ErrorMessage = publicGenerationError(t.ErrorMessage)
 		t.CreatedAt = date.UTC().Format(time.RFC3339Nano)
 		_ = json.Unmarshal(input, &t.Input)

@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from './ui/card'
+import { Alert, AlertTitle, AlertDescription } from './ui/alert'
 import { Button } from './ui/button'
 
 export function AdminOverview({
@@ -53,8 +54,35 @@ export function AdminOverview({
       icon: ShieldCheck,
     },
   ]
+  const spendAlert =
+    (overview.dailyCreditAlertMinor ?? 0) > 0 &&
+    (overview.todayCharged ?? 0) >= (overview.dailyCreditAlertMinor ?? 0)
+  const signupAlert =
+    (overview.signupGiftDailyBudgetMinor ?? 0) > 0 &&
+    (overview.signupGiftToday ?? 0) >= (overview.signupGiftDailyBudgetMinor ?? 0) * 0.8
+  const auxAlert =
+    (overview.auxiliaryDailyLimit ?? 0) > 0 &&
+    (overview.auxiliaryToday ?? 0) >= (overview.auxiliaryDailyLimit ?? 0) * 0.8
+  const storageAlert = (overview.storageFullAccounts ?? 0) > 0
   return (
     <>
+      {(spendAlert || signupAlert || auxAlert || storageAlert) && (
+        <Alert>
+          <AlertTitle>平台用量提醒</AlertTitle>
+          <AlertDescription>
+            {spendAlert && (
+              <p>
+                今日已结算消耗达到 {formatCredits(overview.dailyCreditAlertMinor ?? 0)} {unit}
+                告警阈值。
+              </p>
+            )}
+            {signupAlert && <p>今日注册赠送预算已使用 80% 或以上；预算不足将暂停新注册。</p>}
+            {auxAlert && <p>今日辅助请求额度已使用 80% 或以上。</p>}
+            {storageAlert && <p>{overview.storageFullAccounts} 个账号已达到存储上限。</p>}
+            <p>积分消耗、辅助次数与供应商货币账单分别统计；该提醒不表示真实 API 费用。</p>
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="admin-overview-stats">
         {stats.map((stat) => (
           <Card key={stat.title}>
@@ -74,6 +102,41 @@ export function AdminOverview({
           </Card>
         ))}
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>平台额度（北京时间今日）</CardTitle>
+          <CardDescription>
+            仅统计已开始的辅助请求和实际入账的注册赠送；失败请求也占用次数。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl>
+            <div className="admin-task-metric">
+              <dt>辅助请求</dt>
+              <dd>
+                {overview.auxiliaryToday ?? 0} / {overview.auxiliaryDailyLimit ?? 1000} 次；当前并发{' '}
+                {overview.auxiliaryActive ?? 0} / {overview.auxiliaryConcurrentLimit ?? 4}
+              </dd>
+            </div>
+            <div className="admin-task-metric">
+              <dt>注册赠送</dt>
+              <dd>
+                {formatCredits(overview.signupGiftToday ?? 0)} /{' '}
+                {formatCredits(overview.signupGiftDailyBudgetMinor ?? 100000)} {unit}
+              </dd>
+            </div>
+            <div className="admin-task-metric">
+              <dt>图片存储（含暂存及历史引用）</dt>
+              <dd>{((overview.storageBytes ?? 0) / 1048576).toFixed(1)} MiB</dd>
+            </div>
+          </dl>
+        </CardContent>
+        <CardFooter>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/operations">调整额度与告警</Link>
+          </Button>
+        </CardFooter>
+      </Card>
       <div className="admin-overview-panels">
         <Card>
           <CardHeader>

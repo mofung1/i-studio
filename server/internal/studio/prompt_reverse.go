@@ -247,6 +247,10 @@ func (s *Service) promptReverseTasks(w http.ResponseWriter, r *http.Request) {
 	system += "\n\n" + reverseContract(mode)
 	versionHash := sha256.Sum256([]byte(system))
 	version := hex.EncodeToString(versionHash[:8])
+	if err = s.ensureStorageCapacity(r.Context(), tx, uid, int64(len(data)+len(analysisData))); err != nil {
+		s.operationFailure(w, err)
+		return
+	}
 	id := idgen.New()
 	key := s.newStorageKey(filepath.Join(".reverse", id+extensionForMime(mime)))
 	if err := s.storage.Save(key, bytes.NewReader(data)); err != nil {
@@ -272,7 +276,7 @@ func (s *Service) promptReverseTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	rawSettings, _ := json.Marshal(settings)
 	expires := time.Now().Add(time.Duration(settings.RetentionHours) * time.Hour)
-	job, err := scanReverseJob(tx.QueryRow("INSERT INTO prompt_reverse_tasks(id,user_id,request_id,status,mode,requirements,image_key,image_mime,image_name,image_width,image_height,fingerprint,settings,system_prompt,template_version,expires_at,analysis_key) VALUES($1,$2,$3,'queued',$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15,$16) RETURNING "+reverseTaskColumns, id, uid, requestID, mode, requirements, key, mime, name, width, height, fingerprint, rawSettings, system, version, expires, analysisKey))
+	job, err := scanReverseJob(tx.QueryRow("INSERT INTO prompt_reverse_tasks(id,user_id,request_id,status,mode,requirements,image_key,image_mime,image_name,image_width,image_height,fingerprint,settings,system_prompt,template_version,expires_at,analysis_key,storage_bytes) VALUES($1,$2,$3,'queued',$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15,$16,$17) RETURNING "+reverseTaskColumns, id, uid, requestID, mode, requirements, key, mime, name, width, height, fingerprint, rawSettings, system, version, expires, analysisKey, int64(len(data)+len(analysisData))))
 	if err != nil {
 		s.error(w, 500, "REVERSE_STORAGE_ERROR", "分析任务创建失败")
 		return

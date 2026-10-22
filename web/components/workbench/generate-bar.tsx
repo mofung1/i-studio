@@ -1,6 +1,7 @@
 'use client'
 
 import { Check, Loader2, Sparkles } from 'lucide-react'
+import { useId } from 'react'
 
 import { GenerationCost, useGenerationCost } from '../generation-cost'
 import type { GenerationNotice } from './use-generation-task'
@@ -21,6 +22,7 @@ interface GenerateBarProps {
   onSubmit: () => void
   buttonLabel?: string
   busyLabel?: string
+  disabledReason?: string
 }
 
 /** 固定在创作区底部的生成区，不随参数滚动消失。 */
@@ -37,8 +39,13 @@ export function GenerateBar({
   onSubmit,
   buttonLabel,
   busyLabel,
+  disabledReason,
 }: GenerateBarProps) {
   const { account, loading } = useAccount()
+  const noticeId = useId()
+  const visibleNotice: GenerationNotice | null = disabledReason
+    ? { kind: 'error', message: disabledReason }
+    : notice
   const cost = useGenerationCost(modelId, expectedCount)
   const costBlocked = cost.authenticated && (!cost.quote || !cost.quote.canAfford)
   const label = isSubmitting
@@ -55,7 +62,7 @@ export function GenerateBar({
     ? '当前任务生成中，完成后可以继续提交新任务'
     : aiEnabled === null
       ? '正在检查 AI 服务可用性，请稍候'
-      : undefined
+      : disabledReason || undefined
 
   return (
     <footer className="configuration-footer generate-bar">
@@ -75,10 +82,14 @@ export function GenerateBar({
         </span>
       </div>
       <GenerationCost {...cost} />
-      {notice && (
-        <p className={`form-notice ${notice.kind}`} role="status">
-          {notice.kind === 'success' && <Check size={15} aria-hidden="true" />}
-          {notice.message}
+      {visibleNotice && (
+        <p
+          id={noticeId}
+          className={`form-notice ${visibleNotice.kind}`}
+          role={visibleNotice.kind === 'error' ? 'alert' : 'status'}
+        >
+          {visibleNotice.kind === 'success' && <Check size={15} aria-hidden="true" />}
+          {visibleNotice.message}
         </p>
       )}
       {!account.authenticated && !loading ? (
@@ -96,9 +107,11 @@ export function GenerateBar({
             isGenerating ||
             aiEnabled === null ||
             aiEnabled === false ||
-            costBlocked
+            costBlocked ||
+            Boolean(disabledReason)
           }
           title={hint}
+          aria-describedby={visibleNotice ? noticeId : undefined}
           onClick={onSubmit}
         >
           {isSubmitting || isGenerating ? (

@@ -128,7 +128,14 @@ func (s *Service) promptEnhance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rewritten, err := s.promptClient.complete(r.Context(), system, userText, images, 4096)
+	uid, _ := s.authenticatedUserID(r)
+	ctx, release, err := s.acquireAuxiliary(r.Context(), uid, "prompt_enhance")
+	if err != nil {
+		s.auxiliaryFailure(w, err)
+		return
+	}
+	defer release()
+	rewritten, err := s.promptClient.complete(ctx, system, userText, images, 4096)
 	if err != nil {
 		status, code, message := promptEnhanceError(err)
 		log.Printf("prompt enhance failed: code=%s model=%q", code, s.promptClient.modelName())

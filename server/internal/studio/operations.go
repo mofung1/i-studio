@@ -18,16 +18,28 @@ const creditScale int64 = 100
 const maxCreditMinor int64 = 1000000000000
 
 type operationSettings struct {
-	CreditName                string `json:"creditName"`
-	RegistrationEnabled       bool   `json:"registrationEnabled"`
-	SignupGiftMinor           int64  `json:"signupGiftMinor"`
-	MaxConcurrentTasks        int    `json:"maxConcurrentTasks"`
-	GenerationRequestsPerHour int    `json:"generationRequestsPerHour"`
-	AuxiliaryRequestsPerHour  int    `json:"auxiliaryRequestsPerHour"`
+	CreditName                   string `json:"creditName"`
+	RegistrationEnabled          bool   `json:"registrationEnabled"`
+	SignupGiftMinor              int64  `json:"signupGiftMinor"`
+	MaxConcurrentTasks           int    `json:"maxConcurrentTasks"`
+	GenerationRequestsPerHour    int    `json:"generationRequestsPerHour"`
+	AuxiliaryRequestsPerHour     int    `json:"auxiliaryRequestsPerHour"`
+	PlatformAuxiliaryConcurrent  int    `json:"platformAuxiliaryConcurrent"`
+	PlatformAuxiliaryPerDay      int    `json:"platformAuxiliaryPerDay"`
+	SignupGiftDailyBudgetMinor   int64  `json:"signupGiftDailyBudgetMinor"`
+	DailyCreditAlertMinor        int64  `json:"dailyCreditAlertMinor"`
+	AccountStorageLimitBytes     int64  `json:"accountStorageLimitBytes"`
+	RegistrationInviteRequired   bool   `json:"registrationInviteRequired"`
+	RegistrationInviteConfigured bool   `json:"registrationInviteConfigured"`
 }
 
 func defaultOperationSettings() operationSettings {
-	return operationSettings{"积分", true, 0, 2, 30, 20}
+	return operationSettings{
+		CreditName: "积分", RegistrationEnabled: true, MaxConcurrentTasks: 2,
+		GenerationRequestsPerHour: 30, AuxiliaryRequestsPerHour: 20,
+		PlatformAuxiliaryConcurrent: 4, PlatformAuxiliaryPerDay: 1000,
+		SignupGiftDailyBudgetMinor: 100000, DailyCreditAlertMinor: 100000, AccountStorageLimitBytes: 1 << 30,
+	}
 }
 
 func (s *Service) operationSettings() (operationSettings, error) {
@@ -41,11 +53,23 @@ func (s *Service) operationSettings() (operationSettings, error) {
 		return config, err
 	}
 	err = json.Unmarshal(raw, &config)
+	if err == nil {
+		err = s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM registration_invite WHERE id=true)").Scan(&config.RegistrationInviteConfigured)
+	}
 	return config, err
 }
 
 func validOperationSettings(c operationSettings) bool {
-	return utf8.RuneCountInString(c.CreditName) >= 1 && utf8.RuneCountInString(c.CreditName) <= 12 && !strings.ContainsAny(c.CreditName, "\r\n\t<>") && c.SignupGiftMinor >= 0 && c.SignupGiftMinor <= 100000000 && c.MaxConcurrentTasks >= 1 && c.MaxConcurrentTasks <= 16 && c.GenerationRequestsPerHour >= 1 && c.GenerationRequestsPerHour <= 1000 && c.AuxiliaryRequestsPerHour >= 1 && c.AuxiliaryRequestsPerHour <= 1000
+	return utf8.RuneCountInString(c.CreditName) >= 1 && utf8.RuneCountInString(c.CreditName) <= 12 && !strings.ContainsAny(c.CreditName, "\r\n\t<>") &&
+		c.SignupGiftMinor >= 0 && c.SignupGiftMinor <= 100000000 &&
+		c.MaxConcurrentTasks >= 1 && c.MaxConcurrentTasks <= 16 &&
+		c.GenerationRequestsPerHour >= 1 && c.GenerationRequestsPerHour <= 1000 &&
+		c.AuxiliaryRequestsPerHour >= 1 && c.AuxiliaryRequestsPerHour <= 1000 &&
+		c.PlatformAuxiliaryConcurrent >= 1 && c.PlatformAuxiliaryConcurrent <= 100 &&
+		c.PlatformAuxiliaryPerDay >= 1 && c.PlatformAuxiliaryPerDay <= 1000000 &&
+		c.SignupGiftDailyBudgetMinor >= 0 && c.SignupGiftDailyBudgetMinor <= maxCreditMinor &&
+		c.DailyCreditAlertMinor >= 0 && c.DailyCreditAlertMinor <= maxCreditMinor &&
+		c.AccountStorageLimitBytes >= 1 && c.AccountStorageLimitBytes <= 1<<40
 }
 
 func (s *Service) currentUser(r *http.Request) (domain.User, bool) {
@@ -95,7 +119,7 @@ func (s *Service) publicOperationSettings(w http.ResponseWriter, r *http.Request
 		s.error(w, 503, "SETTINGS_UNAVAILABLE", "网站配置暂时不可用")
 		return
 	}
-	s.json(w, 200, map[string]any{"creditName": c.CreditName, "creditScale": creditScale, "registrationEnabled": c.RegistrationEnabled})
+	s.json(w, 200, map[string]any{"creditName": c.CreditName, "creditScale": creditScale, "registrationEnabled": c.RegistrationEnabled, "registrationInviteRequired": c.RegistrationInviteRequired})
 }
 
 func (s *Service) audit(actor, action, target, detail string) {
@@ -160,6 +184,12 @@ func (s *Service) accountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response := page.response("ledger", ledger)
+	var storageBytes, estimatedBytes int64
+	if err = s.db.QueryRow("SELECT account_storage_bytes($1),COALESCE((SELECT sum(storage_bytes) FROM prompt_reverse_tasks WHERE user_id=$1 AND storage_estimated),0)", u.ID).Scan(&storageBytes, &estimatedBytes); err != nil {
+		s.error(w, 503, "ACCOUNT_UNAVAILABLE", "存储用量暂时不可用")
+		return
+	}
+	response["storage"] = map[string]int64{"usedBytes": storageBytes, "limitBytes": c.AccountStorageLimitBytes, "estimatedTemporaryBytes": estimatedBytes}
 	response["user"] = map[string]string{"id": u.ID, "username": u.Username, "role": u.Role}
 	response["available"], response["held"] = available, held
 	response["creditName"], response["creditScale"] = c.CreditName, creditScale
@@ -223,25 +253,6 @@ func (s *Service) requireAuxiliaryUser(w http.ResponseWriter, r *http.Request) b
 		return false
 	}
 	return true
-}
-
-func (s *Service) registerAccount(u domain.User, gift int64) error {
-	tx, err := s.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	_, err = tx.Exec("INSERT INTO users(id,username,password_hash) VALUES($1,$2,$3)", u.ID, u.Username, u.PasswordHash)
-	if err == nil {
-		_, err = tx.Exec("INSERT INTO credit_accounts(user_id,available) VALUES($1,$2)", u.ID, gift)
-	}
-	if err == nil && gift > 0 {
-		_, err = tx.Exec(`INSERT INTO credit_ledger(user_id,kind,available_delta,held_delta,available_after,held_after,request_key,note) VALUES($1,'signup',$2,0,$2,0,'signup','注册赠送')`, u.ID, gift)
-	}
-	if err == nil {
-		err = tx.Commit()
-	}
-	return err
 }
 
 func authSourceIP(r *http.Request) string {

@@ -28,18 +28,27 @@ func IsActiveTask(status string) bool {
 	return status == "queued" || status == "processing" || status == "waiting_provider"
 }
 
+type GenerationImageDetail struct {
+	ContentPath string `json:"contentPath"`
+	Width       int    `json:"width"`
+	Height      int    `json:"height"`
+	SizeBytes   int64  `json:"sizeBytes"`
+	ElapsedMS   *int64 `json:"elapsedMs"`
+}
+
 type GenerationTask struct {
-	Billing       *GenerationBilling `json:"billing,omitempty"`
-	ID            string             `json:"id"`
-	UserID        string             `json:"-"`
-	ProjectID     string             `json:"projectId,omitempty"`
-	ProjectName   string             `json:"projectName,omitempty"`
-	Status        string             `json:"status"`
-	CreatedAt     string             `json:"createdAt"`
-	Input         any                `json:"input"`
-	ResultImages  []string           `json:"resultImages,omitempty"`
-	ResultModules []string           `json:"resultModules,omitempty"`
-	ErrorMessage  string             `json:"errorMessage,omitempty"`
+	ResultDetails []GenerationImageDetail `json:"resultDetails,omitempty"`
+	Billing       *GenerationBilling      `json:"billing,omitempty"`
+	ID            string                  `json:"id"`
+	UserID        string                  `json:"-"`
+	ProjectID     string                  `json:"projectId,omitempty"`
+	ProjectName   string                  `json:"projectName,omitempty"`
+	Status        string                  `json:"status"`
+	CreatedAt     string                  `json:"createdAt"`
+	Input         any                     `json:"input"`
+	ResultImages  []string                `json:"resultImages,omitempty"`
+	ResultModules []string                `json:"resultModules,omitempty"`
+	ErrorMessage  string                  `json:"errorMessage,omitempty"`
 }
 
 // taskInputField 读取任务输入里的字符串字段；用于内存模式下按模式 / 任务类型过滤。

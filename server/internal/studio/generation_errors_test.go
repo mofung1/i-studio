@@ -24,3 +24,10 @@ func TestGenerationFailureDiagnosticsDoNotEchoProviderData(t *testing.T) {
 		}
 	}
 }
+
+func TestUnavailableUpstreamModelGetsActionablePrivateSafeMessage(t *testing.T) {
+	message := publicGenerationError("AI endpoint 404: Model unavailable. secret-provider-model https://provider.example?key=secret")
+	if !strings.Contains(message, "当前通道暂不可用") || strings.Contains(message, "secret") || publicGenerationError(message) != message {
+		t.Fatal(message)
+	}
+}

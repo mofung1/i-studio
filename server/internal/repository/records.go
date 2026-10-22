@@ -46,6 +46,7 @@ func TaskByID(db *sql.DB, id, userID string) (domain.GenerationTask, bool, error
 	var projectID sql.NullString
 	var modulesRaw []byte
 	err := db.QueryRow("SELECT id, project_id, status, created_at, input, result_images, result_modules, error_message FROM generation_tasks WHERE id = $1 AND user_id = $2", id, userID).Scan(&t.ID, &projectID, &t.Status, &t.CreatedAt, &input, &resultRaw, &modulesRaw, &errorMessage)
+	t.UserID = userID
 	t.ProjectID = projectID.String
 	if err == sql.ErrNoRows {
 		return domain.GenerationTask{}, false, nil
@@ -135,6 +136,13 @@ func DeleteAssetExcept(q Queryer, userID, assetID, exceptTask string) (string, e
 	var key string
 	if err := q.QueryRow("SELECT storage_key FROM assets WHERE id=$1 AND user_id=$2 FOR UPDATE", assetID, userID).Scan(&key); err != nil {
 		return "", err
+	}
+	var generating bool
+	if err := q.QueryRow(`SELECT EXISTS(SELECT 1 FROM assets a JOIN generation_tasks t ON t.id=a.task_id AND t.user_id=a.user_id WHERE a.id=$1 AND a.user_id=$2 AND t.id<>$3 AND t.status IN ('queued','processing','waiting_provider'))`, assetID, userID, exceptTask).Scan(&generating); err != nil {
+		return "", err
+	}
+	if generating {
+		return "", ErrTaskActive
 	}
 	references, active, err := AssetReferences(q, userID, assetID, exceptTask)
 	if err != nil {

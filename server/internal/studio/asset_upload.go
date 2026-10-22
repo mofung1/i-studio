@@ -133,6 +133,10 @@ func (s *Service) assets(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 500, "ASSET_STORAGE_ERROR", "素材查询失败")
 		return
 	}
+	if err = s.ensureStorageCapacity(r.Context(), tx, uid, int64(len(data))); err != nil {
+		s.operationFailure(w, err)
+		return
+	}
 	key = s.newStorageKey(key)
 	if err = s.storage.Save(key, bytes.NewReader(data)); err != nil {
 		s.error(w, 500, "ASSET_STORAGE_ERROR", "图片保存失败")

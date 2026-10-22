@@ -122,69 +122,115 @@ func (q *taskQueue) worker() {
 }
 
 func (q *taskQueue) processTask(id string) {
-	if !q.server.claimGeneration(id) {
+	token, recovering, claimed := q.server.claimGenerationRun(id)
+	if !claimed {
 		return
 	}
-	done := make(chan struct{})
-	defer close(done)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var run *generationRun
+	finish := func(status string, images, modules []string, message string) {
+		q.server.updateTaskResult(id, status, images, modules, message, token)
+	}
 	if q.server.db != nil {
-		go func() {
-			ticker := time.NewTicker(30 * time.Second)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-done:
-					return
-				case <-ticker.C:
-					q.server.db.Exec("UPDATE generation_tasks SET lease_until=now()+interval '2 minutes' WHERE id=$1 AND status IN ('processing','waiting_provider')", id)
-				}
+		run = &generationRun{server: q.server, id: id, token: token}
+		go q.renewGenerationLease(ctx, cancel, run)
+		if recovering {
+			var journaled bool
+			if err := q.server.db.QueryRow("SELECT EXISTS(SELECT 1 FROM generation_deliveries WHERE task_id=$1)", id).Scan(&journaled); err != nil {
+				return
 			}
-		}()
+			if !journaled {
+				images, err := q.server.legacySavedGenerationImages(id)
+				if err != nil {
+					return
+				}
+				finish("failed", images, nil, "服务处理被中断，已按可交付图片结算，其余预留余额退回；当前服务不能查询旧任务，重新生成会创建新任务并计费")
+				return
+			}
+			var complete bool
+			if err := q.server.db.QueryRow("SELECT (SELECT count(*) FROM generation_deliveries d JOIN assets a ON a.id=d.asset_id AND a.task_id=d.task_id WHERE d.task_id=$1 AND d.status='saved')=c.quantity FROM generation_charges c WHERE c.task_id=$1", id).Scan(&complete); err != nil {
+				return
+			}
+			if complete {
+				finish("succeeded", nil, nil, "")
+				return
+			}
+		}
 		var active, charged bool
 		if err := q.server.db.QueryRow("SELECT u.status='active',EXISTS(SELECT 1 FROM generation_charges c WHERE c.task_id=t.id) FROM generation_tasks t JOIN users u ON u.id=t.user_id WHERE t.id=$1", id).Scan(&active, &charged); err != nil || !active || !charged {
-			q.server.updateTaskResult(id, "failed", nil, nil, "账号不可用或任务需要重新提交，预留余额已退回")
+			finish("failed", nil, nil, "账号不可用或任务需要重新提交，预留余额已退回")
+			return
+		}
+		if q.server.ai == nil {
+			finish("failed", nil, nil, "无法读取任务保存配置，预留余额已退回")
+			return
+		}
+		if _, err := q.server.ai.encryptionKey(); err != nil {
+			finish("failed", nil, nil, "无法读取任务保存配置，预留余额已退回")
 			return
 		}
 	}
 	if q.server.provider == nil {
-		q.server.updateTaskResult(id, "failed", nil, nil, "AI 服务尚未配置")
+		finish("failed", nil, nil, "AI 服务尚未配置")
 		return
 	}
 	input, ok := q.server.taskInput(id)
 	if !ok {
-		q.server.updateTaskResult(id, "failed", nil, nil, "无法读取任务参数")
+		finish("failed", nil, nil, "无法读取任务参数")
 		return
 	}
 	if err := q.server.loadFrozenGeneration(id, input); err != nil {
-		q.server.updateTaskResult(id, "failed", nil, nil, "无法读取任务模型配置，预留余额已退回")
+		finish("failed", nil, nil, "无法读取任务模型配置，预留余额已退回")
 		return
 	}
 	if err := q.server.attachSourceImages(input); err != nil {
-		q.server.updateTaskResult(id, "failed", nil, nil, "参考图片无法读取，请重新选择素材。")
+		finish("failed", nil, nil, "参考图片无法读取，请重新选择素材。")
 		return
 	}
-	images, modules, err := q.generateBatches(id, input)
+	images, modules, err := q.generateBatchesContext(ctx, id, input, run)
+	if errors.Is(err, errGenerationLeaseLost) || ctx.Err() != nil {
+		return
+	}
 	if err != nil {
 		fmt.Printf("task %s generation failed (%s): %s\n", id, generationFailureReason(err), publicGenerationError(err.Error()))
-		paths, persistErr := q.server.persistGeneratedImages(id, images)
-		if persistErr != nil {
-			err = fmt.Errorf("%v；已生成图片保存失败：%w", err, persistErr)
+		finish("failed", images, modules, publicGenerationError(err.Error()))
+		return
+	}
+	finish("succeeded", images, modules, "")
+}
+
+func (q *taskQueue) renewGenerationLease(ctx context.Context, cancel context.CancelFunc, run *generationRun) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			queryCtx, stop := context.WithTimeout(ctx, 5*time.Second)
+			result, err := q.server.db.ExecContext(queryCtx, "UPDATE generation_tasks SET lease_until=now()+interval '2 minutes' WHERE id=$1 AND lease_token=$2 AND lease_until>now() AND status IN ('processing','waiting_provider')", run.id, run.token)
+			stop()
+			if err != nil {
+				cancel()
+				return
+			}
+			n, err := result.RowsAffected()
+			if err != nil || n != 1 {
+				cancel()
+				return
+			}
 		}
-		q.server.updateTaskResult(id, "failed", paths, modules, publicGenerationError(err.Error()))
-		return
 	}
-	paths, err := q.server.persistGeneratedImages(id, images)
-	if err != nil {
-		fmt.Printf("task %s image persistence failed (%s): %s\n", id, generationFailureReason(err), publicGenerationError(err.Error()))
-		q.server.updateTaskResult(id, "failed", paths, modules, publicGenerationError(err.Error()))
-		return
-	}
-	q.server.updateTaskResult(id, "succeeded", paths, modules, "")
 }
 
 // generateBatches 返回图片列表与逐图模块归属（modules[i] 为 images[i] 所属模块 key，
 // 非模块化生成时为空切片）。两者按下标一一对应。
 func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, []string, error) {
+	return q.generateBatchesContext(context.Background(), id, input, nil)
+}
+
+func (q *taskQueue) generateBatchesContext(ctx context.Context, id string, input map[string]any, run *generationRun) ([]string, []string, error) {
 	templates, frozen := input["generationPrompts"].(generationPromptSet)
 	var err error
 	if !frozen {
@@ -204,12 +250,12 @@ func (q *taskQueue) generateBatches(id string, input map[string]any) ([]string, 
 		defer delete(input, "protocolClient")
 	}
 	if stringValue(input["taskType"], "") == "clothing-set" {
-		return q.generateClothingBatches(id, input)
+		return q.generateClothingBatches(ctx, id, input, run)
 	}
 	if counts := customModuleCounts(input); len(counts) > 0 {
-		return q.generateModuleBatches(id, input, counts)
+		return q.generateModuleBatches(ctx, id, input, counts, run)
 	}
-	images, err := q.generateLinearBatches(id, input)
+	images, err := q.generateLinearBatches(ctx, id, input, run)
 	modules := make([]string, len(images))
 	if err != nil {
 		return images, modules, err
@@ -242,7 +288,7 @@ func customModuleCounts(input map[string]any) map[string]int {
 
 const imageRequestBatchSize = 1
 
-func (q *taskQueue) generateClothingBatches(id string, input map[string]any) ([]string, []string, error) {
+func (q *taskQueue) generateClothingBatches(ctx context.Context, id string, input map[string]any, run *generationRun) ([]string, []string, error) {
 	raw, _ := json.Marshal(input["clothingPlan"])
 	var shots []clothingShot
 	if err := json.Unmarshal(raw, &shots); err != nil || len(shots) == 0 {
@@ -259,29 +305,17 @@ func (q *taskQueue) generateClothingBatches(id string, input map[string]any) ([]
 		input["taskId"] = fmt.Sprintf("%s-clothing-%d", id, index+1)
 		input["moduleHint"] = shot.Description
 		input["generationModule"] = shot.ModuleKey
-		q.server.updateTaskStatus(id, "processing")
-		remote, err := q.imageClient(input).Submit(context.Background(), input)
+		path, err := q.generateImage(ctx, id, input, index+1, shot.ModuleKey, run)
 		if err != nil {
 			return images, attribution, fmt.Errorf("%s 生成失败：%w", shot.Label, err)
 		}
-		batch := remote.Images
-		if len(batch) == 0 {
-			q.server.updateTaskStatus(id, "waiting_provider")
-			batch, err = q.waitForImages(id, remote.ID, q.imageClient(input))
-		}
-		if err != nil || len(batch) != 1 {
-			if err == nil {
-				err = fmt.Errorf("预期一张图片，供应商返回 %d 张", len(batch))
-			}
-			return images, attribution, fmt.Errorf("%s 生成失败：%w", shot.Label, err)
-		}
-		images = append(images, batch[0])
+		images = append(images, path)
 		attribution = append(attribution, shot.ModuleKey)
 	}
 	return images, attribution, nil
 }
 
-func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]string, error) {
+func (q *taskQueue) generateLinearBatches(ctx context.Context, id string, input map[string]any, run *generationRun) ([]string, error) {
 	remaining := intValue(input["count"], 1)
 	batchSize := imageRequestBatchSize
 	images := make([]string, 0, remaining)
@@ -289,28 +323,12 @@ func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]st
 		size := min(remaining, batchSize)
 		input["count"] = size
 		input["taskId"] = fmt.Sprintf("%s-%d", id, batch)
-		q.server.updateTaskStatus(id, "processing")
-		remote, err := q.imageClient(input).Submit(context.Background(), input)
+		path, err := q.generateImage(ctx, id, input, batch, "", run)
 		if err != nil {
-			return images, fmt.Errorf("第 %d 批提交失败：%w", batch, err)
+			return images, fmt.Errorf("第 %d 批生成失败：%w", batch, err)
 		}
-		batchImages := remote.Images
-		if len(batchImages) == 0 {
-			q.server.updateTaskStatus(id, "waiting_provider")
-			batchImages, err = q.waitForImages(id, remote.ID, q.imageClient(input))
-			if err != nil {
-				return images, fmt.Errorf("第 %d 批生成失败：%w", batch, err)
-			}
-		}
-		if len(batchImages) > size {
-			return images, fmt.Errorf("第 %d 批预期最多 %d 张，供应商实际返回 %d 张", batch, size, len(batchImages))
-		}
-		if len(batchImages) == 0 {
-			return images, fmt.Errorf("第 %d 批供应商未返回图片", batch)
-		}
-		images = append(images, batchImages...)
-		// 按实际返回数量扣减，并继续提交剩余的单图请求。
-		remaining -= len(batchImages)
+		images = append(images, path)
+		remaining--
 	}
 	return images, nil
 }
@@ -318,7 +336,7 @@ func (q *taskQueue) generateLinearBatches(id string, input map[string]any) ([]st
 // generateModuleBatches 按模块逐个生成，每个模块批次注入专属 moduleHint，
 // 使不同模块产出构图差异化的图片，而非全部共用同一个 prompt。
 // 返回值第二项为逐图模块归属，与图片列表按下标一一对应。
-func (q *taskQueue) generateModuleBatches(id string, input map[string]any, counts map[string]int) ([]string, []string, error) {
+func (q *taskQueue) generateModuleBatches(ctx context.Context, id string, input map[string]any, counts map[string]int, run *generationRun) ([]string, []string, error) {
 	batchSize := imageRequestBatchSize
 	savedHint := stringValue(input["moduleHint"], "")
 	defer func() { input["moduleHint"] = savedHint }()
@@ -338,30 +356,13 @@ func (q *taskQueue) generateModuleBatches(id string, input map[string]any, count
 			input["count"] = size
 			input["taskId"] = fmt.Sprintf("%s-%s-%d", id, module, batch)
 			input["moduleHint"] = configuredModuleHint(input, stringValue(input["taskType"], ""), module)
-			q.server.updateTaskStatus(id, "processing")
-			remote, err := q.imageClient(input).Submit(context.Background(), input)
+			path, err := q.generateImage(ctx, id, input, len(images)+1, module, run)
 			if err != nil {
-				return images, attribution, fmt.Errorf("模块 %s 第 %d 批提交失败：%w", module, batch, err)
+				return images, attribution, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", moduleLabel(module), batch, err)
 			}
-			batchImages := remote.Images
-			if len(batchImages) == 0 {
-				q.server.updateTaskStatus(id, "waiting_provider")
-				batchImages, err = q.waitForImages(id, remote.ID, q.imageClient(input))
-				if err != nil {
-					return images, attribution, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", moduleLabel(module), batch, err)
-				}
-			}
-			if len(batchImages) > size {
-				return images, attribution, fmt.Errorf("模块 %s 第 %d 批预期最多 %d 张，供应商实际返回 %d 张", module, batch, size, len(batchImages))
-			}
-			if len(batchImages) == 0 {
-				return images, attribution, fmt.Errorf("模块 %s 第 %d 批供应商未返回图片", module, batch)
-			}
-			images = append(images, batchImages...)
-			for range batchImages {
-				attribution = append(attribution, module)
-			}
-			remaining -= len(batchImages)
+			images = append(images, path)
+			attribution = append(attribution, module)
+			remaining--
 		}
 	}
 	return images, attribution, nil
@@ -375,8 +376,12 @@ func (q *taskQueue) imageClient(input map[string]any) imageProvider {
 }
 
 func (q *taskQueue) waitForImages(id, remoteID string, client imageProvider) ([]string, error) {
+	return q.waitForImagesContext(context.Background(), id, remoteID, client)
+}
+
+func (q *taskQueue) waitForImagesContext(parent context.Context, id, remoteID string, client imageProvider) ([]string, error) {
 	timeout := generationPollTimeout(runtimeconfig.Env("GENERATION_POLL_TIMEOUT_SECONDS", ""))
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	images, err := pollProviderImages(ctx, id, remoteID, client, 5*time.Second)
 	if errors.Is(err, context.DeadlineExceeded) {

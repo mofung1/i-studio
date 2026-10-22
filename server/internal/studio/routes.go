@@ -22,6 +22,8 @@ func (s *Service) router() *gin.Engine {
 		AdminMe:                      s.adminMe,
 		AdminModels:                  s.adminModels,
 		AdminOverview:                s.adminOverview,
+		AdminMonitoring:              s.adminMonitoring,
+		AdminImageMeasurements:       s.adminImageMeasurements,
 		AdminSettings:                s.adminSettings,
 		AdminStorage:                 s.adminStorage,
 		AdminTasks:                   s.adminTasks,
