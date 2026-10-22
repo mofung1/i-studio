@@ -304,6 +304,17 @@
   }
 }
 
+/* Keep the commerce toolbar inside the smallest phone viewport. */
+@media (max-width: 380px) {
+  .mode-commerce .workbench-nav-actions .panel-toggle {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
+  }
+}
+
 /* Empty canvases center the illustration without reserving a scrollable results area. */
 .mode-general .result-body:has(.empty-creation-image) {
   overflow: hidden;

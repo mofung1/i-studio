@@ -21,6 +21,7 @@ import {
   type RegenerateRow,
 } from './workbench/regenerate-dialog'
 import { ResultWorkspace } from './workbench/result-workspace'
+import { CreationStarter } from './workbench/creation-starter'
 import { WorkbenchHeader } from './workbench/workbench-header'
 import { WorkbenchRail } from './workbench/workbench-rail'
 import { useCreatorPreferences } from './workbench/use-creator-preferences'
@@ -221,9 +222,13 @@ function StandardWorkbench({
           promptEnhanceEnabled?: boolean
           promptVision?: boolean
           imageEndpoints?: PublicImageModel[]
+          creditName?: string
         }) => {
           if (!current) return
-          const endpoints = data.imageEndpoints ?? []
+          const endpoints = (data.imageEndpoints ?? []).map((endpoint) => ({
+            ...endpoint,
+            creditName: data.creditName ?? '积分',
+          }))
           setAiEnabled(Boolean(data.aiEnabled) && endpoints.length > 0)
           setPromptEnhanceEnabled(Boolean(data.promptEnhanceEnabled))
           setPromptVision(Boolean(data.promptVision))
@@ -881,6 +886,37 @@ function StandardWorkbench({
           onSubmit={createGenerationTask}
         />
         <ResultWorkspace
+          starter={
+            <CreationStarter
+              mode={mode}
+              task={task}
+              canApply={!(mode === 'general' ? prompt : requirements).trim()}
+              disabled={isGenerating || isSubmitting}
+              onApply={(example) => {
+                if (
+                  isGenerating ||
+                  isSubmitting ||
+                  (mode === 'general' ? prompt : requirements).trim()
+                )
+                  return
+                if (mode === 'general') setPrompt(example.prompt)
+                else setRequirements(example.prompt)
+                setConfigCollapsed(false)
+                setPanelOpen(true)
+                setNotice({
+                  kind: 'success',
+                  message: `已填入“${example.title}”，可编辑后确认参数与积分`,
+                })
+                requestAnimationFrame(() =>
+                  document
+                    .querySelector<HTMLTextAreaElement>(
+                      '.configuration-panel textarea.prompt-input',
+                    )
+                    ?.focus(),
+                )
+              }}
+            />
+          }
           mode={mode}
           task={task}
           aspectRatio={aspectRatio}

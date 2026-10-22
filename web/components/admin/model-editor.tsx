@@ -187,6 +187,23 @@ export function AdminModelEditor({
             </FieldLabel>
           </Field>
         </FieldGroup>
+        <Field className="settings-field">
+          <FieldLabel htmlFor={`${formId}-usage-hint`}>使用建议（可选）</FieldLabel>
+          <textarea
+            id={`${formId}-usage-hint`}
+            aria-describedby={`${formId}-usage-help`}
+            className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            rows={3}
+            maxLength={200}
+            value={editing.usageHint ?? ''}
+            disabled={locked}
+            onChange={(event) => onChange({ ...editing, usageHint: event.target.value })}
+            placeholder="根据实测填写适用场景，例如：适合商品场景与背景创作…"
+          />
+          <small id={`${formId}-usage-help`}>
+            在前台模型选择区域展示，最多 200 字；留空不展示，不填写未经验证的效果或速度承诺。
+          </small>
+        </Field>
         <div className="settings-checks">
           <label>
             <input

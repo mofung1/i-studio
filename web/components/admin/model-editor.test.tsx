@@ -104,6 +104,26 @@ async function save() {
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
   )
 }
+it('saves and clears the optional public usage suggestion with the model', async () => {
+  await act(async () => root.render(<Editor />))
+  const input = container.querySelector<HTMLTextAreaElement>('textarea[maxlength="200"]')!
+  expect(input.value).toBe('')
+  async function edit(value: string) {
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        input,
+        value,
+      )
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+  await edit('适用场景由管理员根据实测填写')
+  await save()
+  expect(saved?.usageHint).toBe('适用场景由管理员根据实测填写')
+  await edit('')
+  await save()
+  expect(saved?.usageHint).toBe('')
+})
 it('adds a second binding, switches the primary and keeps the public price', async () => {
   await act(async () => root.render(<Editor />))
   await act(async () => {

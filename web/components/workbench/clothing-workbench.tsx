@@ -29,6 +29,7 @@ import { CreatorPanel } from './creator-panel'
 import { useCreatorPreferences } from './use-creator-preferences'
 import { GenerateBar } from './generate-bar'
 import { ResultWorkspace } from './result-workspace'
+import { CreationStarter } from './creation-starter'
 import { WorkbenchHeader } from './workbench-header'
 import { WorkbenchRail } from './workbench-rail'
 import { useGenerationTask } from './use-generation-task'
@@ -191,7 +192,10 @@ export function ClothingWorkbench({
         setAiEnabled(!!data.aiEnabled)
         setCanAnalyze(!!data.promptEnhanceEnabled && !!data.promptVision)
         setPlanDefaults(data.clothingPlanDefaults)
-        const available = data.imageEndpoints ?? []
+        const available = (data.imageEndpoints ?? []).map((endpoint: PublicImageModel) => ({
+          ...endpoint,
+          creditName: data.creditName ?? '积分',
+        }))
         setEndpoints(available)
         const selected =
           available.find((endpoint: { model: string }) => endpoint.model === initialModel) ??
@@ -686,6 +690,27 @@ export function ClothingWorkbench({
           />
         </CreatorPanel>
         <ResultWorkspace
+          starter={
+            <CreationStarter
+              mode="commerce"
+              task="clothing-set"
+              canApply={!settings.requirements.trim()}
+              disabled={planning || isGenerating || isSubmitting}
+              onApply={(example) => {
+                if (planning || isGenerating || isSubmitting || settings.requirements.trim()) return
+                change({ requirements: example.prompt })
+                setCollapsed(false)
+                setPanelOpen(true)
+                setNotice({
+                  kind: 'success',
+                  message: `已填入“${example.title}”，请补充素材并核对生成规划`,
+                })
+                requestAnimationFrame(() =>
+                  document.getElementById('clothing-requirements')?.focus(),
+                )
+              }}
+            />
+          }
           mode="commerce"
           task="clothing-set"
           aspectRatio={settings.aspectRatio}

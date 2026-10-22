@@ -88,6 +88,7 @@ func (s *Service) adminModels(w http.ResponseWriter, r *http.Request, suffix str
 		return
 	}
 	m.Name = strings.TrimSpace(m.Name)
+	m.UsageHint = strings.TrimSpace(m.UsageHint)
 	if utf8.RuneCountInString(m.Name) < 1 || utf8.RuneCountInString(m.Name) > 80 || m.PriceMinor < 0 || m.PriceMinor > 100000000 || (m.IsDefault && !m.Enabled) {
 		s.error(w, 400, "MODEL_INVALID", "请检查名称、单价和上架状态")
 		return
@@ -142,9 +143,9 @@ func (s *Service) adminModels(w http.ResponseWriter, r *http.Request, suffix str
 	caps, _ := json.Marshal(m.Capabilities)
 	if err == nil {
 		if r.Method == "POST" {
-			_, err = tx.Exec("INSERT INTO public_models(id,name,price_minor,enabled,is_default,capabilities) VALUES($1,$2,$3,$4,$5,$6::jsonb)", id, m.Name, m.PriceMinor, m.Enabled, m.IsDefault, caps)
+			_, err = tx.Exec("INSERT INTO public_models(id,name,price_minor,enabled,is_default,capabilities,usage_hint) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7)", id, m.Name, m.PriceMinor, m.Enabled, m.IsDefault, caps, m.UsageHint)
 		} else {
-			_, err = tx.Exec("UPDATE public_models SET name=$2,price_minor=$3,enabled=$4,is_default=$5,capabilities=$6::jsonb,version=version+1 WHERE id=$1", id, m.Name, m.PriceMinor, m.Enabled, m.IsDefault, caps)
+			_, err = tx.Exec("UPDATE public_models SET name=$2,price_minor=$3,enabled=$4,is_default=$5,capabilities=$6::jsonb,usage_hint=$7,version=version+1 WHERE id=$1", id, m.Name, m.PriceMinor, m.Enabled, m.IsDefault, caps, m.UsageHint)
 		}
 	}
 	// Replace the aggregate in one transaction. Channel IDs remain stable per endpoint.
@@ -188,6 +189,9 @@ func (s *Service) adminModels(w http.ResponseWriter, r *http.Request, suffix str
 	s.json(w, 200, map[string]string{"id": id})
 }
 func validateModelConfiguration(m publicModel) error {
+	if utf8.RuneCountInString(m.UsageHint) > 200 {
+		return fmt.Errorf("使用建议最多 200 个字符")
+	}
 	seen := map[string]bool{}
 	active := 0
 	for _, c := range m.Channels {

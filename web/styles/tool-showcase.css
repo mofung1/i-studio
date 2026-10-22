@@ -41,6 +41,10 @@
   aspect-ratio: 4 / 3;
   background: var(--surface-2);
 }
+.tool-showcase-visual:has(:focus-visible) {
+  outline: 2px solid var(--foreground);
+  outline-offset: 5px;
+}
 .tool-showcase-placeholder {
   position: absolute;
   inset: 0;

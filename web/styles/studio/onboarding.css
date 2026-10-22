@@ -1,0 +1,116 @@
+.model-guidance {
+  margin-top: 12px;
+  min-width: 0;
+  color: var(--foreground-2);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.model-usage-hint {
+  margin: 0 0 8px;
+}
+.model-guidance summary {
+  width: fit-content;
+  min-height: 32px;
+  padding-block: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--foreground);
+}
+.model-guidance summary:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+.model-guidance dl {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+}
+.model-guidance dl > div {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+}
+.model-guidance dt {
+  color: var(--foreground-3);
+}
+.model-guidance dd {
+  margin: 0;
+}
+.model-guidance details > p {
+  margin: 8px 0 0;
+  color: var(--foreground-3);
+}
+.result-empty:has(.creation-starter) {
+  height: auto;
+  min-height: min(540px, 65dvh);
+  padding: 32px 24px;
+  align-content: center;
+}
+.creation-starter {
+  width: min(520px, 100%);
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.creation-starter h2 {
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 12px;
+}
+.creation-starter .creation-starter-lead {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--foreground-2);
+}
+.creation-example-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+}
+.creation-example-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.creation-example-list button:hover {
+  background: var(--surface-2);
+}
+.creation-example-list button:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+.creation-example-list button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.creation-starter-steps {
+  margin: 24px 0 16px;
+  padding-left: 22px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--foreground-2);
+}
+.creation-starter .creation-starter-note {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--foreground-3);
+}
+@media (max-width: 780px) {
+  .result-empty:has(.creation-starter) {
+    min-height: 0;
+    padding: 28px 16px;
+  }
+}

@@ -26,6 +26,7 @@ type modelChannel struct {
 type publicModel struct {
 	ID           string            `json:"id"`
 	Name         string            `json:"name"`
+	UsageHint    string            `json:"usageHint,omitempty"`
 	PriceMinor   int64             `json:"priceMinor"`
 	Enabled      bool              `json:"enabled"`
 	IsDefault    bool              `json:"isDefault"`
@@ -34,12 +35,12 @@ type publicModel struct {
 	Channels     []modelChannel    `json:"channels"`
 }
 
-const publicModelColumns = "id,name,price_minor,enabled,is_default,version,capabilities"
+const publicModelColumns = "id,name,usage_hint,price_minor,enabled,is_default,version,capabilities"
 
 func scanPublicModel(row interface{ Scan(...any) error }) (publicModel, error) {
 	var m publicModel
 	var raw []byte
-	err := row.Scan(&m.ID, &m.Name, &m.PriceMinor, &m.Enabled, &m.IsDefault, &m.Version, &raw)
+	err := row.Scan(&m.ID, &m.Name, &m.UsageHint, &m.PriceMinor, &m.Enabled, &m.IsDefault, &m.Version, &raw)
 	if err == nil {
 		err = json.Unmarshal(raw, &m.Capabilities)
 	}
