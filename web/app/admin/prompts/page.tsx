@@ -103,10 +103,7 @@ export default function AdminPromptsPage() {
 
   return (
     <main className="ai-settings admin-prompts-page">
-      <AdminPageHeader
-        title="系统提示词"
-        description="按用途维护平台共享的创作指令、图片分析模板与启用状态。"
-      />
+      <AdminPageHeader title="系统提示词" />
       {message && (
         <Alert variant="destructive" className="settings-error" role="alert">
           <AlertDescription>{message}</AlertDescription>

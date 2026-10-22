@@ -107,7 +107,6 @@ export default function StoragePage() {
     <main className="ops-page storage-admin">
       <AdminPageHeader
         title="图片存储"
-        description="上传素材、生成作品和反推临时图共用存储配置，可随上线环境切换。"
         actions={
           <Button
             type="button"

@@ -283,21 +283,20 @@ export function AdminDashboard({
     )
       setAdjusting(null)
   }
-  const meta = (
+  const title = (
     {
-      overview: ['运营概览', '查看账户、任务和积分使用情况。'],
-      models: ['模型与定价', `每张图片单独计价，保存后对新任务生效。价格单位：${unit}。`],
-      users: ['用户与余额', '管理账户权限，发放或调整可用余额。'],
-      operations: ['运营设置', '统一前台积分名称、注册策略与使用上限。'],
-      tasks: ['生成任务', '查看生成状态、结算与退款；用户图片和提示词保持私有。'],
-      audit: ['操作日志', '记录管理员的配置、权限和余额变更。'],
+      overview: '运营概览',
+      models: '模型与定价',
+      users: '用户与余额',
+      operations: '运营设置',
+      tasks: '生成任务',
+      audit: '操作日志',
     } as const
   )[view]
   return (
     <main ref={editorHost} className={`ops-page${isList ? ' admin-list-page' : ''}`}>
       <AdminPageHeader
-        title={meta[0]}
-        description={meta[1]}
+        title={title}
         actions={
           <div className="ops-heading-actions">
             {view === 'models' && (

@@ -438,10 +438,10 @@
   color: var(--foreground-3);
   font-size: var(--text-small);
 }
-.clothing-requirements {
+.form-section .clothing-requirements {
   display: block;
   width: 100%;
-  min-height: 100px;
+  min-height: 144px;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -794,8 +794,8 @@
   display: none;
 }
 .mode-general .composer-input-grid .prompt-editor-compact .prompt-input {
-  min-height: 90px;
-  max-height: 90px;
+  min-height: 132px;
+  max-height: 132px;
   padding: 14px;
   border: 0;
   border-radius: 0;
