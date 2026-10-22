@@ -40,7 +40,7 @@
 
 ```text
 web/       Next.js 15 + React 19 用户端与运营后台，独立 pnpm 项目
-server/    Go 1.26.9 + Gin API，独立 Go module
+server/    Go 1.27.3 + Gin API，独立 Go module
   cmd/server/   API / 部署命令入口
   internal/
     app/        启动编排、依赖组装与 CLI
@@ -132,7 +132,7 @@ docker compose logs --tail 100 api web
 
 ### 本地开发
 
-需要 Node.js 22.12+、pnpm 10 和 Go 1.26.9。首次运行先复制后端配置：
+需要 Node.js 22.12+、pnpm 10 和 Go 1.27.3。首次运行先复制后端配置：
 
 ```bash
 cp server/.env.example server/.env
