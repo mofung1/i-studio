@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { getAccessToken } from '@/lib/api'
 import { frontendRequest } from '@/lib/frontend-request'
-import { formatCredits, type GenerationQuote } from '@/lib/credits'
+import { accountRevisionKey, formatCredits, type GenerationQuote } from '@/lib/credits'
 import { useAccount } from './account-provider'
 import { LoginLink } from './login-link'
 const displayedPrices = new Map<string, number>()
@@ -69,8 +69,15 @@ export function useGenerationCost(modelId: string | undefined, count: number) {
         : ''
   useEffect(() => {
     const refresh = () => setRevision((value) => value + 1)
+    const changed = (event: StorageEvent) => {
+      if (event.key === accountRevisionKey) refresh()
+    }
     window.addEventListener('istudio-account-refresh', refresh)
-    return () => window.removeEventListener('istudio-account-refresh', refresh)
+    window.addEventListener('storage', changed)
+    return () => {
+      window.removeEventListener('istudio-account-refresh', refresh)
+      window.removeEventListener('storage', changed)
+    }
   }, [])
   useEffect(() => {
     if (!eligible || !modelId) return
@@ -147,7 +154,7 @@ export function GenerationCost({
       {quote ? (
         <>
           <span>
-            预计扣除{' '}
+            预计预留{' '}
             <strong>
               {formatCredits(quote.totalMinor)} {quote.creditName}
             </strong>
@@ -160,9 +167,20 @@ export function GenerationCost({
             {!quote.canAfford && (
               <>
                 {' '}
-                · <Link href="/account">余额不足</Link>
+                ·{' '}
+                <Link
+                  href="/account#credits"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="余额不足，获取积分（在新窗口打开）"
+                >
+                  余额不足 · 获取积分
+                </Link>
               </>
             )}
+          </span>
+          <span className="credit-unit-price">
+            单价 {formatCredits(quote.unitPriceMinor)} {quote.creditName}/张 × {quote.quantity} 张
           </span>
         </>
       ) : (

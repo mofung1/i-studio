@@ -21,6 +21,14 @@ type operationSettings struct {
 	CreditName                   string `json:"creditName"`
 	RegistrationEnabled          bool   `json:"registrationEnabled"`
 	SignupGiftMinor              int64  `json:"signupGiftMinor"`
+	CheckinEnabled               bool   `json:"checkinEnabled"`
+	CheckinRewardMinor           int64  `json:"checkinRewardMinor"`
+	CheckinDailyBudgetMinor      int64  `json:"checkinDailyBudgetMinor"`
+	CreditHelpText               string `json:"creditHelpText"`
+	CreditContactURL             string `json:"creditContactUrl"`
+	AnnouncementEnabled          bool   `json:"announcementEnabled"`
+	AnnouncementTitle            string `json:"announcementTitle"`
+	AnnouncementContent          string `json:"announcementContent"`
 	MaxConcurrentTasks           int    `json:"maxConcurrentTasks"`
 	GenerationRequestsPerHour    int    `json:"generationRequestsPerHour"`
 	AuxiliaryRequestsPerHour     int    `json:"auxiliaryRequestsPerHour"`
@@ -39,6 +47,7 @@ func defaultOperationSettings() operationSettings {
 		GenerationRequestsPerHour: 30, AuxiliaryRequestsPerHour: 20,
 		PlatformAuxiliaryConcurrent: 4, PlatformAuxiliaryPerDay: 1000,
 		SignupGiftDailyBudgetMinor: 100000, DailyCreditAlertMinor: 100000, AccountStorageLimitBytes: 1 << 30,
+		CheckinDailyBudgetMinor: 100000,
 	}
 }
 
@@ -62,6 +71,10 @@ func (s *Service) operationSettings() (operationSettings, error) {
 func validOperationSettings(c operationSettings) bool {
 	return utf8.RuneCountInString(c.CreditName) >= 1 && utf8.RuneCountInString(c.CreditName) <= 12 && !strings.ContainsAny(c.CreditName, "\r\n\t<>") &&
 		c.SignupGiftMinor >= 0 && c.SignupGiftMinor <= 100000000 &&
+		c.CheckinRewardMinor >= 0 && c.CheckinRewardMinor <= 100000000 &&
+		c.CheckinDailyBudgetMinor >= 0 && c.CheckinDailyBudgetMinor <= maxCreditMinor &&
+		validCreditContact(c.CreditHelpText, c.CreditContactURL) &&
+		validAnnouncement(c) &&
 		c.MaxConcurrentTasks >= 1 && c.MaxConcurrentTasks <= 16 &&
 		c.GenerationRequestsPerHour >= 1 && c.GenerationRequestsPerHour <= 1000 &&
 		c.AuxiliaryRequestsPerHour >= 1 && c.AuxiliaryRequestsPerHour <= 1000 &&
@@ -119,7 +132,7 @@ func (s *Service) publicOperationSettings(w http.ResponseWriter, r *http.Request
 		s.error(w, 503, "SETTINGS_UNAVAILABLE", "网站配置暂时不可用")
 		return
 	}
-	s.json(w, 200, map[string]any{"creditName": c.CreditName, "creditScale": creditScale, "registrationEnabled": c.RegistrationEnabled, "registrationInviteRequired": c.RegistrationInviteRequired})
+	s.json(w, 200, map[string]any{"creditName": c.CreditName, "creditScale": creditScale, "registrationEnabled": c.RegistrationEnabled, "registrationInviteRequired": c.RegistrationInviteRequired, "signupGiftMinor": c.SignupGiftMinor, "checkinEnabled": c.CheckinEnabled && c.CheckinRewardMinor > 0, "checkinRewardMinor": c.CheckinRewardMinor, "announcement": publishedAnnouncement(c)})
 }
 
 func (s *Service) audit(actor, action, target, detail string) {
@@ -164,6 +177,7 @@ func (s *Service) accountHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 	ledger := []map[string]any{}
+	var policy *creditPolicy
 	for rows.Next() {
 		var id, delta, heldDelta, after, heldAfter int64
 		var kind, taskID, note, created string
@@ -177,6 +191,15 @@ func (s *Service) accountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = rows.Close(); err == nil {
+		var state checkinState
+		state, err = readCheckinState(r.Context(), tx, c, u.ID)
+		if err == nil {
+			responsePolicy := creditPolicy{SignupGiftMinor: c.SignupGiftMinor, HelpText: c.CreditHelpText, ContactURL: c.CreditContactURL, Checkin: state}
+			// Attach this to the same snapshot as the balance and ledger below.
+			policy = &responsePolicy
+		}
+	}
+	if err == nil {
 		err = tx.Commit()
 	}
 	if err != nil {
@@ -193,6 +216,7 @@ func (s *Service) accountHandler(w http.ResponseWriter, r *http.Request) {
 	response["user"] = map[string]string{"id": u.ID, "username": u.Username, "role": u.Role}
 	response["available"], response["held"] = available, held
 	response["creditName"], response["creditScale"] = c.CreditName, creditScale
+	response["creditPolicy"] = policy
 	s.json(w, 200, response)
 }
 

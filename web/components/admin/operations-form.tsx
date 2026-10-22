@@ -10,6 +10,10 @@ export function AdminOperationsForm({
   ops,
   gift,
   giftBudget,
+  checkinReward,
+  checkinBudget,
+  onCheckinRewardChange,
+  onCheckinBudgetChange,
   creditAlert,
   onGiftBudgetChange,
   onCreditAlertChange,
@@ -21,6 +25,10 @@ export function AdminOperationsForm({
   ops: Operations
   gift: string
   giftBudget?: string
+  checkinReward: string
+  checkinBudget: string
+  onCheckinRewardChange: (value: string) => void
+  onCheckinBudgetChange: (value: string) => void
   creditAlert?: string
   onGiftBudgetChange?: (value: string) => void
   onCreditAlertChange?: (value: string) => void
@@ -97,6 +105,103 @@ export function AdminOperationsForm({
             </small>
           </FieldLabel>
         </Field>
+      </FieldSet>
+      <FieldSet disabled={busy}>
+        <FieldLegend>签到与积分获取</FieldLegend>
+        <label className="settings-switch">
+          <input
+            type="checkbox"
+            checked={ops.checkinEnabled ?? false}
+            onChange={(event) => onChange({ ...ops, checkinEnabled: event.target.checked })}
+          />
+          开启每日签到奖励
+        </label>
+        <FieldGroup className="ops-form-grid">
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>每次签到赠送数量</span>
+              <Input
+                required
+                inputMode="decimal"
+                value={checkinReward}
+                onChange={(event) => onCheckinRewardChange(event.target.value)}
+              />
+              <small>0 表示不发放，最多两位小数；每账号按北京时间每天领取一次。</small>
+            </FieldLabel>
+          </Field>
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>每日签到赠送总预算</span>
+              <Input
+                required
+                inputMode="decimal"
+                value={checkinBudget}
+                onChange={(event) => onCheckinBudgetChange(event.target.value)}
+              />
+              <small>单位：{ops.creditName}。0 或剩余额度不足时暂停领取，不影响已到账奖励。</small>
+            </FieldLabel>
+          </Field>
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>积分补充说明</span>
+              <Input
+                value={ops.creditHelpText ?? ''}
+                maxLength={500}
+                onChange={(event) => onChange({ ...ops, creditHelpText: event.target.value })}
+                placeholder="说明申请积分时需要提供的信息"
+              />
+            </FieldLabel>
+          </Field>
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>积分联系入口</span>
+              <Input
+                value={ops.creditContactUrl ?? ''}
+                maxLength={500}
+                onChange={(event) => onChange({ ...ops, creditContactUrl: event.target.value })}
+                placeholder="https://客服页面 或 mailto:邮箱"
+              />
+              <small>支持 http、https 网页或 mailto 邮箱链接；留空时明确提示入口暂未配置。</small>
+            </FieldLabel>
+          </Field>
+        </FieldGroup>
+      </FieldSet>
+      <FieldSet disabled={busy}>
+        <FieldLegend>网站公告</FieldLegend>
+        <label className="settings-switch">
+          <input
+            type="checkbox"
+            checked={ops.announcementEnabled ?? false}
+            onChange={(event) => onChange({ ...ops, announcementEnabled: event.target.checked })}
+          />
+          发布公告
+        </label>
+        <FieldGroup>
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>公告标题</span>
+              <Input
+                value={ops.announcementTitle ?? ''}
+                maxLength={60}
+                required={ops.announcementEnabled}
+                onChange={(event) => onChange({ ...ops, announcementTitle: event.target.value })}
+              />
+            </FieldLabel>
+          </Field>
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>公告正文</span>
+              <textarea
+                className="ops-announcement-content"
+                value={ops.announcementContent ?? ''}
+                maxLength={2000}
+                required={ops.announcementEnabled}
+                onChange={(event) => onChange({ ...ops, announcementContent: event.target.value })}
+              />
+              <small>纯文本显示，支持换行；发布后前台可查看，内容更新会重新提示。</small>
+            </FieldLabel>
+          </Field>
+        </FieldGroup>
       </FieldSet>
       <FieldSet disabled={busy}>
         <FieldLegend>单用户使用上限</FieldLegend>

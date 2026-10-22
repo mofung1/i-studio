@@ -6,8 +6,10 @@ import { useAccount } from '@/components/account-provider'
 import { AccountAccess } from '@/components/account-access'
 import { frontendRequest } from '@/lib/frontend-request'
 import { getAccessToken } from '@/lib/api'
-import { formatCredits } from '@/lib/credits'
+import { accountRevisionKey, formatCredits, refreshAccount } from '@/lib/credits'
 import { LibrarySelect } from '@/components/library-controls'
+import { CreditBenefits } from '@/components/credit-benefits'
+import type { CheckinState, CreditPolicy } from '@/lib/credit-policy'
 interface Entry {
   id: number
   kind: string
@@ -20,6 +22,7 @@ interface Entry {
   createdAt: string
 }
 interface AccountDetail {
+  creditPolicy?: CreditPolicy
   storage?: { usedBytes: number; limitBytes: number; estimatedTemporaryBytes: number }
   available: number
   held: number
@@ -35,6 +38,7 @@ const kinds: Record<string, string> = {
   adjustment: '管理员调整',
   reserve: '生成预留',
   settlement: '生成结算',
+  checkin: '签到奖励',
 }
 export default function AccountPage() {
   const { account, refresh } = useAccount()
@@ -45,6 +49,10 @@ export default function AccountPage() {
   const controller = useRef<AbortController | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [claiming, setClaiming] = useState(false)
+  const [claimMessage, setClaimMessage] = useState('')
+  const claimPending = useRef(false)
+  const claimVersion = useRef(0)
   const load = useCallback(
     async (page = 1, pageSize = 20) => {
       const token = getAccessToken()
@@ -77,12 +85,84 @@ export default function AccountPage() {
     setSnapshot(null)
     setError('')
     setBusy(false)
+    setClaiming(false)
+    setClaimMessage('')
+    claimPending.current = false
     void load()
     return () => {
       requestVersion.current++
       controller.current?.abort()
+      claimVersion.current++
     }
   }, [load])
+  useEffect(() => {
+    if (!owner) return
+    const revalidate = () => {
+      if (document.visibilityState !== 'hidden') void load()
+    }
+    const changed = (event: StorageEvent) => {
+      if (event.key === accountRevisionKey) revalidate()
+    }
+    window.addEventListener('focus', revalidate)
+    window.addEventListener('storage', changed)
+    document.addEventListener('visibilitychange', revalidate)
+    return () => {
+      window.removeEventListener('focus', revalidate)
+      window.removeEventListener('storage', changed)
+      document.removeEventListener('visibilitychange', revalidate)
+    }
+  }, [owner, load])
+  const resetAfter = data?.creditPolicy?.checkin.refreshAfterSeconds
+  useEffect(() => {
+    if (!resetAfter || resetAfter < 1) return
+    const timer = window.setTimeout(() => void load(), (resetAfter + 1) * 1000)
+    return () => window.clearTimeout(timer)
+  }, [resetAfter, load])
+  async function claim() {
+    if (claimPending.current || !data?.creditPolicy?.checkin.canClaim) return
+    claimPending.current = true
+    const token = getAccessToken(),
+      version = ++claimVersion.current
+    const current = () => version === claimVersion.current && token === getAccessToken()
+    setClaiming(true)
+    setClaimMessage('')
+    try {
+      const result = await frontendRequest<{
+        checkin: CheckinState
+        availableMinor: number
+        heldMinor: number
+      }>('account/checkin', { method: 'POST' })
+      if (!current()) return
+      setSnapshot((previous) =>
+        previous?.owner === owner && previous.data.creditPolicy
+          ? {
+              owner,
+              data: {
+                ...previous.data,
+                available: result.availableMinor,
+                held: result.heldMinor,
+                creditPolicy: { ...previous.data.creditPolicy, checkin: result.checkin },
+              },
+            }
+          : previous,
+      )
+      setClaimMessage(
+        `已领取 ${formatCredits(result.checkin.claimedRewardMinor)} ${data.creditName}，可在流水中核对。`,
+      )
+      refreshAccount()
+      await load()
+    } catch (error) {
+      if (!current()) return
+      setClaimMessage(error instanceof Error ? error.message : '领取失败，请重试')
+      // A lost response may follow a committed award. Re-read before allowing a retry.
+      await load()
+    } finally {
+      if (current()) {
+        claimPending.current = false
+        setClaiming(false)
+      }
+    }
+  }
   return (
     <StudioShell
       section="settings"
@@ -144,6 +224,16 @@ export default function AccountPage() {
                 </article>
               )}
             </div>
+            {data?.creditPolicy && (
+              <CreditBenefits
+                policy={data.creditPolicy}
+                unit={data.creditName}
+                username={account.user?.username ?? ''}
+                claiming={claiming}
+                message={claimMessage}
+                onClaim={() => void claim()}
+              />
+            )}
             <section className="ops-card" aria-labelledby="account-ledger-title" aria-busy={busy}>
               <div className="ops-card-heading">
                 <h2 id="account-ledger-title">流水记录</h2>

@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { apiBaseUrl } from '@/lib/api'
 import { safeReturnPath } from '@/lib/navigation'
+import { formatCredits } from '@/lib/credits'
 
 export function LoginForm({ admin = false }: { admin?: boolean }) {
   const searchParams = useSearchParams()
@@ -16,6 +17,8 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [inviteRequired, setInviteRequired] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
+  const [signupGift, setSignupGift] = useState(0)
+  const [creditName, setCreditName] = useState('积分')
   useEffect(() => {
     if (admin) return
     fetch(`${apiBaseUrl}/v1/operation-settings`)
@@ -23,6 +26,8 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
       .then((data) => {
         setRegistrationEnabled(data.registrationEnabled === true)
         setInviteRequired(data.registrationInviteRequired === true)
+        setSignupGift(Number.isSafeInteger(data.signupGiftMinor) ? data.signupGiftMinor : 0)
+        setCreditName(data.creditName || '积分')
       })
       .catch(() => setRegistrationEnabled(false))
   }, [admin])
@@ -87,6 +92,11 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
               ? '使用账号密码开始创作。'
               : '登录后继续你的创作。'}
         </p>
+        {register && signupGift > 0 && (
+          <p className="auth-gift">
+            新账号注册赠送 {formatCredits(signupGift)} {creditName}，成功注册后自动到账。
+          </p>
+        )}
         <label>
           用户名
           <div className="auth-input">

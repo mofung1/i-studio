@@ -44,6 +44,14 @@ export interface AdminOperations {
   creditName: string
   registrationEnabled: boolean
   signupGiftMinor: number
+  checkinEnabled?: boolean
+  checkinRewardMinor?: number
+  checkinDailyBudgetMinor?: number
+  creditHelpText?: string
+  creditContactUrl?: string
+  announcementEnabled?: boolean
+  announcementTitle?: string
+  announcementContent?: string
   maxConcurrentTasks: number
   generationRequestsPerHour: number
   auxiliaryRequestsPerHour: number

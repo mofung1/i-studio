@@ -81,6 +81,110 @@ afterEach(async () => {
   localStorage.clear()
   vi.unstubAllGlobals()
 })
+
+it('claims once, refreshes balance and ledger, and retains the real reward after a configuration change', async () => {
+  const checkin = {
+    enabled: true,
+    rewardMinor: 125,
+    claimed: false,
+    claimedRewardMinor: 0,
+    canClaim: true,
+    date: '2026-10-22',
+    nextClaimAt: '2026-10-22T16:00:00Z',
+    refreshAfterSeconds: 0,
+    unavailableReason: '',
+  }
+  let claimed = false
+  let finish!: (value: unknown) => void
+  vi.mocked(frontendRequest).mockImplementation(async (path) => {
+    if (path === 'account/checkin')
+      return new Promise((resolve) => {
+        finish = resolve
+      }) as never
+    return {
+      ...accountPage(1, 20, 0),
+      available: claimed ? 125 : 0,
+      creditPolicy: {
+        signupGiftMinor: 250,
+        helpText: '请提供用户名申请积分',
+        contactUrl: 'mailto:support@example.com',
+        checkin: claimed
+          ? {
+              ...checkin,
+              rewardMinor: 500,
+              claimed: true,
+              claimedRewardMinor: 125,
+              canClaim: false,
+            }
+          : checkin,
+      },
+    } as never
+  })
+  await act(async () => root.render(<Page />))
+  const button = [...container.querySelectorAll('button')].find((button) =>
+    button.textContent?.includes('签到领积分'),
+  )!
+  await act(async () => {
+    button.click()
+    button.click()
+  })
+  expect(
+    vi.mocked(frontendRequest).mock.calls.filter(([path]) => path === 'account/checkin'),
+  ).toHaveLength(1)
+  expect(button.disabled).toBe(true)
+  claimed = true
+  await act(async () =>
+    finish({
+      checkin: { ...checkin, claimed: true, claimedRewardMinor: 125, canClaim: false },
+      availableMinor: 125,
+      heldMinor: 0,
+    }),
+  )
+  expect(container.textContent).toContain('今日已领取 1.25 积分')
+  expect(container.textContent).toContain('今日已签到')
+  expect(container.querySelector('a[href="mailto:support@example.com"]')).not.toBeNull()
+  expect(state.refresh).toHaveBeenCalled()
+})
+
+it('reconciles an award after a lost claim response and hides the claim action when disabled', async () => {
+  let reads = 0
+  vi.mocked(frontendRequest).mockImplementation(async (path) => {
+    if (path === 'account/checkin') throw new Error('网络中断，请刷新确认')
+    reads++
+    return {
+      ...accountPage(1, 20, 0),
+      creditPolicy: {
+        signupGiftMinor: 0,
+        helpText: '',
+        contactUrl: '',
+        checkin: {
+          enabled: reads === 1,
+          rewardMinor: 100,
+          claimed: reads > 1,
+          claimedRewardMinor: reads > 1 ? 100 : 0,
+          canClaim: reads === 1,
+          date: '2026-10-22',
+          nextClaimAt: '2026-10-22T16:00:00Z',
+          refreshAfterSeconds: 0,
+          unavailableReason: '',
+        },
+      },
+    } as never
+  })
+  await act(async () => root.render(<Page />))
+  await act(async () =>
+    [...container.querySelectorAll('button')]
+      .find((button) => button.textContent?.includes('签到领积分'))!
+      .click(),
+  )
+  expect(container.textContent).toContain('今日已领取 1 积分')
+  expect(container.textContent).toContain('联系入口暂未配置')
+  expect(
+    [...container.querySelectorAll('button')].some((button) =>
+      button.textContent?.includes('签到领积分'),
+    ),
+  ).toBe(false)
+})
 it('never shows a previous customer ledger after an account switch', async () => {
   const pending: Array<(value: unknown) => void> = []
   vi.mocked(frontendRequest).mockImplementation(

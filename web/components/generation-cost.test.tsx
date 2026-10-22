@@ -59,6 +59,48 @@ async function advance(milliseconds = 150) {
   })
 }
 
+it('offers a credit acquisition path without discarding the current workbench and refreshes after an award', async () => {
+  let balance = 0
+  fetcher.mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          modelId: 'a',
+          unitPriceMinor: 125,
+          totalMinor: 250,
+          quantity: 2,
+          availableMinor: balance,
+          heldMinor: 100,
+          canAfford: balance >= 250,
+          creditName: '积分',
+          creditScale: 100,
+        }),
+      ),
+  )
+  await render('a', 2)
+  await advance()
+  const link = container.querySelector<HTMLAnchorElement>('a[href="/account#credits"]')!
+  expect(link.textContent).toContain('获取积分')
+  expect(link.target).toBe('_blank')
+  expect(container.textContent).toContain('1.25 积分/张 × 2 张')
+  balance = 500
+  await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
+  await advance()
+  expect(container.querySelector('a[href="/account#credits"]')).toBeNull()
+  expect(container.textContent).toContain('5 积分')
+  balance = 0
+  await act(async () =>
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'istudio-account-revision',
+        newValue: 'another-window-award',
+      }),
+    ),
+  )
+  await advance()
+  expect(container.querySelector('a[href="/account#credits"]')).not.toBeNull()
+})
+
 it('does not show a calculation or request a quote without a model or valid count', async () => {
   await render()
   await advance(1000)

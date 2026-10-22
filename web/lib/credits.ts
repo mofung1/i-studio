@@ -1,4 +1,5 @@
 export const creditScale = 100
+export const accountRevisionKey = 'istudio-account-revision'
 export function formatCredits(minor: number) {
   return (minor / creditScale).toLocaleString('zh-CN', { maximumFractionDigits: 2 })
 }
@@ -21,5 +22,11 @@ export interface GenerationQuote {
   creditScale: number
 }
 export function refreshAccount() {
+  // Broadcast only an opaque revision, never account identifiers or balances.
+  try {
+    window.localStorage.setItem(accountRevisionKey, `${Date.now()}-${Math.random()}`)
+  } catch {
+    // Window focus remains a fallback when browser storage is unavailable.
+  }
   window.dispatchEvent(new Event('istudio-account-refresh'))
 }

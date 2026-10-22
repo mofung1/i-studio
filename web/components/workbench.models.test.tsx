@@ -93,6 +93,86 @@ async function waitForQuote() {
   })
 }
 
+it.each([
+  ['general', 'product-main', 'prompt', 'AI 优化'],
+  ['commerce', 'product-main', 'requirements', 'AI 帮写'],
+  ['commerce', 'detail-page', 'requirements', 'AI 帮写'],
+  ['commerce', 'viral-recreate', 'requirements', 'AI 帮写'],
+  ['commerce', 'product-retouch', 'requirements', 'AI 帮写'],
+] as const)(
+  'optimizes %s/%s through the configured AI and can undo the result',
+  async (mode, task, target, label) => {
+    let submitted: FormData | null = null
+    fetcher.mockImplementation(async (url, init) => {
+      const path = new URL(String(url)).pathname
+      if (path.endsWith('/capabilities'))
+        return new Response(
+          JSON.stringify({
+            aiEnabled: true,
+            promptEnhanceEnabled: true,
+            promptVision: false,
+            imageEndpoints: [{ id: 'a', name: '模型 A', model: 'A', isDefault: true }],
+          }),
+        )
+      if (path.endsWith('/prompts/enhance')) {
+        submitted = init?.body as FormData
+        return new Response(
+          JSON.stringify({
+            text: '保留商品外形，完善构图与柔光，保持原有包装文字。',
+            model: 'fixture-prompt',
+          }),
+        )
+      }
+      if (path.endsWith('/quote')) return quoteResponse()
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    await act(async () => root.render(<Workbench initialMode={mode} initialTask={task} />))
+    const input = container.querySelector<HTMLTextAreaElement>('.prompt-input')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        input,
+        '保留商品外形，不新增文字',
+      )
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    const button = [...container.querySelectorAll('button')].find(
+      (button) => button.textContent === label,
+    )!
+    expect(button).toBeDefined()
+    await act(async () => button.click())
+    expect(submitted).not.toBeNull()
+    expect(submitted!.get('target')).toBe(target)
+    expect(submitted!.get('taskType')).toBe(mode === 'general' ? null : task)
+    expect(submitted!.get('text')).toBe('保留商品外形，不新增文字')
+    expect(input.value).toContain('完善构图与柔光')
+    await act(async () =>
+      [...container.querySelectorAll('button')]
+        .find((button) => button.textContent === '撤销')!
+        .click(),
+    )
+    expect(input.value).toBe('保留商品外形，不新增文字')
+    expect(fetcher.mock.calls.some(([url]) => String(url).endsWith('/generation/tasks'))).toBe(
+      false,
+    )
+  },
+)
+
+function quoteResponse() {
+  return new Response(
+    JSON.stringify({
+      modelId: 'a',
+      unitPriceMinor: 100,
+      totalMinor: 100,
+      quantity: 1,
+      availableMinor: 5000,
+      heldMinor: 0,
+      canAfford: true,
+      creditName: '积分',
+      creditScale: 100,
+    }),
+  )
+}
+
 it('reloads enabled models after an empty list and recalculates cost for the selected model', async () => {
   let enabled = false
   fetcher.mockImplementation(async (url) => {

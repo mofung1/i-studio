@@ -36,6 +36,10 @@ func (s *Service) adminSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	c := input.operationSettings
 	c.CreditName = strings.TrimSpace(c.CreditName)
+	c.CreditHelpText = strings.TrimSpace(c.CreditHelpText)
+	c.CreditContactURL = strings.TrimSpace(c.CreditContactURL)
+	c.AnnouncementTitle = strings.TrimSpace(c.AnnouncementTitle)
+	c.AnnouncementContent = strings.TrimSpace(c.AnnouncementContent)
 	if !validOperationSettings(c) {
 		s.error(w, 400, "SETTINGS_INVALID", "请检查积分名称、金额和请求上限")
 		return

@@ -17,6 +17,7 @@ func (s *Service) router() *gin.Engine {
 			}
 		},
 		AccountHandler:               s.accountHandler,
+		AccountCheckin:               s.accountCheckin,
 		AdminAudit:                   s.adminAudit,
 		AdminLogin:                   s.adminLogin,
 		AdminMe:                      s.adminMe,

@@ -7,6 +7,7 @@ import { siteLogoUrl, siteTitle } from '@/lib/site-settings'
 import { getSeoEnvironment, privateRobots } from '@/lib/seo'
 
 import { AccountProvider } from '@/components/account-provider'
+import { SiteAnnouncement } from '@/components/site-announcement'
 import './operations.css'
 import './globals.css'
 import './studio.css'
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <SiteBrandingProvider initialBranding={branding}>
           <AccountProvider>
             <PromptReverseProvider>{children}</PromptReverseProvider>
+            <SiteAnnouncement />
           </AccountProvider>
         </SiteBrandingProvider>
       </body>
