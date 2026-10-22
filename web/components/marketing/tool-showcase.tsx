@@ -64,7 +64,7 @@ export function ToolShowcase() {
             <ToolShowcaseChoice index={index} anchor={tool.anchor}>
               <div className="tool-showcase-choice-heading">
                 <h3>
-                  <Link id={`showcase-${tool.id}`} href={tool.seoHref}>
+                  <Link id={`showcase-${tool.id}`} href={tool.studioHref}>
                     <span className="tool-showcase-name">{tool.name}</span>
                     <span className="tool-showcase-link-arrow" aria-hidden="true">
                       <ArrowUpRight size={19} strokeWidth={1.5} />
@@ -77,7 +77,13 @@ export function ToolShowcase() {
             <ToolShowcasePanel index={index}>
               <div role="group" aria-labelledby={`showcase-${tool.id}`}>
                 <ToolShowcaseVisual index={index}>
-                  <ToolArtwork tool={tool} />
+                  <Link
+                    className="tool-showcase-artwork-link"
+                    href={tool.studioHref}
+                    aria-label={tool.cta}
+                  >
+                    <ToolArtwork tool={tool} />
+                  </Link>
                 </ToolShowcaseVisual>
                 <div className="tool-showcase-preview-copy">
                   <Link className="marketing-text-link tool-showcase-cta" href={tool.studioHref}>

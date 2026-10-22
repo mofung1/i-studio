@@ -32,14 +32,6 @@ export const showcaseTools: ShowcaseTool[] = [
     anchor: 'ai-tools',
   },
   {
-    ...existing('image-to-prompt'),
-    id: 'image-to-prompt',
-    name: '图片反推提示词',
-    description: '从一张图，提炼创作提示词。',
-    asset: showcaseAssets.prompt,
-    visual: 'prompt',
-  },
-  {
     ...existing('ai-product-photo'),
     id: 'product-photo',
     name: 'AI 商品图制作',
@@ -64,5 +56,13 @@ export const showcaseTools: ShowcaseTool[] = [
     description: '用服装与模特照片，探索上身效果。',
     asset: showcaseAssets.fashion,
     visual: 'artwork',
+  },
+  {
+    ...existing('image-to-prompt'),
+    id: 'image-to-prompt',
+    name: '图片反推提示词',
+    description: '从一张图，提炼创作提示词。',
+    asset: showcaseAssets.prompt,
+    visual: 'prompt',
   },
 ]

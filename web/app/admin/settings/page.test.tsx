@@ -70,10 +70,8 @@ async function change(input: HTMLInputElement, value: string) {
     input.dispatchEvent(new Event('input', { bubbles: true }))
   })
 }
-it('shows the image setup sequence and fills official presets without a key or guessed model', async () => {
+it('fills official presets without a key or guessed model', async () => {
   await act(async () => root.render(<Page />))
-  expect(container.textContent).toContain('先连接渠道，再发布模型')
-  expect(container.querySelector('a[href="/admin/models"]')).not.toBeNull()
   await act(async () => button('添加生图渠道').click())
   await act(async () => button('Gemini 官方').click())
   expect(inputFor('名称').value).toBe('Gemini 官方')

@@ -10,10 +10,7 @@ export default function AdminSitePage() {
   useAdminUnsavedChanges(dirty)
   return (
     <main className="ai-settings admin-site-page">
-      <AdminPageHeader
-        title="网站配置"
-        description="设置网站名称与 Logo，保存后同步更新平台品牌展示。"
-      />
+      <AdminPageHeader title="网站配置" />
       <SiteSettingsPanel onDirtyChange={setDirty} />
     </main>
   )

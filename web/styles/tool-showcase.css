@@ -5,6 +5,9 @@
 .tool-showcase-item + .tool-showcase-item {
   margin-top: 38px;
 }
+.tool-showcase-choice {
+  position: relative;
+}
 .tool-showcase-choice h3 {
   font-size: 24px;
   font-weight: 500;
@@ -15,6 +18,11 @@
   align-items: center;
   gap: 16px;
   min-height: 44px;
+}
+.tool-showcase-choice h3 a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }
 .tool-showcase-choice-description {
   margin-top: 8px !important;
@@ -49,7 +57,12 @@
   position: absolute;
   inset: 0;
 }
-.tool-showcase-artwork > img {
+.tool-showcase-artwork-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.tool-showcase-artwork-link > img {
   object-fit: cover;
 }
 .tool-showcase-prompt {

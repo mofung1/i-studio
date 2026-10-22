@@ -1,7 +1,7 @@
 {
-  "tool": "iStudio image API for the 4K hero; archived built-in image_gen batches for supporting artwork; live UI capture for the workbench.",
+  "tool": "iStudio image API for the 4K hero; archived built-in image_gen batches for supporting artwork; live UI capture for the workbench. Built-in image_gen for the 2026-10-22 skincare comparison pair.",
   "started": "2026-10-21",
-  "completed": "2026-10-21",
+  "completed": "2026-10-22",
   "assets": [
     {
       "id": "ai-story-city",
@@ -22,15 +22,15 @@
     },
     {
       "id": "skincare-base",
-      "src": "/images/marketing/chromatic/commerce/skincare-base.webp",
+      "src": "/images/marketing/commerce-2026-10-22/skincare-base.webp",
       "width": 1120,
       "height": 1400,
-      "bytes": 42072,
-      "sourceSha256": "9fba4b6c2a897073afb47dea4775c8820f6456e5f69fdf84c6c9951a8e88e833",
-      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/skincare-base.png",
+      "bytes": 24550,
+      "sourceSha256": "970ff7ee735f30cdebfa2f311a5d067c73e308710c043151ea3503548a3aeb0c",
+      "original": "test/artifacts/marketing-comparison-2026-10-22/originals/skincare-base.png",
       "referenceId": null,
       "mode": "new-generation",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例；不是本站实际生图任务或用户案例。"
     },
     {
       "id": "hero-fashion",
@@ -130,15 +130,15 @@
     },
     {
       "id": "hero-skincare",
-      "src": "/images/marketing/chromatic/commerce/chromatic-skincare.webp",
+      "src": "/images/marketing/commerce-2026-10-22/skincare-scene.webp",
       "width": 1120,
       "height": 1400,
-      "bytes": 51462,
-      "sourceSha256": "3fe1903b21042cc524f9ccf015a8fc0fa6710a9abdd60181fc460f88971d3c9f",
-      "original": "test/artifacts/marketing-chromatic-2026-10-21/originals/hero-skincare.png",
+      "bytes": 91130,
+      "sourceSha256": "3fa278bc12d4f572c37182b12f70e7afef87383fddcc94f1c290f3b45852d1af",
+      "original": "test/artifacts/marketing-comparison-2026-10-22/originals/skincare-scene.png",
       "referenceId": "skincare-base",
       "mode": "reference-image-edit",
-      "disclosure": "AI 视觉概念示例"
+      "disclosure": "AI 视觉概念示例；不是本站实际生图任务或用户案例。"
     },
     {
       "id": "gallery-city",

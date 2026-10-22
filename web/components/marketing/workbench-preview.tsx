@@ -12,9 +12,9 @@ export function WorkbenchPreview() {
         <div className="workbench-title">
           <span className="workbench-eyebrow">真实工作台</span>
           <h2 id="workbench-title">
-            不是演示页，
+            从一个想法，
             <br />
-            是能直接开工的工作台。
+            到一张好图。
           </h2>
         </div>
         <div className="workbench-lead">

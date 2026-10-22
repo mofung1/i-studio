@@ -233,27 +233,7 @@ export default function AISettingsPage() {
   return (
     <>
       <main className="ai-settings">
-        <AdminPageHeader title="AI 服务" description="管理生图渠道、提示词服务与图片反推配置。">
-          {' '}
-          <aside className="ai-channel-guide" aria-label="生图配置顺序">
-            <div>
-              <h2>先连接渠道，再发布模型</h2>
-              <p>渠道负责连接 API；用户看到的模型名称、价格和主渠道在「模型与定价」中设置。</p>
-            </div>
-            <ol>
-              <li>
-                <span>1</span>添加并启用生图渠道
-              </li>
-              <li>
-                <span>2</span>绑定模型并填写上游 ID
-              </li>
-              <li>
-                <span>3</span>测试后选择主渠道并上架
-              </li>
-            </ol>
-            <Link href="/admin/models">前往模型与定价</Link>
-          </aside>
-        </AdminPageHeader>
+        <AdminPageHeader title="AI 服务" />
         {!loggedIn ? (
           <p>
             请先<Link href="/admin/login?next=%2Fadmin%2Fsettings">登录</Link>后管理 AI 服务。
