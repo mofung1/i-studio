@@ -12,6 +12,8 @@ import {
   type AdminModel as Model,
   type ModelChannel,
 } from '@/lib/admin'
+import { ChannelMeasurements } from './channel-measurements'
+import type { ImageMeasurement } from '@/lib/admin'
 import { imageProtocolLabels, type AIEndpoint } from '@/lib/ai-settings'
 import {
   Select,
@@ -22,7 +24,12 @@ import {
   SelectValue,
 } from '@/components/select'
 
-type ChannelTest = { model: string; success: boolean; message: string }
+type ChannelTest = {
+  model: string
+  success: boolean
+  message: string
+  measurement?: ImageMeasurement
+}
 
 export function AdminModelEditor({
   editing,
@@ -51,6 +58,9 @@ export function AdminModelEditor({
   const [submitted, setSubmitted] = useState(false)
   const [testResults, setTestResults] = useState<Record<string, ChannelTest>>({})
   const [testing, setTesting] = useState('')
+  const [testRatio, setTestRatio] = useState('1:1')
+  const [testResolution, setTestResolution] = useState('1K')
+  const [measurementRevision, setMeasurementRevision] = useState(0)
   const channels = editing.channels ?? []
   const capabilities = editing.capabilities ?? defaultModelCapabilities
   const originalPrimary = useRef(channels.find((channel) => channel.isActive)?.endpointId)
@@ -90,16 +100,29 @@ export function AdminModelEditor({
     onSubmit(event)
   }
   async function testChannel(channel: ModelChannel) {
-    if (locked || !window.confirm('真实生图测试可能产生上游 API 费用。确认生成一张测试图？')) return
+    if (
+      locked ||
+      !window.confirm(
+        `真实生图测试可能产生上游 API 费用。确认以 ${testRatio} / ${testResolution} 生成一张测试图？`,
+      )
+    )
+      return
     const model = channel.upstreamModelId.trim()
     setTesting(channel.endpointId)
     try {
-      const result = await adminRequest<{ success: boolean; message: string }>(
-        `ai-endpoints/${channel.endpointId}/test`,
-        'POST',
-        { mode: 'generate', confirmCost: true, upstreamModelId: model },
-      )
+      const result = await adminRequest<{
+        success: boolean
+        message: string
+        measurement?: ImageMeasurement
+      }>(`ai-endpoints/${channel.endpointId}/test`, 'POST', {
+        mode: 'generate',
+        confirmCost: true,
+        upstreamModelId: model,
+        aspectRatio: testRatio,
+        resolution: testResolution,
+      })
       setTestResults((previous) => ({ ...previous, [channel.endpointId]: { ...result, model } }))
+      setMeasurementRevision((previous) => previous + 1)
     } catch (error) {
       setTestResults((previous) => ({
         ...previous,
@@ -194,6 +217,49 @@ export function AdminModelEditor({
 
         <FieldSet disabled={locked} className="model-editor-section">
           <FieldLegend>渠道与主渠道</FieldLegend>
+          <FieldGroup className="ops-form-grid">
+            <Field>
+              <FieldLabel>
+                测试画面比例
+                <Select value={testRatio} onValueChange={setTestRatio} disabled={locked}>
+                  <SelectTrigger aria-label="测试画面比例">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent portalContainer={editorRef.current}>
+                    <SelectGroup>
+                      {['1:1', '3:4', '4:3', '9:16', '16:9'].map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </FieldLabel>
+            </Field>
+            <Field>
+              <FieldLabel>
+                测试请求档位
+                <Select value={testResolution} onValueChange={setTestResolution} disabled={locked}>
+                  <SelectTrigger aria-label="测试请求档位">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent portalContainer={editorRef.current}>
+                    <SelectGroup>
+                      {['1K', '2K', '4K'].map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {value}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </FieldLabel>
+            </Field>
+          </FieldGroup>
+          <p className="model-editor-hint">
+            每次测试只请求一张。高档位可能增加供应商费用；实际输出像素会独立记录，不进行本地放大。
+          </p>
           <div
             className="model-primary-summary"
             data-ready={!!primary?.enabled && !!primaryEndpoint?.enabled}
@@ -337,8 +403,21 @@ export function AdminModelEditor({
                     >
                       <strong>{result.success ? '测试通过' : '测试失败'}</strong>
                       <span>{result.message}</span>
+                      {result.measurement && (
+                        <span>
+                          请求 {result.measurement.aspectRatio} / {result.measurement.resolution}
+                          ；实际 {result.measurement.width} × {result.measurement.height} px ·{' '}
+                          {(result.measurement.elapsedMs ?? 0) / 1000} 秒。供应商费用待账单核对。
+                        </span>
+                      )}
                     </p>
                   )}
+                  <ChannelMeasurements
+                    key={`${channel.endpointId}:${channel.upstreamModelId}`}
+                    endpointId={channel.endpointId}
+                    model={channel.upstreamModelId.trim()}
+                    revision={measurementRevision}
+                  />
                 </div>
               )
             })}

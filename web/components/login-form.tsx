@@ -14,11 +14,16 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
+  const [inviteRequired, setInviteRequired] = useState(false)
+  const [inviteCode, setInviteCode] = useState('')
   useEffect(() => {
     if (admin) return
     fetch(`${apiBaseUrl}/v1/operation-settings`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
-      .then((data) => setRegistrationEnabled(data.registrationEnabled === true))
+      .then((data) => {
+        setRegistrationEnabled(data.registrationEnabled === true)
+        setInviteRequired(data.registrationInviteRequired === true)
+      })
       .catch(() => setRegistrationEnabled(false))
   }, [admin])
   const [register, setRegister] = useState(false)
@@ -38,7 +43,7 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password, ...(register ? { inviteCode } : {}) }),
         },
       )
       const data = (await response.json()) as { accessToken?: string; message?: string }
@@ -119,6 +124,24 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
             />
           </div>
         </label>
+        {register && inviteRequired && (
+          <label>
+            邀请码
+            <div className="auth-input">
+              <UserRound size={17} aria-hidden="true" />
+              <input
+                name="inviteCode"
+                required
+                autoComplete="off"
+                maxLength={64}
+                disabled={isSubmitting}
+                value={inviteCode}
+                onChange={(event) => setInviteCode(event.target.value)}
+                placeholder="请输入管理员提供的邀请码"
+              />
+            </div>
+          </label>
+        )}
         {notice && (
           <p className="auth-notice" role="alert">
             {notice}

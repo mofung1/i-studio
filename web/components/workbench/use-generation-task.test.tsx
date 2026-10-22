@@ -110,6 +110,38 @@ it('blocks a new generation before uploading or submitting when balance is insuf
   expect(hook.notice?.message).toContain('创作币不足')
   expect(fetch.mock.calls.some(([url]) => url.endsWith('/generation/tasks'))).toBe(false)
 })
+
+it('keeps completed results when a lost submission response is recovered after delivery', async () => {
+  let submissions = 0
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.includes('/quote'))
+        return new Response(JSON.stringify({ unitPriceMinor: 125, canAfford: true }))
+      if (init?.method === 'POST') {
+        submissions++
+        if (submissions === 1) throw new TypeError('creation response lost')
+        return new Response(
+          JSON.stringify({
+            task: {
+              id: 'already-finished',
+              status: 'succeeded',
+              input: payload,
+              resultImages: ['/v1/assets/delivered/content'],
+            },
+          }),
+          { status: 202 },
+        )
+      }
+      return new Response(JSON.stringify({ tasks: [] }))
+    }),
+  )
+  await act(async () => root.render(<Harness />))
+  await act(async () => submit())
+  expect(submissions).toBe(2)
+  expect(hook.isGenerating).toBe(false)
+  expect(hook.activeResult?.resultImages).toEqual(['/v1/assets/delivered/content'])
+})
 it('clears visible generated images when the account signs out', async () => {
   sessionStorage.setItem('istudio-pending-generation:general', 'completed-task')
   vi.stubGlobal(

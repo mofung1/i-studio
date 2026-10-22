@@ -36,6 +36,7 @@ export interface HistoryTaskInput {
 }
 
 export interface HistoryTask {
+  resultDetails?: import('./use-generation-task').InlineGenerationTask['resultDetails']
   id: string
   status: string
   createdAt: string

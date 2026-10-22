@@ -14,8 +14,13 @@ type ProfileSource interface {
 	LoadProfile(id string) (Profile, Secrets, error)
 }
 
-func NewRouter(local Store, source ProfileSource) *Router {
-	return &Router{local: local, source: source}
+// The optional observer is fixed before the router is shared by workers.
+func NewRouter(local Store, source ProfileSource, observer ...func(operation, key string)) *Router {
+	router := &Router{local: local, source: source}
+	if len(observer) > 0 {
+		router.onFailure = observer[0]
+	}
+	return router
 }
 
 func (s *Router) NewKey(key string) string {
@@ -32,10 +37,11 @@ func (s *Router) NewKey(key string) string {
 // Unqualified keys always belong to the original local store. Changing the
 // default must never reinterpret an existing key against another bucket.
 type Router struct {
-	source  ProfileSource
-	local   Store
-	mu      sync.Mutex
-	clients map[string]*Cloud
+	source    ProfileSource
+	local     Store
+	mu        sync.Mutex
+	clients   map[string]*Cloud
+	onFailure func(operation, key string)
 }
 
 func (s *Router) resolve(key string) (Store, string, error) {
@@ -74,36 +80,74 @@ func (s *Router) resolve(key string) (Store, string, error) {
 }
 
 func (s *Router) Save(key string, r io.Reader) error {
-	store, key, err := s.resolve(key)
-	if err != nil {
-		return err
+	store, object, err := s.resolve(key)
+	if err == nil {
+		err = store.Save(object, r)
 	}
-	return store.Save(key, r)
+	s.observe("save", key, err)
+	return err
 }
 
 func (s *Router) Open(key string) (io.ReadCloser, error) {
-	store, key, err := s.resolve(key)
-	if err != nil {
-		return nil, err
+	store, object, err := s.resolve(key)
+	var file io.ReadCloser
+	if err == nil {
+		file, err = store.Open(object)
 	}
-	return store.Open(key)
+	s.observe("open", key, err)
+	if err != nil || s.onFailure == nil {
+		return file, err
+	}
+	return &observedReader{ReadCloser: file, report: func() { s.onFailure("read", key) }}, nil
 }
 
 func (s *Router) Delete(key string) error {
-	store, key, err := s.resolve(key)
-	if err != nil {
-		return err
+	store, object, err := s.resolve(key)
+	if err == nil {
+		err = store.Delete(object)
 	}
-	return store.Delete(key)
+	s.observe("delete", key, err)
+	return err
 }
 
 func (s *Router) SignedURL(key string, ttl time.Duration) (string, error) {
-	store, key, err := s.resolve(key)
+	store, object, err := s.resolve(key)
 	if err != nil {
+		s.observe("sign", key, err)
 		return "", err
 	}
 	if signer, ok := store.(SignedStore); ok {
-		return signer.SignedURL(key, ttl)
+		url, err := signer.SignedURL(object, ttl)
+		s.observe("sign", key, err)
+		return url, err
 	}
 	return "", nil
+}
+
+func (s *Router) observe(operation, key string, err error) {
+	if err != nil && s.onFailure != nil {
+		s.onFailure(operation, key)
+	}
+}
+
+type observedReader struct {
+	io.ReadCloser
+	once   sync.Once
+	report func()
+}
+
+func (r *observedReader) Read(p []byte) (int, error) {
+	n, err := r.ReadCloser.Read(p)
+	if err != nil && err != io.EOF {
+		r.once.Do(r.report)
+	}
+	return n, err
+}
+
+func (r *observedReader) Close() error {
+	err := r.ReadCloser.Close()
+	if err != nil {
+		r.once.Do(r.report)
+	}
+	return err
 }

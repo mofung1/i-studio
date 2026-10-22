@@ -54,10 +54,14 @@ func TestUnversionedDatabaseUpgradeAndMigrationReplay(t *testing.T) {
 		t.Fatal("old model not preserved as draft", err)
 	}
 	var count int
-	if err = db.QueryRow("SELECT count(*) FROM schema_file_migrations").Scan(&count); err != nil || count != 11 {
+	if err = db.QueryRow("SELECT count(*) FROM schema_file_migrations").Scan(&count); err != nil || count != len(files) {
 		t.Fatal("file migrations not tracked", count, err)
 	}
 	if err = db.QueryRow("SELECT count(*) FROM public_model_channels").Scan(&count); err != nil || count != 0 {
 		t.Fatal("old binding was imported", count, err)
+	}
+	var deliveryTable, leaseColumn bool
+	if err = db.QueryRow("SELECT to_regclass('generation_deliveries') IS NOT NULL,EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='generation_tasks' AND column_name='lease_token')").Scan(&deliveryTable, &leaseColumn); err != nil || !deliveryTable || !leaseColumn {
+		t.Fatal("delivery recovery migration missing", deliveryTable, leaseColumn, err)
 	}
 }

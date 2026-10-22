@@ -425,3 +425,41 @@ it('requests global sorting from the server and preserves it across pagination a
   await flushTaskRequest()
   expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=20&sort=charged&order=desc')
 })
+
+it('saves daily gift budget, usage alert and storage quota without losing decimal precision', async () => {
+  const settings = {
+    creditName: '积分',
+    registrationEnabled: true,
+    signupGiftMinor: 0,
+    maxConcurrentTasks: 2,
+    generationRequestsPerHour: 30,
+    auxiliaryRequestsPerHour: 20,
+    signupGiftDailyBudgetMinor: 100000,
+    dailyCreditAlertMinor: 100000,
+    accountStorageLimitBytes: 1073741824,
+    platformAuxiliaryConcurrent: 4,
+    platformAuxiliaryPerDay: 1000,
+  }
+  request.mockImplementation(async (path) => (path === 'settings' ? settings : []))
+  await act(async () => root.render(<AdminDashboard view="operations" />))
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1)
+  })
+  const field = (title: string) =>
+    Array.from(container.querySelectorAll('label'))
+      .find((label) => label.textContent?.includes(title))!
+      .querySelector('input')!
+  await change(field('每日注册赠送总预算'), '12.34')
+  await change(field('每日消耗告警阈值'), '56.78')
+  await change(field('每账号存储额度'), '128')
+  await submit(container.querySelector('form')!)
+  expect(request).toHaveBeenCalledWith(
+    'settings',
+    'PUT',
+    expect.objectContaining({
+      signupGiftDailyBudgetMinor: 1234,
+      dailyCreditAlertMinor: 5678,
+      accountStorageLimitBytes: 134217728,
+    }),
+  )
+})

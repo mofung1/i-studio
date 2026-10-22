@@ -154,6 +154,10 @@ func (a *aiConfigStore) encrypt(id, secret string) (string, error) {
 }
 
 func (a *aiConfigStore) decrypt(e endpointConfig) (string, error) {
+	return a.decryptValue(e.ID, e.APIKeyEncrypted)
+}
+
+func (a *aiConfigStore) decryptValue(id, encrypted string) (string, error) {
 	key, err := a.encryptionKey()
 	if err != nil {
 		return "", err
@@ -166,11 +170,11 @@ func (a *aiConfigStore) decrypt(e endpointConfig) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	sealed, err := base64.StdEncoding.DecodeString(e.APIKeyEncrypted)
+	sealed, err := base64.StdEncoding.DecodeString(encrypted)
 	if err != nil || len(sealed) < gcm.NonceSize() {
 		return "", errors.New("invalid encrypted API key")
 	}
-	plain, err := gcm.Open(nil, sealed[:gcm.NonceSize()], sealed[gcm.NonceSize():], []byte(e.ID))
+	plain, err := gcm.Open(nil, sealed[:gcm.NonceSize()], sealed[gcm.NonceSize():], []byte(id))
 	if err != nil {
 		return "", errors.New("cannot decrypt API key; restore the original encryption key")
 	}

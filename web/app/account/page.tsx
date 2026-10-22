@@ -20,6 +20,7 @@ interface Entry {
   createdAt: string
 }
 interface AccountDetail {
+  storage?: { usedBytes: number; limitBytes: number; estimatedTemporaryBytes: number }
   available: number
   held: number
   creditName: string
@@ -128,6 +129,20 @@ export default function AccountPage() {
                 <strong>{formatCredits(data?.held ?? account.held)}</strong>
                 <small>生成完成后按实际交付结算，未使用部分自动退回</small>
               </article>
+              {data?.storage && (
+                <article>
+                  <span>图片存储用量</span>
+                  <strong>
+                    {(data.storage.usedBytes / 1048576).toFixed(1)} /{' '}
+                    {(data.storage.limitBytes / 1048576).toFixed(0)} MiB
+                  </strong>
+                  <small>
+                    包含作品、素材及反推暂存；历史引用素材仍占用空间。
+                    {data.storage.estimatedTemporaryBytes > 0 &&
+                      '部分旧反推文件按上传上限预留，过期清理后释放。'}
+                  </small>
+                </article>
+              )}
             </div>
             <section className="ops-card" aria-labelledby="account-ledger-title" aria-busy={busy}>
               <div className="ops-card-heading">

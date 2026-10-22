@@ -9,6 +9,10 @@ import type { AdminOperations as Operations } from '@/lib/admin'
 export function AdminOperationsForm({
   ops,
   gift,
+  giftBudget,
+  creditAlert,
+  onGiftBudgetChange,
+  onCreditAlertChange,
   busy,
   onChange,
   onGiftChange,
@@ -16,6 +20,10 @@ export function AdminOperationsForm({
 }: {
   ops: Operations
   gift: string
+  giftBudget?: string
+  creditAlert?: string
+  onGiftBudgetChange?: (value: string) => void
+  onCreditAlertChange?: (value: string) => void
   busy: boolean
   onChange: (value: Operations) => void
   onGiftChange: (value: string) => void
@@ -59,6 +67,36 @@ export function AdminOperationsForm({
           />
           开放新用户注册
         </label>
+        <label className="settings-switch">
+          <input
+            type="checkbox"
+            checked={ops.registrationInviteRequired ?? false}
+            onChange={(event) =>
+              onChange({ ...ops, registrationInviteRequired: event.target.checked })
+            }
+          />
+          注册需要邀请码
+        </label>
+        <Field>
+          <FieldLabel className="settings-field">
+            <span>设置或更换邀请码</span>
+            <Input
+              type="password"
+              autoComplete="off"
+              value={ops.registrationInviteCode ?? ''}
+              minLength={8}
+              maxLength={64}
+              pattern="[A-Za-z0-9_-]{8,64}"
+              onChange={(event) => onChange({ ...ops, registrationInviteCode: event.target.value })}
+              placeholder={
+                ops.registrationInviteConfigured ? '已配置，留空保留原邀请码' : '尚未配置'
+              }
+            />
+            <small>
+              8–64 位字母、数字、下划线或短横线。保存后不返回原文；关闭邀请限制可恢复公开注册。
+            </small>
+          </FieldLabel>
+        </Field>
       </FieldSet>
       <FieldSet disabled={busy}>
         <FieldLegend>单用户使用上限</FieldLegend>
@@ -70,8 +108,8 @@ export function AdminOperationsForm({
               ['auxiliaryRequestsPerHour', '每小时提示词辅助次数', 1000],
             ] as const
           ).map(([key, label, max]) => (
-            <Field>
-              <FieldLabel className="settings-field" key={key}>
+            <Field key={key}>
+              <FieldLabel className="settings-field">
                 <span>{label}</span>
                 <Input
                   type="number"
@@ -86,6 +124,84 @@ export function AdminOperationsForm({
           ))}
         </FieldGroup>
         <p>提示词优化、图片反推和服装分析共用辅助次数上限，首版不另扣积分。</p>
+      </FieldSet>
+      <FieldSet disabled={busy}>
+        <FieldLegend>平台额度与告警</FieldLegend>
+        <FieldGroup className="ops-form-grid">
+          {(
+            [
+              ['platformAuxiliaryConcurrent', '平台同时辅助请求数', 1, 100, 4],
+              ['platformAuxiliaryPerDay', '平台每日辅助请求总数', 1, 1000000, 1000],
+            ] as const
+          ).map(([key, label, min, max, fallback]) => (
+            <Field key={key}>
+              <FieldLabel className="settings-field">
+                <span>{label}</span>
+                <Input
+                  type="number"
+                  required
+                  min={min}
+                  max={max}
+                  step={1}
+                  value={ops[key] ?? fallback}
+                  onChange={(event) => onChange({ ...ops, [key]: Number(event.target.value) })}
+                />
+              </FieldLabel>
+            </Field>
+          ))}
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>每日注册赠送总预算</span>
+              <Input
+                required
+                inputMode="decimal"
+                value={giftBudget ?? '1000'}
+                onChange={(event) => onGiftBudgetChange?.(event.target.value)}
+              />
+              <small>
+                单位：{ops.creditName}。0
+                表示没有赠送预算；不足以全额赠送时暂停新注册，不少发承诺数量。
+              </small>
+            </FieldLabel>
+          </Field>
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>每日消耗告警阈值</span>
+              <Input
+                required
+                inputMode="decimal"
+                value={creditAlert ?? '1000'}
+                onChange={(event) => onCreditAlertChange?.(event.target.value)}
+              />
+              <small>
+                单位：{ops.creditName}。0 关闭；达到阈值在运营概览提示，不中止已创建任务。
+              </small>
+            </FieldLabel>
+          </Field>
+          <Field>
+            <FieldLabel className="settings-field">
+              <span>每账号存储额度（MiB）</span>
+              <Input
+                type="number"
+                required
+                min={1}
+                max={1048576}
+                step={1}
+                value={(ops.accountStorageLimitBytes ?? 1073741824) / 1048576}
+                onChange={(event) =>
+                  onChange({
+                    ...ops,
+                    accountStorageLimitBytes: Number(event.target.value) * 1048576,
+                  })
+                }
+              />
+              <small>包括作品、素材、仍被历史引用的图片及反推暂存。降低额度不删除已有内容。</small>
+            </FieldLabel>
+          </Field>
+        </FieldGroup>
+        <p>
+          每日额度按北京时间自然日计算。辅助额度按实际开始的请求计数，失败也占用次数；已创建任务继续完成。这里的积分和次数不代表供应商真实账单。
+        </p>
       </FieldSet>
       <div className="settings-form-actions">
         <Button disabled={busy}>

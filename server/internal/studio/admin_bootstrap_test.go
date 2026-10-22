@@ -58,7 +58,7 @@ func TestEnvironmentAdministratorCreatesOnceWithoutWallet(t *testing.T) {
 }
 func TestEnvironmentPasswordRotationAndRenameOnlyAffectAdministrator(t *testing.T) {
 	s := environmentAdminTestServer(t)
-	if err := s.registerAccount(domain.User{ID: "front", Username: "operator_one", PasswordHash: authn.HashPassword("Front-fixture-1234")}, 250); err != nil {
+	if err := registerAccountForTest(t, s, domain.User{ID: "front", Username: "operator_one", PasswordHash: authn.HashPassword("Front-fixture-1234")}, 250); err != nil {
 		t.Fatal(err)
 	}
 	front, _, _ := repository.UserByUsername(s.db, "operator_one")

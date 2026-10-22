@@ -4,6 +4,7 @@ import { ChevronDown, Image as ImageIcon, RefreshCw, Sparkles, X } from 'lucide-
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import type { CommerceTaskType } from '@/lib/contracts'
+import type { PublicImageModel } from '@/lib/generation-models'
 import {
   generalCountOptions,
   languageOptions,
@@ -21,7 +22,7 @@ interface BasicSettingsProps {
   aspectRatio: string
   resolution: string
   count: number
-  imageEndpoints: { id: string; name: string; model: string }[]
+  imageEndpoints: PublicImageModel[]
   modelsLoading?: boolean
   modelsError?: string
   onReloadModels?: () => void
@@ -51,6 +52,7 @@ function GeneralParameterPopover({
   onSetStyle,
   onSetReferenceStrength,
   portalContainer,
+  capabilities,
 }: Pick<
   BasicSettingsProps,
   | 'aspectRatio'
@@ -63,7 +65,7 @@ function GeneralParameterPopover({
   | 'onSetAspectRatio'
   | 'onSetStyle'
   | 'onSetReferenceStrength'
-> & { portalContainer: HTMLElement | null }) {
+> & { portalContainer: HTMLElement | null; capabilities: PublicImageModel['capabilities'] }) {
   return (
     <div className="basic-settings-popover-grid">
       <label className="settings-field">
@@ -102,14 +104,16 @@ function GeneralParameterPopover({
         <Select value={aspectRatio} onValueChange={onSetAspectRatio}>
           <SelectTrigger aria-label="尺寸比例">
             <ImageIcon size={14} aria-hidden="true" />
-            <SelectValue />
+            <SelectValue>{aspectRatio}</SelectValue>
           </SelectTrigger>
           <SelectContent portalContainer={portalContainer}>
-            {ratioOptions.map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
+            {ratioOptions
+              .filter(([value]) => !capabilities || capabilities.aspectRatios.includes(value))
+              .map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </label>
@@ -117,14 +121,16 @@ function GeneralParameterPopover({
         <span>清晰度</span>
         <Select value={resolution} onValueChange={onSetResolution}>
           <SelectTrigger aria-label="清晰度">
-            <SelectValue />
+            <SelectValue>{resolution}</SelectValue>
           </SelectTrigger>
           <SelectContent portalContainer={portalContainer}>
-            {resolutionOptions.map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
+            {resolutionOptions
+              .filter(([value]) => !capabilities || capabilities.resolutions.includes(value))
+              .map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </label>
@@ -178,6 +184,7 @@ export function BasicSettings(props: BasicSettingsProps) {
   const triggerRef = useRef<HTMLButtonElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const popoverId = useId()
+  const capabilities = imageEndpoints.find((endpoint) => endpoint.id === endpointId)?.capabilities
 
   useEffect(() => {
     if (mode !== 'general') setParamsOpen(false)
@@ -361,6 +368,7 @@ export function BasicSettings(props: BasicSettingsProps) {
               onSetReferenceStrength,
             }}
             portalContainer={popoverRef.current}
+            capabilities={capabilities}
           />
         </div>
       </section>
@@ -396,14 +404,16 @@ export function BasicSettings(props: BasicSettingsProps) {
           <span>尺寸比例</span>
           <Select value={aspectRatio} onValueChange={onSetAspectRatio}>
             <SelectTrigger aria-label="尺寸比例">
-              <SelectValue />
+              <SelectValue>{aspectRatio}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {ratioOptions.map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
+              {ratioOptions
+                .filter(([value]) => !capabilities || capabilities.aspectRatios.includes(value))
+                .map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </label>
@@ -411,14 +421,16 @@ export function BasicSettings(props: BasicSettingsProps) {
           <span>清晰度</span>
           <Select value={resolution} onValueChange={onSetResolution}>
             <SelectTrigger aria-label="清晰度">
-              <SelectValue />
+              <SelectValue>{resolution}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {resolutionOptions.map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
+              {resolutionOptions
+                .filter(([value]) => !capabilities || capabilities.resolutions.includes(value))
+                .map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </label>

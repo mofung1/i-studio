@@ -61,7 +61,22 @@ func (s *Service) processReverseJob(job reverseJob) {
 		s.finishReverseJob(job, nil, "账号已停用，分析任务已终止")
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(job.Settings.TimeoutSeconds)*time.Second)
+	budgetCtx, release, err := s.acquireAuxiliary(context.Background(), job.UserID, "image_reverse")
+	if err != nil {
+		if errors.Is(err, errAuxiliaryBusy) {
+			_, _ = s.db.Exec("UPDATE prompt_reverse_tasks SET status='queued',run_token='',deadline=NULL WHERE id=$1 AND run_token=$2 AND status='processing'", job.ID, job.RunToken)
+		} else {
+			message := "平台辅助服务暂时不可用，请稍后重新分析"
+			var limit *operationError
+			if errors.As(err, &limit) {
+				message = limit.message
+			}
+			s.finishReverseJob(job, nil, message)
+		}
+		return
+	}
+	defer release()
+	ctx, cancel := context.WithTimeout(budgetCtx, time.Duration(job.Settings.TimeoutSeconds)*time.Second)
 	defer cancel()
 	s.reverseCancels.Store(job.ID, func() { cancel() })
 	defer s.reverseCancels.Delete(job.ID)

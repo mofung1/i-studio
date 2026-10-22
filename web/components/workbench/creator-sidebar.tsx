@@ -15,6 +15,8 @@ import { usePromptReverse } from '@/components/prompt-reverse-provider'
 import { applyReverseText } from '@/lib/prompt-reverse'
 
 import type { GenerationModel } from '@/lib/contracts'
+import { modelCompatibilityIssue, type PublicImageModel } from '@/lib/generation-models'
+import { ModelCompatibilityNotice } from './model-compatibility-notice'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 
@@ -72,7 +74,7 @@ interface CreatorSidebarProps {
   /** 后端是否配置了提示词模型 */
   promptEnhanceEnabled: boolean
   promptVision: boolean
-  imageEndpoints: { id: string; name: string; model: string }[]
+  imageEndpoints: PublicImageModel[]
   modelsLoading?: boolean
   modelsError?: string
   onReloadModels?: () => void
@@ -162,6 +164,19 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
     onCloseSheet,
     onSubmit,
   } = props
+
+  const selectedModel = props.imageEndpoints.find((endpoint) => endpoint.id === props.endpointId)
+  const modelParameters = {
+    aspectRatio,
+    resolution,
+    hasImages: mode === 'general' ? referenceFiles.length > 0 : productFiles.length > 0,
+    requiresImages: mode === 'commerce',
+  }
+  const compatibilityIssue = modelCompatibilityIssue(selectedModel, modelParameters)
+  const referenceDisabledReason =
+    selectedModel?.capabilities?.referenceImages === false
+      ? '当前模型不支持图片输入，请选择兼容模型；已有素材仍会保留。'
+      : undefined
 
   const isGeneral = mode === 'general'
   const { openReverse } = usePromptReverse()
@@ -418,6 +433,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                   </small>
                 </div>
                 <ReferenceUploader
+                  disabledReason={referenceDisabledReason}
                   files={assetFiles}
                   max={maxFiles}
                   onChange={onSetReferenceFiles}
@@ -444,6 +460,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               </p>
               <ReferenceUploader
                 collapseAt={2}
+                disabledReason={referenceDisabledReason}
                 files={productFiles}
                 max={maxFiles}
                 onChange={onSetProductFiles}
@@ -464,6 +481,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               <p className="field-helper">只参考构图、背景与光影；最终商品和包装来自商品原图。</p>
               <ReferenceUploader
                 files={referenceFiles}
+                disabledReason={referenceDisabledReason}
                 max={1}
                 onChange={onSetReferenceFiles}
                 labelFor={() => '参考图'}
@@ -571,6 +589,14 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               {notice.message}
             </p>
           )}
+          <ModelCompatibilityNotice
+            model={selectedModel}
+            parameters={modelParameters}
+            onApply={(compatible) => {
+              onSetAspectRatio(compatible.aspectRatio)
+              onSetResolution(compatible.resolution)
+            }}
+          />
         </div>
       </div>
       <GenerateBar
@@ -583,6 +609,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         isSubmitting={isSubmitting}
         isGenerating={isGenerating}
         aiEnabled={aiEnabled}
+        disabledReason={compatibilityIssue}
         onSubmit={onSubmit}
       />
     </CreatorPanel>

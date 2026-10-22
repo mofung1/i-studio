@@ -1,28 +1,40 @@
 package studio
 
 import (
-	"fmt"
 	"time"
+
+	"github.com/istudio/server/internal/idgen"
 )
 
 func (s *Service) claimGeneration(id string) bool {
+	_, _, claimed := s.claimGenerationRun(id)
+	return claimed
+}
+
+func (s *Service) claimGenerationRun(id string) (string, bool, bool) {
 	if s.db == nil {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		t, ok := s.tasks[id]
 		if !ok || t.Status != "queued" {
-			return false
+			return "", false, false
 		}
 		t.Status = "processing"
 		s.tasks[id] = t
-		return true
+		return "", false, true
 	}
-	result, err := s.db.Exec("UPDATE generation_tasks SET status='processing',lease_until=now()+interval '2 minutes' WHERE id=$1 AND status='queued'", id)
+	token := idgen.New()
+	var previous string
+	err := s.db.QueryRow(`WITH pending AS (
+ SELECT id,status FROM generation_tasks WHERE id=$1 AND
+ (status='queued' OR (status IN ('processing','waiting_provider') AND (lease_until IS NULL OR lease_until<now())))
+ FOR UPDATE SKIP LOCKED
+) UPDATE generation_tasks t SET status='processing',lease_until=now()+interval '2 minutes',lease_token=$2
+ FROM pending p WHERE t.id=p.id RETURNING p.status`, id, token).Scan(&previous)
 	if err != nil {
-		return false
+		return "", false, false
 	}
-	n, _ := result.RowsAffected()
-	return n == 1
+	return token, previous != "queued", true
 }
 
 func (q *taskQueue) maintainDatabaseQueue() {
@@ -41,46 +53,34 @@ func (q *taskQueue) recoverDatabaseTasks() {
 	if err != nil {
 		return
 	}
-	type pending struct{ id, status string }
-	items := []pending{}
+	items := []string{}
 	for rows.Next() {
-		var item pending
-		if rows.Scan(&item.id, &item.status) == nil {
-			items = append(items, item)
+		var id, status string
+		if rows.Scan(&id, &status) == nil {
+			items = append(items, id)
 		}
 	}
 	rows.Close()
-	for _, item := range items {
-		if item.status == "queued" {
-			q.enqueue(item.id)
-			continue
-		}
-		// Conditional lease claim prevents competing recovery workers from racing a live heartbeat.
-		result, err := q.server.db.Exec("UPDATE generation_tasks SET lease_until=now()+interval '2 minutes' WHERE id=$1 AND status IN ('processing','waiting_provider') AND (lease_until IS NULL OR lease_until<now())", item.id)
-		if err != nil {
-			continue
-		}
-		n, _ := result.RowsAffected()
-		if n != 1 {
-			continue
-		}
-		assets, err := q.server.db.Query("SELECT '/v1/assets/'||id||'/content' FROM assets WHERE task_id=$1 ORDER BY created_at,id", item.id)
-		paths := []string{}
-		if err == nil {
-			for assets.Next() {
-				var path string
-				if assets.Scan(&path) == nil {
-					paths = append(paths, path)
-				}
-			}
-			err = assets.Err()
-			assets.Close()
-		}
-		if err != nil {
-			fmt.Printf("recovery %s failed: %v\n", item.id, err)
-			continue
-		}
-		q.server.updateTaskResult(item.id, "failed", paths, nil, "服务处理被中断，已按可交付图片结算，其余预留余额退回；可重新发起生成")
-		q.acknowledgeTask(item.id)
+	for _, id := range items {
+		// Recovery uses the same worker capacity and fenced claim as new work.
+		// Duplicate wakeups never authorize duplicate upstream submissions.
+		q.enqueue(id)
 	}
+}
+
+func (s *Service) legacySavedGenerationImages(id string) ([]string, error) {
+	rows, err := s.db.Query("SELECT '/v1/assets/'||id||'/content' FROM assets WHERE task_id=$1 ORDER BY created_at,id", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	paths := []string{}
+	for rows.Next() {
+		var path string
+		if err = rows.Scan(&path); err != nil {
+			return nil, err
+		}
+		paths = append(paths, path)
+	}
+	return paths, rows.Err()
 }

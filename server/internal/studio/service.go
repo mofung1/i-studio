@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"github.com/istudio/server/internal/domain"
 	objectstore "github.com/istudio/server/internal/storage"
@@ -28,7 +29,7 @@ func New(deps Dependencies) (*Service, error) {
 		secret: append([]byte(nil), deps.AuthSecret...), db: deps.Database,
 		storageRoot: deps.StorageRoot, storage: deps.Storage,
 	}
-	s.storage = objectstore.NewRouter(s.storage, s)
+	s.storage = objectstore.NewRouter(s.storage, s, s.recordStorageFailure)
 	if err := s.syncEnvironmentAdmin(); err != nil {
 		return nil, fmt.Errorf("administrator configuration: %w", err)
 	}
@@ -53,19 +54,20 @@ func (s *Service) StartWorkers() {
 
 // Service coordinates studio workflows and their shared transaction boundaries.
 type Service struct {
-	aiHTTPClient   *http.Client // Internal transport injection for isolated upstream tests.
-	mu             sync.RWMutex
-	siteMu         sync.Mutex
-	users          map[string]domain.User
-	administrators map[string]domain.User
-	tasks          map[string]domain.GenerationTask
-	secret         []byte
-	db             *sql.DB
-	storageRoot    string
-	storage        objectstore.Store
-	queue          *taskQueue
-	provider       imageProvider
-	promptClient   promptCompleter
-	ai             *aiConfigStore
-	reverseCancels sync.Map
+	aiHTTPClient             *http.Client // Internal transport injection for isolated upstream tests.
+	mu                       sync.RWMutex
+	siteMu                   sync.Mutex
+	users                    map[string]domain.User
+	administrators           map[string]domain.User
+	tasks                    map[string]domain.GenerationTask
+	secret                   []byte
+	db                       *sql.DB
+	storageRoot              string
+	storage                  objectstore.Store
+	queue                    *taskQueue
+	provider                 imageProvider
+	promptClient             promptCompleter
+	ai                       *aiConfigStore
+	reverseCancels           sync.Map
+	storageMonitoringDropped atomic.Int64
 }

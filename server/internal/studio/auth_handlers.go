@@ -1,6 +1,8 @@
 package studio
 
 import (
+	"errors"
+	"github.com/jackc/pgx/v5/pgconn"
 	"net/http"
 	"strings"
 
@@ -24,8 +26,9 @@ func (s *Service) auth(w http.ResponseWriter, r *http.Request, create bool) {
 		return
 	}
 	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		InviteCode string `json:"inviteCode"`
 	}
 	if !decode(r, &body) {
 		s.error(w, 400, "AUTH_INPUT_INVALID", "用户名需为 3-32 位，密码至少 8 位")
@@ -57,8 +60,13 @@ func (s *Service) auth(w http.ResponseWriter, r *http.Request, create bool) {
 				return
 			}
 			u = domain.User{ID: idgen.New(), Username: name, PasswordHash: authn.HashPassword(body.Password)}
-			if err := s.registerAccount(u, config.SignupGiftMinor); err != nil {
-				s.error(w, 409, "USERNAME_EXISTS", "用户名已存在")
+			if err := s.registerAccount(u, body.InviteCode); err != nil {
+				var pgErr *pgconn.PgError
+				if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+					s.error(w, 409, "USERNAME_EXISTS", "用户名已存在")
+				} else {
+					s.operationFailure(w, err)
+				}
 				return
 			}
 		} else if !exists || !authn.CheckPassword(body.Password, u.PasswordHash) {

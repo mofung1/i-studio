@@ -1,6 +1,7 @@
 package studio
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -18,11 +19,11 @@ func (s *Service) updateTaskStatus(id, status string) {
 	}
 }
 
-func (s *Service) updateTaskResult(id, status string, images []string, modules []string, message string) {
+func (s *Service) updateTaskResult(id, status string, images []string, modules []string, message string, leaseTokens ...string) {
 	if s.db != nil {
 		// A database outage must never leave a successful task with an unrecorded debit.
 		for attempt := 0; attempt < 5; attempt++ {
-			if err := s.settleGeneration(id, status, images, modules, message); err == nil {
+			if err := s.settleGeneration(id, status, images, modules, message, leaseTokens...); err == nil || errors.Is(err, errGenerationLeaseLost) {
 				return
 			} else {
 				fmt.Printf("task %s settlement retry: %v\n", id, err)

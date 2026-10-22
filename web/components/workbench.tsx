@@ -1,6 +1,7 @@
 'use client'
 
 import type { CreationImage } from '@/lib/creation-images'
+import { modelCompatibilityIssue, type PublicImageModel } from '@/lib/generation-models'
 import { loadStoredImage } from '@/lib/library'
 
 import { useEffect, useRef, useState } from 'react'
@@ -118,9 +119,7 @@ function StandardWorkbench({
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
   const [promptEnhanceEnabled, setPromptEnhanceEnabled] = useState(false)
   const [promptVision, setPromptVision] = useState(false)
-  const [imageEndpoints, setImageEndpoints] = useState<
-    { id: string; name: string; model: string; isDefault: boolean }[]
-  >([])
+  const [imageEndpoints, setImageEndpoints] = useState<PublicImageModel[]>([])
   const [endpointId, setEndpointId] = useState('')
   const [modelsLoading, setModelsLoading] = useState(true)
   const [modelsError, setModelsError] = useState('')
@@ -161,6 +160,15 @@ function StandardWorkbench({
   } = useGenerationTask(`${mode}:${task}`)
 
   const hasProductImage = productFiles.length > 0
+  const compatibilityIssue = modelCompatibilityIssue(
+    imageEndpoints.find((endpoint) => endpoint.id === endpointId),
+    {
+      aspectRatio,
+      resolution,
+      hasImages: mode === 'general' ? referenceFiles.length > 0 : productFiles.length > 0,
+      requiresImages: mode === 'commerce',
+    },
+  )
   useWorkbenchHandoff({
     ready: aiEnabled !== null,
     onHistory: (record, review) =>
@@ -212,7 +220,7 @@ function StandardWorkbench({
           aiEnabled?: boolean
           promptEnhanceEnabled?: boolean
           promptVision?: boolean
-          imageEndpoints?: { id: string; name: string; model: string; isDefault: boolean }[]
+          imageEndpoints?: PublicImageModel[]
         }) => {
           if (!current) return
           const endpoints = data.imageEndpoints ?? []
@@ -700,6 +708,11 @@ function StandardWorkbench({
     }
     if (mode === 'commerce' && !hasProductImage) {
       setNotice({ kind: 'error', message: '请先上传商品原图' })
+      return
+    }
+    if (compatibilityIssue) {
+      setConfigCollapsed(false)
+      setNotice({ kind: 'error', message: compatibilityIssue })
       return
     }
     if (mode === 'commerce' && task === 'viral-recreate' && referenceFiles.length !== 1) {

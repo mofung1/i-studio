@@ -3,6 +3,7 @@ import { act, useState, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { BasicSettings } from './basic-settings'
+import { ClothingSettings } from './clothing-settings'
 
 let root: Root
 let container: HTMLDivElement
@@ -13,15 +14,17 @@ function Harness({
   models,
   loading = false,
   error = '',
+  mode = 'general',
 }: {
   models: Models
   loading?: boolean
   error?: string
+  mode?: 'general' | 'commerce'
 }) {
   const [selected, setSelected] = useState('a')
   return (
     <BasicSettings
-      mode="general"
+      mode={mode}
       task="product-main"
       aspectRatio="1:1"
       resolution="2K"
@@ -122,4 +125,96 @@ it('shows model loading failures with a retry action', async () => {
   expect(container.querySelector('[role="alert"]')?.textContent).toContain('模型列表读取失败')
   expect(trigger().disabled).toBe(true)
   expect(container.querySelector('[aria-label="重新加载模型列表"]')).not.toBeNull()
+})
+
+it('filters commerce parameter options when a model has narrower capabilities while retaining the old values', async () => {
+  await act(async () =>
+    root.render(
+      <Harness
+        mode="commerce"
+        models={[
+          {
+            id: 'a',
+            name: 'A',
+            model: 'A',
+            capabilities: { referenceImages: true, aspectRatios: ['3:4'], resolutions: ['1K'] },
+          },
+        ]}
+      />,
+    ),
+  )
+  const ratio = container.querySelector<HTMLButtonElement>('[aria-label="尺寸比例"]')!
+  expect(ratio.textContent).toContain('1:1')
+  await act(async () =>
+    ratio.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    ),
+  )
+  expect(
+    [...document.querySelectorAll('[role="option"]')].map((element) => element.textContent),
+  ).toEqual(['3:4 竖图'])
+  await act(async () => document.querySelector<HTMLElement>('[role="option"]')!.click())
+  const resolution = container.querySelector<HTMLButtonElement>('[aria-label="清晰度"]')!
+  expect(resolution.textContent).toContain('2K')
+  await act(async () =>
+    resolution.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    ),
+  )
+  expect(
+    [...document.querySelectorAll('[role="option"]')].map((element) => element.textContent),
+  ).toEqual(['1K'])
+})
+
+it('uses the same model constraints for clothing without silently replacing restored parameters', async () => {
+  const onChange = vi.fn()
+  const value: ComponentProps<typeof ClothingSettings>['value'] = {
+    mode: 'product',
+    style: 'studio',
+    counts: { 'clothing-front': 1 },
+    modelCount: 1,
+    garments: [],
+    models: [],
+    scenes: [],
+    requirements: '保留用户需求',
+    platform: 'smart',
+    outputLanguage: 'none',
+    endpointId: 'a',
+    model: 'A',
+    aspectRatio: '3:4',
+    resolution: '4K',
+  }
+  await act(async () =>
+    root.render(
+      <ClothingSettings
+        value={value}
+        onChange={onChange}
+        endpoints={[
+          {
+            id: 'a',
+            name: 'A',
+            model: 'A',
+            capabilities: { referenceImages: false, aspectRatios: ['16:9'], resolutions: ['1K'] },
+          },
+        ]}
+      />,
+    ),
+  )
+  expect(onChange).not.toHaveBeenCalled()
+  expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('保留用户需求')
+  expect(container.querySelector<HTMLButtonElement>('[aria-label="上传服装原图"]')?.disabled).toBe(
+    true,
+  )
+  const ratio = container.querySelector<HTMLButtonElement>('[aria-label="服装画面比例"]')!
+  expect(ratio.textContent).toBe('3:4')
+  await act(async () =>
+    ratio.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    ),
+  )
+  expect(
+    [...document.querySelectorAll('[role="option"]')].map((element) => element.textContent),
+  ).toEqual(['16:9 宽屏'])
+  await act(async () => document.querySelector<HTMLElement>('[role="option"]')!.click())
+  expect(onChange).toHaveBeenCalledWith({ aspectRatio: '16:9' })
 })

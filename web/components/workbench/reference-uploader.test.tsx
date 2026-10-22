@@ -159,3 +159,36 @@ it('bounds commerce image stacks by their material section when no prompt grid e
     width.mockRestore()
   }
 })
+
+it('blocks additional images for text-only models while preserving existing image removal', async () => {
+  const file = new File(['image'], 'kept.png', { type: 'image/png' })
+  const onChange = vi.fn()
+  const render = (files: CreationImage[]) => (
+    <ReferenceUploader
+      files={files}
+      onChange={onChange}
+      max={6}
+      labelFor={() => '原参考'}
+      emptyTitle="添加参考图片"
+      emptyHint="请选择图片"
+      acceptedHint="PNG"
+      disabledReason="当前模型不支持图片输入"
+    />
+  )
+  await act(async () => root.render(render([])))
+  expect(container.querySelector<HTMLButtonElement>('[aria-label="添加参考图片"]')?.disabled).toBe(
+    true,
+  )
+  const drop = new Event('drop', { bubbles: true, cancelable: true })
+  Object.defineProperty(drop, 'dataTransfer', { value: { types: ['Files'], files: [file] } })
+  await act(async () => container.querySelector('.reference-uploader')!.dispatchEvent(drop))
+  expect(onChange).not.toHaveBeenCalled()
+  await act(async () => root.render(render([file])))
+  expect(container.querySelector('img')?.alt).toContain('kept.png')
+  expect(onChange).not.toHaveBeenCalled()
+  expect(container.querySelector('[aria-label="添加图片"]')).toBeNull()
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="删除原参考"]')!.click(),
+  )
+  expect(onChange).toHaveBeenCalledWith([])
+})

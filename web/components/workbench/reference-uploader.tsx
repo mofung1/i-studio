@@ -19,6 +19,8 @@ interface ReferenceUploaderProps {
   acceptedHint: string
   /** 从指定张数开始堆叠，悬停、点击或键盘操作展开完整列表。 */
   collapseAt?: number
+  /** Prevent new selections without removing existing materials or their remove controls. */
+  disabledReason?: string
 }
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -43,6 +45,7 @@ export function ReferenceUploader({
   emptyHint,
   acceptedHint,
   collapseAt,
+  disabledReason,
 }: ReferenceUploaderProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
@@ -75,6 +78,7 @@ export function ReferenceUploader({
   const full = files.length >= max
 
   function accept(selected: CreationImage[]) {
+    if (disabledReason) return
     if (selected.length === 0) return
     const images = selected.filter((file) => ACCEPTED_TYPES.includes(file.type))
     const rejected = selected.length - images.length
@@ -236,11 +240,12 @@ export function ReferenceUploader({
       onDragOver={(event) => {
         if (!isExternalFileDrag(event)) return
         event.preventDefault()
-        if (!full) setIsDraggingOver(true)
+        if (!full && !disabledReason) setIsDraggingOver(true)
       }}
       onDragLeave={(event) => {
         if (event.currentTarget.contains(event.relatedTarget as Node)) return
         setIsDraggingOver(false)
+        if (disabledReason) return
       }}
       onDrop={(event) => {
         if (!isExternalFileDrag(event)) return
@@ -258,7 +263,8 @@ export function ReferenceUploader({
           type="button"
           className="reference-dropzone"
           aria-label={emptyTitle}
-          title={acceptedHint}
+          title={disabledReason || acceptedHint}
+          disabled={Boolean(disabledReason)}
           onClick={() => setPickerOpen(true)}
         >
           <span className="reference-dropzone-icon">
@@ -283,6 +289,7 @@ export function ReferenceUploader({
                   onPointerDown={(event) => startSort(index, event)}
                   onRemove={() => onChange(files.filter((_, fileIndex) => fileIndex !== index))}
                   onReplace={(next) =>
+                    !disabledReason &&
                     onChange(
                       files.map((current, fileIndex) => (fileIndex === index ? next : current)),
                     )
@@ -308,7 +315,7 @@ export function ReferenceUploader({
                 thumbnail
               )
             })}
-            {!full && (
+            {!full && !disabledReason && (
               <button
                 type="button"
                 className="add-thumb"
@@ -378,7 +385,7 @@ export function ReferenceUploader({
           </p>
         </>
       )}
-      {pickerOpen && (
+      {pickerOpen && !disabledReason && (
         <AssetPicker
           limit={Math.max(0, max - files.length)}
           excludedIds={files.filter(isStoredImage).map((image) => image.assetId)}
@@ -398,6 +405,11 @@ export function ReferenceUploader({
       {error && (
         <p className="field-helper is-error" role="alert">
           {error}
+        </p>
+      )}
+      {disabledReason && (
+        <p className="field-helper" role="status">
+          {disabledReason}
         </p>
       )}
     </div>

@@ -16,6 +16,13 @@ export type InlineGenerationTask = {
   status: string
   input?: GenerationInput
   resultImages?: string[]
+  resultDetails?: Array<{
+    contentPath: string
+    width: number
+    height: number
+    sizeBytes: number
+    elapsedMs: number | null
+  }>
   /** 与 resultImages 逐项对应的模块 key（custom 模块化生成时才有） */
   resultModules?: string[]
   errorMessage?: string
@@ -82,6 +89,18 @@ export function useGenerationTask(scopeKey = 'default') {
 
   const isGenerating = Boolean(generationTask && !terminalStatuses.has(generationTask.status))
   const activeResult = resultHistory[activeResultIndex] ?? null
+
+  const rememberCompletedTask = useCallback((task: InlineGenerationTask) => {
+    if (!terminalStatuses.has(task.status) || !task.resultImages?.length) return
+    setResultHistory((previous) => {
+      const existing = previous.findIndex((item) => item.id === task.id)
+      const index = existing < 0 ? previous.length : existing
+      setActiveResultIndex(index)
+      return existing < 0
+        ? [...previous, task]
+        : previous.map((item, position) => (position === existing ? task : item))
+    })
+  }, [])
 
   useEffect(() => {
     if (generationTask && terminalStatuses.has(generationTask.status)) refreshAccount()
@@ -228,6 +247,7 @@ export function useGenerationTask(scopeKey = 'default') {
         pendingTaskId(scopeKey, data.task.id)
         setGenerationTask(data.task)
         setGenerationTaskScope(scopeKey)
+        rememberCompletedTask(data.task)
         setIsSubmitting(false)
         setNotice(null)
         refreshAccount()
@@ -272,14 +292,7 @@ export function useGenerationTask(scopeKey = 'default') {
         setGenerationTask(data.task)
         if (terminalStatuses.has(data.task.status) && pendingTaskId(scopeKey) === data.task.id)
           pendingTaskId(scopeKey, null)
-        if (terminalStatuses.has(data.task.status) && data.task.resultImages?.length) {
-          setResultHistory((prev) => {
-            if (prev.some((item) => item.id === data.task.id)) return prev
-            const next = [...prev, data.task]
-            setActiveResultIndex(next.length - 1)
-            return next
-          })
-        }
+        rememberCompletedTask(data.task)
         if (!terminalStatuses.has(data.task.status)) timer = window.setTimeout(loadTask, 3000)
       } catch (error) {
         if (cancelled) return
@@ -427,6 +440,7 @@ export function useGenerationTask(scopeKey = 'default') {
         if (isCurrent() || !pendingTaskId(scopeKey)) pendingTaskId(scopeKey, data.task.id)
         if (!isCurrent()) return
         setGenerationTask(data.task)
+        rememberCompletedTask(data.task)
         onSubmitted?.()
       } catch (error) {
         if (isCurrent()) {
@@ -443,7 +457,7 @@ export function useGenerationTask(scopeKey = 'default') {
         }
       }
     },
-    [scopeKey],
+    [scopeKey, rememberCompletedTask],
   )
 
   return {

@@ -26,6 +26,8 @@ it('uses explicit user and administrator sessions for every request family', asy
   await adminRequest('ai-endpoints')
   await adminRequest('inspiration/prompts?includeDisabled=true')
   await adminRequest('storage')
+  await adminRequest('monitoring')
+  await adminRequest('image-measurements?endpointId=channel&model=image-model')
   expect(
     fetcher.mock.calls.map(([url, init]) => [
       new URL(String(url)).pathname,
@@ -38,6 +40,8 @@ it('uses explicit user and administrator sessions for every request family', asy
     ['/v1/admin/ai-endpoints', 'Bearer operator'],
     ['/v1/admin/inspiration/prompts', 'Bearer operator'],
     ['/v1/admin/storage', 'Bearer operator'],
+    ['/v1/admin/monitoring', 'Bearer operator'],
+    ['/v1/admin/image-measurements', 'Bearer operator'],
   ])
   expect(new Headers(fetcher.mock.calls[1]![1]?.headers).get('X-Test')).toBe('retained')
 })
@@ -45,6 +49,8 @@ it('uses explicit user and administrator sessions for every request family', asy
 it.each([
   'admin/settings',
   'ai-endpoints',
+  'image-measurements',
+  'monitoring',
   'prompt-templates',
   'prompt-reverse-settings',
   'projects/../../admin/users',

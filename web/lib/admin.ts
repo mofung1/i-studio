@@ -47,9 +47,43 @@ export interface AdminOperations {
   maxConcurrentTasks: number
   generationRequestsPerHour: number
   auxiliaryRequestsPerHour: number
+  platformAuxiliaryConcurrent?: number
+  platformAuxiliaryPerDay?: number
+  signupGiftDailyBudgetMinor?: number
+  dailyCreditAlertMinor?: number
+  accountStorageLimitBytes?: number
+  registrationInviteRequired?: boolean
+  registrationInviteConfigured?: boolean
+  registrationInviteCode?: string
+}
+
+export interface ImageOutputDetail {
+  contentPath?: string
+  width: number
+  height: number
+  elapsedMs: number | null
+  sizeBytes?: number
+}
+
+export interface ImageMeasurement extends ImageOutputDetail {
+  id: string
+  endpointId: string
+  model: string
+  aspectRatio: string
+  resolution: string
+  success: boolean
+  errorMessage: string
+  estimatedCostMicros: number | null
+  actualCostMicros: number | null
+  currency: string
+  costNote: string
+  createdAt: string
 }
 
 export interface AdminTask {
+  aspectRatio?: string
+  resolution?: string
+  resultDetails?: ImageOutputDetail[]
   id: string
   username: string
   modelName: string
@@ -69,6 +103,42 @@ export interface AdminAudit {
   targetId: string
   detail: string
   createdAt: string
+}
+
+export interface OperationalMonitoring {
+  checkedAt: string
+  queueWaitSeconds: number
+  leaseGraceSeconds: number
+  generationQueued: number
+  reverseQueued: number
+  generationOverdue: number
+  reverseOverdue: number
+  oldestGenerationWaitSeconds: number
+  oldestReverseWaitSeconds: number
+  expiredGenerationLeases: number
+  expiredReverseRuns: number
+  terminalReservations: number
+  agedReservations: number
+  heldMismatchAccounts: number
+  storageFailures24h: number
+  deletionRetryPending: number
+  deletionRetryRepeated: number
+  storageMonitoringDropped: number
+  issues: Array<{
+    kind: string
+    id: string
+    status: string
+    ageSeconds: number
+    heldMinor: number
+    expectedHeldMinor: number
+  }>
+  storageFailures: Array<{
+    id: string
+    operation: string
+    backend: string
+    objectReference: string
+    createdAt: string
+  }>
 }
 
 export interface AdminPage {

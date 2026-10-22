@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { loadStoredImage } from '@/lib/library'
+import { modelCompatibilityIssue, type PublicImageModel } from '@/lib/generation-models'
+import { ModelCompatibilityNotice } from './model-compatibility-notice'
 import { X } from 'lucide-react'
 import { apiBaseUrl, deleteGenerationTask, getAccessToken, readApiError } from '@/lib/api'
 import {
@@ -71,9 +73,7 @@ export function ClothingWorkbench({
   const [panelOpen, setPanelOpen] = useState(false)
   const [mobile, setMobile] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const [endpoints, setEndpoints] = useState<
-    { id: string; name: string; model: string; isDefault?: boolean }[]
-  >([])
+  const [endpoints, setEndpoints] = useState<PublicImageModel[]>([])
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
   const [canAnalyze, setCanAnalyze] = useState(false)
   const [planDefaults, setPlanDefaults] = useState<ClothingPlanDefaults>()
@@ -105,6 +105,14 @@ export function ClothingWorkbench({
   const counts: Record<string, number> =
     settings.mode === 'product' ? settings.counts : { 'clothing-model': settings.modelCount }
   const expectedCount = Object.values(counts).reduce((sum, count) => sum + count, 0)
+  const selectedModel = endpoints.find((endpoint) => endpoint.id === settings.endpointId)
+  const modelParameters = {
+    aspectRatio: settings.aspectRatio,
+    resolution: settings.resolution,
+    hasImages: settings.garments.length > 0,
+    requiresImages: true,
+  }
+  const compatibilityIssue = modelCompatibilityIssue(selectedModel, modelParameters)
   useWorkbenchHandoff({
     ready: aiEnabled !== null,
     onHistory: loadHistory,
@@ -269,6 +277,11 @@ export function ClothingWorkbench({
     )
   }
   function checkSource(): boolean {
+    if (compatibilityIssue) {
+      setNotice({ kind: 'error', message: compatibilityIssue })
+      setPlanMessage(compatibilityIssue)
+      return false
+    }
     let message = ''
     if (!settings.garments.length) message = '请先上传 1–6 张服装原图'
     else if (settings.mode === 'model' && settings.models.length !== 1)
@@ -645,6 +658,11 @@ export function ClothingWorkbench({
               </button>
             </div>
             <ClothingSettings value={settings} onChange={change} endpoints={endpoints} />
+            <ModelCompatibilityNotice
+              model={selectedModel}
+              parameters={modelParameters}
+              onApply={change}
+            />
             {!canAnalyze && (
               <p className="clothing-field-help">
                 当前使用手动规划，可逐张编辑拍摄要求；配置支持识图的 Prompt 服务后可进行 AI 分析。
@@ -663,6 +681,7 @@ export function ClothingWorkbench({
             isSubmitting={isSubmitting || planning}
             isGenerating={isGenerating}
             aiEnabled={aiEnabled}
+            disabledReason={compatibilityIssue}
             onSubmit={() => void prepare()}
           />
         </CreatorPanel>

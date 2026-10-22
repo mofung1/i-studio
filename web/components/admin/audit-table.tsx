@@ -10,6 +10,7 @@ const actionLabels: Record<string, string> = {
   'admin.environment.update': '更新后台账号',
   'admin.environment.release': '解除环境管理员绑定',
   'settings.update': '更新运营设置',
+  'measurement.cost.update': '录入供应商费用',
   'user.update': '更新用户状态',
   'credit.adjust': '调整用户余额',
   'model.save': '保存模型与定价',
