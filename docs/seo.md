@@ -4,18 +4,18 @@
 
 前端采用 `web/app` App Router。`(marketing)` 路由组包含官网和功能页，正文、功能介绍、内部链接、步骤与 FAQ 均由 Server Components 输出。导航、主题、登录状态及视觉交互使用客户端控制器，Hero 的标题与介绍通过服务端 children 传入；FAQ 使用原生 details。
 
-| 路径 | 用途 |
-| --- | --- |
-| `/` | 公开官网首页 |
-| `/tools/ai-image-generator` | 文字与参考图生图介绍 |
-| `/tools/image-to-prompt` | 双语图片反推介绍 |
-| `/tools/ai-product-photo` | 商品主图介绍 |
-| `/tools/product-retouch` | 产品精修介绍 |
-| `/tools/ai-fashion-model` | 服装组图与模特上身介绍 |
-| `/studio` | 复用原工作台，保留鉴权、任务、积分、素材和历史恢复 |
-| `/workbench` | 原工作台兼容入口，仍可直接访问 |
-| `/commerce` | 原五类电商工具选择页 |
-| `/inspiration`、`/inspire` | 复用现有公开灵感广场 |
+| 路径                        | 用途                                               |
+| --------------------------- | -------------------------------------------------- |
+| `/`                         | 公开官网首页                                       |
+| `/tools/ai-image-generator` | 文字与参考图生图介绍                               |
+| `/tools/image-to-prompt`    | 双语图片反推介绍                                   |
+| `/tools/ai-product-photo`   | 商品主图介绍                                       |
+| `/tools/product-retouch`    | 产品精修介绍                                       |
+| `/tools/ai-fashion-model`   | 服装组图与模特上身介绍                             |
+| `/studio`                   | 复用原工作台，保留鉴权、任务、积分、素材和历史恢复 |
+| `/workbench`                | 原工作台兼容入口，仍可直接访问                     |
+| `/commerce`                 | 原五类电商工具选择页                               |
+| `/inspiration`、`/inspire`  | 复用现有公开灵感广场                               |
 
 旧首页的 `mode`、`task`、`prompt`、`resumeTask`、`referenceAsset`、反推和个人提示词等创作深链接，保留全部查询参数进入 `/studio`。普通首页及只有 UTM 的链接仍显示官网。没有将其他历史业务路径统一重定向。
 
@@ -66,3 +66,21 @@ SITE_ENV=production
 - 未创建教程、隐私政策或用户条款的空链接；应在有正式内容后补充页面与 Footer。
 
 使用 Next.js 原生 [Metadata API](https://nextjs.org/docs/15/app/api-reference/functions/generate-metadata) 与 [Metadata 文件约定](https://nextjs.org/docs/app/api-reference/file-conventions/metadata)，没有新增运行时依赖。
+
+## 本地与部署后的验收
+
+先启动对应环境的生产构建，再从 `web/` 运行只读检查：
+
+```sh
+pnpm check:marketing --base-url http://127.0.0.1:3000 --mode preview
+```
+
+正式环境检查需要显式提供站点 origin：
+
+```sh
+pnpm check:marketing --base-url https://你的真实域名 --mode production --site-origin https://你的真实域名
+```
+
+脚本检查首页和五个工具页的 HTTP、服务端正文、唯一标题/描述、H1、标题层级、alt、跳过导航、页脚内链，以及智能手机爬虫收到的主要正文是否一致；同时检查十个私有或暂缓收录路由的 noindex、旧创作链接重定向、robots 和 sitemap。正式分支额外核验 canonical、OG/Twitter 分享图及 JSON-LD，并请求同一服务上的分享图片。脚本不会执行页面 JavaScript，也不会调用生图、登录或写入接口。它依赖现有开发依赖 jsdom，不增加线上依赖。
+
+2026-10-22 的 L08 已完成本地生产构建下的预览/合成正式配置和多屏宽验收，见 [L08 报告](../test/reports/home-l08-2026-10-22.md)。合成域名仅作为本机响应中的测试字符串，不能替代真实域名、HTTPS、公网抓取、真实设备或搜索引擎收录验收；这些随 L01 正式部署继续完成。

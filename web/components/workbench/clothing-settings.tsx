@@ -2,6 +2,7 @@
 
 import type { CreationImage } from '@/lib/creation-images'
 import type { PublicImageModel } from '@/lib/generation-models'
+import { ModelGuidance } from './model-guidance'
 
 import { Shirt, UserRound } from 'lucide-react'
 import type { ClothingMode, ClothingStyle } from '@/lib/contracts'
@@ -318,6 +319,7 @@ export function ClothingSettings({
           </label>
         </div>
       </fieldset>
+      <ModelGuidance model={endpoints.find((endpoint) => endpoint.id === value.endpointId)} />
       <fieldset className="form-section config-card">
         <div className="field-heading">
           <legend>目标平台</legend>

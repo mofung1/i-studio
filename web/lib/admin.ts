@@ -22,6 +22,7 @@ export const defaultModelCapabilities: ModelCapabilities = {
 export interface AdminModel {
   id: string
   name: string
+  usageHint?: string
   version: number
   channels: ModelChannel[]
   capabilities: ModelCapabilities

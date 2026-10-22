@@ -2,6 +2,9 @@ export interface PublicImageModel {
   id: string
   name: string
   model: string
+  usageHint?: string
+  priceMinor?: number
+  creditName?: string
   isDefault?: boolean
   /** Older API deployments may omit capabilities; server validation remains authoritative. */
   capabilities?: {

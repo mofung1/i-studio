@@ -5,6 +5,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import type { CommerceTaskType } from '@/lib/contracts'
 import type { PublicImageModel } from '@/lib/generation-models'
+import { ModelGuidance } from './model-guidance'
 import {
   generalCountOptions,
   languageOptions,
@@ -310,6 +311,7 @@ export function BasicSettings(props: BasicSettingsProps) {
             </button>
           </div>
         </div>
+        <ModelGuidance model={imageEndpoints.find((endpoint) => endpoint.id === endpointId)} />
         {!modelsLoading && (modelsError || !imageEndpoints.length) && (
           <p className="model-availability-note" role={modelsError ? 'alert' : 'status'}>
             {modelsError || '暂无可用生图模型，请联系网站管理员启用。'}
@@ -463,6 +465,7 @@ export function BasicSettings(props: BasicSettingsProps) {
           </div>
         )}
       </div>
+      <ModelGuidance model={imageEndpoints.find((endpoint) => endpoint.id === endpointId)} />
     </fieldset>
   )
 }

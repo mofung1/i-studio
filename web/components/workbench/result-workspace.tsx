@@ -12,7 +12,7 @@ import {
   RefreshCw,
   RotateCcw,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import {
   AuthenticatedImage,
@@ -73,6 +73,7 @@ interface ResultWorkspaceProps {
   onDownloadAll?: () => void
   downloadAllBusy?: boolean
   onConfigure?: () => void
+  starter?: ReactNode
 }
 
 const MAX_SKELETONS = 8
@@ -107,6 +108,7 @@ export function ResultWorkspace({
   onDownloadAll,
   downloadAllBusy,
   onConfigure,
+  starter,
 }: ResultWorkspaceProps) {
   const currentTask = taskMeta[task]
   const title = mode === 'general' ? '通用生图' : currentTask.title
@@ -360,6 +362,8 @@ export function ResultWorkspace({
             <div className="result-empty">
               {failureMessage ? (
                 <FailureNotice message={failureMessage} />
+              ) : starter ? (
+                starter
               ) : (
                 <img
                   className="empty-creation-image"
