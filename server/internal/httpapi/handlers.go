@@ -10,6 +10,7 @@ type Handlers struct {
 	AuthorizeAdmin               func(http.ResponseWriter, *http.Request) bool
 	ConfigurationChanged         func(*http.Request, string, string, string)
 	AccountHandler               func(http.ResponseWriter, *http.Request)
+	AccountCheckin               func(http.ResponseWriter, *http.Request)
 	AdminAudit                   func(http.ResponseWriter, *http.Request)
 	AdminModels                  func(http.ResponseWriter, *http.Request, string)
 	AdminImageMeasurements       func(http.ResponseWriter, *http.Request, string)

@@ -205,7 +205,7 @@ func TestAISettingsAuthorizationAndRestoreDefault(t *testing.T) {
 	r := newPromptRequest(t, "", "user text", 0)
 	_ = r.ParseMultipartForm(maxPromptBodySize)
 	system, _, err := s.buildPrompt("prompt", "user text", r)
-	if err != nil || system != "Custom system" {
+	if err != nil || !strings.HasPrefix(system, "Custom system\n\n") {
 		t.Fatal("builder did not use saved template")
 	}
 	w = httptest.NewRecorder()
@@ -214,7 +214,7 @@ func TestAISettingsAuthorizationAndRestoreDefault(t *testing.T) {
 		t.Fatal(w.Body.String())
 	}
 	system, _, err = s.buildPrompt("prompt", "user text", r)
-	if err != nil || system != promptRewriteSystemPrompt {
+	if err != nil || !strings.HasPrefix(system, promptRewriteSystemPrompt+"\n\n") {
 		t.Fatal("restore did not use default")
 	}
 }

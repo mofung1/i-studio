@@ -343,7 +343,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                       : undefined
                   }
                   helper={enhanceHelper}
-                  enhanceLabel="AI 优化"
+                  enhanceLabel={promptEnhanceEnabled ? 'AI 优化' : '整理描述'}
                   actions={
                     <>
                       {reverseUndo && (
@@ -517,7 +517,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                     ? runEnhance('requirements', value)
                     : (await formatPrompt(value, style)).text
                 }
-                enhanceLabel="AI 帮写"
+                enhanceLabel={promptEnhanceEnabled ? 'AI 帮写' : '整理描述'}
                 enhanceDisabledReason={
                   !requirements.trim() && (!promptEnhanceEnabled || enhanceImages.length === 0)
                     ? promptEnhanceEnabled

@@ -14,15 +14,17 @@ import (
 )
 
 type fakePromptClient struct {
-	model     string
-	lastText  string
-	images    int
-	maxTokens int
-	reply     string
-	err       error
+	model      string
+	lastText   string
+	lastSystem string
+	images     int
+	maxTokens  int
+	reply      string
+	err        error
 }
 
-func (f *fakePromptClient) complete(_ context.Context, _ string, userText string, images []promptImage, maxTokens int) (string, error) {
+func (f *fakePromptClient) complete(_ context.Context, system string, userText string, images []promptImage, maxTokens int) (string, error) {
+	f.lastSystem = system
 	f.lastText = userText
 	f.images = len(images)
 	f.maxTokens = maxTokens
@@ -290,6 +292,21 @@ func TestPromptEnhanceLongDraftAndOutputBudget(t *testing.T) {
 	}
 	if client.maxTokens < 3000 {
 		t.Fatalf("insufficient output budget: %d", client.maxTokens)
+	}
+}
+
+func TestPromptEnhanceKeepsWorkbenchSpecsAndSelectedRetouchScope(t *testing.T) {
+	client := &fakePromptClient{reply: "仅修复划痕，保留原图质感。"}
+	s := &Service{secret: []byte("test-secret"), promptClient: client}
+	token := s.testToken(domain.User{ID: "scope-user"})
+	r := newPromptRequestWithFields(t, token, "只修复划痕", 0, [][2]string{{"taskType", "product-retouch"}, {"enhancements", "repair"}, {"aspectRatio", "9:16"}, {"resolution", "4K"}})
+	w := httptest.NewRecorder()
+	s.promptEnhance(w, r)
+	if w.Code != 200 || !strings.Contains(client.lastSystem, "输出规格由工作台参数控制") || !strings.Contains(client.lastSystem, "没有选择的精修项不得追加") || !strings.Contains(client.lastSystem, "不把真实纹理当作瑕疵抹除") {
+		t.Fatal("scope constraints missing", w.Code)
+	}
+	if strings.Contains(client.lastText, "9:16") || strings.Contains(client.lastText, "4K") || !strings.Contains(client.lastText, "修复划痕瑕疵") {
+		t.Fatal("wrong context sent to optimizer", client.lastText)
 	}
 }
 

@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { apiBaseUrl, getAccessToken, getAdminAccessToken } from '@/lib/api'
+import { accountRevisionKey } from '@/lib/credits'
 
 export interface AccountState {
   authenticated: boolean
@@ -93,7 +94,12 @@ function SessionProvider({ children, admin = false }: { children: ReactNode; adm
     const tokenKey = admin ? 'istudio-admin-token' : 'istudio-access-token'
     const refreshEvent = admin ? 'istudio-admin-refresh' : 'istudio-account-refresh'
     const storageChanged = (event: StorageEvent) => {
-      if (event.key === tokenKey || event.key === null) refresh()
+      if (
+        event.key === tokenKey ||
+        event.key === null ||
+        (!admin && event.key === accountRevisionKey)
+      )
+        refresh()
     }
     refresh()
     window.addEventListener('focus', refresh)

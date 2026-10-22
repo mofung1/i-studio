@@ -1456,3 +1456,125 @@
     padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 }
+
+.credit-benefits {
+  scroll-margin-top: 24px;
+}
+.credit-benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  padding: 24px;
+}
+.credit-benefit-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.credit-benefit-item h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.credit-benefit-item p,
+.credit-rules p {
+  margin: 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.credit-benefit-item small,
+.credit-rules {
+  color: var(--foreground-3);
+  font-size: var(--text-small);
+  line-height: 1.8;
+}
+.credit-rules {
+  display: grid;
+  gap: 6px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-soft);
+}
+.credit-claim-message {
+  color: var(--foreground);
+}
+.site-announcement-trigger {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+}
+.site-announcement-dialog {
+  width: min(520px, calc(100% - 32px));
+  max-height: min(680px, calc(100dvh - 48px));
+  margin: auto;
+  padding: 28px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--foreground);
+}
+.site-announcement-dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+}
+.site-announcement-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  color: var(--foreground-3);
+  font-size: var(--text-small);
+}
+.site-announcement-heading button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+.site-announcement-dialog h2 {
+  font-size: 22px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.site-announcement-body {
+  margin: 20px 0 24px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.9;
+  font-size: var(--text-ui);
+}
+@media (max-width: 640px) {
+  .account-page .ops-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .account-page .ops-stats > article:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+  .credit-benefits-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .site-announcement-trigger {
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  body:has(.workbench-shell) .site-announcement-trigger {
+    top: 28px;
+    right: 72px;
+    bottom: auto;
+  }
+}

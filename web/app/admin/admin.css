@@ -1454,3 +1454,16 @@ html[data-theme='dark'] .admin-shell {
   background: var(--foreground);
   color: var(--background);
 }
+
+.admin-shell .ops-announcement-content {
+  width: 100%;
+  min-height: 160px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  line-height: 1.7;
+  resize: vertical;
+}

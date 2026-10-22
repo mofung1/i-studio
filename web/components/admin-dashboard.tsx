@@ -60,6 +60,8 @@ export function AdminDashboard({
   const [ops, setOps] = useState<Operations | null>(null)
   const [gift, setGift] = useState('0')
   const [giftBudget, setGiftBudget] = useState('1000')
+  const [checkinReward, setCheckinReward] = useState('0')
+  const [checkinBudget, setCheckinBudget] = useState('1000')
   const [creditAlert, setCreditAlert] = useState('1000')
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
@@ -121,6 +123,8 @@ export function AdminDashboard({
         setOps(settings)
         setGift(String(settings.signupGiftMinor / 100))
         setGiftBudget(String((settings.signupGiftDailyBudgetMinor ?? 100000) / 100))
+        setCheckinReward(String((settings.checkinRewardMinor ?? 0) / 100))
+        setCheckinBudget(String((settings.checkinDailyBudgetMinor ?? 100000) / 100))
         setCreditAlert(String((settings.dailyCreditAlertMinor ?? 100000) / 100))
       }
     }
@@ -249,6 +253,18 @@ export function AdminDashboard({
     }
     const budget = parseCredits(giftBudget),
       alert = parseCredits(creditAlert)
+    const reward = parseCredits(checkinReward),
+      dailyCheckinBudget = parseCredits(checkinBudget)
+    if (
+      reward === null ||
+      dailyCheckinBudget === null ||
+      reward < 0 ||
+      reward > 100000000 ||
+      dailyCheckinBudget < 0
+    ) {
+      setError('签到奖励和预算需为有效非负数量，最多两位小数；单次奖励不超过 100 万')
+      return
+    }
     if (budget === null || alert === null || budget < 0 || alert < 0) {
       setError('每日赠送预算和消耗告警需为有效非负数量，最多两位小数')
       return
@@ -258,6 +274,8 @@ export function AdminDashboard({
         ...ops,
         signupGiftMinor: minor,
         signupGiftDailyBudgetMinor: budget,
+        checkinRewardMinor: reward,
+        checkinDailyBudgetMinor: dailyCheckinBudget,
         dailyCreditAlertMinor: alert,
       }),
     )
@@ -406,6 +424,10 @@ export function AdminDashboard({
                 ops={ops}
                 gift={gift}
                 giftBudget={giftBudget}
+                checkinReward={checkinReward}
+                checkinBudget={checkinBudget}
+                onCheckinRewardChange={setCheckinReward}
+                onCheckinBudgetChange={setCheckinBudget}
                 creditAlert={creditAlert}
                 onGiftBudgetChange={setGiftBudget}
                 onCreditAlertChange={setCreditAlert}
