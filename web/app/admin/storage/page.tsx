@@ -224,6 +224,7 @@ export default function StoragePage() {
       {draft && (
         <LibraryDialog
           title={draft.id ? '编辑存储配置' : '添加存储配置'}
+          hideActions
           onClose={() => {
             if (!busy) setDraft(null)
           }}
@@ -297,7 +298,9 @@ export default function StoragePage() {
                 <small>{hints[draft.provider]}</small>
               </label>
               <label className="storage-config-wide">
-                外网下载 Endpoint <span>可选</span>
+                <span className="storage-field-label">
+                  外网下载 Endpoint <small>可选</small>
+                </span>
                 <Input
                   type="url"
                   value={draft.publicEndpoint}
@@ -305,8 +308,10 @@ export default function StoragePage() {
                   onChange={(event) => patch({ publicEndpoint: event.target.value.trim() })}
                 />
               </label>
-              <label>
-                对象目录前缀 <span>可选</span>
+              <label className="storage-config-wide">
+                <span className="storage-field-label">
+                  对象目录前缀 <small>可选</small>
+                </span>
                 <Input
                   disabled={!!draft.id}
                   value={draft.prefix}
@@ -315,7 +320,7 @@ export default function StoragePage() {
                 />
               </label>
               {draft.provider !== 'aliyun' && (
-                <label className="storage-config-checkbox">
+                <label className="storage-config-checkbox storage-config-wide">
                   <input
                     type="checkbox"
                     disabled={!!draft.id}

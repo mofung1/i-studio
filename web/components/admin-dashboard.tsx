@@ -360,7 +360,7 @@ export function AdminDashboard({
           <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
-      <div ref={listRegion} className={isList ? 'admin-list-region' : undefined}>
+      <div ref={listRegion} className={isList ? 'admin-list-region' : 'admin-page-body'}>
         {view === 'tasks' ? (
           <AdminTaskTable
             tasks={tasks}

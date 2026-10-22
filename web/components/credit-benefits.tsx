@@ -86,14 +86,14 @@ export function CreditBenefits({
           )}
         </div>
         <div className="credit-benefit-item">
-          <h3>补充{unit}</h3>
-          <p>{policy.helpText || `如需补充${unit}，请联系网站管理员，并提供你的用户名。`}</p>
+          <h3>申请{unit}</h3>
+          <p>{policy.helpText || `如需申请${unit}，请联系网站管理员，并提供你的用户名。`}</p>
           <p>
             当前用户名：<strong>{username}</strong>
           </p>
           {policy.contactUrl ? (
             <a className="studio-secondary" href={policy.contactUrl}>
-              联系管理员获取{unit}
+              联系管理员申请{unit}
             </a>
           ) : (
             <small>

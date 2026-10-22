@@ -67,24 +67,26 @@ export function AdminOperationsForm({
             </FieldLabel>
           </Field>
         </FieldGroup>
-        <label className="settings-switch">
-          <input
-            type="checkbox"
-            checked={ops.registrationEnabled}
-            onChange={(event) => onChange({ ...ops, registrationEnabled: event.target.checked })}
-          />
-          开放新用户注册
-        </label>
-        <label className="settings-switch">
-          <input
-            type="checkbox"
-            checked={ops.registrationInviteRequired ?? false}
-            onChange={(event) =>
-              onChange({ ...ops, registrationInviteRequired: event.target.checked })
-            }
-          />
-          注册需要邀请码
-        </label>
+        <div className="ops-form-switches">
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={ops.registrationEnabled}
+              onChange={(event) => onChange({ ...ops, registrationEnabled: event.target.checked })}
+            />
+            开放新用户注册
+          </label>
+          <label className="settings-switch">
+            <input
+              type="checkbox"
+              checked={ops.registrationInviteRequired ?? false}
+              onChange={(event) =>
+                onChange({ ...ops, registrationInviteRequired: event.target.checked })
+              }
+            />
+            注册需要邀请码
+          </label>
+        </div>
         <Field>
           <FieldLabel className="settings-field">
             <span>设置或更换邀请码</span>
@@ -143,7 +145,7 @@ export function AdminOperationsForm({
           </Field>
           <Field>
             <FieldLabel className="settings-field">
-              <span>积分补充说明</span>
+              <span>积分申请说明</span>
               <Input
                 value={ops.creditHelpText ?? ''}
                 maxLength={500}

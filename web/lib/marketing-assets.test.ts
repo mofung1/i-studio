@@ -32,10 +32,11 @@ it('ships every configured image at its real dimensions and within the web resou
   expect(manifest.assets.reduce((sum, item) => sum + item.bytes, 0)).toBeLessThan(2.5 * 1024 * 1024)
 })
 
-it('uses one wide hero artwork and eight gallery selections', () => {
+it('uses one wide hero artwork and four distinct gallery selections', () => {
   expect(heroArtwork.sections).toContain('hero')
   expect(heroArtwork.ratio).toBe('16:9')
-  expect(new Set(galleryAssets.map((asset) => asset.id)).size).toBe(8)
+  expect(new Set(galleryAssets.map((asset) => asset.id)).size).toBe(4)
+  expect(galleryAssets.every((asset) => asset.provenance !== 'derived-crop')).toBe(true)
   expect(manifest.assets.filter((entry) => entry.sourceSha256)).toHaveLength(11)
 })
 

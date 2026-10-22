@@ -167,11 +167,7 @@ export const galleryAssets = [
   marketingAssets.fantasy,
   marketingAssets.perfume,
   marketingAssets.fashion,
-  marketingAssets.stillLife,
-  marketingAssets.cityDetail,
-  marketingAssets.coffee,
   marketingAssets.future,
-  marketingAssets.accessory,
 ]
 export const productComparison = {
   before: marketingAssets.skincareBase,

@@ -21,8 +21,6 @@ export function HeroCanvas({ children }: { children: ReactNode }) {
     const ink = element.querySelector<HTMLElement>('[data-hero-ink]')!
     const copy = element.querySelector<HTMLElement>('[data-hero-copy]')!
     const cue = element.querySelector<HTMLElement>('[data-hero-scroll]')!
-    const shade = element.querySelector<HTMLElement>('[data-hero-shade]')!
-    const story = element.querySelector<HTMLElement>('[data-hero-story]')!
     const header = document.querySelector<HTMLElement>('.marketing-header')
     const media = matchMedia(
       '(min-width: 1000px) and (min-height: 620px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)',
@@ -54,7 +52,6 @@ export function HeroCanvas({ children }: { children: ReactNode }) {
       // Copy and title clear the frame before the artwork starts expanding over them.
       const exit = between(progress, 0.08, 0.34)
       const copyExit = between(progress, 0.02, 0.13)
-      const introduction = between(progress, 0.78, 1)
       frame.style.clipPath = `inset(${top * remaining}px ${right * remaining}px ${bottom * remaining}px ${left * remaining}px)`
       reframe.style.transform = `translate3d(${translateX * expansion}px, ${translateY * expansion}px, 0) scale(${1 + (scale - 1) * expansion})`
       const headingX = -exit * 18
@@ -79,11 +76,8 @@ export function HeroCanvas({ children }: { children: ReactNode }) {
       copy.style.opacity = String(1 - copyExit)
       copy.inert = copyExit === 1
       cue.style.opacity = String(1 - between(progress, 0.03, 0.2))
-      shade.style.opacity = String(between(progress, 0.6, 0.96))
-      story.style.opacity = String(introduction)
-      story.style.transform = `translate3d(0, ${(1 - introduction) * 28}px, 0)`
-      story.inert = introduction === 0
-      element.dataset.heroPhase = progress < 0.34 ? 'opening' : progress < 0.88 ? 'expand' : 'story'
+      element.dataset.heroPhase =
+        progress < 0.34 ? 'opening' : progress < 0.88 ? 'expand' : 'expanded'
       element.dataset.heroProgress = progress.toFixed(4)
     }
     function schedule() {
@@ -128,13 +122,13 @@ export function HeroCanvas({ children }: { children: ReactNode }) {
       if (media.matches) {
         measure()
       } else {
-        for (const node of [frame, reframe, contrast, heading, ink, copy, cue, shade, story]) {
+        for (const node of [frame, reframe, contrast, heading, ink, copy, cue]) {
           node.style.removeProperty('transform')
           node.style.removeProperty('opacity')
           node.style.removeProperty('clip-path')
         }
         ink.style.removeProperty('--hero-ink-edge')
-        copy.inert = story.inert = false
+        copy.inert = false
         delete element.dataset.heroProgress
         delete element.dataset.heroPhase
       }

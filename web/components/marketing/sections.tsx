@@ -104,12 +104,12 @@ export function Faq({ items }: { items: FaqItem[] }) {
   )
 }
 
-export function BottomCta() {
+export function BottomCta({ compact = false }: { compact?: boolean }) {
   return (
-    <section className="marketing-bottom-cta">
+    <section className="marketing-bottom-cta" data-compact={compact || undefined}>
       <div className="marketing-container">
         <h2>你的下一张作品，从这里开始</h2>
-        <p>无论是创意探索还是商品视觉制作，都可以从 iStudio 开始。</p>
+        {!compact && <p>无论是创意探索还是商品视觉制作，都可以从 iStudio 开始。</p>}
         <Link className="marketing-button" href="/studio">
           立即开始创作 <ArrowUpRight size={18} aria-hidden="true" />
         </Link>
