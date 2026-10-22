@@ -1,40 +1,5 @@
 import Image from 'next/image'
-import Link from 'next/link'
-import { ArrowUpRight, Check } from 'lucide-react'
-import { galleryAssets, productComparison } from '@/lib/marketing-assets'
-import { ProductComparison } from './product-comparison'
-import { ArtworkGallery } from './artwork-gallery'
-
-export function EcommerceShowcase() {
-  return (
-    <section className="marketing-section visual-commerce" aria-labelledby="commerce-showcase">
-      <div className="marketing-split marketing-split-reverse">
-        <div className="marketing-split-copy">
-          <h2 id="commerce-showcase">
-            让商品视觉制作
-            <br />
-            更简单
-          </h2>
-          <p>从一张商品图，延展更多场景与表达。</p>
-          <ul className="marketing-checks">
-            {['商品主图与展示场景', '产品图片精修', '按模块组织详情素材', '服装组图与模特上身'].map(
-              (text) => (
-                <li key={text}>
-                  <Check size={17} aria-hidden="true" />
-                  {text}
-                </li>
-              ),
-            )}
-          </ul>
-          <Link className="marketing-text-link" href="/tools/ai-product-photo">
-            探索 AI 电商工具 <ArrowUpRight size={17} aria-hidden="true" />
-          </Link>
-        </div>
-        <ProductComparison {...productComparison} />
-      </div>
-    </section>
-  )
-}
+import { galleryAssets } from '@/lib/marketing-assets'
 
 export function CreativeGallery() {
   return (
@@ -48,8 +13,9 @@ export function CreativeGallery() {
           <br />
           都有自己的画面
         </h2>
+        <p>AI 概念作品，展示不同的创作方向。</p>
       </div>
-      <ArtworkGallery>
+      <div className="visual-gallery-grid">
         {galleryAssets.map((asset) => (
           <figure className="visual-gallery-item" key={asset.id}>
             <Image
@@ -57,11 +23,12 @@ export function CreativeGallery() {
               alt={asset.alt}
               width={asset.width}
               height={asset.height}
-              sizes="(max-width: 760px) 75vw, 360px"
+              sizes="(max-width: 760px) calc((100vw - 54px) / 2), 300px"
             />
+            <figcaption>{asset.title}</figcaption>
           </figure>
         ))}
-      </ArtworkGallery>
+      </div>
     </section>
   )
 }

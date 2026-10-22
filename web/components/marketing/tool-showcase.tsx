@@ -2,6 +2,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowUpRight } from 'lucide-react'
 import { showcaseTools, type ShowcaseTool } from '@/lib/tool-showcase'
+import { productComparison } from '@/lib/marketing-assets'
+import { ProductComparison } from './product-comparison'
 import {
   ToolShowcaseAnchors,
   ToolShowcaseChoice,
@@ -44,7 +46,11 @@ function ToolArtwork({ tool }: { tool: ShowcaseTool }) {
 
 export function ToolShowcase() {
   return (
-    <section className="marketing-section tool-showcase-section" aria-labelledby="core-tools">
+    <section
+      id="creation-showcase"
+      className="marketing-section tool-showcase-section"
+      aria-labelledby="core-tools"
+    >
       <div className="marketing-section-heading">
         <h2 id="core-tools">
           从灵感到成品，
@@ -95,6 +101,19 @@ export function ToolShowcase() {
           </div>
         ))}
       </ToolShowcaseInteraction>
+      <section className="tool-showcase-result" aria-labelledby="commerce-showcase">
+        <div>
+          <h3 id="commerce-showcase">同一件商品，延展新的展示场景。</h3>
+          <p>上传清晰的商品图，用描述确定背景、光线与构图，再核对商品细节。</p>
+          <Link className="marketing-text-link" href="/studio?mode=commerce&task=product-main">
+            制作商品场景图 <ArrowUpRight size={17} aria-hidden="true" />
+          </Link>
+          <p className="marketing-example-note">
+            AI 概念对比。用于商品展示前，请检查外形、颜色与包装文字。
+          </p>
+        </div>
+        <ProductComparison {...productComparison} />
+      </section>
     </section>
   )
 }

@@ -18,12 +18,9 @@ export function WorkbenchPreview() {
           </h2>
         </div>
         <div className="workbench-lead">
-          <p>提示词、参考图、模型与画面参数在同一屏。写下的想法，可以直接进入生成。</p>
-          <ul className="workbench-facts">
-            <li>提示词与参考图同屏</li>
-            <li>16:9 · 4K 参数可调</li>
-            <li>创作记录自动归档</li>
-          </ul>
+          <p>
+            描述、参考图、模型与参数集中在一处，生成后可下载或载入历史继续调整。可用比例与清晰度随所选模型变化。
+          </p>
           <Link className="marketing-text-link" href="/studio">
             打开创作工作台 <ArrowUpRight size={17} aria-hidden="true" />
           </Link>
@@ -43,16 +40,10 @@ export function WorkbenchPreview() {
           创作设置 · 参考图 · 模型参数 · 生成结果
         </figcaption>
       </figure>
-      <div className="workbench-mobile-card">
-        <Monitor size={20} aria-hidden="true" />
-        <div>
-          <strong>工作台在电脑端更完整</strong>
-          <p>提示词、参考图与参数同屏，创作时更顺手。移动端可先浏览案例。</p>
-          <Link href="/studio">
-            仍要打开工作台 <ArrowUpRight size={14} aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
+      <p className="workbench-device-note">
+        <Monitor size={16} aria-hidden="true" />
+        电脑端可同时查看创作参数与生成结果。
+      </p>
     </section>
   )
 }

@@ -219,8 +219,8 @@ export function AdminModelEditor({
           <FieldLegend>渠道与主渠道</FieldLegend>
           <FieldGroup className="ops-form-grid">
             <Field>
-              <FieldLabel>
-                测试画面比例
+              <FieldLabel className="settings-field">
+                <span>测试画面比例</span>
                 <Select value={testRatio} onValueChange={setTestRatio} disabled={locked}>
                   <SelectTrigger aria-label="测试画面比例">
                     <SelectValue />
@@ -238,8 +238,8 @@ export function AdminModelEditor({
               </FieldLabel>
             </Field>
             <Field>
-              <FieldLabel>
-                测试请求档位
+              <FieldLabel className="settings-field">
+                <span>测试请求档位</span>
                 <Select value={testResolution} onValueChange={setTestResolution} disabled={locked}>
                   <SelectTrigger aria-label="测试请求档位">
                     <SelectValue />

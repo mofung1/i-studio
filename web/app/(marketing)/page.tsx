@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { BottomCta, Faq } from '@/components/marketing/sections'
 import { homeDescription, homeFaqs } from '@/lib/marketing-content'
 import { marketingMetadata, serializeJsonLd, siteStructuredData } from '@/lib/seo'
 import { getSiteBranding } from '@/lib/site-settings-server'
 import { legacyStudioQuery } from '@/lib/studio-navigation'
 import { EditorialHero } from '@/components/marketing/editorial-hero'
-import { EcommerceShowcase, CreativeGallery } from '@/components/marketing/visual-sections'
+import { CreativeGallery } from '@/components/marketing/visual-sections'
 import { ToolShowcase } from '@/components/marketing/tool-showcase'
 import { WorkbenchPreview } from '@/components/marketing/workbench-preview'
 
@@ -36,27 +37,28 @@ export default async function HomePage({
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
         />
       )}
-      <main id="marketing-main" tabIndex={-1}>
+      <main id="marketing-main" className="marketing-home" tabIndex={-1}>
         <EditorialHero />
         <div className="marketing-container">
           <ToolShowcase />
           <WorkbenchPreview />
-          <EcommerceShowcase />
           <CreativeGallery />
           <section className="marketing-section marketing-faq-section" aria-labelledby="home-faq">
             <div>
-              <h2 id="home-faq">
-                关于创作，
-                <br />
-                你可能还想知道
-              </h2>
+              <h2 id="home-faq">费用与常见问题</h2>
+              <p>生成前查看预计积分，完成后按实际交付结算，未交付部分自动退回。</p>
+              <Link className="marketing-text-link" href="/account#credits">
+                查看积分获取方式
+              </Link>
             </div>
             <Faq items={homeFaqs} />
           </section>
         </div>
       </main>
-      <BottomCta />
-      <p className="marketing-visual-disclosure marketing-container">展示图片为 AI 概念作品。</p>
+      <BottomCta compact />
+      <p className="marketing-visual-disclosure marketing-container">
+        创作示例为 AI 概念作品；工作台图片为真实界面截图。
+      </p>
     </>
   )
 }

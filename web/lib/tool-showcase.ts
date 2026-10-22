@@ -35,7 +35,7 @@ export const showcaseTools: ShowcaseTool[] = [
     ...existing('ai-product-photo'),
     id: 'product-photo',
     name: 'AI 商品图制作',
-    description: '为商品，换一个出彩的场景。',
+    description: '制作商品主图与场景图，按模块延展详情素材。',
     asset: showcaseAssets.product,
     visual: 'artwork',
     anchor: 'commerce-tools',

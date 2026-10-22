@@ -116,6 +116,28 @@
   width: 1px;
   height: 1px;
 }
+.tool-showcase-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  align-items: center;
+  gap: 64px;
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border-soft);
+}
+.tool-showcase-result h3 {
+  max-width: 520px;
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1.4;
+}
+.tool-showcase-result h3 + p {
+  max-width: 520px;
+  margin-top: 16px;
+  color: var(--foreground-2);
+}
+.tool-showcase-result .marketing-text-link {
+  margin-top: 20px;
+}
 @media (min-width: 1000px) and (hover: hover) and (pointer: fine) {
   .tool-showcase-grid[data-mode='desktop'] {
     display: grid;
@@ -244,6 +266,15 @@
 }
 /* Phones get a compact catalogue: one readable row and one thumbnail per tool. */
 @media (max-width: 760px) {
+  .tool-showcase-result {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    margin-top: 24px;
+    padding-top: 24px;
+  }
+  .tool-showcase-result .visual-comparison {
+    max-width: 400px;
+  }
   .tool-showcase-item {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 92px;
