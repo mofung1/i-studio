@@ -7,40 +7,7 @@
   overflow-wrap: anywhere;
 }
 .model-usage-hint {
-  margin: 0 0 8px;
-}
-.model-guidance summary {
-  width: fit-content;
-  min-height: 32px;
-  padding-block: 5px;
-  cursor: pointer;
-  font-weight: 500;
-  color: var(--foreground);
-}
-.model-guidance summary:focus-visible {
-  outline: 2px solid var(--foreground);
-  outline-offset: 3px;
-  border-radius: 3px;
-}
-.model-guidance dl {
-  display: grid;
-  gap: 6px;
-  margin: 8px 0;
-}
-.model-guidance dl > div {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 12px;
-}
-.model-guidance dt {
-  color: var(--foreground-3);
-}
-.model-guidance dd {
   margin: 0;
-}
-.model-guidance details > p {
-  margin: 8px 0 0;
-  color: var(--foreground-3);
 }
 .result-empty:has(.creation-starter) {
   height: auto;

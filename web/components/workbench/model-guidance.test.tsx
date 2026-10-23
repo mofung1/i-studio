@@ -17,7 +17,7 @@ afterEach(async () => {
   container.remove()
   vi.unstubAllGlobals()
 })
-it('reads arbitrary model metadata, updates it and resets the disclosure when switching models', async () => {
+it('only shows the configured usage hint and updates or clears it when switching models', async () => {
   const model = {
     id: 'new-a',
     name: '未来模型',
@@ -30,27 +30,24 @@ it('reads arbitrary model metadata, updates it and resets the disclosure when sw
   await act(async () => root.render(<ModelGuidance model={model} />))
   expect(container.textContent).toContain('<b>实测建议</b>')
   expect(container.querySelector('b')).toBeNull()
-  expect(container.textContent).toContain('1.25 创作点/张')
-  expect(container.textContent).toContain('3:4')
-  container.querySelector('details')!.open = true
+  expect(container.textContent).toBe('<b>实测建议</b>')
+  expect(container.querySelector('details')).toBeNull()
   await act(async () =>
     root.render(
       <ModelGuidance
         model={{
           ...model,
           id: 'new-b',
-          usageHint: '',
+          usageHint: '  另一个模型的建议  ',
           priceMinor: 0,
           capabilities: { referenceImages: false, aspectRatios: ['1:1'], resolutions: ['1K'] },
         }}
       />,
     ),
   )
-  expect(container.querySelector('.model-usage-hint')).toBeNull()
-  expect(container.querySelector('details')!.open).toBe(false)
-  expect(container.textContent).toContain('仅文字输入')
-  expect(container.textContent).toContain('0 创作点/张')
-  expect(container.textContent).not.toContain('3:4')
+  expect(container.textContent).toBe('另一个模型的建议')
+  await act(async () => root.render(<ModelGuidance model={{ ...model, usageHint: '  ' }} />))
+  expect(container.innerHTML).toBe('')
   await act(async () => root.render(<ModelGuidance />))
   expect(container.innerHTML).toBe('')
 })
