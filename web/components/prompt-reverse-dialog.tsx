@@ -512,8 +512,7 @@ export function PromptReverseDialog({
       <div className="reverse-sheet">
         <header className="reverse-head">
           <div>
-            <h2 id="reverse-title">{'图片反推提示词'}</h2>
-            <p>{'把参考画面变成可编辑的创作描述'}</p>
+            <h2 id="reverse-title">图片反推提示词</h2>
           </div>
           <button
             type="button"
@@ -557,7 +556,6 @@ export function PromptReverseDialog({
                 <section className="reverse-source" aria-label="图片与分析设置">
                   <div className="reverse-section-head">
                     <h3>参考图片</h3>
-                    <span>单张图片</span>
                   </div>
                   <div
                     className={`reverse-image${!localURL && !sourcePath ? ' is-empty' : ''}`}
@@ -578,16 +576,21 @@ export function PromptReverseDialog({
                       <button
                         type="button"
                         className="reverse-upload"
+                        aria-describedby="reverse-upload-help"
                         disabled={!!busy || loading}
                         onClick={() => inputRef.current?.click()}
                       >
                         <ImagePlus size={32} aria-hidden="true" />
                         <strong>添加参考图片</strong>
                         <span>点击上传、拖入或粘贴图片</span>
-                        <small>JPG / PNG / WebP · 最多 10 MB</small>
                       </button>
                     )}
                   </div>
+                  {!localURL && !sourcePath && (
+                    <p className="reverse-upload-help" id="reverse-upload-help">
+                      JPG / PNG / WebP · 最多 10 MB
+                    </p>
+                  )}
                   <input
                     ref={inputRef}
                     type="file"
@@ -928,76 +931,74 @@ export function PromptReverseDialog({
                 </section>
               </div>
             }
-            <footer className="reverse-footer">
-              {
-                <>
-                  <div className="reverse-apply-options">
-                    <label className="reverse-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={includeReference}
-                        disabled={!ready || !!busy}
-                        onChange={(event) => setIncludeReference(event.target.checked)}
-                      />
-                      同时将原图作为生图参考
-                    </label>
-                    {request.currentPrompt?.trim() && (
-                      <Select
-                        value={applyAction}
-                        onValueChange={(value) => setApplyAction(value as 'replace' | 'append')}
-                        disabled={!ready || !!busy}
-                      >
-                        <SelectTrigger size="sm" aria-label="应用提示词的方式">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent portalContainer={dialogRef.current}>
-                          <SelectItem value="replace">替换现有描述</SelectItem>
-                          <SelectItem value="append">追加到现有描述</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                  <div className="reverse-commands">
-                    <button
-                      type="button"
-                      className="settings-command"
+            {task?.result && (
+              <footer className="reverse-footer">
+                <div className="reverse-apply-options">
+                  <label className="reverse-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={includeReference}
                       disabled={!ready || !!busy}
-                      onClick={() => void copy()}
-                    >
-                      {copied ? (
-                        <Check size={15} aria-hidden="true" />
-                      ) : (
-                        <Copy size={15} aria-hidden="true" />
-                      )}
-                      {copied ? '已复制' : '复制'}
-                    </button>
-                    <SavePersonalPrompt
-                      portalContainer={dialogRef.current}
-                      disabled={!ready || !!busy}
-                      className="settings-command"
-                      seed={{
-                        title: previewName ? `反推 · ${previewName}` : '图片反推',
-                        prompt: ready ? drafts[language] : '',
-                        source: `图片反推 · ${mode === 'style' ? '风格' : '画面'}`,
-                      }}
+                      onChange={(event) => setIncludeReference(event.target.checked)}
                     />
-
-                    <button
-                      type="button"
-                      className="settings-primary"
+                    同时将原图作为生图参考
+                  </label>
+                  {request.currentPrompt?.trim() && (
+                    <Select
+                      value={applyAction}
+                      onValueChange={(value) => setApplyAction(value as 'replace' | 'append')}
                       disabled={!ready || !!busy}
-                      onClick={() => void apply()}
                     >
-                      {busy === 'apply' && (
-                        <LoaderCircle className="settings-spinner" size={15} aria-hidden="true" />
-                      )}
-                      应用到生图
-                      <ArrowUpRight size={15} aria-hidden="true" />
-                    </button>
-                  </div>
-                </>
-              }
-            </footer>
+                      <SelectTrigger size="sm" aria-label="应用提示词的方式">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent portalContainer={dialogRef.current}>
+                        <SelectItem value="replace">替换现有描述</SelectItem>
+                        <SelectItem value="append">追加到现有描述</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div className="reverse-commands">
+                  <button
+                    type="button"
+                    className="settings-command"
+                    disabled={!ready || !!busy}
+                    onClick={() => void copy()}
+                  >
+                    {copied ? (
+                      <Check size={15} aria-hidden="true" />
+                    ) : (
+                      <Copy size={15} aria-hidden="true" />
+                    )}
+                    {copied ? '已复制' : '复制'}
+                  </button>
+                  <SavePersonalPrompt
+                    portalContainer={dialogRef.current}
+                    disabled={!ready || !!busy}
+                    className="settings-command"
+                    seed={{
+                      title: previewName ? `反推 · ${previewName}` : '图片反推',
+                      prompt: ready ? drafts[language] : '',
+                      source: `图片反推 · ${mode === 'style' ? '风格' : '画面'}`,
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    className="settings-primary"
+                    disabled={!ready || !!busy}
+                    onClick={() => void apply()}
+                  >
+                    {busy === 'apply' && (
+                      <LoaderCircle className="settings-spinner" size={15} aria-hidden="true" />
+                    )}
+                    应用到生图
+                    <ArrowUpRight size={15} aria-hidden="true" />
+                  </button>
+                </div>
+              </footer>
+            )}
           </>
         )}
       </div>

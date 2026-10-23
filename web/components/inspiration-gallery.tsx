@@ -65,15 +65,6 @@ export function InspirationCard({
       <div className="inspire-actions">
         <button
           type="button"
-          className="inspire-view-button"
-          aria-haspopup="dialog"
-          onClick={() => onInspect(item)}
-        >
-          <ImageIcon size={14} />
-          提示词
-        </button>
-        <button
-          type="button"
           className="inspire-copy-button"
           aria-label="复制提示词"
           onClick={() => onCopy(item)}

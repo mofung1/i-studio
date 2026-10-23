@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
-import { Folder, History, SlidersHorizontal, ListFilter } from 'lucide-react'
+import { History, SlidersHorizontal, ListFilter } from 'lucide-react'
 import Link from 'next/link'
 
 import { AccountMenu } from '@/components/account-menu'
@@ -63,15 +63,6 @@ export function WorkbenchHeader({
           <ListFilter size={16} />
           参数详情
         </button>
-        <Link
-          className="studio-secondary header-assets"
-          href="/assets"
-          aria-label="我的资产"
-          title="我的资产"
-        >
-          <Folder size={16} />
-          我的资产
-        </Link>
         <button
           type="button"
           className={`studio-secondary history-top-trigger ${historyOpen ? 'is-active' : ''}`}

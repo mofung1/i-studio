@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowDown, ArrowUpRight, Monitor } from 'lucide-react'
+import { ArrowDown, ArrowUpRight } from 'lucide-react'
 import { heroArtwork } from '@/lib/marketing-assets'
 import { HeroCanvas } from './hero-canvas'
 
@@ -63,10 +63,6 @@ export function EditorialHero() {
                   制作商品图
                 </Link>
               </div>
-              <span className="editorial-hero-device-hint">
-                <Monitor size={14} aria-hidden="true" />
-                电脑端体验更完整，可先浏览
-              </span>
             </div>
           </div>
           <span className="editorial-hero-scroll" data-hero-scroll aria-hidden="true">

@@ -538,3 +538,59 @@
     flex-shrink: 0;
   }
 }
+
+.account-page .account-summary {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+.account-summary > .credit-benefits {
+  margin-bottom: 0;
+  padding: 20px;
+}
+.account-summary .ops-card-heading {
+  padding: 0;
+  border-bottom: 0;
+  gap: 8px;
+}
+.account-summary .ops-card-heading > a {
+  color: var(--foreground-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.account-summary .credit-benefits-grid {
+  padding: 0;
+  margin-top: 16px;
+}
+.account-page .ops-stats article {
+  padding: 20px;
+  gap: 10px;
+}
+.account-page .ops-stats article > strong {
+  font-size: 28px;
+}
+.account-summary .credit-benefit-item strong {
+  font-size: inherit;
+  letter-spacing: normal;
+}
+.account-page .credit-benefits .ops-card-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-page .credit-benefit-item {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.account-page .credit-benefit-item > p[role='status'] {
+  flex-basis: 100%;
+}
+
+@media (max-width: 1000px) {
+  .account-page .account-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .account-summary > .credit-benefits {
+    grid-column: 1 / -1;
+  }
+}

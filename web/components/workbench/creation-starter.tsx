@@ -46,20 +46,7 @@ export function CreationStarter({
           ))}
         </div>
       )}
-      <ol className="creation-starter-steps">
-        <li>
-          {general
-            ? '填写描述，按需添加参考图'
-            : clothing
-              ? '上传服装素材并确认图种'
-              : '准备商品素材与展示需求'}
-        </li>
-        <li>选择模型，核对能力与画面参数</li>
-        <li>{clothing ? '确认逐张规划和预计积分后生成' : '确认预计积分，再点击生成'}</li>
-      </ol>
-      <p className="creation-starter-note">
-        示例只填入描述，不会自动生成或消耗积分。常用配置可通过顶部“提示词与预设”保存。
-      </p>
+      {canApply && <p className="creation-starter-note">点击示例只填入描述，确认后再生成。</p>}
     </section>
   )
 }

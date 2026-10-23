@@ -69,6 +69,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
   if (trash) params.set('trash', 'true')
   const key = params.toString()
   const filterRef = useRef(key)
+  const hasFilters = Boolean(query || favorite || category !== 'all')
   filterRef.current = key
   useEffect(() => {
     const timer = window.setTimeout(() => setQuery(search.trim()), 250)
@@ -292,7 +293,6 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
                   ))}
                 </div>
                 <footer>
-                  <span>v{item.version}</span>
                   {trash ? (
                     <button
                       className="studio-secondary"
@@ -353,19 +353,25 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
           <div className="library-empty-state">
             <BookMarked size={32} />
             <strong>
-              {trash
-                ? '回收站为空'
-                : query || favorite || category !== 'all'
-                  ? '没有匹配内容'
+              {hasFilters
+                ? '没有匹配内容'
+                : trash
+                  ? '回收站为空'
                   : kind === 'preset'
                     ? '把常用配置保存为创作预设'
                     : '建立自己的提示词收藏'}
             </strong>
-            <p>
-              {kind === 'preset'
-                ? '在工作台点击“提示词与预设”，保存当前模型、比例、风格和描述。'
-                : '新增提示词，或从灵感、作品和图片反推中保存。'}
-            </p>
+            {hasFilters ? (
+              <button className="studio-secondary" onClick={resetFilters}>
+                清除筛选
+              </button>
+            ) : !trash ? (
+              <p>
+                {kind === 'preset'
+                  ? '在工作台点击“提示词与预设”，保存当前模型、比例、风格和描述。'
+                  : '新增提示词，或从灵感、作品和图片反推中保存。'}
+              </p>
+            ) : null}
           </div>
         )}
         {cursor && (

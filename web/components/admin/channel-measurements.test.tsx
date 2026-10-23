@@ -26,7 +26,7 @@ it('loads measurements only when opened and records supplier cost without anothe
     costNote: '',
     createdAt: '2026-10-22T00:00:00Z',
   }
-  vi.mocked(adminRequest).mockImplementation(async (path, method, body) =>
+  vi.mocked(adminRequest).mockImplementation(async (_path, method, body) =>
     method === 'PUT' ? { ...item, ...(body as object) } : { measurements: [item] },
   )
   const container = document.createElement('div')

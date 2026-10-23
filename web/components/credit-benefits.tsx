@@ -26,15 +26,14 @@ export function CreditBenefits({
       aria-labelledby="credit-benefits-title"
     >
       <div className="ops-card-heading">
-        <h2 id="credit-benefits-title">获取{unit}</h2>
+        <h2 id="credit-benefits-title">
+          <CalendarCheck size={18} aria-hidden="true" />
+          每日签到
+        </h2>
         <Link href="/studio">返回创作</Link>
       </div>
       <div className="credit-benefits-grid">
         <div className="credit-benefit-item">
-          <h3>
-            <CalendarCheck size={18} aria-hidden="true" />
-            每日签到
-          </h3>
           {state.claimed ? (
             <p>
               今日已领取{' '}

@@ -345,8 +345,7 @@ it('keeps the previous page correctly labelled on errors and handles an empty le
       .click(),
   )
   expect(container.querySelectorAll('tbody tr')).toHaveLength(0)
-  expect(container.textContent).toContain('第 0–0 条，共 0 条')
-  expect(
-    container.querySelector<HTMLButtonElement>('[aria-label="下一页流水记录"]')?.disabled,
-  ).toBe(true)
+  expect(container.textContent).toContain('暂无余额变动。')
+  expect(container.querySelector('table')).toBeNull()
+  expect(container.querySelector('[aria-label="流水记录分页"]')).toBeNull()
 })

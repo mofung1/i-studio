@@ -1129,6 +1129,10 @@
   color: var(--foreground-3);
   cursor: pointer;
 }
+.personal-prompt-card :is(header, footer) > button:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
 .personal-prompt-card h2 {
   margin: 14px 0 10px;
   font-size: 16px;
@@ -1159,15 +1163,20 @@
   padding-top: 16px;
   margin-top: auto;
 }
-.personal-prompt-card footer > span {
-  margin-right: auto;
-  color: var(--foreground-3);
-  font-size: 11px;
-}
 .personal-prompt-card footer .studio-primary {
+  margin-left: auto;
   min-height: 32px;
   padding: 0 12px;
   font-size: 12px;
+}
+@media (pointer: coarse), (max-width: 700px) {
+  .personal-prompt-card :is(header, footer) > button:not(.studio-primary):not(.studio-secondary) {
+    width: 44px;
+    height: 44px;
+  }
+  .personal-prompt-card footer :is(.studio-primary, .studio-secondary) {
+    min-height: 44px;
+  }
 }
 .personal-preset-summary {
   display: grid;

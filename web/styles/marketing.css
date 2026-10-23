@@ -60,7 +60,8 @@
   gap: 40px;
 }
 .marketing-header .brand {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 .marketing-header .brand strong {
   font-size: 23px;
@@ -82,6 +83,7 @@
 .marketing-header-actions {
   margin-left: auto;
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 20px;
   font-size: 14px;
@@ -555,9 +557,6 @@
   .marketing-header-actions {
     gap: 12px;
   }
-  .marketing-login {
-    display: none;
-  }
   .marketing-split,
   .marketing-faq-section {
     gap: 40px;
@@ -581,6 +580,9 @@
   }
 }
 @media (max-width: 760px) {
+  .marketing-login {
+    display: none;
+  }
   .marketing-container {
     width: calc(100% - 40px);
   }
@@ -743,6 +745,12 @@
     padding-top: 0;
   }
 }
+@media (max-width: 380px) {
+  .marketing-header-actions > .marketing-button-small {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .marketing-site *,
   .marketing-site *::before,

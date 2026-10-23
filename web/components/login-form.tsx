@@ -2,7 +2,7 @@
 
 import { ThemeToggle } from '@/components/theme-toggle'
 
-import { ArrowLeft, LockKeyhole, UserRound } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
@@ -14,6 +14,7 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
   const searchParams = useSearchParams()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordVisible, setPasswordVisible] = useState(false)
   const [registrationEnabled, setRegistrationEnabled] = useState(false)
   const [inviteRequired, setInviteRequired] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
@@ -74,7 +75,7 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
   }
 
   return (
-    <main className="auth-page">
+    <main className={`auth-page${admin ? '' : ' auth-page-public'}`}>
       <ThemeToggle />
       <form className="auth-card" onSubmit={submit} aria-busy={isSubmitting}>
         <Link href="/" className="auth-back">
@@ -116,13 +117,14 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
             />
           </div>
         </label>
-        <label>
-          密码
+        <div className="auth-password-field">
+          <label htmlFor={admin ? 'admin-password' : 'password'}>密码</label>
           <div className="auth-input">
             <LockKeyhole size={17} aria-hidden="true" />
             <input
+              id={admin ? 'admin-password' : 'password'}
               name={admin ? 'admin-password' : 'password'}
-              type="password"
+              type={!admin && passwordVisible ? 'text' : 'password'}
               autoComplete={register ? 'new-password' : 'current-password'}
               required
               minLength={8}
@@ -132,8 +134,24 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
               onChange={(event) => setPassword(event.target.value)}
               placeholder="8–128 位"
             />
+            {!admin && (
+              <button
+                className="auth-password-toggle"
+                type="button"
+                aria-label={passwordVisible ? '隐藏密码' : '显示密码'}
+                aria-pressed={passwordVisible}
+                disabled={isSubmitting}
+                onClick={() => setPasswordVisible((visible) => !visible)}
+              >
+                {passwordVisible ? (
+                  <EyeOff size={17} aria-hidden="true" />
+                ) : (
+                  <Eye size={17} aria-hidden="true" />
+                )}
+              </button>
+            )}
           </div>
-        </label>
+        </div>
         {register && inviteRequired && (
           <label>
             邀请码
@@ -168,6 +186,7 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
               disabled={isSubmitting}
               onClick={() => {
                 setRegister(!register)
+                setPasswordVisible(false)
                 setNotice('')
               }}
             >

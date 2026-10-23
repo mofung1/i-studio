@@ -792,3 +792,111 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
   top: 50%;
   transform: translateY(-50%);
 }
+
+/* Compact mobile navigation leaves the first screen for the current tool. */
+.studio-mobile-navigation-toggle {
+  display: none;
+}
+@media (max-width: 780px) {
+  .studio-shell > .workbench-rail,
+  .workbench-shell > .workbench-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 6px 12px;
+  }
+  .studio-rail-heading {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .studio-mobile-navigation-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--foreground-2);
+    cursor: pointer;
+  }
+  .studio-mobile-navigation-toggle:hover {
+    color: var(--foreground);
+    background: var(--surface-2);
+  }
+  .studio-mobile-navigation-toggle:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+  .workbench-rail .workbench-rail-nav {
+    flex: 0 0 auto;
+    display: none;
+    width: 100%;
+    gap: 4px;
+    padding: 0;
+  }
+  .workbench-rail .workbench-rail-nav:has(.studio-task-nav),
+  .workbench-rail.is-navigation-open .workbench-rail-nav {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .workbench-rail .workbench-rail-nav > :is(a, button) {
+    display: none;
+  }
+  .workbench-rail.is-navigation-open .workbench-rail-nav > :is(a, button) {
+    display: flex;
+    flex: 1 1 calc(50% - 4px);
+    min-height: 44px;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .workbench-rail .workbench-rail-nav .studio-task-nav {
+    order: 2;
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border-soft);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .workbench-rail .studio-rail-footer {
+    display: none;
+    position: static;
+    width: 100%;
+    margin: 4px 0 0;
+    padding: 4px 0;
+    border-top: 1px solid var(--border-soft);
+  }
+  .workbench-rail.is-navigation-open .studio-rail-footer {
+    display: flex;
+  }
+  .workbench-rail .studio-rail-footer > a {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .account-menu-loading {
+    width: 32px;
+    min-width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+  .account-menu-loading-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
