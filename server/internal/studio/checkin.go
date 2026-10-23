@@ -5,11 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
-	"net/mail"
-	"net/url"
-	"strings"
 	"time"
-	"unicode/utf8"
 )
 
 type checkinState struct {
@@ -26,27 +22,7 @@ type checkinState struct {
 
 type creditPolicy struct {
 	SignupGiftMinor int64        `json:"signupGiftMinor"`
-	HelpText        string       `json:"helpText"`
-	ContactURL      string       `json:"contactUrl"`
 	Checkin         checkinState `json:"checkin"`
-}
-
-func validCreditContact(text, link string) bool {
-	if utf8.RuneCountInString(text) > 500 || len(link) > 500 || strings.ContainsAny(link, "\r\n\t") {
-		return false
-	}
-	if link == "" {
-		return true
-	}
-	u, err := url.Parse(link)
-	if err != nil || u.User != nil {
-		return false
-	}
-	if u.Scheme == "mailto" {
-		address, err := mail.ParseAddress(u.Opaque)
-		return err == nil && address.Address == u.Opaque && u.RawQuery == "" && u.Fragment == ""
-	}
-	return (u.Scheme == "https" || u.Scheme == "http") && u.Hostname() != "" && u.Opaque == ""
 }
 
 type checkinReader interface {

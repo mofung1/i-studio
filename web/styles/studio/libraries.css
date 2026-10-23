@@ -63,7 +63,7 @@
   font-size: var(--text-ui);
   font-weight: 500;
 }
-.site-name-field input {
+.site-name-field :is(input, textarea) {
   width: 100%;
   height: 44px;
   padding: 10px 12px;
@@ -73,7 +73,7 @@
   color: var(--foreground);
   font: inherit;
 }
-.site-name-field input:focus-visible {
+.site-name-field :is(input, textarea):focus-visible {
   outline: 2px solid var(--foreground-3);
   outline-offset: 2px;
 }
@@ -373,7 +373,7 @@
   border-color: var(--border);
 }
 .clothing-field-help {
-  margin: 0 0 12px;
+  margin: 8px 0 0;
   color: var(--muted);
   font-size: var(--text-caption);
   line-height: 1.7;
@@ -1462,7 +1462,7 @@
 }
 .credit-benefits-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
   padding: 24px;
 }
@@ -1480,23 +1480,10 @@
   font-size: 15px;
   font-weight: 600;
 }
-.credit-benefit-item p,
-.credit-rules p {
+.credit-benefit-item p {
   margin: 0;
   line-height: 1.8;
   overflow-wrap: anywhere;
-}
-.credit-benefit-item small,
-.credit-rules {
-  color: var(--foreground-3);
-  font-size: var(--text-small);
-  line-height: 1.8;
-}
-.credit-rules {
-  display: grid;
-  gap: 6px;
-  padding: 20px 24px;
-  border-top: 1px solid var(--border-soft);
 }
 .credit-claim-message {
   color: var(--foreground);
@@ -1577,4 +1564,64 @@
     right: 72px;
     bottom: auto;
   }
+}
+
+.site-name-field textarea {
+  height: auto;
+  min-height: 112px;
+  resize: vertical;
+  line-height: 1.7;
+}
+.site-contact-fields {
+  min-width: 0;
+  margin: 28px 0 24px;
+  padding: 24px 0 0;
+  border: 0;
+  border-top: 1px solid var(--border-soft);
+}
+.site-contact-fields legend {
+  padding: 0 12px 0 0;
+  font-size: 16px;
+  font-weight: 550;
+}
+.site-contact-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 16px;
+}
+.site-contact-modes label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.site-contact-upload input[type='file'] {
+  height: auto;
+  min-height: 44px;
+  font-size: var(--text-small);
+}
+.site-contact-content {
+  padding: 24px;
+}
+.site-contact-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+.site-contact-qr {
+  display: block;
+  width: 208px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: #fff;
+}
+.site-contact-upload .site-contact-qr {
+  margin-top: 16px;
 }

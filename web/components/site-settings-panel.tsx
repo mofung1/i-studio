@@ -11,6 +11,7 @@ import {
 } from '@/lib/site-settings'
 import { saveSiteBranding } from '@/lib/admin-site-settings'
 import { BrandLogo } from './brand'
+import { SiteContactFields } from './site-contact-fields'
 import { useSiteBranding } from './site-branding-provider'
 
 export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void }) {
@@ -21,6 +22,10 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
   const [logo, setLogo] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [removeLogo, setRemoveLogo] = useState(false)
+  const [contactMode, setContactMode] = useState<NonNullable<SiteBranding['contactMode']>>('none')
+  const [contactText, setContactText] = useState('')
+  const [contactQr, setContactQr] = useState<File | null>(null)
+  const [contactPreview, setContactPreview] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -28,7 +33,13 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
   const [reload, setReload] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
   const dirty =
-    !!original && (name.trim() !== original.name || !!logo || (removeLogo && !!original.logoPath))
+    !!original &&
+    (name.trim() !== original.name ||
+      !!logo ||
+      (removeLogo && !!original.logoPath) ||
+      contactMode !== (original.contactMode ?? 'none') ||
+      (contactMode === 'text' && contactText.trim() !== (original.contactText ?? '')) ||
+      (contactMode === 'qrcode' && !!contactQr))
 
   useEffect(() => {
     const controller = new AbortController()
@@ -38,6 +49,8 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
       .then((settings) => {
         setOriginal(settings)
         setName(settings.name)
+        setContactMode(settings.contactMode ?? 'none')
+        setContactText(settings.contactText ?? '')
       })
       .catch((error) => {
         if (!controller.signal.aborted)
@@ -58,6 +71,16 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
     setPreview(url)
     return () => URL.revokeObjectURL(url)
   }, [logo])
+
+  useEffect(() => {
+    if (!contactQr) {
+      setContactPreview('')
+      return
+    }
+    const url = URL.createObjectURL(contactQr)
+    setContactPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [contactQr])
 
   useEffect(() => {
     onDirtyChange(dirty)
@@ -102,14 +125,21 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
     setError('')
     setSaved('')
     try {
-      const settings = await saveSiteBranding(name, logo, removeLogo)
+      const settings = await saveSiteBranding(name, logo, removeLogo, {
+        mode: contactMode,
+        text: contactText,
+        qr: contactQr,
+      })
       setOriginal(settings)
       setName(settings.name)
       setLogo(null)
       setRemoveLogo(false)
+      setContactMode(settings.contactMode ?? 'none')
+      setContactText(settings.contactText ?? '')
+      setContactQr(null)
       updateBranding(settings)
       router.refresh()
-      setSaved('网站配置已保存，全站品牌已更新')
+      setSaved('网站配置已保存')
     } catch (error) {
       setError(error instanceof Error ? error.message : '网站配置保存失败')
     } finally {
@@ -117,6 +147,8 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
     }
   }
 
+  const contactSource =
+    contactPreview || (original ? siteLogoUrl(original.contactQrPath ?? '') : '')
   const logoSource = preview || (!removeLogo && original ? siteLogoUrl(original.logoPath) : '')
   return (
     <section id="site-panel" aria-labelledby="site-brand-heading" className="site-settings-panel">
@@ -210,6 +242,39 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
               <p>图片会按原比例显示</p>
             </div>
           </fieldset>
+          <SiteContactFields
+            mode={contactMode}
+            text={contactText}
+            qrSource={contactSource}
+            filename={contactQr?.name ?? ''}
+            disabled={saving}
+            onModeChange={(value) => {
+              setContactMode(value)
+              setSaved('')
+              setError('')
+            }}
+            onTextChange={(value) => {
+              setContactText(value)
+              setSaved('')
+              setError('')
+            }}
+            onFileChange={(event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              if (!file) return
+              setSaved('')
+              if (
+                !['image/png', 'image/jpeg'].includes(file.type) ||
+                file.size === 0 ||
+                file.size > 2 * 1024 * 1024
+              ) {
+                setError('请选择不超过 2 MB 的 PNG 或 JPG 二维码图片')
+                return
+              }
+              setError('')
+              setContactQr(file)
+            }}
+          />
           {error && (
             <p className="settings-error" role="alert">
               {error}
@@ -228,6 +293,9 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
               onClick={() => {
                 setName(defaultSiteBranding.name)
                 restoreLogo()
+                setContactMode('none')
+                setContactText('')
+                setContactQr(null)
               }}
             >
               <RotateCcw size={16} aria-hidden="true" />
@@ -236,7 +304,13 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
             <button
               type="submit"
               className="settings-primary"
-              disabled={saving || !dirty || !name.trim()}
+              disabled={
+                saving ||
+                !dirty ||
+                !name.trim() ||
+                (contactMode === 'text' && !contactText.trim()) ||
+                (contactMode === 'qrcode' && !contactSource)
+              }
             >
               {saving ? (
                 <LoaderCircle className="settings-spinner" size={16} aria-hidden="true" />

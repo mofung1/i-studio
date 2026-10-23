@@ -9,6 +9,7 @@ import { getAccessToken } from '@/lib/api'
 import { accountRevisionKey, formatCredits, refreshAccount } from '@/lib/credits'
 import { LibrarySelect } from '@/components/library-controls'
 import { CreditBenefits } from '@/components/credit-benefits'
+import { SiteContact } from '@/components/site-contact'
 import type { CheckinState, CreditPolicy } from '@/lib/credit-policy'
 interface Entry {
   id: number
@@ -23,7 +24,6 @@ interface Entry {
 }
 interface AccountDetail {
   creditPolicy?: CreditPolicy
-  storage?: { usedBytes: number; limitBytes: number; estimatedTemporaryBytes: number }
   available: number
   held: number
   creditName: string
@@ -209,31 +209,17 @@ export default function AccountPage() {
                 <strong>{formatCredits(data?.held ?? account.held)}</strong>
                 <small>生成完成后按实际交付结算，未使用部分自动退回</small>
               </article>
-              {data?.storage && (
-                <article>
-                  <span>图片存储用量</span>
-                  <strong>
-                    {(data.storage.usedBytes / 1048576).toFixed(1)} /{' '}
-                    {(data.storage.limitBytes / 1048576).toFixed(0)} MiB
-                  </strong>
-                  <small>
-                    包含作品、素材及反推暂存；历史引用素材仍占用空间。
-                    {data.storage.estimatedTemporaryBytes > 0 &&
-                      '部分旧反推文件按上传上限预留，过期清理后释放。'}
-                  </small>
-                </article>
-              )}
             </div>
             {data?.creditPolicy && (
               <CreditBenefits
                 policy={data.creditPolicy}
                 unit={data.creditName}
-                username={account.user?.username ?? ''}
                 claiming={claiming}
                 message={claimMessage}
                 onClaim={() => void claim()}
               />
             )}
+            <SiteContact />
             <section className="ops-card" aria-labelledby="account-ledger-title" aria-busy={busy}>
               <div className="ops-card-heading">
                 <h2 id="account-ledger-title">流水记录</h2>
@@ -276,7 +262,7 @@ export default function AccountPage() {
                       ? '正在读取流水记录…'
                       : error
                         ? '流水记录读取失败，请刷新重试。'
-                        : '暂无余额变动；需要增加余额时请联系网站管理员。'}
+                        : '暂无余额变动。'}
                   </p>
                 )}
               </div>

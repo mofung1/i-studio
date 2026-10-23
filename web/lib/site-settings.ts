@@ -3,6 +3,9 @@ import { apiBaseUrl, readApiError } from './api'
 export interface SiteBranding {
   name: string
   logoPath: string
+  contactMode?: 'none' | 'text' | 'qrcode'
+  contactText?: string
+  contactQrPath?: string
 }
 
 export const defaultSiteBranding: SiteBranding = { name: 'iStudio', logoPath: '' }

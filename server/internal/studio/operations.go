@@ -24,8 +24,6 @@ type operationSettings struct {
 	CheckinEnabled               bool   `json:"checkinEnabled"`
 	CheckinRewardMinor           int64  `json:"checkinRewardMinor"`
 	CheckinDailyBudgetMinor      int64  `json:"checkinDailyBudgetMinor"`
-	CreditHelpText               string `json:"creditHelpText"`
-	CreditContactURL             string `json:"creditContactUrl"`
 	AnnouncementEnabled          bool   `json:"announcementEnabled"`
 	AnnouncementTitle            string `json:"announcementTitle"`
 	AnnouncementContent          string `json:"announcementContent"`
@@ -73,7 +71,6 @@ func validOperationSettings(c operationSettings) bool {
 		c.SignupGiftMinor >= 0 && c.SignupGiftMinor <= 100000000 &&
 		c.CheckinRewardMinor >= 0 && c.CheckinRewardMinor <= 100000000 &&
 		c.CheckinDailyBudgetMinor >= 0 && c.CheckinDailyBudgetMinor <= maxCreditMinor &&
-		validCreditContact(c.CreditHelpText, c.CreditContactURL) &&
 		validAnnouncement(c) &&
 		c.MaxConcurrentTasks >= 1 && c.MaxConcurrentTasks <= 16 &&
 		c.GenerationRequestsPerHour >= 1 && c.GenerationRequestsPerHour <= 1000 &&
@@ -194,7 +191,7 @@ func (s *Service) accountHandler(w http.ResponseWriter, r *http.Request) {
 		var state checkinState
 		state, err = readCheckinState(r.Context(), tx, c, u.ID)
 		if err == nil {
-			responsePolicy := creditPolicy{SignupGiftMinor: c.SignupGiftMinor, HelpText: c.CreditHelpText, ContactURL: c.CreditContactURL, Checkin: state}
+			responsePolicy := creditPolicy{SignupGiftMinor: c.SignupGiftMinor, Checkin: state}
 			// Attach this to the same snapshot as the balance and ledger below.
 			policy = &responsePolicy
 		}
@@ -207,12 +204,6 @@ func (s *Service) accountHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response := page.response("ledger", ledger)
-	var storageBytes, estimatedBytes int64
-	if err = s.db.QueryRow("SELECT account_storage_bytes($1),COALESCE((SELECT sum(storage_bytes) FROM prompt_reverse_tasks WHERE user_id=$1 AND storage_estimated),0)", u.ID).Scan(&storageBytes, &estimatedBytes); err != nil {
-		s.error(w, 503, "ACCOUNT_UNAVAILABLE", "存储用量暂时不可用")
-		return
-	}
-	response["storage"] = map[string]int64{"usedBytes": storageBytes, "limitBytes": c.AccountStorageLimitBytes, "estimatedTemporaryBytes": estimatedBytes}
 	response["user"] = map[string]string{"id": u.ID, "username": u.Username, "role": u.Role}
 	response["available"], response["held"] = available, held
 	response["creditName"], response["creditScale"] = c.CreditName, creditScale

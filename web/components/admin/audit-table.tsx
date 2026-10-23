@@ -20,7 +20,7 @@ const actionLabels: Record<string, string> = {
   'DELETE ai-endpoints': '删除 AI 服务',
   'PUT prompt-templates': '保存系统提示词',
   'PUT prompt-reverse-settings': '保存图片反推配置',
-  'PUT site-settings': '更新网站品牌',
+  'PUT site-settings': '更新网站配置',
   'POST inspiration/prompts': '新增灵感提示词',
   'PUT inspiration/prompts': '编辑灵感提示词',
   'DELETE inspiration/prompts': '删除灵感提示词',

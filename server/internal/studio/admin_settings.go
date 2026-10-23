@@ -36,8 +36,6 @@ func (s *Service) adminSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	c := input.operationSettings
 	c.CreditName = strings.TrimSpace(c.CreditName)
-	c.CreditHelpText = strings.TrimSpace(c.CreditHelpText)
-	c.CreditContactURL = strings.TrimSpace(c.CreditContactURL)
 	c.AnnouncementTitle = strings.TrimSpace(c.AnnouncementTitle)
 	c.AnnouncementContent = strings.TrimSpace(c.AnnouncementContent)
 	if !validOperationSettings(c) {

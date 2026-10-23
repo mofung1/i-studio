@@ -107,11 +107,21 @@ it('preserves reverse error status and cannot override either session through re
 it('keeps public branding reads anonymous and branding writes in the admin realm', async () => {
   await readSiteBranding()
   const logo = new File(['image'], 'logo.png', { type: 'image/png' })
-  await saveSiteBranding('Studio', logo, false)
+  await saveSiteBranding('Studio', logo, false, { mode: 'qrcode', text: '', qr: logo })
   expect(new Headers(fetcher.mock.calls[0]![1]?.headers).has('Authorization')).toBe(false)
   const [url, init] = fetcher.mock.calls[1]!
   expect(new URL(String(url)).pathname).toBe('/v1/admin/site-settings')
   expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer operator')
   expect(new Headers(init?.headers).has('Content-Type')).toBe(false)
   expect((init?.body as FormData).get('logo')).toBeInstanceOf(File)
+  expect((init?.body as FormData).get('contactMode')).toBe('qrcode')
+  expect((init?.body as FormData).get('contactQr')).toBeInstanceOf(File)
+  await saveSiteBranding('Studio', null, false, {
+    mode: 'text',
+    text: '  微信：studio  ',
+    qr: logo,
+  })
+  const textBody = fetcher.mock.calls[2]![1]?.body as FormData
+  expect(textBody.get('contactText')).toBe('微信：studio')
+  expect(textBody.has('contactQr')).toBe(false)
 })
