@@ -11,7 +11,5 @@ export interface CheckinState {
 }
 export interface CreditPolicy {
   signupGiftMinor: number
-  helpText: string
-  contactUrl: string
   checkin: CheckinState
 }

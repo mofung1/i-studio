@@ -48,7 +48,11 @@ it('uses the existing branding form and protects edits until they are saved', as
       .querySelector('form')!
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
   )
-  expect(saveSiteBranding).toHaveBeenCalledWith('我的工作台', null, false)
+  expect(saveSiteBranding).toHaveBeenCalledWith('我的工作台', null, false, {
+    mode: 'none',
+    text: '',
+    qr: null,
+  })
   expect(refresh).toHaveBeenCalled()
   expect(host.textContent).toContain('网站配置已保存')
   expect(confirmAdminNavigation()).toBe(true)

@@ -109,7 +109,7 @@ export function AdminOperationsForm({
         </Field>
       </FieldSet>
       <FieldSet disabled={busy}>
-        <FieldLegend>签到与积分获取</FieldLegend>
+        <FieldLegend>每日签到</FieldLegend>
         <label className="settings-switch">
           <input
             type="checkbox"
@@ -141,29 +141,6 @@ export function AdminOperationsForm({
                 onChange={(event) => onCheckinBudgetChange(event.target.value)}
               />
               <small>单位：{ops.creditName}。0 或剩余额度不足时暂停领取，不影响已到账奖励。</small>
-            </FieldLabel>
-          </Field>
-          <Field>
-            <FieldLabel className="settings-field">
-              <span>积分申请说明</span>
-              <Input
-                value={ops.creditHelpText ?? ''}
-                maxLength={500}
-                onChange={(event) => onChange({ ...ops, creditHelpText: event.target.value })}
-                placeholder="说明申请积分时需要提供的信息"
-              />
-            </FieldLabel>
-          </Field>
-          <Field>
-            <FieldLabel className="settings-field">
-              <span>积分联系入口</span>
-              <Input
-                value={ops.creditContactUrl ?? ''}
-                maxLength={500}
-                onChange={(event) => onChange({ ...ops, creditContactUrl: event.target.value })}
-                placeholder="https://客服页面 或 mailto:邮箱"
-              />
-              <small>支持 http、https 网页或 mailto 邮箱链接；留空时明确提示入口暂未配置。</small>
             </FieldLabel>
           </Field>
         </FieldGroup>

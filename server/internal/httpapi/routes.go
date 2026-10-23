@@ -106,6 +106,7 @@ func (s Handlers) registerSettingsRoutes(api *gin.RouterGroup) {
 		registerMethods(group, "", editor.handler, "GET", "PUT")
 	}
 	registerMethods(api, "/site-settings/logo/:filename", s.SiteLogo, "GET", "HEAD")
+	registerMethods(api, "/site-settings/contact/:filename", s.SiteLogo, "GET", "HEAD")
 }
 
 func (s Handlers) registerInspirationRoutes(api *gin.RouterGroup) {

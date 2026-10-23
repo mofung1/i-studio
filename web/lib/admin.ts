@@ -48,8 +48,6 @@ export interface AdminOperations {
   checkinEnabled?: boolean
   checkinRewardMinor?: number
   checkinDailyBudgetMinor?: number
-  creditHelpText?: string
-  creditContactUrl?: string
   announcementEnabled?: boolean
   announcementTitle?: string
   announcementContent?: string

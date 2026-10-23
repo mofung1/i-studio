@@ -221,7 +221,7 @@ func TestSignupGiftSettingsAndPublicAccountLifecycle(t *testing.T) {
 			t.Fatal("gift ledger mismatch", uid, ledger)
 		}
 	}
-	for _, body := range []string{`{"signupGiftMinor":-1}`, `{"signupGiftMinor":1.25}`, `{"signupGiftMinor":100000001}`, `{"creditContactUrl":"javascript:alert(1)"}`, `{"checkinRewardMinor":-1}`, `{"announcementEnabled":true}`} {
+	for _, body := range []string{`{"signupGiftMinor":-1}`, `{"signupGiftMinor":1.25}`, `{"signupGiftMinor":100000001}`, `{"checkinRewardMinor":-1}`, `{"announcementEnabled":true}`} {
 		if w = put(body); w.Code != 400 {
 			t.Fatal("invalid settings accepted", body, w.Code)
 		}
@@ -255,16 +255,7 @@ func TestAnnouncementDraftPublicationAndVersion(t *testing.T) {
 	if validOperationSettings(c) {
 		t.Fatal("unbounded announcement accepted")
 	}
-	for _, link := range []string{"mailto:support@example.com", "https://example.com/support", ""} {
-		if !validCreditContact("补充说明", link) {
-			t.Fatal(link)
-		}
-	}
-	for _, link := range []string{"javascript:alert(1)", "data:text/html,x", "https://user:secret@example.com", "mailto:a@example.com?bcc=other@example.com"} {
-		if validCreditContact("", link) {
-			t.Fatal("unsafe link", link)
-		}
-	}
+
 }
 
 func TestSignupGiftConcurrentSubmissionAndLedgerRollback(t *testing.T) {

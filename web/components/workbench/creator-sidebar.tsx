@@ -453,11 +453,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 <legend>{assetLabel}</legend>
                 <span>{maxFiles === 1 ? '必须 1 张' : `1–${maxFiles} 张`}</span>
               </div>
-              <p className="field-helper">
-                {task === 'product-retouch'
-                  ? '以原图为基础做局部精修；需要换底或调整角度时，请在补充要求中说明。'
-                  : '多张素材请使用同一商品的不同角度，外观、包装与文字以这些原图为准。'}
-              </p>
               <ReferenceUploader
                 collapseAt={2}
                 disabledReason={referenceDisabledReason}
@@ -469,6 +464,11 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 emptyHint="拖入图片，或打开素材选择器"
                 acceptedHint={`JPG / PNG / WebP · 最多 ${maxFiles} 张`}
               />
+              <p className="field-helper">
+                {task === 'product-retouch'
+                  ? '以原图为基础做局部精修；需要换底或调整角度时，请在补充要求中说明。'
+                  : '多张素材请使用同一商品的不同角度，外观、包装与文字以这些原图为准。'}
+              </p>
             </fieldset>
           )}
 
@@ -478,7 +478,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 <legend>参考图（爆款图）</legend>
                 <span>必须 1 张</span>
               </div>
-              <p className="field-helper">只参考构图、背景与光影；最终商品和包装来自商品原图。</p>
               <ReferenceUploader
                 files={referenceFiles}
                 disabledReason={referenceDisabledReason}
@@ -489,6 +488,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 emptyHint="选择本地图片或素材库"
                 acceptedHint="JPG / PNG / WebP · 仅 1 张"
               />
+              <p className="field-helper">只参考构图、背景与光影；最终商品和包装来自商品原图。</p>
             </fieldset>
           )}
 

@@ -8,14 +8,12 @@ import { formatCredits } from '@/lib/credits'
 export function CreditBenefits({
   policy,
   unit,
-  username,
   claiming,
   message,
   onClaim,
 }: {
   policy: CreditPolicy
   unit: string
-  username: string
   claiming: boolean
   message: string
   onClaim: () => void
@@ -54,7 +52,6 @@ export function CreditBenefits({
           ) : (
             <p>签到奖励暂未开放。</p>
           )}
-          <small>按北京时间每天领取一次，次日 00:00 更新。</small>
           {(state.enabled || state.claimed) && (
             <button
               type="button"
@@ -85,35 +82,6 @@ export function CreditBenefits({
             </p>
           )}
         </div>
-        <div className="credit-benefit-item">
-          <h3>申请{unit}</h3>
-          <p>{policy.helpText || `如需申请${unit}，请联系网站管理员，并提供你的用户名。`}</p>
-          <p>
-            当前用户名：<strong>{username}</strong>
-          </p>
-          {policy.contactUrl ? (
-            <a className="studio-secondary" href={policy.contactUrl}>
-              联系管理员申请{unit}
-            </a>
-          ) : (
-            <small>
-              联系入口暂未配置。
-              {state.enabled ? '你可以先通过每日签到领取。' : '请等待网站管理员配置联系入口。'}
-            </small>
-          )}
-          <small>当前采用管理员人工发放，到账后可在下方流水中核对。</small>
-        </div>
-      </div>
-      <div className="credit-rules">
-        <p>
-          当前新账号注册赠送 {formatCredits(policy.signupGiftMinor)} {unit}
-          ，已有账号不补发；实际以注册时生效的配置为准。
-        </p>
-        <p>
-          生成按所选模型单价 × 图片张数预留{unit}
-          ，完成后按实际交付张数结算，失败或未交付部分自动退回。生成中的预留不计入可用余额。
-        </p>
-        <p>提示词优化、图片反推和服装分析不另扣{unit}，受平台辅助次数和额度限制。</p>
       </div>
     </section>
   )

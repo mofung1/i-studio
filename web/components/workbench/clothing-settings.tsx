@@ -75,11 +75,6 @@ export function ClothingSettings({
           <legend>服装原图</legend>
           <span>1–6 张</span>
         </div>
-        <p className="clothing-field-help">
-          {value.mode === 'product'
-            ? '上传同一件服装的不同角度，建议包含正面、背面与细节。'
-            : '上传同套搭配中的服装，模特将穿着这套搭配。'}
-        </p>
         <ReferenceUploader
           disabledReason={referenceDisabledReason}
           collapseAt={2}
@@ -91,6 +86,11 @@ export function ClothingSettings({
           emptyHint="拖入图片，或打开素材选择器"
           acceptedHint="JPG / PNG / WebP · 单张最多 10 MB"
         />
+        <p className="clothing-field-help">
+          {value.mode === 'product'
+            ? '上传同一件服装的不同角度，建议包含正面、背面与细节。'
+            : '上传同套搭配中的服装，模特将穿着这套搭配。'}
+        </p>
       </fieldset>
       {value.mode === 'model' && (
         <>
@@ -99,7 +99,6 @@ export function ClothingSettings({
               <legend>模特照片</legend>
               <span>必须 1 张</span>
             </div>
-            <p className="clothing-field-help">建议上传人物清晰、身体完整的照片。</p>
             <ReferenceUploader
               files={value.models}
               disabledReason={referenceDisabledReason}
@@ -110,6 +109,7 @@ export function ClothingSettings({
               emptyHint="用于保持人物身份与体型"
               acceptedHint="JPG / PNG / WebP"
             />
+            <p className="clothing-field-help">建议上传人物清晰、身体完整的照片。</p>
           </fieldset>
           <fieldset className="form-section config-card config-card-assets composer-media">
             <div className="field-heading">

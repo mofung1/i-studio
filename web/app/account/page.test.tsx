@@ -106,8 +106,6 @@ it('claims once, refreshes balance and ledger, and retains the real reward after
       available: claimed ? 125 : 0,
       creditPolicy: {
         signupGiftMinor: 250,
-        helpText: '请提供用户名申请积分',
-        contactUrl: 'mailto:support@example.com',
         checkin: claimed
           ? {
               ...checkin,
@@ -142,7 +140,11 @@ it('claims once, refreshes balance and ledger, and retains the real reward after
   )
   expect(container.textContent).toContain('今日已领取 1.25 积分')
   expect(container.textContent).toContain('今日已签到')
-  expect(container.querySelector('a[href="mailto:support@example.com"]')).not.toBeNull()
+  expect(container.textContent).not.toContain('申请积分')
+  expect(container.textContent).not.toContain('按北京时间每天领取一次')
+  expect(container.querySelector('.credit-rules')).toBeNull()
+  expect(container.textContent).not.toContain('图片存储用量')
+  expect(container.textContent).not.toContain('MiB')
   expect(state.refresh).toHaveBeenCalled()
 })
 
@@ -155,8 +157,6 @@ it('reconciles an award after a lost claim response and hides the claim action w
       ...accountPage(1, 20, 0),
       creditPolicy: {
         signupGiftMinor: 0,
-        helpText: '',
-        contactUrl: '',
         checkin: {
           enabled: reads === 1,
           rewardMinor: 100,
@@ -178,7 +178,7 @@ it('reconciles an award after a lost claim response and hides the claim action w
       .click(),
   )
   expect(container.textContent).toContain('今日已领取 1 积分')
-  expect(container.textContent).toContain('联系入口暂未配置')
+  expect(container.textContent).not.toContain('联系入口暂未配置')
   expect(
     [...container.querySelectorAll('button')].some((button) =>
       button.textContent?.includes('签到领积分'),
@@ -191,6 +191,7 @@ it('never shows a previous customer ledger after an account switch', async () =>
     () => new Promise((resolve) => pending.push(resolve)),
   )
   const detail = (note: string) => ({
+    storage: { usedBytes: 1024, limitBytes: 2048, estimatedTemporaryBytes: 100 },
     available: 100,
     held: 0,
     creditName: '积分',
@@ -245,6 +246,7 @@ it('waits for authentication before showing a login prompt', async () => {
 
 function accountPage(page: number, pageSize = 20, total = 45) {
   return {
+    storage: { usedBytes: 1024, limitBytes: 2048, estimatedTemporaryBytes: 100 },
     available: 100,
     held: 0,
     creditName: '积分',

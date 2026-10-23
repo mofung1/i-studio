@@ -180,7 +180,7 @@ func TestSiteBrandingConcurrentUpdates(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if _, err := s.saveSiteSettings("并发更新", logo, ".png", false); err != nil {
+			if _, err := s.saveSiteSettings("并发更新", logo, ".png", false, nil); err != nil {
 				t.Error(err)
 			}
 		}()
