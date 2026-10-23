@@ -146,9 +146,7 @@
   line-height: 1.9;
   color: var(--foreground-2);
 }
-.editorial-hero-device-hint {
-  display: none;
-}
+
 .editorial-hero-copy-break {
   display: none;
 }
@@ -305,18 +303,6 @@
   }
   .editorial-hero-scroll {
     display: none;
-  }
-  .editorial-hero-device-hint {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    margin-top: 18px;
-    font-size: 12px;
-    line-height: 1.6;
-    color: var(--foreground-3);
-  }
-  .editorial-hero-device-hint svg {
-    flex: none;
   }
 }
 @media (max-width: 600px) {

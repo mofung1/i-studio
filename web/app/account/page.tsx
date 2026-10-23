@@ -196,7 +196,7 @@ export default function AccountPage() {
                 {error}
               </p>
             )}
-            <div className="ops-stats">
+            <div className="ops-stats account-summary">
               <article>
                 <span>
                   <Coins size={16} />
@@ -207,18 +207,18 @@ export default function AccountPage() {
               <article>
                 <span>生成中预留</span>
                 <strong>{formatCredits(data?.held ?? account.held)}</strong>
-                <small>生成完成后按实际交付结算，未使用部分自动退回</small>
+                <small>未交付部分自动退回</small>
               </article>
+              {data?.creditPolicy && (
+                <CreditBenefits
+                  policy={data.creditPolicy}
+                  unit={data.creditName}
+                  claiming={claiming}
+                  message={claimMessage}
+                  onClaim={() => void claim()}
+                />
+              )}
             </div>
-            {data?.creditPolicy && (
-              <CreditBenefits
-                policy={data.creditPolicy}
-                unit={data.creditName}
-                claiming={claiming}
-                message={claimMessage}
-                onClaim={() => void claim()}
-              />
-            )}
             <SiteContact />
             <section className="ops-card" aria-labelledby="account-ledger-title" aria-busy={busy}>
               <div className="ops-card-heading">
@@ -226,36 +226,38 @@ export default function AccountPage() {
                 <span>共 {data?.total ?? 0} 条</span>
               </div>
               <div className="ops-table-scroll">
-                <table className="ops-table">
-                  <thead>
-                    <tr>
-                      <th>时间</th>
-                      <th>用途</th>
-                      <th>可用变动</th>
-                      <th>预留变动</th>
-                      <th>可用余额</th>
-                      <th>说明</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data?.ledger.map((item) => (
-                      <tr key={item.id}>
-                        <td>{new Date(item.createdAt).toLocaleString('zh-CN')}</td>
-                        <td>{kinds[item.kind] ?? item.kind}</td>
-                        <td>
-                          {item.availableDelta > 0 ? '+' : ''}
-                          {formatCredits(item.availableDelta)}
-                        </td>
-                        <td>
-                          {item.heldDelta > 0 ? '+' : ''}
-                          {formatCredits(item.heldDelta)}
-                        </td>
-                        <td>{formatCredits(item.availableAfter)}</td>
-                        <td>{item.note}</td>
+                {!!data?.ledger.length && (
+                  <table className="ops-table">
+                    <thead>
+                      <tr>
+                        <th>时间</th>
+                        <th>用途</th>
+                        <th>可用变动</th>
+                        <th>预留变动</th>
+                        <th>可用余额</th>
+                        <th>说明</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {data?.ledger.map((item) => (
+                        <tr key={item.id}>
+                          <td>{new Date(item.createdAt).toLocaleString('zh-CN')}</td>
+                          <td>{kinds[item.kind] ?? item.kind}</td>
+                          <td>
+                            {item.availableDelta > 0 ? '+' : ''}
+                            {formatCredits(item.availableDelta)}
+                          </td>
+                          <td>
+                            {item.heldDelta > 0 ? '+' : ''}
+                            {formatCredits(item.heldDelta)}
+                          </td>
+                          <td>{formatCredits(item.availableAfter)}</td>
+                          <td>{item.note}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
                 {!data?.ledger.length && (
                   <p className="ops-empty" role={busy ? 'status' : undefined}>
                     {busy
@@ -266,48 +268,50 @@ export default function AccountPage() {
                   </p>
                 )}
               </div>
-              <nav className="ops-pagination account-pagination" aria-label="流水记录分页">
-                <div className="ops-pagination-summary" aria-live="polite">
+              {!!data?.total && (
+                <nav className="ops-pagination account-pagination" aria-label="流水记录分页">
+                  <div className="ops-pagination-summary" aria-live="polite">
+                    <span>
+                      第 {data?.total ? (data.page - 1) * data.pageSize + 1 : 0}–
+                      {data ? Math.min(data.page * data.pageSize, data.total) : 0} 条，共{' '}
+                      {data?.total ?? 0} 条
+                    </span>
+                    {busy && <span role="status">正在读取…</span>}
+                  </div>
+                  <LibrarySelect
+                    label="每页流水记录条数"
+                    value={String(data?.pageSize ?? 20)}
+                    options={[
+                      ['20', '20 条 / 页'],
+                      ['50', '50 条 / 页'],
+                      ['100', '100 条 / 页'],
+                    ]}
+                    disabled={busy || !data}
+                    onChange={(value) => void load(1, Number(value))}
+                  />
                   <span>
-                    第 {data?.total ? (data.page - 1) * data.pageSize + 1 : 0}–
-                    {data ? Math.min(data.page * data.pageSize, data.total) : 0} 条，共{' '}
-                    {data?.total ?? 0} 条
+                    第 {data?.page ?? 1} / {data?.totalPages ?? 1} 页
                   </span>
-                  {busy && <span role="status">正在读取…</span>}
-                </div>
-                <LibrarySelect
-                  label="每页流水记录条数"
-                  value={String(data?.pageSize ?? 20)}
-                  options={[
-                    ['20', '20 条 / 页'],
-                    ['50', '50 条 / 页'],
-                    ['100', '100 条 / 页'],
-                  ]}
-                  disabled={busy || !data}
-                  onChange={(value) => void load(1, Number(value))}
-                />
-                <span>
-                  第 {data?.page ?? 1} / {data?.totalPages ?? 1} 页
-                </span>
-                <div className="ops-pagination-buttons">
-                  <button
-                    type="button"
-                    aria-label="上一页流水记录"
-                    disabled={busy || !data || data.page <= 1}
-                    onClick={() => data && void load(data.page - 1, data.pageSize)}
-                  >
-                    <ChevronLeft size={16} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="下一页流水记录"
-                    disabled={busy || !data || data.page >= data.totalPages}
-                    onClick={() => data && void load(data.page + 1, data.pageSize)}
-                  >
-                    <ChevronRight size={16} aria-hidden="true" />
-                  </button>
-                </div>
-              </nav>
+                  <div className="ops-pagination-buttons">
+                    <button
+                      type="button"
+                      aria-label="上一页流水记录"
+                      disabled={busy || !data || data.page <= 1}
+                      onClick={() => data && void load(data.page - 1, data.pageSize)}
+                    >
+                      <ChevronLeft size={16} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="下一页流水记录"
+                      disabled={busy || !data || data.page >= data.totalPages}
+                      onClick={() => data && void load(data.page + 1, data.pageSize)}
+                    >
+                      <ChevronRight size={16} aria-hidden="true" />
+                    </button>
+                  </div>
+                </nav>
+              )}
             </section>
           </>
         )}

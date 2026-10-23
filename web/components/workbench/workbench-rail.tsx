@@ -10,14 +10,16 @@ import {
   Image as ImageIcon,
   Images,
   LayoutGrid,
+  Menu,
   Plus,
   Settings,
   Shirt,
   Sparkles,
   WandSparkles,
+  X,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Brand } from '@/components/brand'
 import type { CommerceTaskType } from '@/lib/contracts'
@@ -56,6 +58,17 @@ export function WorkbenchRail({
   onChangeTask,
 }: WorkbenchRailProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [navigationOpen, setNavigationOpen] = useState(false)
+  const navigationToggle = useRef<HTMLButtonElement>(null)
+  const rail = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!navigationOpen) return
+    const closeOutside = (event: PointerEvent) => {
+      if (!rail.current?.contains(event.target as Node)) setNavigationOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    return () => document.removeEventListener('pointerdown', closeOutside)
+  }, [navigationOpen])
   useEffect(() => {
     try {
       setCollapsed(window.localStorage.getItem('istudio-rail-collapsed') === 'true')
@@ -76,11 +89,41 @@ export function WorkbenchRail({
   }
 
   return (
-    <aside className="workbench-rail" aria-label="工作台导航">
+    <aside
+      className={`workbench-rail${navigationOpen ? ' is-navigation-open' : ''}`}
+      aria-label="工作台导航"
+      ref={rail}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          setNavigationOpen(false)
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && navigationOpen) {
+          event.preventDefault()
+          setNavigationOpen(false)
+          navigationToggle.current?.focus()
+        }
+      }}
+    >
       <div className="studio-rail-heading">
         <div className="workbench-rail-brand">
           <Brand />
         </div>
+        <button
+          ref={navigationToggle}
+          type="button"
+          className="studio-mobile-navigation-toggle"
+          aria-label={navigationOpen ? '收起导航' : '展开导航'}
+          aria-expanded={navigationOpen}
+          aria-controls="studio-navigation studio-rail-footer"
+          onClick={() => setNavigationOpen((open) => !open)}
+        >
+          {navigationOpen ? (
+            <X size={20} aria-hidden="true" />
+          ) : (
+            <Menu size={20} aria-hidden="true" />
+          )}
+        </button>
       </div>
       <button
         type="button"
@@ -103,7 +146,17 @@ export function WorkbenchRail({
         <Plus size={18} />
         <span>新建创作</span>
       </a>
-      <nav id="studio-navigation" className="workbench-rail-nav" aria-label="主导航">
+      <nav
+        id="studio-navigation"
+        className="workbench-rail-nav"
+        aria-label="主导航"
+        onClick={(event) => {
+          if ((event.target as Element).closest('a, button') && navigationOpen) {
+            setNavigationOpen(false)
+            navigationToggle.current?.focus()
+          }
+        }}
+      >
         {onChangeMode ? (
           <button
             type="button"
@@ -204,7 +257,11 @@ export function WorkbenchRail({
           <span>我的资产</span>
         </Link>
       </nav>
-      <div className="studio-rail-footer">
+      <div
+        id="studio-rail-footer"
+        className="studio-rail-footer"
+        onClick={() => setNavigationOpen(false)}
+      >
         <Link
           href="/account"
           aria-label="个人中心"

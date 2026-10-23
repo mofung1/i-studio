@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, LogOut, UserRound } from 'lucide-react'
+import { ChevronDown, LoaderCircle, LogOut, UserRound } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, useState } from 'react'
@@ -50,7 +50,8 @@ export function AccountMenu() {
   if (!username && loading) {
     return (
       <span className="studio-account account-menu-loading" role="status">
-        账户加载中…
+        <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+        <span className="account-menu-loading-label">账户加载中…</span>
       </span>
     )
   }
@@ -105,7 +106,26 @@ export function AccountMenu() {
               {formatCredits(account.available)} {account.creditName}
             </div>
           </div>
-          <div id={menuId} ref={menuRef} role="menu" aria-label="账户操作">
+          <div
+            id={menuId}
+            ref={menuRef}
+            role="menu"
+            aria-label="账户操作"
+            onKeyDown={(event) => {
+              const items = Array.from(
+                event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+              )
+              const index = items.indexOf(document.activeElement as HTMLElement)
+              let next = index
+              if (event.key === 'ArrowDown') next = (index + 1) % items.length
+              else if (event.key === 'ArrowUp') next = (index - 1 + items.length) % items.length
+              else if (event.key === 'Home') next = 0
+              else if (event.key === 'End') next = items.length - 1
+              else return
+              event.preventDefault()
+              items[next]?.focus()
+            }}
+          >
             <Link href="/account" role="menuitem" onClick={() => setMenuOpen(false)}>
               个人中心与余额
             </Link>

@@ -26,7 +26,7 @@
 }
 .reverse-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   flex: 0 0 auto;
   gap: 16px;
@@ -34,15 +34,10 @@
   border-bottom: 1px solid var(--border-soft);
 }
 .reverse-head h2 {
-  margin: 0 0 5px;
+  margin: 0;
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.3px;
-}
-.reverse-head p {
-  margin: 0;
-  color: var(--foreground-3);
-  font-size: var(--text-small);
 }
 .reverse-head .settings-icon {
   flex: 0 0 44px;
@@ -77,10 +72,6 @@
   margin: 0;
   font-size: var(--text-ui);
   font-weight: 550;
-}
-.reverse-section-head > span {
-  color: var(--foreground-3);
-  font-size: var(--text-caption);
 }
 .reverse-result-head .select-trigger {
   width: 116px;
@@ -133,8 +124,11 @@
 .reverse-upload span {
   font-size: var(--text-small);
 }
-.reverse-upload small {
+.reverse-upload-help {
+  margin: 8px 0 0;
+  color: var(--foreground-3);
   font-size: var(--text-caption);
+  line-height: 1.6;
 }
 .reverse-image-meta {
   display: flex;

@@ -343,6 +343,7 @@
 }
 .inspire-actions {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
@@ -1402,5 +1403,11 @@ html[data-theme='dark'] .inspire-hero-search:focus-within {
   .inspire-hero-search,
   .inspire-filter-chip {
     transition: none;
+  }
+}
+
+@media (pointer: coarse), (max-width: 780px) {
+  .inspire-card .inspire-actions > :is(button, a) {
+    min-height: 44px;
   }
 }

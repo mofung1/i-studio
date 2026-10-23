@@ -63,14 +63,8 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-.creation-starter-steps {
-  margin: 24px 0 16px;
-  padding-left: 22px;
-  font-size: 13px;
-  line-height: 1.9;
-  color: var(--foreground-2);
-}
 .creation-starter .creation-starter-note {
+  margin: 16px 0 0;
   font-size: 12px;
   line-height: 1.8;
   color: var(--foreground-3);

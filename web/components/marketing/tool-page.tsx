@@ -37,7 +37,6 @@ export function ToolPage({ tool }: { tool: ToolContent }) {
         <section className="marketing-section" aria-labelledby="tool-examples">
           <div className="marketing-section-heading">
             <h2 id="tool-examples">{tool.name}的画面与思路</h2>
-            <p>先了解适用方向，再带着自己的素材开始。</p>
           </div>
           <div className="marketing-tool-examples">
             {tool.slug === 'ai-product-photo' && <ProductComparison {...productComparison} />}
@@ -50,9 +49,6 @@ export function ToolPage({ tool }: { tool: ToolContent }) {
         <section className="marketing-section" aria-labelledby="tool-steps">
           <h2 id="tool-steps">如何使用{tool.name}</h2>
           <Steps steps={tool.steps} />
-          <Link className="marketing-text-link" href={tool.href}>
-            {tool.cta} <ArrowUpRight size={17} aria-hidden="true" />
-          </Link>
         </section>
         <section className="marketing-section marketing-faq-section" aria-labelledby="tool-faq">
           <div>

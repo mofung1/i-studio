@@ -484,13 +484,26 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       .map((item) => [item.id, item.name] as [string, string]),
   ]
   const assetCount = view === 'tasks' ? tasks.length : assets.length
+  const hasFilters = Boolean(
+    query || tool !== 'all' || tag.trim() || favorite || project !== 'all' || from || to,
+  )
+  function resetFilters() {
+    setSearch('')
+    setQuery('')
+    setProject('all')
+    setFavorite(false)
+    setTool('all')
+    setTag('')
+    setFrom('')
+    setTo('')
+  }
   return (
     <StudioShell
       section={view === 'tasks' ? 'history' : 'assets'}
       title="我的资产"
       actions={
         <Link
-          className="studio-primary"
+          className="studio-secondary"
           href={`/studio?mode=general${currentProject && !currentProject.archived ? `&projectId=${encodeURIComponent(currentProject.id)}` : ''}`}
         >
           <Plus size={16} />
@@ -837,16 +850,23 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 <div className="library-empty-state">
                   <Folder size={32} />
                   <strong>
-                    {query || tool !== 'all' || tag || favorite || project !== 'all'
+                    {hasFilters
                       ? '没有匹配的作品'
                       : view === 'uploads'
                         ? '上传的参考素材会保存在这里'
-                        : '从第一张图片开始'}
+                        : view === 'tasks'
+                          ? '还没有创作记录'
+                          : '从第一张图片开始'}
                   </strong>
-                  <p>可以调整筛选条件，或开始一次新的创作。</p>
-                  <Link className="studio-primary" href="/studio?mode=general">
-                    开始创作
-                  </Link>
+                  {hasFilters ? (
+                    <button className="studio-secondary" onClick={resetFilters}>
+                      清除筛选
+                    </button>
+                  ) : (
+                    <Link className="studio-primary" href="/studio?mode=general">
+                      开始创作
+                    </Link>
+                  )}
                 </div>
               )}
               {!loading && cursor && (

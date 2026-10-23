@@ -1,3 +1,56 @@
+/* ===== 前台登录 ===== */
+.auth-password-field > label {
+  display: block;
+}
+
+.auth-page-public .auth-input {
+  min-width: 0;
+}
+
+.auth-page-public .auth-input input {
+  min-width: 0;
+  flex: 1;
+}
+
+.auth-page-public .auth-input > svg {
+  flex: none;
+}
+
+.auth-password-toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 42px;
+  margin-inline-end: -11px;
+  padding: 0;
+  color: var(--foreground-2);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.auth-password-toggle:hover {
+  color: var(--foreground);
+  background: var(--surface-2);
+}
+
+.auth-password-toggle:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: -3px;
+}
+
+.auth-password-toggle:disabled {
+  cursor: wait;
+}
+
+@media (max-width: 760px) {
+  .auth-page-public .auth-input input {
+    font-size: 16px;
+  }
+}
+
 /* ===== 路由级兜底：错误页 / 404 ===== */
 .route-fallback {
   max-width: 520px;

@@ -115,7 +115,14 @@ beforeEach(() => {
       }
       if (url.pathname === '/v1/library/download') return new Response('zip')
       const filtered = assets.filter(
-        (item) => url.searchParams.get('favorite') !== 'true' || item.favorite,
+        (item) =>
+          (url.searchParams.get('favorite') !== 'true' || item.favorite) &&
+          (!url.searchParams.get('q') || item.title.includes(url.searchParams.get('q')!)) &&
+          (!url.searchParams.get('projectId') ||
+            item.projectId === url.searchParams.get('projectId')) &&
+          (!url.searchParams.get('from') || item.createdAt >= url.searchParams.get('from')!) &&
+          (!url.searchParams.get('to') ||
+            item.createdAt.slice(0, 10) <= url.searchParams.get('to')!),
       )
       return Response.json({ assets: filtered, total: filtered.length, nextCursor: '' })
     }),
@@ -358,3 +365,44 @@ it('fills an emptied favorites page when more favorite images remain', async () 
   expect(container.querySelector('.library-count')?.textContent).toBe('1 张图片')
   expect(container.querySelector('.library-empty-state')).toBeNull()
 })
+
+it.each(['搜索', '分类', '收藏', '开始日期', '结束日期'])(
+  'restores the library from an empty %s filter without changing stored content',
+  async (filter) => {
+    if (filter === '收藏') assets.forEach((item) => (item.favorite = false))
+    await render()
+    if (filter === '分类' || filter === '收藏') {
+      await act(async () => {
+        const target =
+          filter === '分类'
+            ? Array.from(
+                container.querySelectorAll<HTMLButtonElement>('.asset-projects button'),
+              ).find((item) => item.querySelector('span')?.textContent === '新品上架')!
+            : button('我的收藏')
+        target.click()
+      })
+    } else {
+      const label = filter === '搜索' ? '搜索作品' : filter
+      const input = container.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+          input,
+          filter === '搜索' ? '不存在的作品' : filter === '开始日期' ? '2026-10-19' : '2026-10-17',
+        )
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      })
+      if (filter === '搜索')
+        await act(async () => {
+          await new Promise((resolve) => window.setTimeout(resolve, 280))
+        })
+    }
+    expect(container.querySelector('.library-empty-state strong')?.textContent).toBe(
+      '没有匹配的作品',
+    )
+    await act(async () => button('清除筛选').click())
+    expect(container.querySelector('.library-empty-state')).toBeNull()
+    expect(container.querySelectorAll('.asset-card')).toHaveLength(3)
+    expect(requests.every((request) => request.method === 'GET')).toBe(true)
+    expect(localStorage.getItem('istudio-access-token')).toBe('selection-test')
+  },
+)
