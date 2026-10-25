@@ -24,6 +24,21 @@
 
 浏览器图片缓存同时限制 120 张与 96 MB 的 Blob 体积；图片解码后的内存另由浏览器管理。云存储和 CDN 配置见 [对象存储说明](object-storage.md)。
 
+## 文件目录
+
+本地默认根目录为 `server/storage/uploads/`，用户上传与生成作品按北京时间的年月日分别保存：
+
+```text
+uploads/
+  user/20260919/<资产 ID>.png          # 用户上传素材
+  image/20260919/<资产 ID>.png         # AI 生成作品
+  inspiration/                       # 公共灵感封面
+```
+
+文件扩展名保留实际图片格式；缩略图与原图同目录，文件名为 `<原图文件名>.thumbnail-v1.jpg`。新文件按保存时的北京时间分目录；同账号重复上传仍复用已有素材，不重复建文件。
+
+2026-10-25 已将当前本地历史资产按原记录的北京时间创建日期迁入上述目录，并同步更新原图与缩略图索引。资产 ID、访问接口、所属账号和历史任务引用保持一致，读取仍兼容数据库内保留的旧路径。迁移记录及备份位置见 [验收报告](../test/reports/asset-storage-layout-2026-10-25.md)。
+
 ## 接口
 
 - `GET /v1/library/assets`：kind、q、projectId、favorite、tag、taskType、model、from、to、sort、limit、cursor；返回 assets、total、nextCursor。

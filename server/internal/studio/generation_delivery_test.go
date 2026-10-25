@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"reflect"
 	"strings"
 	"sync"
@@ -178,6 +179,10 @@ func TestRecoverySavesEncryptedResponseWithoutAnotherGeneration(t *testing.T) {
 	q := &taskQueue{server: s}
 	q.processTask(job.ID)
 	q.processTask(job.ID)
+	var key string
+	if err := s.db.QueryRow("SELECT storage_key FROM assets WHERE task_id=$1", job.ID).Scan(&key); err != nil || path.Dir(path.Dir(key)) != "image" {
+		t.Fatal("recovered delivery used the wrong storage directory", key, err)
+	}
 	final := assertDeliverySettlement(t, s, job.ID, "succeeded", 1, 1)
 	if calls.Load() != 0 {
 		t.Fatal("saving recovery generated again")

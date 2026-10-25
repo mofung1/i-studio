@@ -23,7 +23,7 @@
       "source": "Evolink-AI / @liyue_ai | https://x.com/liyue_ai/status/2045000106919997637 | https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts/blob/e2a269ad1a055a0b4f6c1e170341c6c1aba30faa/cases/comparison.md#L18 | 本站 gpt-image-2 生成示例",
       "enabled": true,
       "sortOrder": 9032,
-      "imageKey": "evolink-comparison_case10-generated-e53069e778.webp",
+      "imageKey": "evolink-comparison_case10-generated-9e219df63d.png",
       "upstreamCase": "comparison_case10",
       "upstreamTitle": "GPT-Image-2 Detail Showcase",
       "upstreamFile": "cases/comparison.md",
@@ -36,11 +36,11 @@
       "promptAdjustment": "仅替换上游参数标记的默认值，其余正文保留",
       "width": 1536,
       "height": 2048,
-      "imageBytes": 575134,
-      "imageSha256": "e53069e7786e72fa6d854f599558f4ae7471f6e709c58f769cda49965bbb4976",
-      "imageFormat": "WEBP",
+      "imageBytes": 8690600,
+      "imageSha256": "9e219df63d882dfacdb4a3c962310754e17942f901814ccd465cb0762eb1b81a",
+      "imageFormat": "PNG",
       "imageOrigin": "project-generation",
-      "imageAdjustment": "上游图文错配；通过项目 gpt-image-2 生成示例，公共封面以原像素尺寸编码为 WebP，原始 PNG 保留在账户资产中。",
+      "imageAdjustment": "按用户要求直接使用项目生成的原始 PNG 字节作为公共封面，尺寸与原生成资产一致。",
       "generationRecord": {
         "taskId": "98e34c6a80c19498279e13db92b6c45e",
         "assetId": "2467d45ea2b8b00ac21fcc2f883f7bca",
@@ -59,9 +59,10 @@
         "originalSha256": "9e219df63d882dfacdb4a3c962310754e17942f901814ccd465cb0762eb1b81a",
         "originalBytes": 8690600,
         "coverEncoding": {
-          "format": "WebP",
-          "quality": 90,
-          "resized": false
+          "format": "PNG",
+          "resized": false,
+          "lossless": true,
+          "source": "original-generated-bytes"
         },
         "validation": "画面用途、主体与布局已人工检查。"
       }
@@ -74,7 +75,7 @@
       "source": "Evolink-AI / @Shinning1010 | https://x.com/Shinning1010/status/2049068188399227174 | https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts/blob/e2a269ad1a055a0b4f6c1e170341c6c1aba30faa/cases/portrait.md#L712 | 本站 gpt-image-2 生成示例",
       "enabled": true,
       "sortOrder": 9058,
-      "imageKey": "evolink-portrait_case102-generated-f4b22984a5.webp",
+      "imageKey": "evolink-portrait_case102-generated-b253187de1.png",
       "upstreamCase": "portrait_case102",
       "upstreamTitle": "Collectible Figure Workspace Photo",
       "upstreamFile": "cases/portrait.md",
@@ -87,11 +88,11 @@
       "promptAdjustment": "仅替换上游参数标记的默认值，其余正文保留",
       "width": 1536,
       "height": 2048,
-      "imageBytes": 289010,
-      "imageSha256": "f4b22984a536a7a8305b5dfba00ae34ff054d5f75c48233e8da9f5c40c29adce",
-      "imageFormat": "WEBP",
+      "imageBytes": 6016064,
+      "imageSha256": "b253187de1b3d6303cdc6f06f3fdc25a0bf933b413b0fafe714d3ab740ba92dd",
+      "imageFormat": "PNG",
       "imageOrigin": "project-generation",
-      "imageAdjustment": "上游图文错配；通过项目 gpt-image-2 生成示例，公共封面以原像素尺寸编码为 WebP，原始 PNG 保留在账户资产中。",
+      "imageAdjustment": "按用户要求直接使用项目生成的原始 PNG 字节作为公共封面，尺寸与原生成资产一致。",
       "generationRecord": {
         "taskId": "d0ee57a1c1f5a3db98aac2a263b9baa2",
         "assetId": "221ecb6b8519b7b7f2e6121adf14d7d2",
@@ -113,9 +114,10 @@
         "originalSha256": "b253187de1b3d6303cdc6f06f3fdc25a0bf933b413b0fafe714d3ab740ba92dd",
         "originalBytes": 6016064,
         "coverEncoding": {
-          "format": "WebP",
-          "quality": 90,
-          "resized": false
+          "format": "PNG",
+          "resized": false,
+          "lossless": true,
+          "source": "original-generated-bytes"
         },
         "validation": "画面用途、主体与布局已人工检查。"
       }
@@ -128,7 +130,7 @@
       "source": "Evolink-AI / @madpencil_ | https://x.com/madpencil_/status/2049080259476349218 | https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts/blob/e2a269ad1a055a0b4f6c1e170341c6c1aba30faa/cases/poster.md#L1794 | 本站 gpt-image-2 生成示例",
       "enabled": true,
       "sortOrder": 9080,
-      "imageKey": "evolink-poster_case169-generated-b3cf8ce3bd.webp",
+      "imageKey": "evolink-poster_case169-generated-abd162f157.png",
       "upstreamCase": "poster_case169",
       "upstreamTitle": "Topographic Letter Satellite Panels",
       "upstreamFile": "cases/poster.md",
@@ -141,11 +143,11 @@
       "promptAdjustment": "仅替换上游参数标记的默认值，其余正文保留",
       "width": 2048,
       "height": 1151,
-      "imageBytes": 387220,
-      "imageSha256": "b3cf8ce3bd50ed59270df658c7bc78f1367ab5674e9ab9ce67f6355c4643fa00",
-      "imageFormat": "WEBP",
+      "imageBytes": 4599512,
+      "imageSha256": "abd162f157a9cf78dc8c68b76734f1de7a438756738c861d2975268926020b5a",
+      "imageFormat": "PNG",
       "imageOrigin": "project-generation",
-      "imageAdjustment": "上游图文错配；通过项目 gpt-image-2 生成示例，公共封面以原像素尺寸编码为 WebP，原始 PNG 保留在账户资产中。",
+      "imageAdjustment": "按用户要求直接使用项目生成的原始 PNG 字节作为公共封面，尺寸与原生成资产一致。",
       "generationRecord": {
         "taskId": "7fb6b0cdea453f6301b336aee03a13d7",
         "assetId": "8dafd7d17ee1485428bf063853ffb010",
@@ -159,9 +161,10 @@
         "originalSha256": "abd162f157a9cf78dc8c68b76734f1de7a438756738c861d2975268926020b5a",
         "originalBytes": 4599512,
         "coverEncoding": {
-          "format": "WebP",
-          "quality": 90,
-          "resized": false
+          "format": "PNG",
+          "resized": false,
+          "lossless": true,
+          "source": "original-generated-bytes"
         },
         "validation": "画面用途、主体与布局已人工检查。"
       }
@@ -174,7 +177,7 @@
       "source": "Evolink-AI / @livybabie | https://x.com/livybabie/status/2064033077123236291 | https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts/blob/e2a269ad1a055a0b4f6c1e170341c6c1aba30faa/cases/poster.md#L7438 | 本站 gpt-image-2 生成示例",
       "enabled": true,
       "sortOrder": 9105,
-      "imageKey": "evolink-poster_case356-generated-5e94c56d74.webp",
+      "imageKey": "evolink-poster_case356-generated-ab9fb5a599.png",
       "upstreamCase": "poster_case356",
       "upstreamTitle": "Vintage Anatomic Book Plate",
       "upstreamFile": "cases/poster.md",
@@ -187,11 +190,11 @@
       "promptAdjustment": "仅替换上游参数标记的默认值，其余正文保留",
       "width": 1536,
       "height": 2048,
-      "imageBytes": 672148,
-      "imageSha256": "5e94c56d74e745be6658b5f167afb1a9bf323ddc2401f64cc9f27cd8ee7ff367",
-      "imageFormat": "WEBP",
+      "imageBytes": 7476350,
+      "imageSha256": "ab9fb5a59929043c06815aa6d816066d36b7af6610c41f837838aa512f4f7fbb",
+      "imageFormat": "PNG",
       "imageOrigin": "project-generation",
-      "imageAdjustment": "上游图文错配；通过项目 gpt-image-2 生成示例，公共封面以原像素尺寸编码为 WebP，原始 PNG 保留在账户资产中。",
+      "imageAdjustment": "按用户要求直接使用项目生成的原始 PNG 字节作为公共封面，尺寸与原生成资产一致。",
       "generationRecord": {
         "taskId": "4dcabd2df4a72e50ccc6b180cb0c18fe",
         "assetId": "a08bcb0f8f74048a8da2de68a60423ac",
@@ -210,9 +213,10 @@
         "originalSha256": "ab9fb5a59929043c06815aa6d816066d36b7af6610c41f837838aa512f4f7fbb",
         "originalBytes": 7476350,
         "coverEncoding": {
-          "format": "WebP",
-          "quality": 90,
-          "resized": false
+          "format": "PNG",
+          "resized": false,
+          "lossless": true,
+          "source": "original-generated-bytes"
         },
         "validation": "视觉风格示例；解剖与标签准确性未经专业验收。"
       }
@@ -225,7 +229,7 @@
       "source": "Evolink-AI / @SDAI1807097011 | https://x.com/SDAI1807097011/status/2048127178592915583 | https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts/blob/e2a269ad1a055a0b4f6c1e170341c6c1aba30faa/cases/ui.md#L663 | 本站 gpt-image-2 生成示例",
       "enabled": true,
       "sortOrder": 9124,
-      "imageKey": "evolink-ui_case107-generated-d064b0c2a9.webp",
+      "imageKey": "evolink-ui_case107-generated-1559ea4d37.png",
       "upstreamCase": "ui_case107",
       "upstreamTitle": "Anime Band Finale at Budokan",
       "upstreamFile": "cases/ui.md",
@@ -238,11 +242,11 @@
       "promptAdjustment": "仅替换上游参数标记的默认值，其余正文保留",
       "width": 2048,
       "height": 1153,
-      "imageBytes": 559456,
-      "imageSha256": "d064b0c2a9f0e3aa9a3cfafac402811ee279dd4af81e95099979f6d2b43ae43a",
-      "imageFormat": "WEBP",
+      "imageBytes": 6251757,
+      "imageSha256": "1559ea4d37a8fc1e0ae34b9bc8aa0cb3710fa4a82cc37b57bc783f59499ac48d",
+      "imageFormat": "PNG",
       "imageOrigin": "project-generation",
-      "imageAdjustment": "上游图文错配；通过项目 gpt-image-2 生成示例，公共封面以原像素尺寸编码为 WebP，原始 PNG 保留在账户资产中。",
+      "imageAdjustment": "按用户要求直接使用项目生成的原始 PNG 字节作为公共封面，尺寸与原生成资产一致。",
       "generationRecord": {
         "taskId": "04a07bac0941a8c85443398dfdaab923",
         "assetId": "fce6bdae45e137a3116f846941db5ba2",
@@ -259,9 +263,10 @@
         "originalSha256": "1559ea4d37a8fc1e0ae34b9bc8aa0cb3710fa4a82cc37b57bc783f59499ac48d",
         "originalBytes": 6251757,
         "coverEncoding": {
-          "format": "WebP",
-          "quality": 90,
-          "resized": false
+          "format": "PNG",
+          "resized": false,
+          "lossless": true,
+          "source": "original-generated-bytes"
         },
         "validation": "画面用途、主体与布局已人工检查。"
       }
@@ -274,7 +279,7 @@
       "source": "Evolink-AI / @AIillust_studio | https://x.com/AIillust_studio/status/2048099186214900130 | https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts/blob/e2a269ad1a055a0b4f6c1e170341c6c1aba30faa/cases/ui.md#L675 | 本站 gpt-image-2 生成示例",
       "enabled": true,
       "sortOrder": 9125,
-      "imageKey": "evolink-ui_case108-generated-c78632ab96.webp",
+      "imageKey": "evolink-ui_case108-generated-06d2278e3f.png",
       "upstreamCase": "ui_case108",
       "upstreamTitle": "Anime Girl and Man Date Photo Collage",
       "upstreamFile": "cases/ui.md",
@@ -287,11 +292,11 @@
       "promptAdjustment": "仅替换上游参数标记的默认值，其余正文保留",
       "width": 2048,
       "height": 2048,
-      "imageBytes": 382782,
-      "imageSha256": "c78632ab96a91272c2117e89e8ad7d2e214e42f56b4d7de37eac7b9951370e75",
-      "imageFormat": "WEBP",
+      "imageBytes": 8009792,
+      "imageSha256": "06d2278e3faa892cf48f0b8a9e3e069416497018dfb43be712c18fa03a936ad3",
+      "imageFormat": "PNG",
       "imageOrigin": "project-generation",
-      "imageAdjustment": "上游图文错配；通过项目 gpt-image-2 生成示例，公共封面以原像素尺寸编码为 WebP，原始 PNG 保留在账户资产中。",
+      "imageAdjustment": "按用户要求直接使用项目生成的原始 PNG 字节作为公共封面，尺寸与原生成资产一致。",
       "generationRecord": {
         "taskId": "6b7218d04af554fe3f80418902200312",
         "assetId": "af9fd8b6b1c2e9dfd08801cc4bbcbaec",
@@ -305,9 +310,10 @@
         "originalSha256": "06d2278e3faa892cf48f0b8a9e3e069416497018dfb43be712c18fa03a936ad3",
         "originalBytes": 8009792,
         "coverEncoding": {
-          "format": "WebP",
-          "quality": 90,
-          "resized": false
+          "format": "PNG",
+          "resized": false,
+          "lossless": true,
+          "source": "original-generated-bytes"
         },
         "validation": "画面用途、主体与布局已人工检查。"
       }
@@ -320,7 +326,7 @@
       "source": "Evolink-AI / @Gorden_Sun | https://x.com/Gorden_Sun/status/2048080137149899133 | https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts/blob/e2a269ad1a055a0b4f6c1e170341c6c1aba30faa/cases/ui.md#L723 | 本站 gpt-image-2 生成示例",
       "enabled": true,
       "sortOrder": 9126,
-      "imageKey": "evolink-ui_case112-generated-e2005e75c2.webp",
+      "imageKey": "evolink-ui_case112-generated-26b9a8ebd6.png",
       "upstreamCase": "ui_case112",
       "upstreamTitle": "Cloud shape doodle generation",
       "upstreamFile": "cases/ui.md",
@@ -333,11 +339,11 @@
       "promptAdjustment": "仅替换上游参数标记的默认值，其余正文保留",
       "width": 2048,
       "height": 2048,
-      "imageBytes": 130912,
-      "imageSha256": "e2005e75c23ac166d13c626453b48cd817f2761f7363eb8057da7244fbe57024",
-      "imageFormat": "WEBP",
+      "imageBytes": 5843236,
+      "imageSha256": "26b9a8ebd6ca7fe5a2867db6977cdeb147e79cc05c19104ce87f3640b9cb6287",
+      "imageFormat": "PNG",
       "imageOrigin": "project-generation",
-      "imageAdjustment": "上游图文错配；通过项目 gpt-image-2 生成示例，公共封面以原像素尺寸编码为 WebP，原始 PNG 保留在账户资产中。",
+      "imageAdjustment": "按用户要求直接使用项目生成的原始 PNG 字节作为公共封面，尺寸与原生成资产一致。",
       "generationRecord": {
         "taskId": "1a8b7b85bea6f25c464fa6c711cb426c",
         "assetId": "6c598ae1026b3675b7dd528d91a659dc",
@@ -360,9 +366,10 @@
         "originalSha256": "26b9a8ebd6ca7fe5a2867db6977cdeb147e79cc05c19104ce87f3640b9cb6287",
         "originalBytes": 5843236,
         "coverEncoding": {
-          "format": "WebP",
-          "quality": 90,
-          "resized": false
+          "format": "PNG",
+          "resized": false,
+          "lossless": true,
+          "source": "original-generated-bytes"
         },
         "validation": "画面用途、主体与布局已人工检查。"
       }
@@ -375,7 +382,7 @@
       "source": "Evolink-AI / @HeyAbhishek | https://x.com/HeyAbhishek/status/2063271070426435756 | https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts/blob/e2a269ad1a055a0b4f6c1e170341c6c1aba30faa/cases/ui.md#L2422 | 本站 gpt-image-2 生成示例",
       "enabled": true,
       "sortOrder": 9145,
-      "imageKey": "evolink-ui_case174-generated-ce2acefafe.webp",
+      "imageKey": "evolink-ui_case174-generated-9a8d65fded.png",
       "upstreamCase": "ui_case174",
       "upstreamTitle": "Anime Short Film Dev Board",
       "upstreamFile": "cases/ui.md",
@@ -388,11 +395,11 @@
       "promptAdjustment": "仅替换上游参数标记的默认值，其余正文保留",
       "width": 1536,
       "height": 2048,
-      "imageBytes": 567320,
-      "imageSha256": "ce2acefafe445caf544f13cd4ba7f2e4f67da809ce91dfca084a929b69b7a9ad",
-      "imageFormat": "WEBP",
+      "imageBytes": 6521572,
+      "imageSha256": "9a8d65fdede161bdac436890aaf60d6ea480543858714ef8c0b74c7c2cf57e8f",
+      "imageFormat": "PNG",
       "imageOrigin": "project-generation",
-      "imageAdjustment": "上游图文错配；通过项目 gpt-image-2 生成示例，公共封面以原像素尺寸编码为 WebP，原始 PNG 保留在账户资产中。",
+      "imageAdjustment": "按用户要求直接使用项目生成的原始 PNG 字节作为公共封面，尺寸与原生成资产一致。",
       "generationRecord": {
         "taskId": "1e13f272b469755bbdd00aaa169ca81f",
         "assetId": "423beb06131eb02935c0ca17bfa89d70",
@@ -406,9 +413,10 @@
         "originalSha256": "9a8d65fdede161bdac436890aaf60d6ea480543858714ef8c0b74c7c2cf57e8f",
         "originalBytes": 6521572,
         "coverEncoding": {
-          "format": "WebP",
-          "quality": 90,
-          "resized": false
+          "format": "PNG",
+          "resized": false,
+          "lossless": true,
+          "source": "original-generated-bytes"
         },
         "validation": "画面用途、主体与布局已人工检查。"
       }
@@ -416,5 +424,6 @@
   ],
   "generatedImages": 8,
   "costEstimateCny": 0.8,
-  "actualSupplierBillCny": null
+  "actualSupplierBillCny": null,
+  "coverFormatUpdatedAt": "2026-10-25"
 }

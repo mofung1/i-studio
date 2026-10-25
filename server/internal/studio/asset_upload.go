@@ -81,7 +81,6 @@ func (s *Service) assets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := idgen.New()
-	key := id + ext
 	data, err := io.ReadAll(io.LimitReader(file, 10<<20+1))
 	if err != nil || int64(len(data)) > 10<<20 {
 		s.error(w, 400, "ASSET_TOO_LARGE", "图片不能超过 10MB")
@@ -137,7 +136,7 @@ func (s *Service) assets(w http.ResponseWriter, r *http.Request) {
 		s.operationFailure(w, err)
 		return
 	}
-	key = s.newStorageKey(key)
+	key := s.newStorageKey(uploadedImageStorageKey(time.Now(), id, ext))
 	if err = s.storage.Save(key, bytes.NewReader(data)); err != nil {
 		s.error(w, 500, "ASSET_STORAGE_ERROR", "图片保存失败")
 		return

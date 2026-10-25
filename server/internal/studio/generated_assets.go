@@ -10,7 +10,6 @@ import (
 	"image"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/istudio/server/internal/idgen"
 )
 
-var generationStorageLocation = time.FixedZone("Asia/Shanghai", 8*60*60)
 var generatedImageClient = newPublicImageClient()
 
 func (s *Service) persistGeneratedImages(taskID string, urls []string) ([]string, error) {
@@ -122,8 +120,4 @@ func extensionForMime(mime string) string {
 	default:
 		return ""
 	}
-}
-
-func generatedImageStorageKey(now time.Time, id, ext string) string {
-	return filepath.Join(now.Format("20060102"), id+ext)
 }

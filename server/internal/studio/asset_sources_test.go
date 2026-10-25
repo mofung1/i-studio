@@ -10,9 +10,11 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/istudio/server/internal/domain"
 )
@@ -112,6 +114,57 @@ func TestMaterialUploadsDeduplicatePerAccount(t *testing.T) {
 	w := libraryHTTP(t, s, "GET", "/v1/assets/"+id+"/metadata", "library-b", "")
 	if w.Code != 404 {
 		t.Fatal("metadata leaked", w.Code)
+	}
+}
+
+func TestUploadedMaterialUsesDatedUserDirectory(t *testing.T) {
+	s := testLibraryServer(t)
+	data := materialPNG(t, 75)
+	before := time.Now().In(generationStorageLocation).Format("20060102")
+	id := uploadMaterial(t, s, "library-a", data)
+	after := time.Now().In(generationStorageLocation).Format("20060102")
+	var key string
+	if err := s.db.QueryRow("SELECT storage_key FROM assets WHERE id=$1", id).Scan(&key); err != nil {
+		t.Fatal(err)
+	}
+	if key != path.Join("user", before, id+".png") && key != path.Join("user", after, id+".png") {
+		t.Fatal("unexpected upload storage location", key)
+	}
+	if got := libraryHTTP(t, s, "GET", "/v1/assets/"+id+"/content", "library-a", ""); got.Code != 200 || !bytes.Equal(got.Body.Bytes(), data) {
+		t.Fatal("nested upload cannot be read", got.Code)
+	}
+	if got := libraryHTTP(t, s, "GET", "/v1/assets/"+id+"/content", "library-b", ""); got.Code != 404 {
+		t.Fatal("nested upload leaked to another account", got.Code)
+	}
+	if got := libraryHTTP(t, s, "GET", "/v1/assets/"+id+"/thumbnail", "library-a", ""); got.Code != 200 {
+		t.Fatal("nested thumbnail failed", got.Code)
+	}
+	var thumbnail string
+	if err := s.db.QueryRow("SELECT thumbnail_key FROM assets WHERE id=$1", id).Scan(&thumbnail); err != nil || thumbnail != key+".thumbnail-v1.jpg" {
+		t.Fatal("thumbnail moved outside upload directory", thumbnail, err)
+	}
+}
+
+func TestLegacyAssetLocationsRemainReadable(t *testing.T) {
+	s := testLibraryServer(t)
+	data := materialPNG(t, 80)
+	for _, key := range []string{"legacy-flat.png", "20260919/legacy-generated.png"} {
+		t.Run(key, func(t *testing.T) {
+			id := "old-" + strings.ReplaceAll(key, "/", "-")
+			if err := s.storage.Save(key, bytes.NewReader(data)); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.db.Exec("INSERT INTO assets(id,user_id,filename,storage_key,mime,size_bytes,width,height) VALUES($1,'library-a','legacy.png',$2,'image/png',$3,16,16)", id, key, len(data)); err != nil {
+				t.Fatal(err)
+			}
+			response := libraryHTTP(t, s, "GET", "/v1/assets/"+id+"/content", "library-a", "")
+			if response.Code != 200 || !bytes.Equal(response.Body.Bytes(), data) {
+				t.Fatal("legacy original unavailable", response.Code)
+			}
+			if response = libraryHTTP(t, s, "GET", "/v1/assets/"+id+"/thumbnail", "library-a", ""); response.Code != 200 {
+				t.Fatal("legacy preview unavailable", response.Code)
+			}
+		})
 	}
 }
 

@@ -29,7 +29,7 @@
 
 `studio` 中保留需要一起维护的积分、任务与资产事务。数据访问方法允许使用现有 `sql.Tx`；新增功能不得把同一事务拆成多个分别提交的调用，也不得在 HTTP 层直接触发重复生图。SQL 迁移移至 `internal/database/migrations`，按编号顺序内嵌执行；迁移沿用幂等升级方式；`010_admin_identity.sql` 一次性拆分后台身份，并保留前台数据。
 
-部署配置位于 `server/.env`；从仓库根目录运行时不会回退读取根目录 `.env`。默认本地图片目录为 `server/storage/uploads`。业务包不在导入时连接数据库或启动 Worker。服务默认使用 Gin release 模式，本地可通过 `GIN_MODE=debug` 输出路由表；登录限流继续使用显式代理策略，异常恢复日志不输出请求头或正文。
+部署配置位于 `server/.env`；从仓库根目录运行时不会回退读取根目录 `.env`。默认本地图片目录为 `server/storage/uploads`，用户上传写入 `user/YYYYMMDD/`、生成作品写入 `image/YYYYMMDD/`，日期使用北京时间，详见 [资产目录](asset-management.md#文件目录)。业务包不在导入时连接数据库或启动 Worker。服务默认使用 Gin release 模式，本地可通过 `GIN_MODE=debug` 输出路由表；登录限流继续使用显式代理策略，异常恢复日志不输出请求头或正文。
 
 新增接口时，在 `httpapi` 的对应资源分组声明具体方法和路径，并在 `studio/routes.go` 接入业务操作。后台权限覆盖未匹配路径和不支持的方法；旧管理接口同样只接受独立后台会话，`/v1/admin/auth/login` 和 `/v1/admin/auth/me` 负责后台登录与会话。积分预估接口使用 `GET /v1/generation/quote`，只读价格和余额，不创建任务或预留积分。
 
