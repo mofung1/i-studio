@@ -89,11 +89,7 @@ async function changeTimeout(value: string) {
   })
 }
 async function save() {
-  await act(async () =>
-    container
-      .querySelector('form')!
-      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
-  )
+  await act(async () => button('保存配置').click())
 }
 
 it('reads and saves reverse configuration using the isolated administrator session', async () => {

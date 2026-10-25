@@ -888,12 +888,9 @@
   background: var(--control-bg);
 }
 .reverse-config-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 20px;
   padding: 16px 24px;
   border-top: 1px solid var(--border);
@@ -919,8 +916,14 @@
 .reverse-config-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
-  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.reverse-config-actions button {
+  white-space: nowrap;
 }
 .reverse-settings :is(.settings-command, .settings-primary) {
   min-height: 44px;
@@ -969,6 +972,15 @@
 .reverse-number-control input:focus-visible {
   outline: 0;
 }
+@media (max-width: 767px) {
+  .reverse-config-footer {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .reverse-config-actions {
+    justify-self: end;
+  }
+}
 @media (max-width: 1040px) {
   .reverse-config-section {
     grid-template-columns: 170px minmax(0, 1fr);
@@ -1011,14 +1023,7 @@
     flex-basis: 112px;
   }
   .reverse-config-footer {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 12px;
     padding: 14px 18px max(14px, env(safe-area-inset-bottom));
-  }
-  .reverse-config-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
   }
   .reverse-config-actions button {
     padding: 0 9px;

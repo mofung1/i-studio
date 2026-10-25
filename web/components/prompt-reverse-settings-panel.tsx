@@ -1,6 +1,5 @@
 'use client'
 
-import { DialogActions } from '@/components/dialog-actions'
 import { useEffect, useState } from 'react'
 import {
   ArrowUpRight,
@@ -504,7 +503,7 @@ export function PromptReverseSettingsPanel({
                 <span>配置已同步 · 仅对新建分析生效</span>
               )}
             </div>
-            <DialogActions className="reverse-config-actions">
+            <div className="reverse-config-actions" role="group" aria-label="图片反推配置操作">
               <button
                 type="button"
                 className="settings-command"
@@ -526,7 +525,7 @@ export function PromptReverseSettingsPanel({
                 )}
                 {saving ? '保存中…' : '保存配置'}
               </button>
-            </DialogActions>
+            </div>
           </footer>
         </form>
       )}

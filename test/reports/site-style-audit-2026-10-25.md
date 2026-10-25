@@ -59,4 +59,6 @@
 
 ## 修改文件
 
+后续复查补记（2026-10-26）：用户截图发现图片反推的页面底栏将状态文字压成竖排并遮挡正文。此前主要布局指标未检查文字可用宽度及 sticky 底栏遮挡，因此未覆盖该故障；本报告的“未检出”仅对应当时列明的检测指标，不能理解为所有状态的样式均已正确。已新增能在真实旧页面识别此问题的检测并修复，见 [后续修复与回归报告](admin-footer-fix-2026-10-26.md)。
+
 `web/app/admin/admin.css`、`web/app/library.css`、`web/components/admin/pagination.tsx`、`web/components/marketing/tool-page.tsx`、`web/components/theme-toggle.tsx`、`web/styles/base/foundation.css`、`web/styles/marketing.css`、`web/styles/studio/layout.css`。
