@@ -1,0 +1,6127 @@
+{
+  "upstreamCommit": "e2a269ad1a055a0b4f6c1e170341c6c1aba30faa",
+  "reviewedCases": 963,
+  "decisions": [
+    {
+      "status": "skipped",
+      "index": 0,
+      "key": "ui_case90",
+      "reason": "正文布局与现有 case-47 的四行业日式广告四联画重合；JSON 形式不同不构成新增。"
+    },
+    {
+      "status": "skipped",
+      "index": 1,
+      "key": "poster_case112",
+      "reason": "与现有 case-130 的动漫角色品牌与周边设计板重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 2,
+      "key": "poster_case108",
+      "reason": "与现有 case-131 的 goViralX 暗色营销案例页相同。"
+    },
+    {
+      "status": "skipped",
+      "index": 3,
+      "key": "poster_case107",
+      "reason": "与现有 case-132 的十八区吉祥物品牌设计文档重合。"
+    },
+    {
+      "status": "selected",
+      "index": 4,
+      "key": "poster_case166",
+      "title": "日式餐饮外卖传单",
+      "category": "海报排版",
+      "noveltyReason": "补充带菜单价格网格、配送范围地图和可裁优惠券的社区餐饮传单，区别于既有菜单与异形立牌。"
+    },
+    {
+      "status": "skipped",
+      "index": 5,
+      "key": "poster_case167",
+      "reason": "属于既有商品图文目录与日系周边传单类型（case-138、case-142），主要替换家居主题。"
+    },
+    {
+      "status": "selected",
+      "index": 6,
+      "key": "poster_case143",
+      "title": "种子包装生长微缩花园",
+      "category": "商品电商",
+      "noveltyReason": "包装正面插画生长为真实植物、根系与发芽阶段，新增包装内容跨越纸面的生长叙事广告。"
+    },
+    {
+      "status": "skipped",
+      "index": 7,
+      "key": "poster_case144",
+      "reason": "黑红低调棚拍产品主图已由现有奢品广告覆盖；更换为腕表未新增视觉机制或用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 8,
+      "key": "poster_case145",
+      "reason": "既有运动时尚 Campaign 与霓虹商业海报已有相近光色和人物排版，品牌与服饰变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 9,
+      "key": "poster_case146",
+      "reason": "街头服饰、涂鸦、撕纸与超大前景鞋的组合已有相近广告风格，未增加独立用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 10,
+      "key": "poster_case147",
+      "reason": "巨型商品与等比例模特互动已由 case-455 等覆盖，卫衣主题不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 11,
+      "key": "poster_case148",
+      "reason": "自然植物环境中的高端香水静物与 case-519 等近似，仅更换苔藓和木材布景。"
+    },
+    {
+      "status": "selected",
+      "index": 12,
+      "key": "poster_case149",
+      "title": "金色绒毛香水静物",
+      "category": "商品电商",
+      "noveltyReason": "以环抱瓶身的高密度人造毛绒制造触觉对比，补充毛绒材质环境的产品微距摄影。"
+    },
+    {
+      "status": "selected",
+      "index": 13,
+      "key": "poster_case150",
+      "title": "奢华城市规划微缩模型",
+      "category": "建筑空间",
+      "noveltyReason": "新增黑底等距城市总规沙盘：规划底板、水系、交通和高层建筑作为模型主体，区别于地图旅行海报。"
+    },
+    {
+      "status": "skipped",
+      "index": 14,
+      "key": "poster_case131",
+      "reason": "奢品广告语法的荒诞反差已有 case-54 讽刺商品广告，主要变化人物与酒类主体。"
+    },
+    {
+      "status": "skipped",
+      "index": 15,
+      "key": "poster_case109",
+      "reason": "与现有 case-17 的 VR 头显九层爆炸拆解海报重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 16,
+      "key": "poster_case168",
+      "reason": "主要是虚构 AI 打印机的商品设定，沿用既有暗色奢华产品广告结构，无独立新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 17,
+      "key": "poster_case169",
+      "reason": "黑金包装与多口味品牌延展已由现有品牌触点和产品 Campaign 覆盖，巧克力属于主体替换。"
+    },
+    {
+      "status": "skipped",
+      "index": 18,
+      "key": "poster_case170",
+      "reason": "近镜头巨型饮料与模特的强制透视广告已有相近产品英雄图，未增加独立风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 19,
+      "key": "ad_case171",
+      "reason": "与现有 case-438 珠宝微缩城市广告完全重合。"
+    },
+    {
+      "status": "selected",
+      "index": 20,
+      "key": "ad_case172",
+      "title": "撞色双口味冷饮广告",
+      "category": "商品电商",
+      "noveltyReason": "补充斜向双色分区、两款饮料并列、同屏价格与口味对照的商品促销布局。"
+    },
+    {
+      "status": "skipped",
+      "index": 21,
+      "key": "ad_case173",
+      "reason": "莓果汁飞溅与餐饮生活方式广告已有相近商业摄影；与本源 23 也是同一双场景模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 22,
+      "key": "ad-creative_case174",
+      "reason": "与 case-367 的暗金奢华香水人物广告相近，新增参考人像保真不足以形成新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 23,
+      "key": "ad-creative_case175",
+      "reason": "与本源 21 同一 Berry Loud 两条广告，且属于既有果汁飞溅商业摄影类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 24,
+      "key": "ad-creative_case176",
+      "reason": "悬浮食材与暗色食物英雄图已有 case-443、case-373 等，汉堡主体不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 25,
+      "key": "ad-creative_case177",
+      "reason": "食品包装、配料环绕与标注为已有电商详情和原料拆解用法，三种谷物口味属同模板变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 26,
+      "key": "ad-creative_case178",
+      "reason": "只有通用产品与模特摆放说明，具体场景和版式未展开，且与既有商业广告相近。"
+    },
+    {
+      "status": "skipped",
+      "index": 27,
+      "key": "ad-creative_case179",
+      "reason": "在穿鞋生活方式广告中增加人像参考，仍属既有服饰与鞋类商业摄影类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 28,
+      "key": "ad-creative_case180",
+      "reason": "高反差能量饮料、冷凝水和烟粉飞溅与现有 case-358 近似，场馆为背景替换。"
+    },
+    {
+      "status": "skipped",
+      "index": 29,
+      "key": "ad-creative_case181",
+      "reason": "照片叠贴纸、胶带与涂鸦的剪贴簿改绘已有 case-479、case-371 等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 30,
+      "key": "ad-creative_case182",
+      "reason": "暖咖啡馆实拍加白色涂鸦、贴纸与手写字属于 case-408、case-366 等已覆盖的混合手账风格。"
+    },
+    {
+      "status": "selected",
+      "index": 31,
+      "key": "ad-creative_case183",
+      "title": "陈列架品牌周边静物",
+      "category": "商品电商",
+      "noveltyReason": "以陈列架、服饰周边和品牌实体产品构成棚拍静物，强调面料、刺绣和成套商品发布。"
+    },
+    {
+      "status": "skipped",
+      "index": 32,
+      "key": "ad-creative_case184",
+      "reason": "黑红霓虹、速度轨迹与悬浮运动鞋的未来产品海报已有相近运动 Campaign，品牌和商品变化为主。"
+    },
+    {
+      "status": "selected",
+      "index": 33,
+      "key": "ad-creative_case185",
+      "title": "亚麻浮雕拱框体育海报",
+      "category": "海报排版",
+      "noveltyReason": "亚麻纸墙凿刻球形拱框、真实浮雕阴影与人物越框，新增建筑浮雕与纸张触觉结合的体育版式。"
+    },
+    {
+      "status": "skipped",
+      "index": 34,
+      "key": "ad-creative_case186",
+      "reason": "以镜头环绕、自动组装、慢动作水花和配乐为主的视频运动描述，不是完整静态生图模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 35,
+      "key": "ad-creative_case187",
+      "reason": "只是三品牌情绪配色对比概述，缺少完整可执行画面提示词。"
+    },
+    {
+      "status": "skipped",
+      "index": 36,
+      "key": "ad-creative_case188",
+      "reason": "九格产品英雄图、材质微距和超现实场景与本源 956 同类，保留更通用的 956 模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 37,
+      "key": "ad-creative_case189",
+      "reason": "与本源 179 的近镜头手持耳机卖点广告同型，保留 179 作为完整代表。"
+    },
+    {
+      "status": "skipped",
+      "index": 38,
+      "key": "ad-creative_case190",
+      "reason": "巨型商品变家具并与人物互动仍属现有巨物商业广告方向（case-455、case-406），主要替换商品外壳。"
+    },
+    {
+      "status": "selected",
+      "index": 39,
+      "key": "ad-creative_case191",
+      "title": "隐形护盾防晒广告",
+      "category": "商品电商",
+      "noveltyReason": "以透明保护穹顶折射阳光和阻挡粒子可视化产品保护概念，区别于普通护肤瓶静物。"
+    },
+    {
+      "status": "selected",
+      "index": 40,
+      "key": "ad-creative_case192",
+      "title": "地形负空间隐藏标志",
+      "category": "品牌标志",
+      "noveltyReason": "将标志由自然地形、山谷与悬浮岩体形成，新增需要二次观看才能辨认的地景视觉错觉。"
+    },
+    {
+      "status": "skipped",
+      "index": 41,
+      "key": "ad-creative_case193",
+      "reason": "液态三维标志与人物广告组合已有水雕标志和时尚广告相近风格（case-496 等），未新增独立用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 42,
+      "key": "ad-creative_case194",
+      "reason": "同一品牌包装、产品线和生活方式四图延展已有 case-362 品牌触点系统，咖啡替换抹茶。"
+    },
+    {
+      "status": "skipped",
+      "index": 43,
+      "key": "ad-creative_case195",
+      "reason": "椰奶飞溅、泡沫与护肤瓶沿用既有护肤品静物和成分广告，主体与原料变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 44,
+      "key": "ad-creative_case196",
+      "reason": "简短的逆向重组特效描述，与既有产品悬浮拆解方向近似，且偏视频过程而非明确静态构图。"
+    },
+    {
+      "status": "skipped",
+      "index": 45,
+      "key": "ad-creative_case197",
+      "reason": "与 graphics 全局 724（poster_case324）同一撕纸罐身原料揭示机制；724 对纸纤维、贯穿撕口、卷边与可替换品牌说明更完整，留 724。"
+    },
+    {
+      "status": "skipped",
+      "index": 46,
+      "key": "ad-creative_case198",
+      "reason": "巨型墨镜、模特倚靠和棚拍反射与现有 case-455 巨型鞋广告同型。"
+    },
+    {
+      "status": "skipped",
+      "index": 47,
+      "key": "ad-creative_case199",
+      "reason": "暗金色香水、雾滴、花瓣与水晶碎片属于已有奢华香水广告类型，未新增用途。"
+    },
+    {
+      "status": "selected",
+      "index": 48,
+      "key": "ad-creative_case200",
+      "title": "荧光泡沫标志微距",
+      "category": "品牌标志",
+      "noveltyReason": "在精确标志轮廓内表现荧光黏液、泡膜与气泡活动，区别于已有透明水雕和磁粉标志。"
+    },
+    {
+      "status": "selected",
+      "index": 49,
+      "key": "ad-creative_case201",
+      "title": "品牌世界密集拼贴板",
+      "category": "品牌标志",
+      "noveltyReason": "以非网格的密集叠贴整合包装、摄影、服饰周边、涂鸦和版式片段，补充混乱而有品牌一致性的视觉情绪板。"
+    },
+    {
+      "status": "skipped",
+      "index": 50,
+      "key": "ad-creative_case202",
+      "reason": "巨型望远镜与儿童的尺度反差沿用已有巨型商品广告，只更换主体和宇宙布景。"
+    },
+    {
+      "status": "skipped",
+      "index": 51,
+      "key": "ad-creative_case203",
+      "reason": "巨型腕表、模特倚靠和超大字与现有巨型商品 Campaign 同型。"
+    },
+    {
+      "status": "skipped",
+      "index": 52,
+      "key": "ad-creative_case204",
+      "reason": "与现有 case-509 涂鸦拉衣奔跑棚拍重合。"
+    },
+    {
+      "status": "selected",
+      "index": 53,
+      "key": "ad-creative_case205",
+      "title": "地铁监控惊悚定格",
+      "category": "摄影写实",
+      "noveltyReason": "新增以冷荧光地铁、监控俯视和拥挤扶梯为核心的纪实监控惊悚画面风格。"
+    },
+    {
+      "status": "selected",
+      "index": 54,
+      "key": "character_case30",
+      "title": "真人脸积木足球公仔",
+      "category": "人物角色",
+      "noveltyReason": "以写实人脸融合亮面积木人偶身体，新增积木化肖像类型；旧 case-378 为乙烯基收藏玩具，case-143 为积木建筑商品，均非这种人脸与积木身体的混合。"
+    },
+    {
+      "status": "skipped",
+      "index": 55,
+      "key": "character_case2",
+      "reason": "现有 case-270 / case-306 已覆盖同款三视图、表情、服装拆件、色板与世界观角色设定卡，仅有语言/排版细节差异。"
+    },
+    {
+      "status": "skipped",
+      "index": 56,
+      "key": "character_case3",
+      "reason": "现有 case-263 已覆盖立绘、Q 版、表情差分与档案字段的视觉小说角色介绍页。"
+    },
+    {
+      "status": "skipped",
+      "index": 57,
+      "key": "character_case5",
+      "reason": "现有 case-270 / case-306 已覆盖同款三视图、表情、服装拆件、色板与世界观角色设定卡，仅有语言/排版细节差异。"
+    },
+    {
+      "status": "skipped",
+      "index": 58,
+      "key": "character_case7",
+      "reason": "现有 case-224 已有该机甲少女与废弃海城构图的中英文正文，非新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 59,
+      "key": "character_case8",
+      "reason": "现有 case-112 / case-166 已有同款黄金圣斗士十二宫格卡牌。"
+    },
+    {
+      "status": "selected",
+      "index": 60,
+      "key": "character_case9",
+      "title": "混沌笔记密度成脸",
+      "category": "插画艺术",
+      "noveltyReason": "用手写字、公式与符号的疏密和留白形成脸，明确禁止直接描画写实人脸；区别于旧 case-542 的硬边文字肖像及 case-423 的直接涂鸦人物。适用前提：给定角色或参考图。"
+    },
+    {
+      "status": "skipped",
+      "index": 61,
+      "key": "character_case10",
+      "reason": "与现有 case-22 武道场双人动漫战斗提示词一致。"
+    },
+    {
+      "status": "skipped",
+      "index": 62,
+      "key": "character_case11",
+      "reason": "仅以 GTA 和地点/IP 指定图像，缺少可复用的新视觉技术；不将单一游戏换城市算作新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 63,
+      "key": "character_case12",
+      "reason": "仅以 GTA 和地点/IP 指定图像，缺少可复用的新视觉技术；不将单一游戏换城市算作新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 64,
+      "key": "character_case13",
+      "reason": "正文仅系列名与角色名，没有新的视觉风格或足够的通用生成要求。"
+    },
+    {
+      "status": "skipped",
+      "index": 65,
+      "key": "character_case14",
+      "reason": "现有 case-5 / case-359 已覆盖大剪影、全身角色与内部世界观拼贴的水墨双重曝光海报；更换角色或球队非新增风格。"
+    },
+    {
+      "status": "selected",
+      "index": 66,
+      "key": "character_case15",
+      "title": "影视主题像素养成游戏设定板",
+      "category": "人物角色",
+      "noveltyReason": "新增像素养成游戏整体概念板用途：全局场景、各角色三视图、局部场景和剧情梗概共同展示；旧 case-186 是道具精灵表，case-215 是像素时间线，case-473 是写实 AAA 游戏概念板。"
+    },
+    {
+      "status": "selected",
+      "index": 67,
+      "key": "character_case16",
+      "title": "双屏可裁切动漫壁纸",
+      "category": "插画艺术",
+      "noveltyReason": "新增内外屏横竖双裁切壁纸用途，强调折叠屏两种比例共用大图；旧 case-208 为单一横版动漫壁纸。与源 character_case17 选一条代表，不按冷暖配色重复入库。"
+    },
+    {
+      "status": "skipped",
+      "index": 68,
+      "key": "character_case17",
+      "reason": "与本次保留 character_case16 同属折叠屏动漫壁纸，仅暗色酷感和发型变化，保留一个双屏适配代表。"
+    },
+    {
+      "status": "skipped",
+      "index": 69,
+      "key": "character_case18",
+      "reason": "常规精致 3D 动漫街头角色，旧 case-325 / case-326 已有；换成滑板服饰与道具不新增表现技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 70,
+      "key": "character_case19",
+      "reason": "主要是 40K 指定 IP 的装甲造型与合照场景，角色参考计数虽详细，但不作为新的通用视觉风格批量扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 71,
+      "key": "character_case20",
+      "reason": "现有 case-372 / case-512 已有主立绘、表情、姿势、服装及配饰的专业角色设定展示。"
+    },
+    {
+      "status": "selected",
+      "index": 72,
+      "key": "character_case21",
+      "title": "软雕塑夸张肢体腾跃插画",
+      "category": "人物角色",
+      "noveltyReason": "新增小头、圆躯干、超长四肢的软雕塑 editorial 3D 类型，哑光橡胶、纺织和手工质地，区别于旧 case-325 的常规皮克斯比例及 case-378 的大头乙烯基收藏玩具。"
+    },
+    {
+      "status": "selected",
+      "index": 73,
+      "key": "character_case22",
+      "title": "雨中水系幻想 3D 角色",
+      "category": "人物角色",
+      "noveltyReason": "新增东方水系幻想的半写实 3D CG 角色类型，重点是 PBR 湿发、布料、水花与次表面皮肤着色；旧 case-6 是平面动漫奇幻，case-394 是暗黑写实精灵场景，未覆盖这种虚拟角色美术。"
+    },
+    {
+      "status": "selected",
+      "index": 74,
+      "key": "character_case23",
+      "title": "几何长颈超现实卡通肖像",
+      "category": "人物角色",
+      "noveltyReason": "新增以几何大头、长颈、圆眼及头顶活体帽子构成的干净平涂超现实肖像，区别于旧 case-452 的柔软童话手绘及 case-410 的弹性动漫。适用前提：上传人物照片，填写头顶生物或物件。"
+    },
+    {
+      "status": "skipped",
+      "index": 75,
+      "key": "character_case24",
+      "reason": "现有 case-347 已有同款黑白 4×4 动作分解与箭头参考表，仅韩文标题与主体变化。"
+    },
+    {
+      "status": "selected",
+      "index": 76,
+      "key": "character_case25",
+      "title": "非人形生物发光档案官",
+      "category": "人物角色",
+      "noveltyReason": "新增非人形外星生物概念设计：三足、无五官、树皮与半透明生物数据板形成轮廓；旧库科幻角色主要为人形机甲或人类化外星客，不是同风格人物换装。"
+    },
+    {
+      "status": "skipped",
+      "index": 77,
+      "key": "character_case26",
+      "reason": "现有 case-263 已覆盖立绘、Q 版、表情差分与档案字段的视觉小说角色介绍页。"
+    },
+    {
+      "status": "selected",
+      "index": 78,
+      "key": "character_case27",
+      "title": "黏土定格角色制作设定板",
+      "category": "人物角色",
+      "noveltyReason": "新增定格动画黏土手工材质角色设定用途，含主姿势、前后视图、三种表情、材质细节和色板；旧设定表主要为日系平绘或写实硬表面，旧 case-33 仅有黏土感云朵商品。"
+    },
+    {
+      "status": "skipped",
+      "index": 79,
+      "key": "character_case28",
+      "reason": "现有 case-117 的拟人食物 3D 卡通与 case-33 的软材质吉祥物已覆盖该视觉方法，香蕉仅为主体替换。"
+    },
+    {
+      "status": "skipped",
+      "index": 80,
+      "key": "character_case29",
+      "reason": "现有 case-452 / case-9006 等已覆盖粉彩、简化人物、绘本手绘和温暖同伴场景；替换动物或情侣不是新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 81,
+      "key": "character_case31",
+      "reason": "现有 case-32 / case-37 等已覆盖角色一致的表情/生活贴纸网格，新增生活行为不足以形成新风格。"
+    },
+    {
+      "status": "selected",
+      "index": 82,
+      "key": "character_case32",
+      "title": "90 年代赛璐璐肖像重绘",
+      "category": "人物角色",
+      "noveltyReason": "新增低饱和、复古赛璐璐动画质感的照片角色化；旧 case-410 是高饱和夸张动漫、case-423 是手绘墨彩，视觉方法不同。适用前提：上传人物照片。"
+    },
+    {
+      "status": "selected",
+      "index": 83,
+      "key": "character_case33",
+      "title": "球员经典摇头公仔",
+      "category": "人物角色",
+      "noveltyReason": "新增经典运动摇头公仔的写实照片转玩具用途，强调短粗颈、草坪双层底座和标牌；旧 case-378 为无底座的现代乙烯基设计玩具。适用前提：上传球员参考照并填写姓名。"
+    },
+    {
+      "status": "skipped",
+      "index": 84,
+      "key": "character_case34",
+      "reason": "现有 case-378 已覆盖写实人脸大头小身收藏玩具，钻石牙饰和手表属造型/道具变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 85,
+      "key": "comparison_case5",
+      "reason": "物体计数能力测试，无新增视觉风格。"
+    },
+    {
+      "status": "selected",
+      "index": 86,
+      "key": "comparison_case10",
+      "title": "四季花卉眼妆四联特写",
+      "category": "摄影写实",
+      "noveltyReason": "四屏同部位微距眼妆，以花卉、冰晶与季节材质连续设计；现有写真宫格并未提供这类美妆局部创意。",
+      "notes": "需提供眼部特写参考图"
+    },
+    {
+      "status": "skipped",
+      "index": 87,
+      "key": "comparison_case16",
+      "reason": "依赖多轮文字确认的对话测试，不是可独立生图提示词。"
+    },
+    {
+      "status": "skipped",
+      "index": 88,
+      "key": "comparison_case23",
+      "reason": "叙事轮廓世界已被case-5与case-359覆盖，载体扩展不足以另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 89,
+      "key": "comparison_case29",
+      "reason": "暗黑国风神话电影视觉已被case-352与case-415覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 90,
+      "key": "comparison_case30",
+      "reason": "仅将两个游戏名混搭，没有可复用的新增风格结构。"
+    },
+    {
+      "status": "skipped",
+      "index": 91,
+      "key": "comparison_case31",
+      "reason": "Minecraft截图已有case-25等像素游戏表达，场景换题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 92,
+      "key": "comparison_case32",
+      "reason": "与case-225真迹复刻相同。"
+    },
+    {
+      "status": "skipped",
+      "index": 93,
+      "key": "comparison_case33",
+      "reason": "多个不相关测试请求拼在一起，人物关系和游戏海报已有。"
+    },
+    {
+      "status": "skipped",
+      "index": 94,
+      "key": "comparison_case34",
+      "reason": "单一游戏截图请求，现有UI游戏截图已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 95,
+      "key": "comparison_case35",
+      "reason": "公众人物趣味自拍与抠背景测试，既有自拍风格已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 96,
+      "key": "comparison_case36",
+      "reason": "单一游戏画面请求，现有UI游戏截图已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 97,
+      "key": "comparison_case37",
+      "reason": "普通二维卡通换成编程博物馆题材，不新增独立风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 98,
+      "key": "comparison_case38",
+      "reason": "抽象维度测试但缺少明确主体与视觉技术，难以稳定复用。"
+    },
+    {
+      "status": "skipped",
+      "index": 99,
+      "key": "comparison_case39",
+      "reason": "电视体育转播构图已有case-428，换人物与运动不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 100,
+      "key": "case_case61",
+      "reason": "需要视频、当前帧、风格图和Logo等缺失上下文；现有视频封面类别已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 101,
+      "key": "case_case65",
+      "reason": "开放事件问答测试，没有固定视觉风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 102,
+      "key": "case_case66",
+      "reason": "硬币金额编辑测试，无新风格；与161近重复。"
+    },
+    {
+      "status": "skipped",
+      "index": 103,
+      "key": "case_case67",
+      "reason": "开放事件问答测试，没有固定视觉风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 104,
+      "key": "case_case83",
+      "reason": "只有研究主题，没有独立视觉设计；科研信息图已有。"
+    },
+    {
+      "status": "skipped",
+      "index": 105,
+      "key": "case_case84",
+      "reason": "现有case-21等抖音直播带货截图已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 106,
+      "key": "case_case86",
+      "reason": "社交匹配卡片/爱心UI已有广泛应用界面，未提供新增视觉语法。"
+    },
+    {
+      "status": "skipped",
+      "index": 107,
+      "key": "case_case91",
+      "reason": "既有case-270等角色设定表覆盖，换Boss题材不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 108,
+      "key": "case_case92",
+      "reason": "暗黑神话角色电影封面已由case-352等覆盖。"
+    },
+    {
+      "status": "selected",
+      "index": 109,
+      "key": "case_case93",
+      "title": "荷花容器微缩城市",
+      "category": "插画艺术",
+      "noveltyReason": "半透明巨型荷花承载暖金微缩城市，极简东方CG空间构图，区别于既有剪影叙事与红绸城市海报。"
+    },
+    {
+      "status": "skipped",
+      "index": 110,
+      "key": "case_case94",
+      "reason": "古风写真只换角色和服饰，现有人像库已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 111,
+      "key": "case_case95",
+      "reason": "人物与文学主题蒙版合成已有case-337等诗词意境，未新增稳定风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 112,
+      "key": "case_case96",
+      "reason": "普通地铁抓拍且混入免费推广文字，既有case-472等已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 113,
+      "key": "case_case97",
+      "reason": "纪念邮票用途与本批更完整可复用的666合并。"
+    },
+    {
+      "status": "skipped",
+      "index": 114,
+      "key": "case_case98",
+      "reason": "电影写实古风人像已有，换女侠服饰与雨竹林不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 115,
+      "key": "case_case99",
+      "reason": "写实宗教人物还原，视觉上仍属现有写真人像。"
+    },
+    {
+      "status": "skipped",
+      "index": 116,
+      "key": "case_case100",
+      "reason": "工笔重彩长卷已有case-206等，换长安灯会题材不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 117,
+      "key": "case_case101",
+      "reason": "历史人物手机写实还原，现有人像摄影已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 118,
+      "key": "case_case102",
+      "reason": "现有case-540等未来城市插画覆盖，主要差异是场景叙事细节。"
+    },
+    {
+      "status": "skipped",
+      "index": 119,
+      "key": "case_case107",
+      "reason": "古风幻想魅力写真已有，换IP与服饰不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 120,
+      "key": "case_case108",
+      "reason": "与105重复且现有直播截图已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 121,
+      "key": "case_case109",
+      "reason": "幻想CG花饰半身人物已有case-500等同类表现。"
+    },
+    {
+      "status": "skipped",
+      "index": 122,
+      "key": "case_case110",
+      "reason": "韩法柔光编辑人像已有case-187等，服饰姿态变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 123,
+      "key": "case_case111",
+      "reason": "科幻IP集结场景已有同类电影叙事，且一条混合两张要求。"
+    },
+    {
+      "status": "selected",
+      "index": 124,
+      "key": "case_case112",
+      "title": "黑丝绒食物博物标本剖面",
+      "category": "信息图表",
+      "noveltyReason": "黑丝绒背景下半完整半剖开的写实食物标本、明暗法照明和贴结构三行标注，区别于既有浅底食谱和爆炸图。",
+      "notes": "需填写食物及各结构说明"
+    },
+    {
+      "status": "skipped",
+      "index": 125,
+      "key": "case_case113",
+      "reason": "拍立得破框与现有case-403、404等破屏视觉同类，源末尾混入对比注释。"
+    },
+    {
+      "status": "skipped",
+      "index": 126,
+      "key": "comparison_case70",
+      "reason": "双图相机POV对比用图，保留场景换视角已有case-381多机位参考。"
+    },
+    {
+      "status": "skipped",
+      "index": 127,
+      "key": "comparison_case71",
+      "reason": "源内容是Source/Output展示对比，不增一套重复比较排版。"
+    },
+    {
+      "status": "skipped",
+      "index": 128,
+      "key": "comparison_case72",
+      "reason": "模型优劣宣传与霓虹缩略图，现有视频封面覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 129,
+      "key": "comparison_case73",
+      "reason": "AI品牌霓虹比较宣传，现有高密度科技封面覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 130,
+      "key": "comparison_case74",
+      "reason": "与128、129近同霓虹AI宣传缩略图。"
+    },
+    {
+      "status": "skipped",
+      "index": 131,
+      "key": "comparison_case75",
+      "reason": "现实照片叠游戏HUD已有case-197等，主题公园人物换题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 132,
+      "key": "comparison_case76",
+      "reason": "包含脚本、视频、配乐和剪辑的跨工具工作流，不是独立生图指令。"
+    },
+    {
+      "status": "selected",
+      "index": 133,
+      "key": "comparison_case77",
+      "title": "可打印数字填色模板",
+      "category": "文档出版",
+      "noveltyReason": "把参考图简化成闭合区域编号、1至14色图例的A4填色页，现有库没有对应可打印模板用途。",
+      "notes": "需提供待转换图片；正文前含社媒介绍，真正生图指令从 Create a professional high-resolution 开始",
+      "promptOverride": "Create a professional high-resolution paint-by-numbers template from the provided image as a single PNG only. Use an A4 portrait ratio canvas at 300 DPI with a pure white background. The main artwork must be a clean black-and-white line drawing containing only black outlines, black numbers, and white unfilled paintable areas. Do not create a PDF, document, mockup, multi-page layout, or colored version. Do not use color, gray, shading, texture, gradients, transparency, or pre-filled areas in the main artwork. Analyze the original image and choose the number of colors adaptively based on image complexity, from 1 to a maximum of 14 colors. If the image has only 1–2 important colors, use only 1–2 colors; for simple images use 3–6 colors; for medium complexity use 7–10 colors; for complex, photographic, or highly detailed images use 11–14 colors. Do not force unnecessary colors. Assign each selected color one unique number and merge similar shades unless separation is essential for recognition. Convert the image into simplified, fully closed, easy-to-paint regions while preserving the recognizable composition, main objects, characters, text, logos, foreground, background, and key details. Every paintable white region must contain the correct black number, centered clearly inside the matching area, readable, upright, and not touching outlines. Large black or dark areas from the original must remain white paintable regions with the correct number, not filled black. Only tiny permanent black line details, such as mouth lines, nostrils, pupils, eyelashes, seams, or small decorative strokes, may remain unnumbered. At the bottom of the same PNG, add a neat legend section with the heading “Instructions”, the sentence “Paint the areas with the matching colors.”, and a list of every used number with a small color swatch and the English color name. Color swatches may appear only in the legend. Ensure the numbering exactly matches the legend, every paintable area is numbered, all regions are closed, and the final result is clean, professional, print-ready, and recognizable as the original image.",
+      "promptOverrideReason": "去掉提示词前的社媒介绍，只保留完整的数字填色模板指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 134,
+      "key": "comparison_case78",
+      "reason": "普通黑帮黑车电影人像，现有暗调写真风格覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 135,
+      "key": "comparison_case79",
+      "reason": "与case-371真人和迷你分身scrapbook同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 136,
+      "key": "comparison_case80",
+      "reason": "只有笼统品牌拆解请求，现有case-310、354等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 137,
+      "key": "comparison_case81",
+      "reason": "一般公寓对话分镜，既有case-127与动画分镜覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 138,
+      "key": "comparison_case82",
+      "reason": "简化手绘童趣图已有case-452、533等覆盖。"
+    },
+    {
+      "status": "selected",
+      "index": 139,
+      "key": "comparison_case83",
+      "title": "室内材质与配色情绪板",
+      "category": "建筑空间",
+      "noveltyReason": "上方空间效果图与下方材料、面料、色卡严格对应的室内提案板，区别于已有公寓多机位参考图。",
+      "notes": "需提供室内照片并填写空间、材质、风格等变量；源文仅末尾负面约束有残句，已删残句，完整主体保留。",
+      "promptOverride": "GPT Image 2 室内设计情绪板生成器\n\n提示词：\n（室内设计情绪板生成器 / Interior Design Mood Board Generator）\n你是一名专业的室内设计 Mood Board 创作者。请基于用户提供的 [Space Type] 室内设计照片，生成一张 竖版 3:4 的高端室内设计情绪板。整体视觉参考专业室内设计提案图，呈现 [Style Keywords] 的审美特征，画面应具备 [Mood Keywords] 的空间氛围，并符合 [Branding Tone] 的高级设计表达。\n场景类型（Space Type）：[Space Type]\n画面布局要求\n上半部分：呈现一张高分辨率、照片级真实感的 [Space Type] 室内设计效果图。\n\n该效果图需要在空间结构、家具语言、材质关系、色彩搭配、光影氛围上与用户输入照片保持一致，同时提升为更完整、更精致、更具设计提案感的视觉呈现。\n\n重点体现：[Key Furniture Elements]、[Material Keywords]、[Color Palette]、[Lighting Style]。\n下半部分：展示与上方空间设计严格对应的材质与软装样本，包括：\n材料样板\n面料样本\n色卡\n饰面样本\n与该空间相关的木材、石材、金属、玻璃、织物、皮革或涂料样本\n\n所有样本必须与上方空间保持一致，并准确反映该设计方案中的核心材质与色彩逻辑。\n右下角：设置一个 Design Legend / Color Palette 信息框，统一展示本方案的：\n主色\n辅助色\n点缀色\n核心材质\n饰面说明\n风格关键词\n风格与输出要求\n专业室内设计公司级别的 Mood Board 版式\n极简、整洁、克制、有秩序的排版\n明确的视觉层级与留白控制\n材质、色彩、面料、饰面与上方空间完全匹配\n标签清晰、现代、简洁，具有高级编辑设计感\n整体气质需符合 [Style Keywords]\n呈现 [Render Quality]\n竖版 3:4 构图\n4K Ultra HD\n超高细节\n写实渲染\n直接用于图像生成\n标签要求\n每个材质或色彩样本配有清晰标签，标签内容围绕以下信息组织：\n\n[Label Language] 的材质名称、颜色名称、饰面名称或织物类型。\n\n标签风格应简洁、专业、排版规整，不喧宾夺主。\n主题定义\n[Space Type] Interior Design Mood Board\n\n风格方向：[Style Name]\n\n关键词：[Style Keywords], [Material Keywords], [Color Palette], [Mood Keywords]\n负面约束\n避免杂乱拼贴、避免廉价海报风、避免材质与空间不匹配、避免错误透视、避免低质字体、避免装饰元素过多、避免卡通感、避免过饱和色彩",
+      "promptOverrideReason": "去掉源文末尾未完成的“、避免信息层”残句，不补写或改动其余指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 140,
+      "key": "comparison_case84",
+      "reason": "动物喜剧分镜形式与现有动画分镜近同，主要区别在剧情。"
+    },
+    {
+      "status": "skipped",
+      "index": 141,
+      "key": "comparison_case85",
+      "reason": "与case-419同一8格皮克斯烘焙模板，仅换酸面包及猫剧情。"
+    },
+    {
+      "status": "skipped",
+      "index": 142,
+      "key": "comparison_case86",
+      "reason": "通用电影分镜网格，现有case-422等已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 143,
+      "key": "comparison_case87",
+      "reason": "与case-419同一8格皮克斯烘焙模板，仅换松饼与人物。"
+    },
+    {
+      "status": "skipped",
+      "index": 144,
+      "key": "comparison_case88",
+      "reason": "体育广告分镜与既有商业分镜/破屏表达重叠。"
+    },
+    {
+      "status": "skipped",
+      "index": 145,
+      "key": "comparison_case89",
+      "reason": "多张完整世界观设定图已有case-119等设定资料，缺少独立新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 146,
+      "key": "comparison_case90",
+      "reason": "角色三视图与部件特写已有case-270、512等覆盖。"
+    },
+    {
+      "status": "selected",
+      "index": 147,
+      "key": "comparison_case91",
+      "title": "时代立方体演变图",
+      "category": "信息图表",
+      "noveltyReason": "把不同时代的器物、人物与环境压缩进严格立方体，以统一网格呈现时代演变，区别于既有平面时间线地图。",
+      "promptOverride": "2x2 grid, do this for different years of vastly different eras:  ERA_TO_CUBE_SOLVER  INPUT ::= [TOPIC], [ERA]  STEP_1 :: infer era identity - time period or stage - dominant materials - key tools or artifacts - social/technical/cultural context - built environment or natural environment - representative agents or figures if relevant  STEP_2 :: compress into cube - large objects define cuboid edges - medium objects build internal scenes - small objects fill gaps - top, side, and front faces remain visible - everything stays inside a strict rectangular volume  STEP_3 :: create module text - large era label - short subtitle - compact bullet list - no fixed facts unless supplied  STEP_4 :: repeat across eras - preserve identical visual grammar - increase or transform complexity chronologically",
+      "promptOverrideReason": "去掉开头对模型的评论，保留完整四格时代立方体视觉指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 148,
+      "key": "comparison_case92",
+      "reason": "超现实动作定格已有case-356等，厨房只是题材变化。"
+    },
+    {
+      "status": "selected",
+      "index": 149,
+      "key": "comparison_case93",
+      "title": "发明圣物匣悬浮拆解图",
+      "category": "信息图表",
+      "noveltyReason": "玻璃博物匣中以黄铜杆与张力线悬挂发明零件，专利档案背景组成展陈式结构图，区别于普通白底产品爆炸图。",
+      "notes": "需填写发明变量；保留四格输出结构",
+      "promptOverride": "Function DrawInventionReliquary(input invention)\n\nInput Variable: [INSERT INVENTION]\n\nSystem Instruction:\nGenerate a hyper-realistic \"Innovation Reliquary Exploded Diagram.\"\n\n1. Semantic Extraction:\nAI infers:\n- Core problem solved\n- Mechanism\n- Historical era\n- Inventor culture\n- Materials\n- Failure points\n- Social impact\n\n2. Container:\nStructure: floating exploded object inside a glass museum case.\nEvery part is suspended on brass rods and fine tension wires.\n\n3. Background:\nPatent-paper wall with faint diagrams, tolerances, labels, and archive stamps.\n\n4. Integration:\nThe invention’s key insight becomes a central glowing mechanism.\n\n5. Visual Syntax:\nMaterials: brushed steel, glass, brass, aged paper, black ink.\nLighting: luxury product photography.\nNo cheap blueprint clichés.\n\nOutput:\n2x2 grid, 16:9, four world-changing inventions.",
+      "promptOverrideReason": "去掉开头社媒介绍，保留完整发明展匣视觉指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 150,
+      "key": "comparison_case94",
+      "reason": "同人多套时尚造型已有case-398，90年代换服饰不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 151,
+      "key": "comparison_case95",
+      "reason": "收藏玩具包装已有case-365与462，SQL写法不等于新增视觉风格。"
+    },
+    {
+      "status": "selected",
+      "index": 152,
+      "key": "comparison_case96",
+      "title": "碎石拼装风格重绘",
+      "category": "插画艺术",
+      "noveltyReason": "主体转化为相互分离、留有可见缝隙的板岩和砂岩碎片，现有纸艺、钩织与普通3D角色均不覆盖这一材质体系。",
+      "notes": "需提供待重绘图片"
+    },
+    {
+      "status": "skipped",
+      "index": 153,
+      "key": "comparison_case97",
+      "reason": "明确要求输出连续视频且不要分镜，不适用当前静态生图库。"
+    },
+    {
+      "status": "skipped",
+      "index": 154,
+      "key": "comparison_case98",
+      "reason": "12格时尚变装分镜与现有商业分镜、穿搭图同类，国家换主题不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 155,
+      "key": "comparison_case99",
+      "title": "尘团微观自然纪录片分镜",
+      "category": "场景叙事",
+      "noveltyReason": "以极端微距野生动物纪录片语法拍摄沙发下尘团与吸尘器生存追逐，新增日常物微观生态纪录片表现。",
+      "notes": "仅采用独立完整的18格生图指令；不包含后续Seedance视频请求。",
+      "promptOverride": "Create a 16:9 image.\n\n[PROJECT CARD]\nCreate a compact designed masthead, not a table.\nTITLE: THE DUST BUNNY NATURE DOCUMENTARY\nMETA LINE: macro wildlife realism / under-couch survival ecosystem / dry documentary comedy / 15-second natural-history chase\nPRIORITY: real nature-documentary seriousness, under-couch wilderness, dust bunny herd, fragile main dust bunny, household objects as landmarks, vacuum cleaner apex predator, survival chase, calm noble ending\nMICRO BRIEF: Eighteen-panel storyboard of a small dust bunny under a couch filmed like a wild animal surviving in a dangerous natural habitat.\n[CONTINUITY HEADER]\nSEQUENCE ID: DUST-BUNNY-DOC-18\nREFERENCE PRIORITY: This storyboard controls C1 dust bunny identity, under-couch geography, macro household scale, documentary lens language, herd behavior, vacuum predator logic, survival chase continuity, and dry comedic realism.\n[SCENE PACKET]\nPREMISE: Beneath an ordinary living-room couch exists a hidden wilderness. Dust bunnies drift and gather like a small herd in a shadowed ecosystem of carpet fibers, long hair strands, crumbs, lost objects, and canyon-like sofa legs. One small fragile dust bunny explores the terrain, moving through the under-couch world like a wild animal foraging in a hostile habitat. The peace breaks when the ground begins to tremble. The vacuum cleaner arrives like an apex predator: part lion, part shark, part sandstorm. Its suction pulls dust, crumbs, and debris into a violent vortex. C1 races through the under-sofa wilderness, dodges household dangers, tumbles past a lost LEGO brick, coin, pen cap, crumbs, and hair-strand forests, then finds cover just in time. The vacuum passes. Calm returns. The herd remains. Against all odds, life continues under the couch.\nLOCATION:\nThe underside of a couch in a real home, filmed at extreme macro scale.\nEnvironment: dark sofa underside, canyon-like couch shadows, carpet fibers like tall grass, dust motes drifting like desert particles, long hair strands like tangled vines or forest roots, crumbs like boulders, a lost LEGO brick like a red stone ruin, a coin like a metallic moon-disc, a pen cap like a fallen cylinder monument, deep shadow pockets used as cover.\nWorld scale: everything is household-sized in reality but filmed like a vast natural ecosystem.\nSTART -> END:\nC1 and a small dust bunny herd rest calmly in the hidden under-couch habitat -> C1 explores and forages -> the vacuum arrives and creates a suction storm -> C1 survives by finding cover -> C1 returns to the herd as the habitat settles back into quiet.\nACTION CHAIN:\ncalm under-couch ecosystem -> dust bunny herd drifting -> main dust bunny emerges -> foraging through carpet grass -> LEGO ruin pass -> coin reflection -> pen cap tunnel -> crumbs and hair forest -> ground tremor -> vacuum shadow appears -> suction storm begins -> debris vortex pulls everything -> C1 tumbles and runs -> near miss at nozzle edge -> cover behind LEGO brick -> vacuum passes -> dust settles -> C1 returns to herd -> life continues.\n\nPROP / EFFECT STATE:\nC1 is a believable dust bunny creature made from dust, fuzz, hair, lint, and tiny fibers. It has subtle expressive movement but no human face, no speech, no limbs like a cartoon mascot, no clothes, and no exaggerated cuteness.\nDust bunny herd members are soft drifting clumps of dust and lint with tiny natural movement, not characters with faces.\nThe vacuum cleaner is the apex predator. It should be introduced through shadow, vibration, low mechanical presence, nozzle movement, suction wind, and debris being pulled into darkness. It should feel genuinely threatening in documentary terms, not like a villain with personality.\nThe household objects are landmarks: LEGO brick, coin, pen cap, crumbs, hair strands, carpet fibers. They should feel like real objects seen at extreme macro scale.\nMUST READ:\nThe style must stay committed to real documentary seriousness. This is not a cartoon parody. The joke is that a dirty forgotten corner of a home is treated like a majestic wildlife ecosystem.\n[CHARACTER SANITIZATION]\nC1: small dust bunny, fragile rounded irregular shape, soft grey-beige lint body, slightly shaggy edges, tiny tangled hair fibers, dust particles clinging to its surface, delicate movement like a windblown creature, subtle readable orientation without a cartoon face. It should feel alive but still plausibly made from household dust and fuzz.\nC2: dust bunny herd, several smaller and larger dust clumps drifting and resting in shadow, fragile, quiet, non-human, no obvious faces, no mascot design.\nC3: vacuum cleaner apex predator, seen mostly as a large dark nozzle, rotating brush shadow, vibrating floor presence, harsh suction wind, low mechanical threat. It should feel enormous from dust-bunny scale.\nC4: household landmarks — lost LEGO brick, coin, pen cap, old crumbs, long hair strands, carpet fibers, couch legs, dark sofa underside. These are environmental features, not props to be played for slapstick.\n\n[IDENTITY CONSISTENCY]\nKeep C1’s small grey-beige shaggy dust-and-lint body, fragile irregular shape, hair-fiber texture, and subtle movement consistent across every panel. Keep the under-couch geography consistent: couch underside above, carpet fibers below, lost objects as landmarks, vacuum entering from one side. Preserve face, identity, skin tone, body shape, hair, outfit, and proportions exactly across every panel. No identity drift. No redesign.\n[STORYBOARD PURITY]\nCreate a clean professional storyboard sheet with 18 panels arranged in a compact 3x6 grid. Full-color cinematic documentary panel artwork. Put panel numbers, beat names, and lens tags in a clean header strip outside each panel image. No captions, no subtitles, no speech bubbles, no logos, no watermarks, no arrows inside the artwork, no technical overlays. Do not make the dust bunny too cute or anthropomorphic. Do not overcrowd panels. Each panel must have one clear wildlife-documentary visual idea.\n\n[MASTER SHOT RULE]\nP01 must clearly establish the under-couch ecosystem in calm documentary beauty: sofa underside overhead, carpet fibers like grass, dust motes in shallow focus, lost objects in the distance, herd visible but subtle. P10 must clearly introduce the vacuum as an enormous apex predator presence. P13-P15 must be the clearest survival-chase section. P18 must return to calm, noble life continuing under the couch.\n[EMOTIONAL ARC]\nHidden natural beauty -> fragile creature life -> strange majestic household wilderness -> first tremor -> predator arrival -> survival panic -> near consumption -> shelter and endurance -> dust settles -> noble absurd continuity of life.\n[STYLE LOCKS]\nSTYLE LOCK: National Geographic / BBC Earth macro documentary realism, cinematic natural-history lens language, shallow depth of field, extreme macro photography, realistic household textures, dust motes in volumetric light, tactile carpet fibers, muted earth tones, soft documentary contrast, serious wildlife cinematography.\nREALISM LOCK: the dust bunny should feel like a believable dust-and-lint organism, not a cartoon character. Movement is subtle, fragile, and wind-driven. No talking, no human gestures, no mascot design.\nDOCUMENTARY LOCK: camera treats the under-couch world like a real ecosystem: patient observation, macro tracking, hidden-life beauty, predator dread, survival stakes.\nPREDATOR LOCK: the vacuum is shot like a natural threat: shadow first, vibration second, then nozzle and suction vortex. It should feel like a lion, shark, and sandstorm combined, but still clearly a household vacuum cleaner.\nCOMEDY LOCK: dry seriousness is the joke. Do not wink at the audience. Do not exaggerate into slapstick.\nENVIRONMENT LOCK: underside of couch remains the same wilderness throughout: couch shadow canopy above, carpet fiber grass below, lost LEGO brick, coin, pen cap, crumbs, and hair strands as landmarks.\n[SPATIAL CONTINUITY LOCK]\nP01-P04 establish the calm under-couch ecosystem and C1 among the dust bunny herd.\nP05-P08 follow C1 exploring through the household landmark terrain.\nP09-P10 introduce vibration and vacuum predator arrival from one side of the couch.\nP11-P15 stage the suction chase through the same under-couch geography.\nP16 shows C1 finding cover and surviving the vacuum pass.\nP17-P18 restore calm and return C1 to the herd.\nThe vacuum always enters from one consistent direction. C1’s survival path moves from the open carpet-fiber field toward cover behind the LEGO brick or pen cap.\n\n[DIRECTOR STRIP]\nBottom animatic track board aligned to panel columns. Tracks: BEAT LINE, CAMERA PATH, ACTION PATH, RHYTHM TRACK, ESCALATION MAP, STATE TRACK, STYLE TRACK. Use clean shot chips, thin lines, small rhythm blocks, and short labels. No timestamps.\nPANEL HEADERS:\nP01 / macro 35mm / Hidden ecosystem\nP02 / macro 100mm / Herd drifts\nP03 / 85mm close / C1 emerges\nP04 / low macro / Carpet grass\nP05 / 70mm track / Foraging path\nP06 / macro wide / LEGO ruin\nP07 / 100mm insert / Coin moon\nP08 / 50mm tunnel / Pen cap shelter\nP09 / 85mm tremor / Ground warning\nP10 / low 24mm / Predator shadow\nP11 / 35mm storm / Suction begins\nP12 / macro chaos / Debris vortex\nP13 / 70mm chase / C1 runs\nP14 / 100mm danger / Nozzle near miss\nP15 / low 35mm / Hair forest escape\nP16 / 50mm cover / Survives pass\nP17 / macro calm / Dust settles\nP18 / 35mm wide / Life continues\n\nCAMERA + LENS PLAN:\nP01 wide macro establishing shot under the couch, sofa underside like canyon ceiling, carpet fibers like grass, dust motes floating in light.\nP02 patient macro shot of several dust bunnies drifting and gathering like a herd in a hidden ecosystem.\nP03 close documentary shot of C1 emerging from shadow, fragile and shaggy, subtly alive.\nP04 low carpet-level shot as C1 moves through tall carpet fibers like grassland.\nP05 tracking macro shot following C1 foraging through crumbs and lint.\nP06 wider macro shot of C1 passing a lost LEGO brick framed like an ancient red stone ruin.\nP07 insert shot of a coin reflecting dim light like a metallic moon in the under-couch world.\nP08 tunnel-like shot of C1 passing near a pen cap, treated like a fallen hollow log or shelter.\nP09 tense close shot as carpet fibers vibrate and dust trembles from an approaching force.\nP10 low dramatic shot of the vacuum nozzle shadow entering the habitat like an apex predator.\nP11 wide macro chaos shot as suction begins pulling dust motes, crumbs, and lint into a directional wind.\nP12 extreme macro shot of debris spinning in a suction vortex, realistic and tactile.\nP13 fast documentary chase shot of C1 tumbling and racing through the carpet-fiber field.\nP14 intense near-miss shot: vacuum nozzle edge passes dangerously close as C1 is almost pulled in.\nP15 low tracking shot as C1 escapes through long hair strands like a tangled forest.\nP16 still tense shot as C1 wedges behind the LEGO brick or pen cap, surviving as the vacuum passes.\nP17 quiet macro shot as dust settles back onto the carpet and the predator sound fades.\nP18 wide macro final shot of C1 returning to the dust bunny herd, calm restored, life continuing under the couch.\nACTION PATH:\nP01 The under-couch wilderness is revealed in calm documentary beauty.\nP02 Dust bunnies drift and gather like a quiet herd.\nP03 C1 emerges carefully from shadow.\nP04 C1 moves through carpet fibers like tall grass.\nP05 C1 forages among crumbs, dust, and lint.\nP06 C1 passes the lost LEGO brick landmark.\nP07 C1 crosses near the coin, its reflection looming huge.\nP08 C1 explores beside the pen cap shelter.\nP09 The ground trembles; dust particles shake.\nP10 The vacuum cleaner shadow appears at the edge of the habitat.\nP11 Suction begins, pulling dust and crumbs into a violent wind.\nP12 Debris spins into a vortex.\nP13 C1 races away through the under-couch wilderness.\nP14 C1 narrowly avoids the vacuum nozzle.\nP15 C1 tumbles through hair strands and carpet fibers.\nP16 C1 finds cover behind the LEGO brick or pen cap and survives the pass.\nP17 The vacuum leaves; dust settles; silence returns.\nP18 C1 rejoins the herd. Against all odds, life continues.\n\nRHYTHM TRACK:\nP01 hold / hidden beauty / patient beat\nP02 observe / calm life / documentary beat\nP03 reveal / fragile subject / clean beat\nP04 move / quiet exploration / slow beat\nP05 forage / natural behavior / measured beat\nP06 landmark / scale reveal / held beat\nP07 detail / world texture / quiet beat\nP08 shelter / ecosystem detail / clean beat\nP09 warning / tremor / tension beat\nP10 predator reveal / dread / held beat\nP11 attack / suction wind / impact beat\nP12 vortex / chaos / storm beat\nP13 chase / survival run / driving beat\nP14 near miss / danger spike / smash beat\nP15 escape / tangled path / whip beat\nP16 cover / survival pause / suspended beat\nP17 settle / predator gone / release beat\nP18 continue / noble calm / final hold\nESCALATION MAP:\nP01 L1 calm / flat\nP02 L1 ecosystem / hold\nP03 L2 subject reveal / rise\nP04 L2 exploration / hold\nP05 L2 foraging / hold\nP06 L2 scale wonder / rise\nP07 L2 texture wonder / hold\nP08 L2 shelter / hold\nP09 L3 warning / spike\nP10 L4 predator / rise\nP11 L5 attack / spike\nP12 L5 vortex / surge\nP13 L5 chase / sustained\nP14 L5 near death / spike\nP15 L4 escape / unresolved\nP16 L3 survival / drop\nP17 L2 calm returns / release\nP18 L1 life continues / resolved\nSTATE TRACK:\nP01 hidden habitat\nP02 herd calm\nP03 C1 emerges\nP04 carpet grass\nP05 foraging\nP06 LEGO ruin\nP07 coin moon\nP08 pen cap shelter\nP09 tremor\nP10 vacuum shadow\nP11 suction begins\nP12 debris vortex\nP13 survival chase\nP14 nozzle near miss\nP15 hair forest escape\nP16 cover survives\nP17 dust settles\nP18 herd remains\nSTYLE TRACK:\nP01 BBC Earth macro\nP02 fragile herd\nP03 wild subject\nP04 grassland scale\nP05 natural behavior\nP06 household ruin\nP07 metallic landmark\nP08 hidden shelter\nP09 predator omen\nP10 apex dread\nP11 sandstorm suction\nP12 debris cyclone\nP13 survival sprint\nP14 shark-mouth danger\nP15 forest escape\nP16 sheltered life\nP17 quiet aftermath\nP18 noble absurdity\n[NEGATIVE / AVOID]\nDo not make the dust bunny too cute in a Pixar way.\nDo not give the dust bunny a cartoon face, human eyes, arms, legs, clothing, speech, or mascot behavior.\nDo not turn the vacuum into a character with a face.\nDo not make the scene loud, colorful, or cartoonish.\nDo not lose the realism of the household environment.\nDo not make the couch world clean or magical.\nDo not overcrowd panels with too many objects.\nDo not add narration text, captions inside panels, speech bubbles, logos, watermarks, UI, or arrows inside the artwork.\nDo not make the dust bunny herd look like plush toys.\nDo not make the ending sentimental; make it calm, dry, and weirdly noble.\n\n[SEQUENCE]\nGrid: 18 panels in a compact 3x6 cinematic storyboard sheet. The sequence must read as a serious macro nature documentary: a small dust bunny lives under a couch, explores its household wilderness, faces the vacuum cleaner apex predator, survives the suction storm, and returns to the herd as calm life continues. National Geographic / BBC Earth documentary realism, macro household scale, dry absurd comedy, tense survival framing, and committed visual seriousness throughout.",
+      "promptOverrideReason": "源条目包含一套完整生图分镜和后续视频指令，仅截取完整生图分镜段，防止输出要求相互冲突。"
+    },
+    {
+      "status": "skipped",
+      "index": 156,
+      "key": "comparison_case100",
+      "reason": "依赖三张角色与首帧参考，核心为单镜头视频动作方案。"
+    },
+    {
+      "status": "skipped",
+      "index": 157,
+      "key": "comparison_case101",
+      "reason": "与case-419同一8格皮克斯烹饪模板，仅换吉事果。"
+    },
+    {
+      "status": "skipped",
+      "index": 158,
+      "key": "comparison_case102",
+      "reason": "源提示词在液体规则“No drip”处截断，缺完整分镜设计，跳过。"
+    },
+    {
+      "status": "selected",
+      "index": 159,
+      "key": "comparison_case103",
+      "title": "旧影像清晰度修复",
+      "category": "摄影写实",
+      "noveltyReason": "保留旧照片构图和所有细节，仅提升清晰度、分辨率与现代数码摄影质感，是现有库缺少的旧影像修复用途。",
+      "notes": "需提供旧照片；末尾含批量操作说明",
+      "promptOverride": "Transform the attached image into a high resolution digital photo that looks like it was taken yesterday. Make it look like it was taken with a Canon EOS R6. Cinematic color grading and lighting. Keep details the same, only change the quality and resolution.",
+      "promptOverrideReason": "仅保留首个完整旧影像修复指令，删除后续会话批量操作教程。"
+    },
+    {
+      "status": "selected",
+      "index": 160,
+      "key": "comparison_case104",
+      "title": "建筑风格四格对照",
+      "category": "建筑空间",
+      "noveltyReason": "在统一相机角度和中性天空下展示四种建筑流派及其几何本质，新增建筑流派对照用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 161,
+      "key": "comparison_case105",
+      "reason": "与102同款硬币金额编辑测试，无新增风格。"
+    },
+    {
+      "status": "selected",
+      "index": 162,
+      "key": "comparison_case106",
+      "title": "蓝图与实体渲染分屏",
+      "category": "商品电商",
+      "noveltyReason": "同一物体垂直切半，一侧技术蓝图另一侧成品3D，并在接缝产生现实碰撞，区别于常规拆解展示。"
+    },
+    {
+      "status": "skipped",
+      "index": 163,
+      "key": "comparison_case107",
+      "reason": "蓝图与成品分屏用途与本批162合并，保留更通用的物体模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 164,
+      "key": "comparison_case108",
+      "reason": "6格写实电影分镜已有case-422，失重主要是剧情题材变化。"
+    },
+    {
+      "status": "selected",
+      "index": 165,
+      "key": "comparison_case109",
+      "title": "有机物与飞船同轮廓变形",
+      "category": "插画艺术",
+      "noveltyReason": "骨头和未来飞船跨分屏延续同一轮廓的连续形态转换，新增有机物到工业形态的匹配变形构图。"
+    },
+    {
+      "status": "selected",
+      "index": 166,
+      "key": "comparison_case110",
+      "title": "铅笔屑微缩场景",
+      "category": "插画艺术",
+      "noveltyReason": "以卷曲木屑、彩色铅笔涂层与木纹构建微缩场景，新增明确手工材料风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 167,
+      "key": "comparison_case111",
+      "reason": "与case-419同一8格皮克斯烘焙模板，仅换椒盐卷饼。"
+    },
+    {
+      "status": "skipped",
+      "index": 168,
+      "key": "comparison_case112",
+      "reason": "仿生椅从形态到成品的研发板已有case-370，换灵感物不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 169,
+      "key": "poster_case113",
+      "reason": "黑金香水瓶、烟雾和大理石台面与现有高端香水广告近似，且夹带服务角标，不作为新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 170,
+      "key": "poster_case114",
+      "reason": "柔和泡沫、花朵与护肤瓶的产品静物已由现有护肤广告覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 171,
+      "key": "poster_case115",
+      "reason": "与 case-237 夏日柑橘汽水、海滩、冰块和飞溅的商业广告高度同型。"
+    },
+    {
+      "status": "selected",
+      "index": 172,
+      "key": "poster_case116",
+      "title": "工业产品多色方案展示板（需参考图）",
+      "category": "商品电商",
+      "noveltyReason": "保留参考产品结构，结合材料微距、多个配色的立体主图与悬浮正侧面构图，面向工业外观设计提案。"
+    },
+    {
+      "status": "skipped",
+      "index": 173,
+      "key": "poster_case117",
+      "reason": "居家试穿皮鞋属于既有时尚目录与生活方式商品摄影，鞋款和拍摄部位变化不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 174,
+      "key": "poster_case118",
+      "reason": "大理石、香水、金色器物和丝绸构成的奢华广告已有相近模板，仍属布景替换。"
+    },
+    {
+      "status": "selected",
+      "index": 175,
+      "key": "poster_case151",
+      "title": "微缩工人制造护肤品",
+      "category": "商品电商",
+      "noveltyReason": "微型工人、脚手架和起重机围绕巨型护肤瓶作业，新增将产品工艺拟作施工现场的商业隐喻。"
+    },
+    {
+      "status": "skipped",
+      "index": 176,
+      "key": "poster_case152",
+      "reason": "把丝巾与瓷瓶两种设定并列，画面与输出关系不足；国风艺术商品已存在。"
+    },
+    {
+      "status": "skipped",
+      "index": 177,
+      "key": "poster_case153",
+      "reason": "黑底 RGB 主板属于通用高端产品棚拍，仅对象变更，无新增视觉机制或用途。"
+    },
+    {
+      "status": "selected",
+      "index": 178,
+      "key": "poster_case154",
+      "title": "谷物食品电商整合展示板",
+      "category": "商品电商",
+      "noveltyReason": "一张图整合商品主图、原料详情、冲泡步骤、使用场景和底部分镜，补充中文食品全链路提案版式。"
+    },
+    {
+      "status": "selected",
+      "index": 179,
+      "key": "poster_case155",
+      "title": "手持耳机卖点广告",
+      "category": "商品电商",
+      "noveltyReason": "新增人物中景与近镜头手持耳机盒结合、明确参数和保修卖点的数码配件广告；同类耳机变体仅留此完整代表。"
+    },
+    {
+      "status": "selected",
+      "index": 180,
+      "key": "poster_case156",
+      "title": "可种植吊牌环保服饰广告",
+      "category": "商品电商",
+      "noveltyReason": "用真实植物从再生纸种子吊牌生长展示环保功能，补充可持续包装与服饰同框的用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 181,
+      "key": "poster_case157",
+      "reason": "依赖未说明的相似参考风格，只有换产品与换中文的短指令，不是完整模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 182,
+      "key": "poster_case158",
+      "reason": "白色展台、柔光渐变和简短标题是既有极简产品广告结构，更换炸鸡主体不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 183,
+      "key": "poster_case159",
+      "reason": "与现有 case-455 巨型洞洞鞋、模特和粉蓝棚拍同型。"
+    },
+    {
+      "status": "selected",
+      "index": 184,
+      "key": "poster_case160",
+      "title": "商品九格电视广告分镜（需参考图）",
+      "category": "场景叙事",
+      "noveltyReason": "从单张商品图延展为保持产品一致性的九镜头广告，包含材质、使用、清洁、底部细节与时间标注。"
+    },
+    {
+      "status": "skipped",
+      "index": 185,
+      "key": "ui_case89",
+      "reason": "直播电商 UI 已有 case-21、case-149、case-158 等；新增人物和界面文案不构成新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 186,
+      "key": "poster_case161",
+      "reason": "属于既有简洁悬浮产品棚拍，泛产品模板内仍写死双耳罩角度，通用性不足。"
+    },
+    {
+      "status": "skipped",
+      "index": 187,
+      "key": "poster_case162",
+      "reason": "暗色热食与蒸汽的餐饮英雄摄影已由 case-373 等覆盖，主要更换菜肴和餐具。"
+    },
+    {
+      "status": "skipped",
+      "index": 188,
+      "key": "ecommerce_case163",
+      "reason": "产品主图加九格广告分镜与本源 184 属同类型，保留产品保真和逐镜说明更完整的 184。"
+    },
+    {
+      "status": "skipped",
+      "index": 189,
+      "key": "ecommerce_case164",
+      "reason": "食材飞溅、悬浮和分解餐饮组图已有 case-443 等方向，烤肉菜式变化不另收。"
+    },
+    {
+      "status": "selected",
+      "index": 190,
+      "key": "ecommerce_case165",
+      "title": "写实美食像素方块解构",
+      "category": "商品电商",
+      "noveltyReason": "半边真实食品、半边溶解成三维立方体的材质转换，新增像素几何解构产品效果。"
+    },
+    {
+      "status": "skipped",
+      "index": 191,
+      "key": "ecommerce_case166",
+      "reason": "古建环境、奢华瓶体和东方氛围仍属已有传承香水广告方向（case-327），细节也较短。"
+    },
+    {
+      "status": "selected",
+      "index": 192,
+      "key": "ecommerce_case167",
+      "title": "毛绒流行艺术饮料包装",
+      "category": "商品电商",
+      "noveltyReason": "将罐体和背景整体重塑为软毛绒纤维，结合孟菲斯与波普配色，区别于普通产品材质写实。"
+    },
+    {
+      "status": "skipped",
+      "index": 193,
+      "key": "ecommerce_case168",
+      "reason": "球场人物与能量饮料飞溅仍属既有体育商业广告；第二条混有视频运动，非独立新静态类型。"
+    },
+    {
+      "status": "selected",
+      "index": 194,
+      "key": "ecommerce_case169",
+      "title": "闪电构成跑车广告",
+      "category": "商品电商",
+      "noveltyReason": "车身由蓝色闪电本体组成，结合风暴和湿路倒影，新增能量物质化的汽车商业视觉。"
+    },
+    {
+      "status": "skipped",
+      "index": 195,
+      "key": "ecommerce_case170",
+      "reason": "主要要求随机生成不同奢华概念，未明确独立视觉风格，与已有产品保真及材质对比广告重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 196,
+      "key": "ecommerce_case171",
+      "reason": "运动鞋的迷你品牌宇宙与本源 960 产品展开品牌世界同方向，保留更完整可复用的 960。"
+    },
+    {
+      "status": "selected",
+      "index": 197,
+      "key": "ecommerce_case172",
+      "title": "双屏远程恋人产品广告",
+      "category": "商品电商",
+      "noveltyReason": "两部并列手机的视频通话人物隔屏拼出心形，新增以双屏互动叙事表现产品连接价值。"
+    },
+    {
+      "status": "skipped",
+      "index": 198,
+      "key": "ecommerce_case173",
+      "reason": "粉色花卉、木台与精华瓶棚拍和现有植物香水、护肤静物方向近似。"
+    },
+    {
+      "status": "skipped",
+      "index": 199,
+      "key": "ecommerce_case174",
+      "reason": "围绕食品标注原料、弯箭头和配料分层已有 case-443、case-310，主要更换食品。"
+    },
+    {
+      "status": "skipped",
+      "index": 200,
+      "key": "ecommerce_case175",
+      "reason": "俯拍酱料与原材料围摆属于既有商业餐饮静物摄影，不增加独立风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 201,
+      "key": "ecommerce_case176",
+      "reason": "食物组分高速悬浮和碎屑已有食品爆炸拆解与产品动态摄影，菜式替换不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 202,
+      "key": "ecommerce_case177",
+      "reason": "荧光能量罐、柑橘片和冷凝飞溅与现有 case-358、case-237 高度同型。"
+    },
+    {
+      "status": "skipped",
+      "index": 203,
+      "key": "portrait_case313",
+      "reason": "现有 case-26 / case-217 / case-491 已覆盖 CCD 或直射闪光的颗粒、过曝、抓拍风格；主要更换场景、服装或年代。"
+    },
+    {
+      "status": "skipped",
+      "index": 204,
+      "key": "portrait_case2",
+      "reason": "现有 case-273 已覆盖极简背景、单人剪影、轮廓光与高对比；增加圆日或变暗不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 205,
+      "key": "portrait_case3",
+      "reason": "与现有 case-272 日式温泉旅馆胶片人像一致。"
+    },
+    {
+      "status": "skipped",
+      "index": 206,
+      "key": "portrait_case4",
+      "reason": "现有 case-240 已有同款 35mm 直闪球场人像正文。"
+    },
+    {
+      "status": "skipped",
+      "index": 207,
+      "key": "portrait_case5",
+      "reason": "现有 case-284 已有同款温馨卧室镜面自拍正文。"
+    },
+    {
+      "status": "skipped",
+      "index": 208,
+      "key": "portrait_case6",
+      "reason": "现有 case-187 / case-221 已覆盖黑柔滤镜或空气感日系 35mm 自然光肖像；换服装、动作或加入草莓不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 209,
+      "key": "portrait_case7",
+      "reason": "现有 case-277 已有同款奢华美妆海滨人像的中英文正文。"
+    },
+    {
+      "status": "skipped",
+      "index": 210,
+      "key": "portrait_case8",
+      "reason": "现有 case-7 已有真人 coser、手机状态栏与 galgame 对话框的同款混合界面。"
+    },
+    {
+      "status": "skipped",
+      "index": 211,
+      "key": "portrait_case9",
+      "reason": "常规自然光或黄金时刻城市时装肖像；现有 case-321 / case-434 / case-499 等已覆盖，主要变动为人物、城市、服装或姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 212,
+      "key": "portrait_case10",
+      "reason": "仅指定名人与滑板场，未提供新增的可复用风格或构图技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 213,
+      "key": "portrait_case11",
+      "reason": "现有 case-219 已有同一人物多姿态写真九宫格；色调、服装、性别或表情变化不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 214,
+      "key": "portrait_case12",
+      "reason": "现有 case-26 / case-217 / case-491 已覆盖 CCD 或直射闪光的颗粒、过曝、抓拍风格；主要更换场景、服装或年代。"
+    },
+    {
+      "status": "skipped",
+      "index": 215,
+      "key": "portrait_case13",
+      "reason": "现有 case-219 已有同一人物多姿态写真九宫格；色调、服装、性别或表情变化不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 216,
+      "key": "portrait_case14",
+      "reason": "现有 case-187 已有同款韩系极简黑柔氛围肖像。"
+    },
+    {
+      "status": "skipped",
+      "index": 217,
+      "key": "portrait_case15",
+      "reason": "现有 case-187 / case-221 已覆盖黑柔滤镜或空气感日系 35mm 自然光肖像；换服装、动作或加入草莓不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 218,
+      "key": "portrait_case16",
+      "reason": "现有 case-187 / case-221 已覆盖黑柔滤镜或空气感日系 35mm 自然光肖像；换服装、动作或加入草莓不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 219,
+      "key": "portrait_case17",
+      "reason": "现有 case-426 已覆盖日韩情侣自然互动写真，日系胶片和柔光也已由 case-221 覆盖；仅换双人姿势或背景不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 220,
+      "key": "portrait_case18",
+      "reason": "根据 AI 对用户的认知生图依赖未提供的会话上下文，且旧 case-383 / case-423 已有想象人物用途，无新增可复用风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 221,
+      "key": "portrait_case70",
+      "reason": "现有 case-293 已有报纸头版用途，正文主要为通用报刊版式与人物替换，没有独特新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 222,
+      "key": "portrait_case71",
+      "reason": "现有旅游信息图、手账与图文杂志版式已覆盖（如 case-445 / case-538）；将游客置于旅游内页属于内容组合。"
+    },
+    {
+      "status": "skipped",
+      "index": 223,
+      "key": "portrait_case77",
+      "reason": "这是依赖其他产品的反推与 UGC 工作流说明，非完整单条图片生成提示词，含操作推广内容。"
+    },
+    {
+      "status": "skipped",
+      "index": 224,
+      "key": "portrait_case78",
+      "reason": "常规高端日用/食品商品摄影加广告文字；现有商品电商类已覆盖柔光、植物点缀和产品文案版式，换成茶膜或草莓冰淇淋不构成新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 225,
+      "key": "portrait_case79",
+      "reason": "常规高端日用/食品商品摄影加广告文字；现有商品电商类已覆盖柔光、植物点缀和产品文案版式，换成茶膜或草莓冰淇淋不构成新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 226,
+      "key": "portrait_case80",
+      "reason": "现有 UI 与界面类已覆盖 SaaS 仪表盘/屏幕样机，桌面笔记本摆拍仅为载体变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 227,
+      "key": "portrait_case81",
+      "reason": "常规汽车旁人物的奢华生活方式俯拍，未提供独立的新视觉技术；车辆、服装与人物替换为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 228,
+      "key": "portrait_case26",
+      "reason": "现有 case-284 / case-414 / case-505 已覆盖自然居家、卧室手机自拍与室内低光写真，仅局部人设、服装和表情不同。"
+    },
+    {
+      "status": "selected",
+      "index": 229,
+      "key": "portrait_case27",
+      "title": "CineStill 红晕夜街人像",
+      "category": "摄影写实",
+      "noveltyReason": "新增 CineStill 800T 钨丝片色彩技术：霓虹高光的红色 halation 光晕、钨丝白平衡和微绿暗部；旧夜景胶片肖像仅有一般颗粒、柔焦与霓虹混光，未明确这种胶片红晕方法。"
+    },
+    {
+      "status": "skipped",
+      "index": 230,
+      "key": "portrait_case28",
+      "reason": "普通旅行纪实门店摄影并强调招牌拼写，现有写实纪实类已覆盖，未形成新的可复用视觉风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 231,
+      "key": "portrait_case29",
+      "reason": "现有 case-439 的赛博角色及其他科技界面/霓虹时尚图已覆盖该类型，变化主要为服装、面罩、色彩与背景。"
+    },
+    {
+      "status": "skipped",
+      "index": 232,
+      "key": "portrait_case30",
+      "reason": "现有 case-284 / case-414 / case-505 已覆盖自然居家、卧室手机自拍与室内低光写真，仅局部人设、服装和表情不同。"
+    },
+    {
+      "status": "skipped",
+      "index": 233,
+      "key": "portrait_case31",
+      "reason": "现有 case-504 / case-9008 已覆盖稚拙儿童蜡笔、粗糙不规则线条与低技巧照片重绘。"
+    },
+    {
+      "status": "skipped",
+      "index": 234,
+      "key": "portrait_case82",
+      "reason": "只是以修复后的旧家庭照片为外观生成，不是实际旧图修复功能；怀旧胶片肖像已有，物理老化类型由本次 portrait_case294 代表。"
+    },
+    {
+      "status": "skipped",
+      "index": 235,
+      "key": "portrait_case83",
+      "reason": "重度损坏老照片类型与本次 portrait_case294 相近，仅更换为母子题材，保留参数更可复用的后者。"
+    },
+    {
+      "status": "skipped",
+      "index": 236,
+      "key": "portrait_case84",
+      "reason": "与本次 portrait_case85 的黑白排线/蚀刻肖像同族；家庭题材或木刻措辞不再重复入库，旧库也已有木刻版画。"
+    },
+    {
+      "status": "selected",
+      "index": 237,
+      "key": "portrait_case85",
+      "title": "复古蚀刻版肖像",
+      "category": "插画艺术",
+      "noveltyReason": "新增古书式钢笔蚀刻人像：密集平行排线与交叉排线塑造面部体积，纯黑白半身胸像；区别于旧 case-9002 的粗刀刻套印田园木刻及 case-430 的柔铅笔时装速写。"
+    },
+    {
+      "status": "skipped",
+      "index": 238,
+      "key": "portrait_case86",
+      "reason": "现有 case-465 已覆盖逆光、回眸、背部主视觉的女性情绪肖像，服装、空间和月光变化不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 239,
+      "key": "portrait_case87",
+      "reason": "现有 case-325 / case-378 已覆盖卡通 3D 肖像和收藏设计玩具，材质或服装小变体不重复导入。"
+    },
+    {
+      "status": "skipped",
+      "index": 240,
+      "key": "portrait_case88",
+      "reason": "常规高定/时装写真或换装，现有 case-343 / case-492 / case-525 已覆盖精致面料、柔光与商业人像；礼服、人种、配饰或场景变化不算新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 241,
+      "key": "portrait_case89",
+      "reason": "常规高定/时装写真或换装，现有 case-343 / case-492 / case-525 已覆盖精致面料、柔光与商业人像；礼服、人种、配饰或场景变化不算新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 242,
+      "key": "portrait_case90",
+      "reason": "现有 case-6 / case-208 / case-471 已有日系梦幻动漫美少女；该条主要是 IP、发色、饰物和室内场景变化，不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 243,
+      "key": "portrait_case91",
+      "reason": "现有 case-500 已有同款梦幻花冠、珠宝与蕾丝幻想美妆肖像。"
+    },
+    {
+      "status": "skipped",
+      "index": 244,
+      "key": "portrait_case92",
+      "reason": "现有 case-542 / case-514 已覆盖高对比黑白几何肖像，神话头饰或杂志文字不是新技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 245,
+      "key": "portrait_case93",
+      "reason": "现有 case-6 / case-208 / case-471 已有日系梦幻动漫美少女；该条主要是 IP、发色、饰物和室内场景变化，不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 246,
+      "key": "portrait_case94",
+      "reason": "现有 case-6 / case-208 / case-471 已有日系梦幻动漫美少女；该条主要是 IP、发色、饰物和室内场景变化，不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 247,
+      "key": "portrait_case95",
+      "reason": "现有 case-6 / case-208 / case-471 已有日系梦幻动漫美少女；该条主要是 IP、发色、饰物和室内场景变化，不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 248,
+      "key": "portrait_case96",
+      "reason": "现有 case-6 / case-208 / case-471 已有日系梦幻动漫美少女；该条主要是 IP、发色、饰物和室内场景变化，不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 249,
+      "key": "portrait_case97",
+      "reason": "现有 case-45 / case-450 / case-525 已覆盖低调光、明暗对照、轮廓光与男性电影肖像；人物与环境变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 250,
+      "key": "portrait_case98",
+      "reason": "源正文过短或缺少关键主体/风格段落，无法作为独立可复用提示词；不凭配图补造未提供的内容。"
+    },
+    {
+      "status": "skipped",
+      "index": 251,
+      "key": "portrait_case99",
+      "reason": "普通超现实水下人像，未形成区别于现有梦幻幻想肖像的明确方法；源还要求遮挡脸部，仅增加鱼群与场景。"
+    },
+    {
+      "status": "skipped",
+      "index": 252,
+      "key": "portrait_case100",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 253,
+      "key": "portrait_case101",
+      "reason": "现有 case-6 / case-208 / case-471 已有日系梦幻动漫美少女；该条主要是 IP、发色、饰物和室内场景变化，不新增类型。"
+    },
+    {
+      "status": "selected",
+      "index": 254,
+      "key": "portrait_case102",
+      "title": "数字雕刻到实物手办工作台",
+      "category": "人物角色",
+      "noveltyReason": "新增角色制作流程展示用途：前景树脂手办、左屏灰模、右屏彩色渲染严格同一角色与姿势；旧库只有普通角色设定、玩具头像或软件界面，缺少这一三状态一致性展示。"
+    },
+    {
+      "status": "skipped",
+      "index": 255,
+      "key": "portrait_case103",
+      "reason": "现有 case-472 / case-536 等电影感环境肖像已覆盖自然天气、浅景深、轮廓光与情绪表达；雨、海、草地、雪与动物为题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 256,
+      "key": "portrait_case104",
+      "reason": "现有 case-26 / case-217 / case-491 已覆盖 CCD 或直射闪光的颗粒、过曝、抓拍风格；主要更换场景、服装或年代。"
+    },
+    {
+      "status": "skipped",
+      "index": 257,
+      "key": "portrait_case105",
+      "reason": "现有 case-534 的色条干扰、水平切割与运动拖影以及 case-484 的混合涂鸦已覆盖该黑白红实验编辑肖像。"
+    },
+    {
+      "status": "skipped",
+      "index": 258,
+      "key": "portrait_case106",
+      "reason": "现有 case-439 的赛博角色及其他科技界面/霓虹时尚图已覆盖该类型，变化主要为服装、面罩、色彩与背景。"
+    },
+    {
+      "status": "skipped",
+      "index": 259,
+      "key": "portrait_case107",
+      "reason": "现有 case-399 已覆盖日系负片、低对比、轻过曝和不完美构图，屋顶与饮料只是场景替换。"
+    },
+    {
+      "status": "skipped",
+      "index": 260,
+      "key": "portrait_case108",
+      "reason": "现有 case-377 / case-426 / case-499 已覆盖咖啡馆生活方式时装人像，自然光、浅景深与休闲姿势并无新技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 261,
+      "key": "portrait_case109",
+      "reason": "现有 case-219 / case-28 已覆盖人脸一致的多角度写真网格；黑白、四格/六格/九格或模特卡命名不新增视觉方法。"
+    },
+    {
+      "status": "skipped",
+      "index": 262,
+      "key": "portrait_case110",
+      "reason": "现有 case-349 / case-488 等已覆盖运动写实与体育编辑拼贴，高尔夫/排球或运动动作属于主体替换。"
+    },
+    {
+      "status": "selected",
+      "index": 263,
+      "key": "portrait_case111",
+      "title": "黑白肖像局部保色",
+      "category": "摄影写实",
+      "noveltyReason": "新增选择性保色摄影方法：全图黑白，仅眼镜保留鲜橙色；旧 case-484 是霓虹涂鸦叠加、case-534 是红色干扰图形，均不等同于将一个真实物件作为唯一彩色区域。"
+    },
+    {
+      "status": "skipped",
+      "index": 264,
+      "key": "portrait_case112",
+      "reason": "现有 case-187 / case-221 已覆盖黑柔滤镜或空气感日系 35mm 自然光肖像；换服装、动作或加入草莓不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 265,
+      "key": "portrait_case113",
+      "reason": "常规单色棚拍时装肖像，现有 case-318 / case-525 已覆盖；红底、扑克牌与雪茄属道具配色变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 266,
+      "key": "portrait_case114",
+      "reason": "现有 case-534 的色条干扰、水平切割与运动拖影以及 case-484 的混合涂鸦已覆盖该黑白红实验编辑肖像。"
+    },
+    {
+      "status": "skipped",
+      "index": 267,
+      "key": "portrait_case115",
+      "reason": "正文是依赖多张源帧的视频动作描述，缺少独立静态图用途；篮球人物与运动服不作为新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 268,
+      "key": "portrait_case116",
+      "reason": "常规自然光或黄金时刻城市时装肖像；现有 case-321 / case-434 / case-499 等已覆盖，主要变动为人物、城市、服装或姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 269,
+      "key": "portrait_case117",
+      "reason": "现有 case-371 已覆盖真实照片加入同人迷你 3D 分身的完整工作流，不重复收入换背景或姿势版。"
+    },
+    {
+      "status": "skipped",
+      "index": 270,
+      "key": "portrait_case118",
+      "reason": "现有 case-472 / case-536 等电影感环境肖像已覆盖自然天气、浅景深、轮廓光与情绪表达；雨、海、草地、雪与动物为题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 271,
+      "key": "portrait_case119",
+      "reason": "现有历史古风与改良中式时装/写实肖像已覆盖，新增婚服、团扇、雪景主要为服饰与场景变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 272,
+      "key": "portrait_case120",
+      "reason": "现有 case-219 已有同一人物多姿态写真九宫格；色调、服装、性别或表情变化不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 273,
+      "key": "portrait_case121",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 274,
+      "key": "portrait_case122",
+      "reason": "现有 case-426 已覆盖日韩情侣自然互动写真，日系胶片和柔光也已由 case-221 覆盖；仅换双人姿势或背景不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 275,
+      "key": "portrait_case123",
+      "reason": "现有 case-465 已覆盖逆光、回眸、背部主视觉的女性情绪肖像，服装、空间和月光变化不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 276,
+      "key": "portrait_case124",
+      "reason": "多重曝光残影与现有 case-490 / case-534 的曝光叠加、运动干扰同族，且源末句被截断，不作为新完整模板收入。"
+    },
+    {
+      "status": "skipped",
+      "index": 277,
+      "key": "portrait_case125",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 278,
+      "key": "portrait_case126",
+      "reason": "现有二次元真人 cosplay 和真人/插画混合肖像已覆盖，主要替换围绕主体的 IP 人物。"
+    },
+    {
+      "status": "skipped",
+      "index": 279,
+      "key": "portrait_case127",
+      "reason": "现有 case-423 已有同款日系/韩系手绘墨彩涂鸦半身像。"
+    },
+    {
+      "status": "skipped",
+      "index": 280,
+      "key": "portrait_case128",
+      "reason": "现有 case-366 / case-423 / case-509 / case-530 已覆盖照片互动涂鸦或墨字混合人像，符号、文字与场景变体不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 281,
+      "key": "portrait_case129",
+      "reason": "现有 case-371 已覆盖真实照片加入同人迷你 3D 分身的完整工作流，不重复收入换背景或姿势版。"
+    },
+    {
+      "status": "skipped",
+      "index": 282,
+      "key": "portrait_case130",
+      "reason": "动作编码未校核，暂不导入。"
+    },
+    {
+      "status": "skipped",
+      "index": 283,
+      "key": "portrait_case131",
+      "reason": "现有 case-422 / case-487 / case-493 已覆盖连续人物、多机位的商业/动作分镜；新行业与情节主要为主题替换，部分源还依赖外部视频/多参考素材。"
+    },
+    {
+      "status": "skipped",
+      "index": 284,
+      "key": "portrait_case132",
+      "reason": "现有 case-410 / case-423 已覆盖照片转动漫、街头时装与墨彩人物插画，多人或品牌名不构成新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 285,
+      "key": "portrait_case133",
+      "reason": "现有 case-426 已覆盖日韩情侣自然互动写真，日系胶片和柔光也已由 case-221 覆盖；仅换双人姿势或背景不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 286,
+      "key": "portrait_case134",
+      "reason": "现有 case-318 / case-328 / case-420 已覆盖夸张高低机位、透视与人物尺度，新增天空/地标或俯拍角度属构图变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 287,
+      "key": "portrait_case135",
+      "reason": "现有 case-5 / case-359 已覆盖大剪影、全身角色与内部世界观拼贴的水墨双重曝光海报；更换角色或球队非新增风格。"
+    },
+    {
+      "status": "selected",
+      "index": 288,
+      "key": "portrait_case136",
+      "title": "碎镜人生切片幻想肖像",
+      "category": "场景叙事",
+      "noveltyReason": "新增利用漂浮碎镜同时映照同一人不同人生阶段的叙事构图，保持人物辨识度而变化时代与气质；旧双重曝光是场景叠加，递归扑克牌是无限套叠，未覆盖这种时序镜片叙事。"
+    },
+    {
+      "status": "skipped",
+      "index": 289,
+      "key": "portrait_case137",
+      "reason": "现有 case-483 / case-350 / case-486 已覆盖真人前景与涂鸦墙/体育图形混合，生肖或球队替换不新增视觉技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 290,
+      "key": "portrait_case138",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 291,
+      "key": "portrait_case139",
+      "reason": "现有 case-366 / case-423 / case-509 / case-530 已覆盖照片互动涂鸦或墨字混合人像，符号、文字与场景变体不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 292,
+      "key": "portrait_case140",
+      "reason": "现有 case-422 / case-487 / case-493 已覆盖连续人物、多机位的商业/动作分镜；新行业与情节主要为主题替换，部分源还依赖外部视频/多参考素材。"
+    },
+    {
+      "status": "skipped",
+      "index": 293,
+      "key": "portrait_case141",
+      "reason": "现有 case-422 / case-487 / case-493 已覆盖连续人物、多机位的商业/动作分镜；新行业与情节主要为主题替换，部分源还依赖外部视频/多参考素材。"
+    },
+    {
+      "status": "skipped",
+      "index": 294,
+      "key": "portrait_case142",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 295,
+      "key": "portrait_case143",
+      "reason": "已有中式古风、战士角色与未来机能时装，主要把战神/武术人设换装并叠加潮流元素；未提供与现有类型独立的新渲染方法。"
+    },
+    {
+      "status": "skipped",
+      "index": 296,
+      "key": "portrait_case144",
+      "reason": "回收鞋装束与街头纪实属于服装题材变化；不将单套非常规穿搭当成全新摄影风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 297,
+      "key": "portrait_case145",
+      "reason": "现有 case-422 / case-487 / case-493 已覆盖连续人物、多机位的商业/动作分镜；新行业与情节主要为主题替换，部分源还依赖外部视频/多参考素材。"
+    },
+    {
+      "status": "skipped",
+      "index": 298,
+      "key": "portrait_case146",
+      "reason": "现有 case-114 / case-115 / case-127 已覆盖黑白手绘漫画连续分镜；正能量情节与真人改画只是内容变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 299,
+      "key": "portrait_case147",
+      "reason": "常规拟人动物职业动漫，现有卡通人物/动物类型可覆盖；兔子牙医为人物设定变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 300,
+      "key": "portrait_case148",
+      "reason": "常规汽车旁人物的奢华生活方式俯拍，未提供独立的新视觉技术；车辆、服装与人物替换为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 301,
+      "key": "portrait_case149",
+      "reason": "现有 case-422 / case-487 / case-493 已覆盖连续人物、多机位的商业/动作分镜；新行业与情节主要为主题替换，部分源还依赖外部视频/多参考素材。"
+    },
+    {
+      "status": "skipped",
+      "index": 302,
+      "key": "portrait_case150",
+      "reason": "现有 case-5 / case-359 已覆盖大剪影、全身角色与内部世界观拼贴的水墨双重曝光海报；更换角色或球队非新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 303,
+      "key": "portrait_case151",
+      "reason": "现有 case-199 / case-451 已覆盖海滩手机自拍与日落海滨人像，体型、肤色和服装不同不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 304,
+      "key": "portrait_case152",
+      "reason": "现有 case-26 / case-217 / case-491 已覆盖 CCD 或直射闪光的颗粒、过曝、抓拍风格；主要更换场景、服装或年代。"
+    },
+    {
+      "status": "skipped",
+      "index": 305,
+      "key": "portrait_case153",
+      "reason": "常规高定/时装写真或换装，现有 case-343 / case-492 / case-525 已覆盖精致面料、柔光与商业人像；礼服、人种、配饰或场景变化不算新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 306,
+      "key": "portrait_case154",
+      "reason": "常规高定/时装写真或换装，现有 case-343 / case-492 / case-525 已覆盖精致面料、柔光与商业人像；礼服、人种、配饰或场景变化不算新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 307,
+      "key": "portrait_case155",
+      "reason": "常规高定/时装写真或换装，现有 case-343 / case-492 / case-525 已覆盖精致面料、柔光与商业人像；礼服、人种、配饰或场景变化不算新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 308,
+      "key": "portrait_case156",
+      "reason": "现有 case-273 已覆盖极简背景、单人剪影、轮廓光与高对比；增加圆日或变暗不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 309,
+      "key": "portrait_case157",
+      "reason": "自拍遇 UFO 是具体故事场景变化，已有不完美手机抓拍与科幻场景，不作为独立新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 310,
+      "key": "portrait_case158",
+      "reason": "复古汽车旅馆与太阳镜是生活方式人像的题材/道具变化，已有 case-324 / case-393 的怀旧夏日时装摄影。"
+    },
+    {
+      "status": "skipped",
+      "index": 311,
+      "key": "portrait_case159",
+      "reason": "现有 case-6 / case-208 / case-471 已有日系梦幻动漫美少女；该条主要是 IP、发色、饰物和室内场景变化，不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 312,
+      "key": "portrait_case160",
+      "reason": "现有 case-410 / case-423 已覆盖照片转动漫、街头时装与墨彩人物插画，多人或品牌名不构成新类型。"
+    },
+    {
+      "status": "selected",
+      "index": 313,
+      "key": "portrait_case161",
+      "title": "自然灵感高定礼服方案板",
+      "category": "信息图表",
+      "noveltyReason": "新增从自然对象提取结构、色彩和材质转译成礼服的方案展示：真人主效果、灵感草图、服装技术线稿与面料批注同页；旧 case-66 是服装生产流程，未覆盖这一设计提案用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 314,
+      "key": "portrait_case162",
+      "reason": "现有 case-405 / case-461 / case-524 已覆盖多层纸雕、纸板纹理、可爱人物与纸景深。"
+    },
+    {
+      "status": "skipped",
+      "index": 315,
+      "key": "portrait_case163",
+      "reason": "现有 case-318 / case-328 / case-420 已覆盖夸张高低机位、透视与人物尺度，新增天空/地标或俯拍角度属构图变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 316,
+      "key": "portrait_case164",
+      "reason": "白色街头造型加蟒蛇属人与动物的摄影题材变化，现有时尚/动物搭档肖像已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 317,
+      "key": "portrait_case165",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 318,
+      "key": "portrait_case166",
+      "reason": "与现有 case-421 手机屏幕遮脸创意肖像一致。"
+    },
+    {
+      "status": "skipped",
+      "index": 319,
+      "key": "portrait_case167",
+      "reason": "现有 case-429 已有同款便利店粉色连帽衫、草莓奶与蛋糕肖像。"
+    },
+    {
+      "status": "skipped",
+      "index": 320,
+      "key": "portrait_case168",
+      "reason": "现有 case-465 已覆盖逆光、回眸、背部主视觉的女性情绪肖像，服装、空间和月光变化不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 321,
+      "key": "portrait_case170",
+      "reason": "现有 case-428 已覆盖赛事直播观众美女镜头与转播叠层，只将 F1 换为网球。"
+    },
+    {
+      "status": "skipped",
+      "index": 322,
+      "key": "portrait_case171",
+      "reason": "常规自然光或黄金时刻城市时装肖像；现有 case-321 / case-434 / case-499 等已覆盖，主要变动为人物、城市、服装或姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 323,
+      "key": "portrait_case172",
+      "reason": "与现有 case-426 日韩咖啡馆情侣写真正文一致。"
+    },
+    {
+      "status": "selected",
+      "index": 324,
+      "key": "portrait_case173",
+      "title": "原样穿搭水彩时装稿",
+      "category": "插画艺术",
+      "noveltyReason": "新增保留上传照片原服装、配饰和姿势的水彩时装手稿用途，采用拉长时装比例、透明水彩和留白；旧 case-430 是自由造型的铅笔 editorial，旧水彩旅行或绘本未覆盖衣装原样转稿。适用前提：上传全身穿搭照片。"
+    },
+    {
+      "status": "skipped",
+      "index": 325,
+      "key": "portrait_case174",
+      "reason": "新闻亭、飞散报纸与群像时装属于场景变化，现有胶片街头和群像时装风格可覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 326,
+      "key": "portrait_case175",
+      "reason": "现有 case-26 / case-217 / case-491 已覆盖 CCD 或直射闪光的颗粒、过曝、抓拍风格；主要更换场景、服装或年代。"
+    },
+    {
+      "status": "skipped",
+      "index": 327,
+      "key": "portrait_case176",
+      "reason": "现有 case-446 已有低多边形折纸人像与真实纸质折痕，改变装饰和服装不新增技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 328,
+      "key": "portrait_case177",
+      "reason": "现有 case-371 已覆盖真实照片加入同人迷你 3D 分身的完整工作流，不重复收入换背景或姿势版。"
+    },
+    {
+      "status": "skipped",
+      "index": 329,
+      "key": "portrait_case178",
+      "reason": "现有 case-366 / case-423 / case-509 / case-530 已覆盖照片互动涂鸦或墨字混合人像，符号、文字与场景变体不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 330,
+      "key": "portrait_case179",
+      "reason": "现有 case-491 / case-393 已覆盖 Y2K 闪光时装和居家抓拍，赛博房间陈设为主题变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 331,
+      "key": "portrait_case180",
+      "reason": "现有 case-366 / case-423 / case-509 / case-530 已覆盖照片互动涂鸦或墨字混合人像，符号、文字与场景变体不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 332,
+      "key": "portrait_case181",
+      "reason": "现有 case-357 已覆盖鱼眼/圆镜摄影，路边凸面镜和雨景为具体场景变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 333,
+      "key": "portrait_case182",
+      "reason": "常规黑白时装人像加大标题，现有海报排版类已覆盖该编辑摄影版式。"
+    },
+    {
+      "status": "skipped",
+      "index": 334,
+      "key": "portrait_case183",
+      "reason": "现有杂志拼贴、多人像叠加与胶片条海报已有，改变切片形状、色彩或模特造型不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 335,
+      "key": "portrait_case184",
+      "reason": "与现有 case-436 数码相机 LCD 屏幕怀旧人像一致。"
+    },
+    {
+      "status": "skipped",
+      "index": 336,
+      "key": "portrait_case185",
+      "reason": "源仅提取到负面提示词，没有主体和正向图像要求，不作为可直接生图模板导入。"
+    },
+    {
+      "status": "skipped",
+      "index": 337,
+      "key": "portrait_case186",
+      "reason": "正文实际截断到“boa”，不是完整模板；不凭标题和配图补造后半段。"
+    },
+    {
+      "status": "skipped",
+      "index": 338,
+      "key": "portrait_case187",
+      "reason": "现有杂志拼贴、多人像叠加与胶片条海报已有，改变切片形状、色彩或模特造型不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 339,
+      "key": "portrait_case188",
+      "reason": "现有 case-433 / case-445 / case-513 已有水彩旅行手账/拼贴风，釜山地点和人物设定变化不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 340,
+      "key": "portrait_case189",
+      "reason": "现有 case-349 / case-488 等已覆盖运动写实与体育编辑拼贴，高尔夫/排球或运动动作属于主体替换。"
+    },
+    {
+      "status": "skipped",
+      "index": 341,
+      "key": "portrait_case190",
+      "reason": "现有 case-325 / case-378 已覆盖卡通 3D 肖像和收藏设计玩具，材质或服装小变体不重复导入。"
+    },
+    {
+      "status": "skipped",
+      "index": 342,
+      "key": "portrait_case191",
+      "reason": "现有 case-273 已覆盖极简背景、单人剪影、轮廓光与高对比；增加圆日或变暗不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 343,
+      "key": "portrait_case192",
+      "reason": "现有 case-284 / case-414 / case-505 已覆盖自然居家、卧室手机自拍与室内低光写真，仅局部人设、服装和表情不同。"
+    },
+    {
+      "status": "skipped",
+      "index": 344,
+      "key": "portrait_case193",
+      "reason": "现有 case-410 / case-423 已覆盖照片转动漫、街头时装与墨彩人物插画，多人或品牌名不构成新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 345,
+      "key": "portrait_case194",
+      "reason": "把人装入香水瓶是超现实场景隐喻变体，现有概念肖像/超现实摄影已有；不按单一故事物件逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 346,
+      "key": "portrait_case195",
+      "reason": "校园人物与 Tesla 为品牌/场景变化，未增加独立的风格或用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 347,
+      "key": "portrait_case196",
+      "reason": "奶茶店低机位飞溅动作与现有饮料运动透视广告同族，只更换人物和柜台场景。"
+    },
+    {
+      "status": "skipped",
+      "index": 348,
+      "key": "portrait_case197",
+      "reason": "常规夜间户外人像，现有写实/手机/闪光摄影已有，服装与姿势不作为新类型。"
+    },
+    {
+      "status": "selected",
+      "index": 349,
+      "key": "portrait_case198",
+      "title": "时装造型蓝图拆解页",
+      "category": "信息图表",
+      "noveltyReason": "新增一套穿搭的结构标注与造型拆解：首饰局部、面料、裁剪、姿态和配饰标注围绕半身写实模特；旧 case-66 是生产因果链，源礼服方案板 portrait_case161 是创意转译，两者用途不同。"
+    },
+    {
+      "status": "skipped",
+      "index": 350,
+      "key": "portrait_case199",
+      "reason": "现有 case-366 / case-423 / case-509 / case-530 已覆盖照片互动涂鸦或墨字混合人像，符号、文字与场景变体不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 351,
+      "key": "portrait_case200",
+      "reason": "现有杂志拼贴、多人像叠加与胶片条海报已有，改变切片形状、色彩或模特造型不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 352,
+      "key": "portrait_case201",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 353,
+      "key": "portrait_case202",
+      "reason": "常规自然光或黄金时刻城市时装肖像；现有 case-321 / case-434 / case-499 等已覆盖，主要变动为人物、城市、服装或姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 354,
+      "key": "portrait_case203",
+      "reason": "旅行自拍加彩旗、草甸和户外服属于场景替换，现有旅行写实人像已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 355,
+      "key": "portrait_case204",
+      "reason": "现有 case-284 / case-414 / case-505 已覆盖自然居家、卧室手机自拍与室内低光写真，仅局部人设、服装和表情不同。"
+    },
+    {
+      "status": "skipped",
+      "index": 356,
+      "key": "portrait_case205",
+      "reason": "与本次 portrait_case85 的黑白排线/蚀刻肖像同族；家庭题材或木刻措辞不再重复入库，旧库也已有木刻版画。"
+    },
+    {
+      "status": "skipped",
+      "index": 357,
+      "key": "portrait_case206",
+      "reason": "现有 case-372 / case-512 / case-473 已覆盖人物设定与角色/对手并列的概念展示，更换项目和标题不新增风格。"
+    },
+    {
+      "status": "selected",
+      "index": 358,
+      "key": "portrait_case207",
+      "title": "抹茶流体美妆创意肖像",
+      "category": "摄影写实",
+      "noveltyReason": "新增食物质感与宏观美妆的融合类型：面部流动抹茶霜、悬浮颗粒和液滴构成无产品包装的护肤视觉；区别于旧库的饮品产品广告和常规人像写真。"
+    },
+    {
+      "status": "skipped",
+      "index": 359,
+      "key": "portrait_case208",
+      "reason": "与现有 case-436 数码相机 LCD 屏幕怀旧人像一致。"
+    },
+    {
+      "status": "skipped",
+      "index": 360,
+      "key": "portrait_case209",
+      "reason": "现有 case-284 / case-414 / case-505 已覆盖自然居家、卧室手机自拍与室内低光写真，仅局部人设、服装和表情不同。"
+    },
+    {
+      "status": "skipped",
+      "index": 361,
+      "key": "portrait_case210",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 362,
+      "key": "portrait_case211",
+      "reason": "现有 case-45 / case-450 / case-525 已覆盖低调光、明暗对照、轮廓光与男性电影肖像；人物与环境变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 363,
+      "key": "portrait_case212",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 364,
+      "key": "portrait_case213",
+      "reason": "手绘轮廓加淡水彩与旧库线描水彩人物重绘同族；不以单一艺术家风格名作为新增分类或类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 365,
+      "key": "portrait_case214",
+      "reason": "源仅提取到负面提示词，没有主体和正向图像要求，不作为可直接生图模板导入。"
+    },
+    {
+      "status": "skipped",
+      "index": 366,
+      "key": "portrait_case215",
+      "reason": "现有 case-534 已覆盖照片运动拖影，case-490 有双重曝光，case-472 有主体清晰背景运动模糊；更换场景与拖影方向不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 367,
+      "key": "portrait_case216",
+      "reason": "现有 case-430 / case-423 已有铅笔/墨线、拼贴与手写笔记的时装插画，换成男性或改变衣色为主体变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 368,
+      "key": "portrait_case217",
+      "reason": "现有 case-3 / case-350 / case-486 已覆盖体育人物海报、数据与队色涂鸦/冠军拼贴，换球星和项目不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 369,
+      "key": "portrait_case218",
+      "reason": "现有 case-371 已覆盖真实照片加入同人迷你 3D 分身的完整工作流，不重复收入换背景或姿势版。"
+    },
+    {
+      "status": "skipped",
+      "index": 370,
+      "key": "portrait_case219",
+      "reason": "现有 case-3 / case-350 / case-486 已覆盖体育人物海报、数据与队色涂鸦/冠军拼贴，换球星和项目不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 371,
+      "key": "portrait_case220",
+      "reason": "源正文过短或缺少关键主体/风格段落，无法作为独立可复用提示词；不凭配图补造未提供的内容。"
+    },
+    {
+      "status": "skipped",
+      "index": 372,
+      "key": "portrait_case221",
+      "reason": "现有 case-377 / case-426 / case-499 已覆盖咖啡馆生活方式时装人像，自然光、浅景深与休闲姿势并无新技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 373,
+      "key": "portrait_case222",
+      "reason": "源正文过短或缺少关键主体/风格段落，无法作为独立可复用提示词；不凭配图补造未提供的内容。"
+    },
+    {
+      "status": "skipped",
+      "index": 374,
+      "key": "portrait_case223",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 375,
+      "key": "portrait_case224",
+      "reason": "幻想花园实验室属于叙事场景变化，已有科幻/梦幻写实和全息界面，不是新的表现技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 376,
+      "key": "portrait_case225",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 377,
+      "key": "portrait_case226",
+      "reason": "常规纯色背景侧身时装肖像，现有商业人像已覆盖；眼镜、背景颜色和姿势差别不足以新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 378,
+      "key": "portrait_case227",
+      "reason": "源正文过短或缺少关键主体/风格段落，无法作为独立可复用提示词；不凭配图补造未提供的内容。"
+    },
+    {
+      "status": "skipped",
+      "index": 379,
+      "key": "portrait_case228",
+      "reason": "现有 case-318 / case-455 已覆盖超大产品与较小人物的极简广告强制透视，耳机品牌替换不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 380,
+      "key": "portrait_case229",
+      "reason": "扁平矢量拼贴与无缝图案已由现有 case-138 及插画类覆盖，增加城市文化符号不作为新视觉风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 381,
+      "key": "portrait_case230",
+      "reason": "人物身份保持是已有全站人物参考通用要求，服装或街头杂志场景本身不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 382,
+      "key": "portrait_case231",
+      "reason": "现有 case-410 / case-423 已覆盖照片转动漫、街头时装与墨彩人物插画，多人或品牌名不构成新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 383,
+      "key": "portrait_case232",
+      "reason": "人物身份保持是已有全站人物参考通用要求，服装或街头杂志场景本身不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 384,
+      "key": "portrait_case233",
+      "reason": "源正文过短或缺少关键主体/风格段落，无法作为独立可复用提示词；不凭配图补造未提供的内容。"
+    },
+    {
+      "status": "skipped",
+      "index": 385,
+      "key": "portrait_case234",
+      "reason": "源仅提取到负面提示词，没有主体和正向图像要求，不作为可直接生图模板导入。"
+    },
+    {
+      "status": "skipped",
+      "index": 386,
+      "key": "portrait_case235",
+      "reason": "人物身份保持是已有全站人物参考通用要求，服装或街头杂志场景本身不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 387,
+      "key": "portrait_case236",
+      "reason": "现有 case-372 / case-512 / case-473 已覆盖人物设定与角色/对手并列的概念展示，更换项目和标题不新增风格。"
+    },
+    {
+      "status": "selected",
+      "index": 388,
+      "key": "portrait_case237",
+      "title": "物体灵感汽车概念方案板",
+      "category": "商品电商",
+      "noveltyReason": "新增从任意对象的形态、材质和运动语义转译为概念汽车设计的用途，输出外观、内饰和规格板；旧库车辆写实摄影及列车工程说明都不是对象启发的汽车概念设计。"
+    },
+    {
+      "status": "skipped",
+      "index": 389,
+      "key": "portrait_case238",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 390,
+      "key": "portrait_case239",
+      "reason": "自然逆光、露珠花卉与人物近景属于现有梦幻人像风格，道具更换为百合花不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 391,
+      "key": "portrait_case240",
+      "reason": "源正文过短或缺少关键主体/风格段落，无法作为独立可复用提示词；不凭配图补造未提供的内容。"
+    },
+    {
+      "status": "skipped",
+      "index": 392,
+      "key": "portrait_case241",
+      "reason": "常规高定/时装写真或换装，现有 case-343 / case-492 / case-525 已覆盖精致面料、柔光与商业人像；礼服、人种、配饰或场景变化不算新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 393,
+      "key": "portrait_case242",
+      "reason": "现有 case-199 / case-451 已覆盖海滩手机自拍与日落海滨人像，体型、肤色和服装不同不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 394,
+      "key": "portrait_case243",
+      "reason": "常规自然光或黄金时刻城市时装肖像；现有 case-321 / case-434 / case-499 等已覆盖，主要变动为人物、城市、服装或姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 395,
+      "key": "portrait_case244",
+      "reason": "现有 case-343 已覆盖时尚杂志封面、衬线刊头和精致人像，改刊名、服饰或海滩背景不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 396,
+      "key": "portrait_case245",
+      "reason": "现有 case-298 / case-390 等国家/城市微缩世界旅行海报类型已覆盖，换为巴基斯坦不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 397,
+      "key": "portrait_case246",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 398,
+      "key": "portrait_case247",
+      "reason": "现有 case-219 / case-28 已覆盖人脸一致的多角度写真网格；黑白、四格/六格/九格或模特卡命名不新增视觉方法。"
+    },
+    {
+      "status": "skipped",
+      "index": 399,
+      "key": "portrait_case248",
+      "reason": "现有 case-452 / case-9006 等已覆盖粉彩、简化人物、绘本手绘和温暖同伴场景；替换动物或情侣不是新类型。"
+    },
+    {
+      "status": "selected",
+      "index": 400,
+      "key": "portrait_case249",
+      "title": "写实 CGI 大头微缩肖像",
+      "category": "人物角色",
+      "noveltyReason": "新增保持真实皮肤、毛孔与头发的微夸张 CGI 人物类型，明确不做卡通、乙烯基或玩具；旧 case-378 为设计玩具，case-325 为皮克斯角色。适用前提：上传照片，保留原造型。"
+    },
+    {
+      "status": "skipped",
+      "index": 401,
+      "key": "portrait_case250",
+      "reason": "现有 case-270 / case-306 已覆盖角色三视图、表情和服装拆解；电影人物与面料写实只是角色设定材质变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 402,
+      "key": "portrait_case251",
+      "reason": "现有 case-405 / case-461 / case-524 已覆盖多层纸雕、纸板纹理、可爱人物与纸景深。"
+    },
+    {
+      "status": "skipped",
+      "index": 403,
+      "key": "portrait_case252",
+      "reason": "现有 case-439 的赛博角色及其他科技界面/霓虹时尚图已覆盖该类型，变化主要为服装、面罩、色彩与背景。"
+    },
+    {
+      "status": "skipped",
+      "index": 404,
+      "key": "portrait_case253",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 405,
+      "key": "portrait_case254",
+      "reason": "现有 case-325 / case-378 已覆盖卡通 3D 肖像和收藏设计玩具，材质或服装小变体不重复导入。"
+    },
+    {
+      "status": "skipped",
+      "index": 406,
+      "key": "portrait_case255",
+      "reason": "现有 case-504 / case-9008 已覆盖稚拙儿童蜡笔、粗糙不规则线条与低技巧照片重绘。"
+    },
+    {
+      "status": "skipped",
+      "index": 407,
+      "key": "portrait_case256",
+      "reason": "现有 case-444 已有迪斯科镜面马赛克方片材质；把同种镜面技术应用于其他主体不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 408,
+      "key": "portrait_case257",
+      "reason": "现有 case-472 / case-536 等电影感环境肖像已覆盖自然天气、浅景深、轮廓光与情绪表达；雨、海、草地、雪与动物为题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 409,
+      "key": "portrait_case258",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 410,
+      "key": "portrait_case259",
+      "reason": "现有 case-434 / case-536 已覆盖日系电影感户外人像，彩虹、花朵和天空属于场景变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 411,
+      "key": "portrait_case260",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 412,
+      "key": "portrait_case261",
+      "reason": "现有 case-27 已有实体即影即有人物照片组，自拍机照片条仅载体与排布差异。"
+    },
+    {
+      "status": "skipped",
+      "index": 413,
+      "key": "portrait_case262",
+      "reason": "常规自然光、石墙与服装肖像，仅名人特征和造型变化；不把名人近似面孔作为新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 414,
+      "key": "portrait_case263",
+      "reason": "现有 case-366 / case-423 / case-509 / case-530 已覆盖照片互动涂鸦或墨字混合人像，符号、文字与场景变体不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 415,
+      "key": "portrait_case264",
+      "reason": "现有 case-45 / case-450 / case-525 已覆盖低调光、明暗对照、轮廓光与男性电影肖像；人物与环境变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 416,
+      "key": "portrait_case265",
+      "reason": "已有中式古风、战士角色与未来机能时装，主要把战神/武术人设换装并叠加潮流元素；未提供与现有类型独立的新渲染方法。"
+    },
+    {
+      "status": "selected",
+      "index": 417,
+      "key": "portrait_case266",
+      "title": "透明地板下超低机位街拍",
+      "category": "摄影写实",
+      "noveltyReason": "新增透过无缝透明地板仰拍行人的摄影构图，近景鞋底与纯天空形成极端透视；旧 case-517 的杯内鱼眼和 case-420 的地面自拍均未覆盖透明承载面下的机位。"
+    },
+    {
+      "status": "skipped",
+      "index": 418,
+      "key": "portrait_case267",
+      "reason": "现有 case-219 / case-28 已覆盖人脸一致的多角度写真网格；黑白、四格/六格/九格或模特卡命名不新增视觉方法。"
+    },
+    {
+      "status": "selected",
+      "index": 419,
+      "key": "portrait_case268",
+      "title": "真人与专属毛绒分身",
+      "category": "人物角色",
+      "noveltyReason": "新增从人物气质设计原创大型毛绒吉祥物并合影的用途；旧 case-371 是同人迷你 3D 分身、case-507 是钩织单玩偶，此处毛绒伙伴独立且由人物气质转译。适用前提：上传人像。"
+    },
+    {
+      "status": "skipped",
+      "index": 420,
+      "key": "portrait_case269",
+      "reason": "现有 case-219 已有同一人物多姿态写真九宫格；色调、服装、性别或表情变化不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 421,
+      "key": "portrait_case270",
+      "reason": "现有 case-219 已有同一人物多姿态写真九宫格；色调、服装、性别或表情变化不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 422,
+      "key": "portrait_case271",
+      "reason": "现有 case-219 / case-28 已覆盖人脸一致的多角度写真网格；黑白、四格/六格/九格或模特卡命名不新增视觉方法。"
+    },
+    {
+      "status": "skipped",
+      "index": 423,
+      "key": "portrait_case272",
+      "reason": "现有 CCD 闪光摄影与多格肖像拼贴均已有，餐厅夜生活与衣着变化不足以形成独立新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 424,
+      "key": "portrait_case273",
+      "reason": "现有 case-534 已覆盖照片运动拖影，case-490 有双重曝光，case-472 有主体清晰背景运动模糊；更换场景与拖影方向不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 425,
+      "key": "portrait_case274",
+      "reason": "现有 case-219 / case-28 已覆盖人脸一致的多角度写真网格；黑白、四格/六格/九格或模特卡命名不新增视觉方法。"
+    },
+    {
+      "status": "skipped",
+      "index": 426,
+      "key": "portrait_case275",
+      "reason": "泪痕与轻悲伤是已有情绪人像的表情变化，未新增独立风格或视觉技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 427,
+      "key": "portrait_case276",
+      "reason": "现有 case-465 已覆盖逆光、回眸、背部主视觉的女性情绪肖像，服装、空间和月光变化不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 428,
+      "key": "portrait_case277",
+      "reason": "现有 case-45 / case-450 / case-525 已覆盖低调光、明暗对照、轮廓光与男性电影肖像；人物与环境变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 429,
+      "key": "portrait_case278",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 430,
+      "key": "portrait_case279",
+      "reason": "现有 case-542 / case-514 已覆盖高对比黑白几何肖像，神话头饰或杂志文字不是新技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 431,
+      "key": "portrait_case280",
+      "reason": "现有 case-343 已覆盖时尚杂志封面、衬线刊头和精致人像，改刊名、服饰或海滩背景不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 432,
+      "key": "portrait_case281",
+      "reason": "街头手持海报是场景/道具摆拍，现有自然街拍与图文海报用途已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 433,
+      "key": "portrait_case282",
+      "reason": "现有 case-472 / case-536 等电影感环境肖像已覆盖自然天气、浅景深、轮廓光与情绪表达；雨、海、草地、雪与动物为题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 434,
+      "key": "portrait_case283",
+      "reason": "设计师工具围绕人物的创作者拼贴与拟人手办已有，平板、软件名和工具组合为主题变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 435,
+      "key": "portrait_case284",
+      "reason": "现有 case-318 / case-328 / case-420 已覆盖夸张高低机位、透视与人物尺度，新增天空/地标或俯拍角度属构图变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 436,
+      "key": "portrait_case285",
+      "reason": "现有 case-410 / case-423 已覆盖照片转动漫、街头时装与墨彩人物插画，多人或品牌名不构成新类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 437,
+      "key": "portrait_case286",
+      "reason": "现有 case-377 / case-426 / case-499 已覆盖咖啡馆生活方式时装人像，自然光、浅景深与休闲姿势并无新技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 438,
+      "key": "portrait_case287",
+      "reason": "现有 case-472 / case-536 等电影感环境肖像已覆盖自然天气、浅景深、轮廓光与情绪表达；雨、海、草地、雪与动物为题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 439,
+      "key": "portrait_case288",
+      "reason": "现有 case-32 / case-219 已覆盖一致人物的表情网格，七种底色与情绪不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 440,
+      "key": "portrait_case289",
+      "reason": "现有 case-284 / case-414 / case-505 已覆盖自然居家、卧室手机自拍与室内低光写真，仅局部人设、服装和表情不同。"
+    },
+    {
+      "status": "skipped",
+      "index": 441,
+      "key": "portrait_case290",
+      "reason": "现有 case-377 / case-426 / case-499 已覆盖咖啡馆生活方式时装人像，自然光、浅景深与休闲姿势并无新技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 442,
+      "key": "portrait_case291",
+      "reason": "现有海报类已覆盖街头杂志、撕纸拼贴、涂鸦、夸张文字和单主视觉人物；该条的日系/Y2K/IP 或服装变体不重复扩充。"
+    },
+    {
+      "status": "skipped",
+      "index": 443,
+      "key": "portrait_case292",
+      "reason": "现有 case-483 / case-350 / case-486 已覆盖真人前景与涂鸦墙/体育图形混合，生肖或球队替换不新增视觉技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 444,
+      "key": "portrait_case293",
+      "reason": "现有 case-452 / case-9006 等已覆盖粉彩、简化人物、绘本手绘和温暖同伴场景；替换动物或情侣不是新类型。"
+    },
+    {
+      "status": "selected",
+      "index": 445,
+      "key": "portrait_case294",
+      "title": "1870 年代重度做旧相片",
+      "category": "摄影写实",
+      "noveltyReason": "新增早期历史照片的物理损耗模拟类型，包含化学污迹、虫蛀、缺角、割裂与老胶带修补；区别于旧普通 35mm 怀旧颗粒。与源 portrait_case83 的旧家庭照只留此可复用模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 446,
+      "key": "portrait_case295",
+      "reason": "设计师工具围绕人物的创作者拼贴与拟人手办已有，平板、软件名和工具组合为主题变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 447,
+      "key": "portrait_case296",
+      "reason": "现有 case-366 / case-423 / case-509 / case-530 已覆盖照片互动涂鸦或墨字混合人像，符号、文字与场景变体不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 448,
+      "key": "portrait_case297",
+      "reason": "常规自然光或黄金时刻城市时装肖像；现有 case-321 / case-434 / case-499 等已覆盖，主要变动为人物、城市、服装或姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 449,
+      "key": "portrait_case298",
+      "reason": "便利店店员的上下班反差主要是服装、时段和人设变化，源本身也未完整提供一组昼夜对比要求。"
+    },
+    {
+      "status": "selected",
+      "index": 450,
+      "key": "portrait_case299",
+      "title": "云团塑形梦境肖像",
+      "category": "插画艺术",
+      "noveltyReason": "新增将整张脸以云团体积、阴影和轮廓塑形的材质变换类型；旧 case-529 是真人手持云气球，case-238 为星云锦鲤，都未将人脸本体化为云。填写姓名或身份描述；精确本人效果需参考照。"
+    },
+    {
+      "status": "skipped",
+      "index": 451,
+      "key": "portrait_case300",
+      "reason": "源仅提取到负面提示词，没有主体和正向图像要求，不作为可直接生图模板导入。"
+    },
+    {
+      "status": "skipped",
+      "index": 452,
+      "key": "portrait_case301",
+      "reason": "现有 case-525 / case-534 已有暗背景、红色边光和近景编辑肖像；捂脸手势不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 453,
+      "key": "portrait_case302",
+      "reason": "常规自然光或黄金时刻城市时装肖像；现有 case-321 / case-434 / case-499 等已覆盖，主要变动为人物、城市、服装或姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 454,
+      "key": "portrait_case303",
+      "reason": "酒保职业、酒杯与酒红灯光属于既有低光电影人像的题材变化，未新增表现技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 455,
+      "key": "portrait_case304",
+      "reason": "现有 case-390 已覆盖针毡羊毛纤维微缩材质，case-507 已有手工玩偶；更换为人像不重复扩充风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 456,
+      "key": "portrait_case305",
+      "reason": "现有 case-187 / case-221 已覆盖黑柔滤镜或空气感日系 35mm 自然光肖像；换服装、动作或加入草莓不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 457,
+      "key": "portrait_case306",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 458,
+      "key": "portrait_case307",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "selected",
+      "index": 459,
+      "key": "portrait_case308",
+      "title": "机械义肢写实近景肖像",
+      "category": "人物角色",
+      "noveltyReason": "新增真实人脸与工业义肢的硬软材质近景结合，强调湿皮肤、旧金属、液压和颈部嵌入结构；旧 case-439 是赛博动漫设定表，case-147 是全机器人商品页，未覆盖写实半机械肖像。"
+    },
+    {
+      "status": "skipped",
+      "index": 460,
+      "key": "portrait_case309",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 461,
+      "key": "portrait_case310",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 462,
+      "key": "portrait_case311",
+      "reason": "常规高定/时装写真或换装，现有 case-343 / case-492 / case-525 已覆盖精致面料、柔光与商业人像；礼服、人种、配饰或场景变化不算新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 463,
+      "key": "portrait_case312",
+      "reason": "现有 case-26 / case-217 / case-491 已覆盖 CCD 或直射闪光的颗粒、过曝、抓拍风格；主要更换场景、服装或年代。"
+    },
+    {
+      "status": "skipped",
+      "index": 464,
+      "key": "portrait_case314",
+      "reason": "现有 case-534 已覆盖照片运动拖影，case-490 有双重曝光，case-472 有主体清晰背景运动模糊；更换场景与拖影方向不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 465,
+      "key": "portrait_case315",
+      "reason": "现有 case-318 / case-328 / case-420 已覆盖夸张高低机位、透视与人物尺度，新增天空/地标或俯拍角度属构图变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 466,
+      "key": "portrait_case316",
+      "reason": "现有 case-455 已有巨型鞋与人物的强制透视广告，鞋款、街景和旧化纹理属于变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 467,
+      "key": "portrait_case317",
+      "reason": "人物坐巨花云端为超现实幻想场景变化，现有梦幻花冠/云朵气球人像已覆盖同类方法。"
+    },
+    {
+      "status": "skipped",
+      "index": 468,
+      "key": "portrait_case318",
+      "reason": "现有 case-426 已覆盖日韩情侣自然互动写真，日系胶片和柔光也已由 case-221 覆盖；仅换双人姿势或背景不新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 469,
+      "key": "portrait_case319",
+      "reason": "常规风格化 3D 全身角色渲染，现有 case-325 / case-326 已覆盖；老年徒步者仅人设和道具变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 470,
+      "key": "portrait_case320",
+      "reason": "现有 case-219 已有同一人物多姿态写真九宫格；色调、服装、性别或表情变化不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 471,
+      "key": "portrait_case321",
+      "reason": "现有日系胶片、校园/城市/卧室写实和自然光肖像已覆盖，主要换场景、道具、发型或姿势；不按拍摄地点逐条扩库。"
+    },
+    {
+      "status": "skipped",
+      "index": 472,
+      "key": "portrait_case322",
+      "reason": "现有 case-343 已覆盖时尚杂志封面、衬线刊头和精致人像，改刊名、服饰或海滩背景不新增类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 473,
+      "key": "portrait_case323",
+      "reason": "现有 case-439 的赛博角色及其他科技界面/霓虹时尚图已覆盖该类型，变化主要为服装、面罩、色彩与背景。"
+    },
+    {
+      "status": "selected",
+      "index": 474,
+      "key": "poster_case415",
+      "title": "三分区连续人物套色海报",
+      "category": "海报排版",
+      "noveltyReason": "连续运动人物跨奶油色、纯红色、炭黑三横区，分区改变人物色彩处理，区别于既有运动拼贴和泛用彩色块。"
+    },
+    {
+      "status": "selected",
+      "index": 475,
+      "key": "poster_case416",
+      "title": "孟菲斯梦核建筑花园",
+      "category": "插画艺术",
+      "noveltyReason": "孟菲斯几何、棋盘地板、浮球与梦核等距建筑结合，和现有柔和未来城市旅行插画的材质、色形语法不同。"
+    },
+    {
+      "status": "skipped",
+      "index": 476,
+      "key": "poster_case417",
+      "reason": "照片转旅行水彩手账已有case-445等，凸面镜与运动统计是局部题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 477,
+      "key": "poster_case418",
+      "reason": "纸艺民艺重绘已有case-405、479等，未新增独立媒介。"
+    },
+    {
+      "status": "skipped",
+      "index": 478,
+      "key": "poster_case419",
+      "reason": "足球人物与队色烟雾海报已有case-3、350，换阿根廷球员不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 479,
+      "key": "poster_case2",
+      "reason": "现有case-278阿马尔菲复古旅行海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 480,
+      "key": "poster_case3",
+      "reason": "现有case-274及18成都美食地图同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 481,
+      "key": "poster_case4",
+      "reason": "现有case-279撕纸裂痕山水海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 482,
+      "key": "poster_case5",
+      "reason": "现有case-276、307红绸广州海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 483,
+      "key": "poster_case7",
+      "reason": "现有case-280同款涂鸦AI builder提示词。"
+    },
+    {
+      "status": "skipped",
+      "index": 484,
+      "key": "poster_case8",
+      "reason": "现有case-281近未来曼荼罗同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 485,
+      "key": "poster_case9",
+      "reason": "现有case-283超任游戏海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 486,
+      "key": "poster_case10",
+      "reason": "仅指定宣传文案的普通方形广告，现有广告模板覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 487,
+      "key": "poster_case11",
+      "reason": "现有case-238星云巨鲤同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 488,
+      "key": "poster_case12",
+      "reason": "现有case-229琉璃鸟墨卷广州海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 489,
+      "key": "poster_case13",
+      "reason": "现有case-236粤超国潮邀请海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 490,
+      "key": "poster_case14",
+      "reason": "现有case-276、307红绸广州海报同款简版。"
+    },
+    {
+      "status": "skipped",
+      "index": 491,
+      "key": "poster_case15",
+      "reason": "现有case-5轮廓内叙事世界海报同款简版。"
+    },
+    {
+      "status": "skipped",
+      "index": 492,
+      "key": "poster_case24",
+      "reason": "与482同源重复，现有红绸广州海报覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 493,
+      "key": "poster_case32",
+      "reason": "普通科普百科提示词，现有case-8、222覆盖。"
+    },
+    {
+      "status": "selected",
+      "index": 494,
+      "key": "poster_case33",
+      "title": "中国小人书西游连环画",
+      "category": "插画艺术",
+      "noveltyReason": "明确采用中国连环画小人书风格呈现大闹天宫，区别于既有日漫与水墨单幅。"
+    },
+    {
+      "status": "skipped",
+      "index": 495,
+      "key": "poster_case34",
+      "reason": "人物关系图已有case-241及84等。"
+    },
+    {
+      "status": "skipped",
+      "index": 496,
+      "key": "poster_case35",
+      "reason": "水墨春岚山水已有case-223及9001覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 497,
+      "key": "poster_case36",
+      "reason": "现有case-280涂鸦AI builder同款简版。"
+    },
+    {
+      "status": "skipped",
+      "index": 498,
+      "key": "poster_case38",
+      "reason": "泛用角色世界观海报，现有角色主视觉已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 499,
+      "key": "poster_case39",
+      "reason": "现有case-8、222模块化科普百科图同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 500,
+      "key": "poster_case40",
+      "reason": "普通虚构动画电影海报，现有case-128等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 501,
+      "key": "poster_case41",
+      "reason": "普通商品广告重设计指令，现有case-228等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 502,
+      "key": "poster_case42",
+      "reason": "现有case-58、220黑金广州海报同款，末尾还混有无关生物图鉴句。"
+    },
+    {
+      "status": "skipped",
+      "index": 503,
+      "key": "poster_case45",
+      "reason": "现有case-191科幻电影海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 504,
+      "key": "poster_case46",
+      "reason": "依赖未给出的旧广告上下文，只有修改氛围要求。"
+    },
+    {
+      "status": "skipped",
+      "index": 505,
+      "key": "poster_case47",
+      "reason": "现有case-168手写处方同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 506,
+      "key": "poster_case48",
+      "reason": "与现有case-276红绸S曲城市海报同版式，换硅谷与蓝光不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 507,
+      "key": "poster_case49",
+      "reason": "源文用省略号结尾，且普通商超传单未给完整商品/文案结构。"
+    },
+    {
+      "status": "skipped",
+      "index": 508,
+      "key": "poster_case50",
+      "reason": "现有case-88、352等电影概念主视觉已覆盖，同类暗黑主题变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 509,
+      "key": "poster_case51",
+      "reason": "普通课程广告模板，现有多格教育广告已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 510,
+      "key": "poster_case57",
+      "reason": "老钱风胶片时尚人像，现有编辑时尚摄影已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 511,
+      "key": "poster_case58",
+      "reason": "相机爆炸图已有case-70、71，换品牌不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 512,
+      "key": "poster_case59",
+      "reason": "一条混入互不相关的全景、战争历史和佛经请求，未保留完整单一生图设计。"
+    },
+    {
+      "status": "skipped",
+      "index": 513,
+      "key": "poster_case54",
+      "reason": "与499重复，现有case-8、222同款百科图。"
+    },
+    {
+      "status": "skipped",
+      "index": 514,
+      "key": "poster_case55",
+      "reason": "现有case-55辣椒炒肉流程图同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 515,
+      "key": "poster_case56",
+      "reason": "现有case-88、89电影信息图海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 516,
+      "key": "poster_case60",
+      "reason": "一般街头全身时尚摄影，现有case-321、434等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 517,
+      "key": "poster_case62",
+      "reason": "商品凝露饮料广告已有case-237等，颜色和沙滩换题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 518,
+      "key": "poster_case60",
+      "reason": "只指定全景投影格式，没有场景主体；混有查看器提示，暂不收录。"
+    },
+    {
+      "status": "skipped",
+      "index": 519,
+      "key": "poster_case82",
+      "reason": "水彩儿童绘本已有case-452及9006，剧情变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 520,
+      "key": "poster_case85",
+      "reason": "参考身份的高级时尚人像，现有case-492等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 521,
+      "key": "poster_case87",
+      "reason": "只有西湖旅游海报主题，未给新增风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 522,
+      "key": "poster_case89",
+      "reason": "现有古风电影角色海报风格覆盖，换IP不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 523,
+      "key": "poster_case90",
+      "reason": "港片风格与无关联名广告两条混合，且同类电影海报已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 524,
+      "key": "poster_case103",
+      "reason": "古风场景魅力写真，现有古风人像已覆盖且夹入测试备注。"
+    },
+    {
+      "status": "skipped",
+      "index": 525,
+      "key": "poster_case104",
+      "reason": "普通IP角色电影海报，服饰人物变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 526,
+      "key": "poster_case105",
+      "reason": "汽车规格广告与797更完整版本合并；汽车参数展示本身不增新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 527,
+      "key": "poster_case106",
+      "reason": "商品代言广告改图已有，且含未完成模型对比句。"
+    },
+    {
+      "status": "skipped",
+      "index": 528,
+      "key": "poster_case70",
+      "reason": "大字背景运动棚拍，现有case-351等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 529,
+      "key": "poster_case71",
+      "reason": "都市服饰蓝底广告，现有case-344、318等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 530,
+      "key": "poster_case72",
+      "reason": "职业生涯史诗运动蒙太奇已有case-3、350等，新增外链不收。"
+    },
+    {
+      "status": "skipped",
+      "index": 531,
+      "key": "poster_case73",
+      "reason": "巨型运动道具广告与现有case-406、455放大道具Campaign同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 532,
+      "key": "poster_case74",
+      "reason": "与531同版式只换网球拍，现有巨型道具Campaign覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 533,
+      "key": "poster_case60",
+      "reason": "巨型酒瓶时尚广告与现有case-455、406夸大道具表现同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 534,
+      "key": "poster_case76",
+      "reason": "高端食谱摄影排版已有case-297及14等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 535,
+      "key": "poster_case77",
+      "reason": "现有case-343高定杂志封面与425黑白写真覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 536,
+      "key": "poster_case78",
+      "reason": "巨型腕表作道具，同类超大产品Campaign已覆盖。"
+    },
+    {
+      "status": "selected",
+      "index": 537,
+      "key": "poster_case79",
+      "title": "孔雀植物对称装饰画",
+      "category": "插画艺术",
+      "noveltyReason": "双孔雀与植物纹饰的严格对称古典装饰印花用途，现有角色、旅行和场景插画未提供这一装饰图案结构。"
+    },
+    {
+      "status": "skipped",
+      "index": 538,
+      "key": "poster_case80",
+      "reason": "液体Logo与人物广告，既有case-496水雕Logo及503/品牌广告已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 539,
+      "key": "poster_case81",
+      "reason": "巨型吉他作道具，同类夸大产品Campaign已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 540,
+      "key": "poster_case110",
+      "reason": "现有case-18、274成都美食地图同款JSON展开。"
+    },
+    {
+      "status": "skipped",
+      "index": 541,
+      "key": "poster_case111",
+      "reason": "现有case-23石阶演化图同款JSON展开。"
+    },
+    {
+      "status": "selected",
+      "index": 542,
+      "key": "poster_case119",
+      "title": "仿生飞行器工业概念板",
+      "category": "商品电商",
+      "noveltyReason": "仿生鳐鱼翼身融合飞机的工业设计、结构蓝图与多视角参数展示，新增航空概念设计用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 543,
+      "key": "poster_case120",
+      "reason": "东方神话古籍中轴档案海报已有case-65、415，同类主题变体。"
+    },
+    {
+      "status": "selected",
+      "index": 544,
+      "key": "poster_case121",
+      "title": "信息论复古实验室档案图",
+      "category": "信息图表",
+      "noveltyReason": "1940年代实验室档案视觉，网格制图、雕版肖像、信号图和新闻编辑排版融合，区别于已有80年代商业电脑广告。"
+    },
+    {
+      "status": "skipped",
+      "index": 545,
+      "key": "poster_case122",
+      "reason": "水墨大师纪念海报与既有case-359、415墨韵图鉴同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 546,
+      "key": "poster_case123",
+      "reason": "星座人物三栏图鉴与现有case-416星座角色资料同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 547,
+      "key": "poster_case124",
+      "reason": "星座人物三栏图鉴与现有case-416星座角色资料同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 548,
+      "key": "poster_case125",
+      "reason": "同系列星座人物图鉴，仅换火象与服装。"
+    },
+    {
+      "status": "skipped",
+      "index": 549,
+      "key": "poster_case126",
+      "reason": "同系列星座人物图鉴，仅换风象与服装。"
+    },
+    {
+      "status": "skipped",
+      "index": 550,
+      "key": "poster_case127",
+      "reason": "现有case-296博物馆服饰器物图鉴覆盖，换藏帽不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 551,
+      "key": "poster_case128",
+      "reason": "奢华收藏品对比图鉴与现有case-449等展示语法近同，换乐器不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 552,
+      "key": "poster_case129",
+      "title": "山岳一日游行程与地图海报",
+      "category": "海报排版",
+      "noveltyReason": "左侧五站行程卡与右侧山岳写实奇幻路线纵向分栏，新增可复用的单日旅游行程编排用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 553,
+      "key": "poster_case130",
+      "reason": "现有case-347动作分解参考表同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 554,
+      "key": "poster_case132",
+      "reason": "照片转日式动画背景属于现有插画重绘/场景插画，建筑与光影换题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 555,
+      "key": "poster_case133",
+      "reason": "现有case-347与397舞蹈动作参考表覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 556,
+      "key": "poster_case134",
+      "reason": "与555同系列16格舞蹈参考表，仅换服装姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 557,
+      "key": "poster_case135",
+      "reason": "与555同系列16格舞蹈参考表，仅换服装姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 558,
+      "key": "poster_case136",
+      "reason": "与555同系列16格舞蹈参考表，仅换服装姿态。"
+    },
+    {
+      "status": "skipped",
+      "index": 559,
+      "key": "poster_case137",
+      "reason": "写实科幻分镜已有case-422等，气巨星剧情不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 560,
+      "key": "poster_case138",
+      "reason": "二维画作破框成真人与既有case-316漫画破次元同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 561,
+      "key": "poster_case139",
+      "reason": "一般夜间街头壁画摄影，没有新增可复用图形技术。"
+    },
+    {
+      "status": "selected",
+      "index": 562,
+      "key": "poster_case140",
+      "title": "RPG俯视地图转事件插画",
+      "category": "场景叙事",
+      "noveltyReason": "把俯视游戏地图转为人眼高度事件图并保持道路、水井与建筑地理，是现有库没有的视角转换用途。",
+      "notes": "需提供RPG地图参考图"
+    },
+    {
+      "status": "skipped",
+      "index": 563,
+      "key": "poster_case141",
+      "reason": "柔和粉彩白底人物设定已有case-372等，服饰换题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 564,
+      "key": "poster_case142",
+      "reason": "日式城市幻想群像已有case-540与日漫场景库，主要是角色题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 565,
+      "key": "poster_case161",
+      "reason": "左右因果对比的圆角平面信息图，现有科普模块图已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 566,
+      "key": "poster_case162",
+      "reason": "普通生活方式杂志专题页，现有文档出版与画册排版覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 567,
+      "key": "ecommerce_case163",
+      "reason": "装备穿戴步骤板与既有case-270、473角色装备设定同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 568,
+      "key": "poster_case164",
+      "reason": "都市日漫少女与梦幻气泡只是场景题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 569,
+      "key": "poster_case165",
+      "reason": "写实电影风暴城市镜头，现有电影叙事摄影覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 570,
+      "key": "poster_case168",
+      "reason": "多格户外运动品牌广告，现有case-349运动Campaign覆盖。"
+    },
+    {
+      "status": "selected",
+      "index": 571,
+      "key": "poster_case169",
+      "title": "卫星地貌字母组画",
+      "category": "海报排版",
+      "noveltyReason": "由山脉、河流、沙丘等真实地貌形成字母的卫星俯拍多联画，区别于既有城市建筑字和概念字体。"
+    },
+    {
+      "status": "skipped",
+      "index": 572,
+      "key": "poster_case170",
+      "reason": "冰咖啡摄影与爆炸图两条合一，现有case-443食物爆炸图和饮品摄影覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 573,
+      "key": "poster_case171",
+      "reason": "服装特征/颜色目录已有case-66、189、485覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 574,
+      "key": "poster_case172",
+      "reason": "现有case-343高定封面与425黑白人像覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 575,
+      "key": "poster_case173",
+      "reason": "快餐人物复古广告属于现有case-417等复古广告语法。"
+    },
+    {
+      "status": "selected",
+      "index": 576,
+      "key": "poster_case174",
+      "title": "跨世纪城市无缝时空海报",
+      "category": "海报排版",
+      "noveltyReason": "在同一街道透视内无缝过渡20与21世纪城市，两年代共存而不是独立宫格，新增时空融合排版。"
+    },
+    {
+      "status": "skipped",
+      "index": 577,
+      "key": "poster_case175",
+      "reason": "食谱制作流程与轻奢饮品广告已有，配方由模型编造未新增视觉结构。"
+    },
+    {
+      "status": "skipped",
+      "index": 578,
+      "key": "poster_case176",
+      "reason": "仅三个词的ASCII疾病主题，没有足够完整的版式或内容约束。"
+    },
+    {
+      "status": "skipped",
+      "index": 579,
+      "key": "poster_case177",
+      "reason": "透视夸大手机前景代言广告，既有case-322等近镜产品摄影覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 580,
+      "key": "poster_case178",
+      "reason": "真实食物飞溅商业摄影模板已有case-373、454等。"
+    },
+    {
+      "status": "selected",
+      "index": 581,
+      "key": "poster_case179",
+      "title": "充气玩具包装果汁海报",
+      "category": "商品电商",
+      "noveltyReason": "瓶身像受内压挤压的软体充气玩具般鼓胀拉伸，强调包装形变与触觉，区别于既有真实饮料飞溅图。",
+      "promptOverride": "Design a '4:5' product poster for an 'orange' juice 3d bottle using playful inflatable-plastic packaging surrealism where the bottle behaves like a squeezed toy object mid-pressure. The poster should communicate juiciness, tension, and tactile freshness through a bottle that visibly bulges, stretches, and compresses like a soft object being squeezed from the inside out. SUBJECT: A single bottle dominates the center-left, illustrated in a semi-3D stylized form (not photoreal). The bottle is visibly distorted—its midsection bulges outward while the neck is slightly compressed, as if internal juice pressure is pushing against the container walls. The liquid inside exaggerates this effect, forming rounded convex surfaces pressing against the plastic. The cap is slightly tilted from pressure. The bottle feels elastic, alive, and reactive rather than rigid. COMPOSITION: The composition mechanic is “internal pressure distortion”. The eye enters through the most inflated part of the bottle (center bulge), then follows curved tension lines outward toward stretched typography on the right side. The camera uses a slightly low, close-up perspective with mild fisheye distortion, amplifying the sense of pressure and expansion. The bottle leans diagonally into the frame as if pushing against invisible resistance. Negative space on the right is intentionally stretched and warped, echoing the bottle’s deformation. TYPOGRAPHY: Headline: “SQUEEZE BACK” in thick, rounded, inflated lettering that mimics air-filled plastic. The type is physically distorted—letters stretch horizontally near the bottle and compress toward the edges, as if affected by the same pressure force. The headline sits to the right of the bottle but partially overlaps its bulging edge. Subheadline: “Juice that pushes back.” in a narrow condensed sans, straight and rigid, contrasting the soft headline. Small circular microcopy labels (e.g., “100% organic”, “no added sugar”) appear like printed stickers slightly warped by the surface tension. LIGHTING / GRAPHIC TREATMENT: Soft studio lighting adapted for stylized rendering—broad diffused highlights across curved surfaces, subtle specular streaks that follow the deformation. No realistic reflections—only controlled, simplified highlight bands that emphasize volume and elasticity. COLORS: 'orange' juice bottle color and 3d header text. Small accents of 'bright lime green' for sticker elements. High contrast between glowing orange and dark surroundings. BACKGROUND: A smooth dark gradient field with subtle radial tension lines expanding outward from the bottle, like invisible pressure waves. No texture clutter—clean but dynamically warped space. STYLE: Neo-pop surreal product illustration with inflatable material logic, playful distortion, and high-impact commercial clarity. FINISH: Soft plastic-like rendering, clean edges, controlled gradient transitions, no noise or grain, polished but intentionally stylized surface behavior. FOOTER: A compact floating sticker cluster in the bottom-right corner containing a small brand placeholder, a circular “fresh batch” seal, and minimal product info arranged like packaging labels. NEGATIVE: Avoid realistic photography, static bottle poses, generic splash effects, centered symmetry, rigid typography, template layouts, clutter, excessive gloss, low detail, and stock advertising aesthetics.",
+      "promptOverrideReason": "去掉开头模型推广介绍，保留完整包装形变生图指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 582,
+      "key": "poster_case180",
+      "reason": "街头时尚图形海报，现有case-484、344等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 583,
+      "key": "poster_case181",
+      "reason": "三格运动编辑摄影与现有case-349同版式，换轮滑不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 584,
+      "key": "poster_case182",
+      "reason": "运动棚拍与软体3D背景，同类编辑Campaign已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 585,
+      "key": "poster_case183",
+      "reason": "巨型耳机代言广告与现有case-406、455同类。"
+    },
+    {
+      "status": "selected",
+      "index": 586,
+      "key": "poster_case184",
+      "title": "三叶结微缩城市雕塑",
+      "category": "建筑空间",
+      "noveltyReason": "木质无限结表面依局部重力生长城市，建筑可朝上下侧向生长，新增非欧几何城市微缩载体。",
+      "promptOverride": "[VAR_CITY] = \"Tokyo, Japan\"     [NODE 1: BASE_TOPOLOGY] Generate a complex, self-intersecting 3D endless loop (e.g., a thick Trefoil Knot or Gordian Knot). Material_Output: Raw, unfinished layered birch plywood. Visible wood grain.  [NODE 2: INSTANCER_LOGIC] AI_INFERENCE_TRIGGER: Analyze [VAR_CITY]. Extract its iconic architectural style, specific landmarks, and road infrastructure.  Action: Instance these urban elements directly onto the surface normals of the [BASE_TOPOLOGY].  [NODE 3: GRAVITY_WARP] The gravity vector is strictly relative to the surface of the knot. Buildings must project outward from the wood, regardless of whether the surface is facing up, down, or sideways. The roads must follow the curvature perfectly. Tiny metallic cars dot the highways.  [RENDER_ENGINE] Execute Tree. Output as a physical macro-photography studio shot. The object sits on a blank museum pedestal. Soft, diffuse top-lighting. Shallow depth of field to emphasize the miniature scale.",
+      "promptOverrideReason": "去掉视频工具推广前言，保留完整城市结雕塑生图指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 587,
+      "key": "poster_case185",
+      "reason": "餐桌摄影叠手写注释已有case-477、366等。"
+    },
+    {
+      "status": "selected",
+      "index": 588,
+      "key": "poster_case186",
+      "title": "解密情报档案视觉页",
+      "category": "文档出版",
+      "noveltyReason": "以分类章、案号、威胁等级、线索与批注组成风格化解密档案，区别于既有报纸、处方、手写笔记。",
+      "promptOverride": "do this for alien disclosure: <instruction>\nRole: You are \"The Declassification Officer,\" creating visually compelling intelligence dossiers.\n\nGoal: Produce a single vertical declassified case-file image about the chosen subject.\n\nPhase 1: Subject Classification\n- Analyze the input subject and reinterpret it as a high-priority intelligence target, anomaly, person of interest, secret invention, or unexplained event.\n- Assign:\n  - Case ID\n  - Threat level\n  - Classification level\n  - Status (active, missing, monitored, contained, unresolved)\n\nPhase 2: Document Structure\nDesign the image as a realistic but stylized dossier page with the following sections:\n- Header: agency-style title, case number, classification stamp.\n- Mugshot or main visual of the subject.\n- Summary paragraph.\n- Notable traits or observed abilities.\n- Timeline of 3–5 incidents.\n- Redacted notes.\n- Location sightings or evidence callouts.\n- Bottom section with stamp marks, signatures, and warnings.\n\nPhase 3: Visual Style\n- The entire output must be a single image.\n- Style: aged paper, photocopy texture, ink stamps, mild wear, redactions, handwritten annotations, paperclip shadows.\n- Include visual evidence elements such as photo corners, sticky notes, fingerprints, circles, arrows, highlighted lines.\n- Use readable layout and believable bureaucratic typography.\n\nPhase 4: Tone\n- Tone should be suspenseful, intriguing, and slightly cinematic.\n- Can be serious or humorous depending on the input.\n- Keep all content fictionalized if needed.\n\nOutput: One high-detail declassified dossier poster as a single finished image.\n</instruction>",
+      "promptOverrideReason": "去掉开头对模型的评论，保留主题及完整档案视觉指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 589,
+      "key": "poster_case187",
+      "reason": "快餐汉堡广告与现有食品主视觉广告同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 590,
+      "key": "poster_case188",
+      "reason": "女性代言真实酸奶广告，既有食品飞溅与人像代言同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 591,
+      "key": "poster_case189",
+      "reason": "三格运动编辑摄影与现有case-349同版式，仅换拳击。"
+    },
+    {
+      "status": "skipped",
+      "index": 592,
+      "key": "poster_case190",
+      "reason": "科技产品发光参数海报已有case-333、361等。"
+    },
+    {
+      "status": "skipped",
+      "index": 593,
+      "key": "poster_case191",
+      "reason": "真实餐桌叠卡通涂鸦已有case-366、477等。"
+    },
+    {
+      "status": "skipped",
+      "index": 594,
+      "key": "poster_case192",
+      "reason": "电影运动员定格海报已有case-3、350等。"
+    },
+    {
+      "status": "skipped",
+      "index": 595,
+      "key": "poster_case193",
+      "reason": "一般奢侈品浮空产品棚拍，现有case-367等广告覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 596,
+      "key": "poster_case194",
+      "reason": "近镜夸大饮料前景广告，现有case-322及358等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 597,
+      "key": "poster_case195",
+      "reason": "动漫潮服收藏人物主视觉与既有case-359、439等语法近同。"
+    },
+    {
+      "status": "skipped",
+      "index": 598,
+      "key": "poster_case196",
+      "reason": "动物科普主视觉与标注已有case-339等。"
+    },
+    {
+      "status": "selected",
+      "index": 599,
+      "key": "poster_case197",
+      "title": "手工黏土定格世界重绘",
+      "category": "插画艺术",
+      "noveltyReason": "将整幅场景统一为有指纹和软黏土形变的定格动画世界，区别于已有单个软萌角色或钩织玩偶。",
+      "notes": "需提供待重绘场景图"
+    },
+    {
+      "status": "skipped",
+      "index": 600,
+      "key": "poster_case198",
+      "reason": "热血日漫能量爆发是现有动漫战斗视觉主题变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 601,
+      "key": "poster_case199",
+      "reason": "现有case-359角色剪影叙事海报同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 602,
+      "key": "poster_case200",
+      "reason": "三格运动编辑摄影与现有case-349同版式，仅换保龄球。"
+    },
+    {
+      "status": "skipped",
+      "index": 603,
+      "key": "poster_case201",
+      "reason": "多日旅行行程与本批552行程海报合并，不为城市/天数另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 604,
+      "key": "poster_case202",
+      "reason": "可爱3D动漫角色与既有case-325、372同类，换企鹅帽海滩不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 605,
+      "key": "poster_case203",
+      "title": "职业日常微缩剖面时间轴",
+      "category": "信息图表",
+      "noveltyReason": "职业工作环境建筑剖面中以时间带串联六个微场景，新增一日职业工作流叙事信息图用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 606,
+      "key": "poster_case204",
+      "reason": "极简中世纪城市旅行插画已有case-474、418，目的地变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 607,
+      "key": "poster_case205",
+      "reason": "巨型球鞋运动广告与现有case-455超大产品Campaign同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 608,
+      "key": "poster_case206",
+      "reason": "繁忙创作者励志梗图仍是普通夸张卡通叙事，未增加独立可复用视觉技术。"
+    },
+    {
+      "status": "skipped",
+      "index": 609,
+      "key": "poster_case207",
+      "reason": "战场救援视频shot flow，未要求静态分镜排版。"
+    },
+    {
+      "status": "selected",
+      "index": 610,
+      "key": "poster_case208",
+      "title": "雕刻地图美食旅行图鉴",
+      "category": "信息图表",
+      "noveltyReason": "象牙白立体国土地图与地理对应地标、真实美食摄影环绕，区别于现有水彩城市美食地图。",
+      "promptOverride": "Ultra-detailed infographic travel poster titled “FLAVORS OF INDIA”, elegant luxury editorial design, vertical composition, sophisticated culinary magazine aesthetic blended with modern 3D isometric cartography.\n\nAt the center: a highly detailed 3D isometric map of India in carved ivory-white stone texture, divided into states with subtle engraved borders. The map features miniature iconic Indian landmarks placed geographically: Taj Mahal, India Gate, Hawa Mahal, Charminar, Gateway of India, Meenakshi Temple, Kerala houseboats, Himalayan monasteries, and Varanasi ghats. Tiny rivers, palm trees, mountains, boats, and architectural miniatures integrated into the map for a premium handcrafted appearance.\n\nSurrounding the map: cinematic professional food photography of famous Indian dishes with luxury typography labels and elegant descriptions:\n\nButter Chicken\n\nHyderabadi Biryani\n\nMasala Dosa\n\nChole Bhature\n\nPani Puri\n\nGulab Jamun\n\nLassi\n\nRogan Josh\n\nPav Bhaji\n\nThali\n\nRight side vertical sidebar sections: “MUST TRY” and “ICONIC EXPERIENCES” containing small circular food icons and sepia architectural sketches with tiny editorial descriptions.\n\nBackground: warm off-white parchment paper texture with subtle grain, framed using delicate hand-drawn Indian botanical illustrations, lotus motifs, paisley patterns, spice illustrations, and fine golden ornamental borders.\n\nDecorative accents: floating spices (cardamom, cinnamon, saffron, chili, star anise), brass utensils, steam effects, tiny gold embellishments, compass rose, vintage travel map details.\n\nTypography style: luxury serif fonts, elegant gold embossed headings, refined editorial layout, premium spacing, Vogue magazine inspired composition.\n\nColor palette: warm saffron, ivory, deep maroon, gold, sandalwood beige, muted emerald, spice brown, soft terracotta.\n\nLighting: soft cinematic studio lighting, premium food-commercial photography lighting, subtle shadows, warm highlights.\n\nStyle keywords: ultra realistic, luxury infographic poster, gourmet travel editorial, cinematic food photography, 3D map illustration, handcrafted premium design, highly detailed textures, elegant tourism campaign, collectible poster aesthetic, 8K, masterpiece quality, global magazine cover quality, sophisticated composition.",
+      "promptOverrideReason": "去掉模型介绍和PROMPT标题，保留完整美食旅行地图生图指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 611,
+      "key": "poster_case209",
+      "reason": "球形器物剖开内含世界，与既有case-5轮廓世界及本批109容器微缩同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 612,
+      "key": "poster_case210",
+      "reason": "源正文500字符处在ripped一词截断，且现有时尚拼贴已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 613,
+      "key": "poster_case211",
+      "reason": "源正文500字符处在摄影道具句截断，缺完整分镜。"
+    },
+    {
+      "status": "skipped",
+      "index": 614,
+      "key": "poster_case212",
+      "reason": "源正文500字符处截断，且迷你分身scrapbook已有case-371。"
+    },
+    {
+      "status": "skipped",
+      "index": 615,
+      "key": "poster_case213",
+      "reason": "现有case-345法新浪潮撕纸海报同款，源文又截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 616,
+      "key": "poster_case214",
+      "reason": "角色剪影电影叙事已有case-359，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 617,
+      "key": "poster_case215",
+      "reason": "角色剪影电影叙事已有case-359，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 618,
+      "key": "poster_case216",
+      "reason": "源正文截断，飞散食品商业视觉已有。"
+    },
+    {
+      "status": "skipped",
+      "index": 619,
+      "key": "poster_case217",
+      "reason": "现有case-490双重曝光人像及359角色叙事覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 620,
+      "key": "poster_case218",
+      "reason": "角色剪影海报已有case-359，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 621,
+      "key": "poster_case219",
+      "reason": "源JSON在middl处截断，无法形成完整提示词。"
+    },
+    {
+      "status": "skipped",
+      "index": 622,
+      "key": "poster_case220",
+      "reason": "与610同版式国家美食地图，仅换美国且源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 623,
+      "key": "poster_case221",
+      "reason": "产品容器微缩世界与109同类，源文500字符截断。"
+    },
+    {
+      "status": "selected",
+      "index": 624,
+      "key": "poster_case222",
+      "title": "镜片漫画分镜叙事海报",
+      "category": "海报排版",
+      "noveltyReason": "漫画页在墨镜反射、背景和前景动态条带三个空间层级流动，区别于一般人物剪影双重曝光。",
+      "notes": "正文前半是发布感想，真正提示词从 超高细节二次元热血漫画风角色海报 开始",
+      "promptOverride": "超高细节二次元热血漫画风角色海报，少年死神角色正面半身特写，橙色炸毛短发，琥珀色眼睛，佩戴黑色圆框复古墨镜，冷峻严肃表情，正中央对称构图，镜头直视观众，强烈压迫感。\n\n眼镜镜片中倒映大量黑白漫画分镜与角色画面，背景也由密集的日漫漫画页拼贴组成，形成“角色记忆 / 名场面回顾”的视觉效果。前景漂浮多条高速运动的漫画分镜条带，带有动态模糊与景深虚化效果，穿插画面上下，营造速度感与空间层次。\n\n画面中散落蓝色灵压粒子 / 荧光能量碎片，形成冷暖撞色（橙发 vs 蓝色粒子）。整体采用《BLEACH》式热血少年漫画美学，融合现代潮流海报设计与高级动漫商业视觉。\n\nanime key visual, BLEACH style, manga collage poster, cinematic anime lighting, reflective glasses, manga panels reflection, dynamic motion blur, orange spiky hair, intense stare, ultra detailed anime illustration, shonen jump aesthetic, layered composition, high contrast shading, cel shading, glowing blue particles, dramatic close-up portrait, symmetrical composition, manga montage background, Japanese comic aesthetic, premium anime poster",
+      "promptOverrideReason": "去掉前半段发布感想与点赞呼吁，只保留完整生图提示词。"
+    },
+    {
+      "status": "skipped",
+      "index": 625,
+      "key": "poster_case223",
+      "reason": "城市线描旅行已有case-246、9005等；本组641为同款扩展。"
+    },
+    {
+      "status": "skipped",
+      "index": 626,
+      "key": "poster_case224",
+      "reason": "儿童scrapbook摄影仍属现有case-481相册拼贴风格，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 627,
+      "key": "poster_case225",
+      "reason": "动漫时尚收藏海报已有，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 628,
+      "key": "poster_case226",
+      "reason": "暗调复古室内写真风格已有case-450等，服饰主题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 629,
+      "key": "poster_case227",
+      "reason": "现有case-371迷你分身scrapbook覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 630,
+      "key": "poster_case228",
+      "reason": "三格运动编辑摄影与现有case-349同版式。"
+    },
+    {
+      "status": "skipped",
+      "index": 631,
+      "key": "poster_case229",
+      "reason": "现有case-359人物剪影叙事主视觉同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 632,
+      "key": "poster_case230",
+      "reason": "现有case-345等撕纸编辑拼贴覆盖，正文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 633,
+      "key": "poster_case231",
+      "reason": "巨型儿童商品广告与现有超大产品Campaign同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 634,
+      "key": "poster_case232",
+      "reason": "钢笔排线加报纸拼贴，既有case-430、345等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 635,
+      "key": "poster_case233",
+      "reason": "同类极简中世纪城市旅行海报已被case-474覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 636,
+      "key": "poster_case234",
+      "reason": "现有case-445水彩旅行手账同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 637,
+      "key": "poster_case235",
+      "reason": "与现有case-418正文完全相同。"
+    },
+    {
+      "status": "skipped",
+      "index": 638,
+      "key": "poster_case236",
+      "reason": "Y2K韩日贴纸scrapbook海报已有case-481等。"
+    },
+    {
+      "status": "skipped",
+      "index": 639,
+      "key": "poster_case237",
+      "reason": "相机科技时间线与既有case-70相机因果链信息图同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 640,
+      "key": "poster_case238",
+      "reason": "黑白底片加彩色前景的编辑拼贴已有case-425、427等。"
+    },
+    {
+      "status": "skipped",
+      "index": 641,
+      "key": "poster_case239",
+      "reason": "现有case-246城市线稿与9005旅行速写覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 642,
+      "key": "poster_case240",
+      "reason": "现有case-246城市线稿与9005旅行速写覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 643,
+      "key": "poster_case241",
+      "reason": "儿童品牌棚拍仍为现有时尚品牌广告语法，年龄变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 644,
+      "key": "poster_case243",
+      "reason": "日式童趣民艺绘本与既有case-452、533同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 645,
+      "key": "poster_case244",
+      "reason": "电影角色多视图与表情设定已有case-270、473等。"
+    },
+    {
+      "status": "skipped",
+      "index": 646,
+      "key": "poster_case245",
+      "reason": "服装电商目录摄影已有case-189、485等。"
+    },
+    {
+      "status": "selected",
+      "index": 647,
+      "key": "poster_case246",
+      "title": "动漫零售联名商业海报",
+      "category": "海报排版",
+      "noveltyReason": "左侧强文字栏与右侧写实门店动漫角色的商业联名主视觉，新增动漫门店产品推广用途。",
+      "promptOverride": "Create a premium anime-style commercial poster inspired by a real Taiwanese COSMED beauty store collaboration campaign. Vertical layout with a strong split composition: bold typography panel on the left and cinematic anime character scene on the right. Feature a stylish anime girl with short brown hair and expressive eyes wearing a white COSMED-branded windbreaker jacket with orange accents, holding a skincare serum bottle inside a modern beauty store filled with cosmetics and glowing shelves. Include transparent shopping bag with beauty products, realistic packaging details, soft cinematic lighting, glossy reflections, luxury skincare advertising aesthetic, warm orange and cream color palette, highly detailed anime rendering, Makoto Shinkai + modern commercial anime style, ultra-clean typography, realistic folds and textures, lifestyle branding atmosphere, elegant Japanese/Taiwanese retail design, depth of field, premium magazine advertisement look. Large bold text on left side: “BEAUTY IN LIFE. CARE IN EVERY CHOICE.” Include subtle molecular graphics and beauty icons. Ultra detailed, 8K, cinematic anime illustration, poster design, professional advertising composition, high-end retail campaign aesthetic --ar 2:3",
+      "promptOverrideReason": "同一源条目有四个品牌的近同版式，只保留首个完整COSMED生图指令，避免同时生成多张近重复广告。"
+    },
+    {
+      "status": "skipped",
+      "index": 648,
+      "key": "poster_case247",
+      "reason": "现有case-371迷你分身scrapbook覆盖，仅换星座。"
+    },
+    {
+      "status": "skipped",
+      "index": 649,
+      "key": "poster_case248",
+      "reason": "日式涂鸦肖像与既有case-484等街头涂鸦人像同类。"
+    },
+    {
+      "status": "selected",
+      "index": 650,
+      "key": "poster_case249",
+      "title": "品牌占领城市视觉系统",
+      "category": "品牌标志",
+      "noveltyReason": "将品牌色、字体与产品语言传播到整座城市的广告生态，新增城市级品牌活动展开用途。",
+      "notes": "可能与其他分组品牌触点系统重叠，合并时复核"
+    },
+    {
+      "status": "skipped",
+      "index": 651,
+      "key": "poster_case250",
+      "reason": "手撕报纸杂志拼贴已被case-345、479覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 652,
+      "key": "poster_case251",
+      "reason": "夜间发光唯美单幅插画，现有梦幻插画覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 653,
+      "key": "poster_case252",
+      "reason": "与641同城市线稿旅行版式，换伊斯坦布尔不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 654,
+      "key": "poster_case253",
+      "title": "暗黑西部通缉令角色海报",
+      "category": "海报排版",
+      "noveltyReason": "牛仔与黑马的风暴荒漠电影场景搭配羊皮纸通缉档案分区，新增西部通缉令题材视觉类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 655,
+      "key": "poster_case254",
+      "reason": "动漫街头品牌吉祥物海报与既有品牌人格/潮流角色语法同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 656,
+      "key": "poster_case255",
+      "reason": "动物奢华科技图鉴已有case-339与396等，主题换物种不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 657,
+      "key": "poster_case256",
+      "title": "蓝图上生长的古文明工地",
+      "category": "建筑空间",
+      "noveltyReason": "真实制图桌上古文明建筑从平面蓝图立体生长，展示施工阶段与微型工匠，区别于既有地图旅游微缩。"
+    },
+    {
+      "status": "skipped",
+      "index": 658,
+      "key": "poster_case257",
+      "reason": "真实彩色人物叠黑白故事片框与现有case-427、425同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 659,
+      "key": "poster_case258",
+      "reason": "城市字形内景已有case-511、431等，换曼谷不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 660,
+      "key": "poster_case259",
+      "reason": "掌心城市微缩与现有旅游微缩容器世界同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 661,
+      "key": "poster_case260",
+      "reason": "与649同日式街头涂鸦肖像，既有case-484覆盖。"
+    },
+    {
+      "status": "selected",
+      "index": 662,
+      "key": "poster_case261",
+      "title": "歌单情绪专辑封面",
+      "category": "海报排版",
+      "noveltyReason": "把输入歌单的情绪转译成颜色、材质与物件而非指定艺人肖像，新增音乐情绪封面用途。",
+      "notes": "需提供歌单或歌曲清单，末尾外链不是提示词必需内容",
+      "promptOverride": "Create an album cover inspired by this playlist: [playlist], translating its mood into colors, textures, objects, and cinematic composition, with no artist names.",
+      "promptOverrideReason": "去掉末尾推广短链接；歌单变量和完整专辑封面生图指令保持原样。"
+    },
+    {
+      "status": "skipped",
+      "index": 663,
+      "key": "poster_case262",
+      "reason": "与599手工黏土世界同材质，换儿童造城不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 664,
+      "key": "poster_case263",
+      "reason": "抽象液体3D雕塑与既有品牌水雕/液体广告同类，无明确新增用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 665,
+      "key": "poster_case264",
+      "reason": "与case-418严格三色中世纪城市海报同款。"
+    },
+    {
+      "status": "selected",
+      "index": 666,
+      "key": "poster_case265",
+      "title": "复古旅行邮票设计",
+      "category": "文档出版",
+      "noveltyReason": "齿孔邮票、面额、邮戳、复古雕版和城市地标的一体化纪念邮品，区别于已有珐琅徽章及旅行海报。"
+    },
+    {
+      "status": "skipped",
+      "index": 667,
+      "key": "poster_case266",
+      "reason": "手撕杂志报纸拼贴与case-345、479同类。"
+    },
+    {
+      "status": "selected",
+      "index": 668,
+      "key": "poster_case267",
+      "title": "可爱立体主义矢量人像",
+      "category": "人物角色",
+      "noveltyReason": "极简新表现主义与可爱立体主义脸部几何错位融合，区别于写实轮廓或普通手绘涂鸦。"
+    },
+    {
+      "status": "selected",
+      "index": 669,
+      "key": "poster_case268",
+      "title": "Trash Polka 红黑拼贴肖像",
+      "category": "插画艺术",
+      "noveltyReason": "红黑白限定色、墨滴、几何碎片与写实人像构成trash polka表现，区别于既有霓虹涂鸦黑白人像。"
+    },
+    {
+      "status": "skipped",
+      "index": 670,
+      "key": "poster_case269",
+      "reason": "城市建筑生长于字形已有case-511等，3D材质变化不足以重复收录。"
+    },
+    {
+      "status": "skipped",
+      "index": 671,
+      "key": "poster_case270",
+      "reason": "现有case-467泳装杂志宫格覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 672,
+      "key": "poster_case271",
+      "reason": "夸张铅笔角色速写已有case-480等，人物变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 673,
+      "key": "poster_case272",
+      "reason": "梦幻星河CG女性与现有case-500等幻想人像同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 674,
+      "key": "poster_case273",
+      "reason": "人物速写身份资料页已有case-480等。"
+    },
+    {
+      "status": "skipped",
+      "index": 675,
+      "key": "poster_case274",
+      "reason": "时尚造型与材质配色说明已有case-66、485等，衣服换题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 676,
+      "key": "poster_case275",
+      "reason": "水彩人物旅行手账已有case-445、464等。"
+    },
+    {
+      "status": "skipped",
+      "index": 677,
+      "key": "poster_case276",
+      "reason": "品牌色豪华室内设计渲染属于现有建筑空间摄影语法。"
+    },
+    {
+      "status": "skipped",
+      "index": 678,
+      "key": "poster_case277",
+      "reason": "纸艺童趣咖啡馆生活场景与现有case-442、405同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 679,
+      "key": "poster_case278",
+      "reason": "水彩城市旅行海报已有case-445、464等，换马拉喀什不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 680,
+      "key": "poster_case279",
+      "reason": "中世纪城市旅行系列海报已有case-474、401等。"
+    },
+    {
+      "status": "skipped",
+      "index": 681,
+      "key": "poster_case280",
+      "reason": "水彩建筑旅行插画已有case-445、523等。"
+    },
+    {
+      "status": "selected",
+      "index": 682,
+      "key": "poster_case281",
+      "title": "水彩人物全年月历",
+      "category": "文档出版",
+      "noveltyReason": "十二个月每格日历、季节装饰与同人不同动作组成全年插画月历，区别于现有单日日历和老黄历。",
+      "notes": "需两张参考图：风格版式、人物身份；原文年份2026，导入时不得默改；与 marketing 索引912/ui_case150 同为人物全年日历，最终保留更完整者即可。"
+    },
+    {
+      "status": "skipped",
+      "index": 683,
+      "key": "poster_case282",
+      "reason": "依赖生图模型未接收的聊天历史与记忆，不是当前项目可独立复用输入。"
+    },
+    {
+      "status": "skipped",
+      "index": 684,
+      "key": "poster_case283",
+      "reason": "梦幻CG人像只是新增钢琴场景，既有幻想写真覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 685,
+      "key": "poster_case284",
+      "reason": "温馨线稿日常插画已有case-452等。"
+    },
+    {
+      "status": "skipped",
+      "index": 686,
+      "key": "poster_case285",
+      "reason": "源文500字符处截断；漂浮旅游微缩世界已有同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 687,
+      "key": "poster_case286",
+      "reason": "源文500字符处截断；单色城市旅行已有case-497。"
+    },
+    {
+      "status": "skipped",
+      "index": 688,
+      "key": "poster_case287",
+      "reason": "城市文化扁平矢量拼贴属于既有旅行插画，换城市不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 689,
+      "key": "poster_case288",
+      "reason": "通用电影科幻人物概念表已有case-270、473等。"
+    },
+    {
+      "status": "skipped",
+      "index": 690,
+      "key": "poster_case289",
+      "reason": "源文500字符处截断，角色设定板已有。"
+    },
+    {
+      "status": "skipped",
+      "index": 691,
+      "key": "poster_case290",
+      "reason": "通用复古旅行拼贴已有case-401等。"
+    },
+    {
+      "status": "skipped",
+      "index": 692,
+      "key": "poster_case291",
+      "reason": "只有法国旅行图鉴主题，没有新增视觉约束。"
+    },
+    {
+      "status": "skipped",
+      "index": 693,
+      "key": "poster_case292",
+      "reason": "九格科幻广告分镜已有case-422等。"
+    },
+    {
+      "status": "skipped",
+      "index": 694,
+      "key": "poster_case293",
+      "reason": "60年代手绘啤酒广告与既有case-417复古饮品广告同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 695,
+      "key": "poster_case294",
+      "reason": "电影导演角色提案板已有case-270、473及119。"
+    },
+    {
+      "status": "skipped",
+      "index": 696,
+      "key": "poster_case295",
+      "reason": "食谱摄影信息图已有case-297等，食材与饮食主题变化不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 697,
+      "key": "poster_case296",
+      "title": "汽车漆面文化图标雕塑",
+      "category": "插画艺术",
+      "noveltyReason": "把领域图标转为带多层汽车漆、碳纤维、金属饰条的空气动力雕塑四格，新增文化语义到汽车曲面材质的造型体系。"
+    },
+    {
+      "status": "selected",
+      "index": 698,
+      "key": "poster_case297",
+      "title": "高能物理径向装置信息图",
+      "category": "信息图表",
+      "noveltyReason": "粒子碰撞环、密集数学白线、紫外照明和维多利亚黄铜光学仪器融合的径向科学信息图，区别于既有RAG/交通流程图。"
+    },
+    {
+      "status": "skipped",
+      "index": 699,
+      "key": "poster_case298",
+      "reason": "运动员街头涂鸦拼贴已有case-350等。"
+    },
+    {
+      "status": "skipped",
+      "index": 700,
+      "key": "poster_case299",
+      "reason": "现有case-454旅行薯片广告同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 701,
+      "key": "poster_case300",
+      "reason": "现有case-445、464水彩旅行海报同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 702,
+      "key": "poster_case301",
+      "reason": "餐饮摄影与手绘便签拼贴已有case-366、477。"
+    },
+    {
+      "status": "skipped",
+      "index": 703,
+      "key": "poster_case302",
+      "reason": "与702同饮品手账广告版式，只换口味和颜色。"
+    },
+    {
+      "status": "selected",
+      "index": 704,
+      "key": "poster_case303",
+      "title": "科学概念结构字体海报",
+      "category": "海报排版",
+      "noveltyReason": "用分子键、DNA双螺旋和物理形变构成可读字形，新增学术白板式字形设计用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 705,
+      "key": "poster_case304",
+      "reason": "男装编辑造型和色卡说明已有case-485、398等。"
+    },
+    {
+      "status": "skipped",
+      "index": 706,
+      "key": "poster_case305",
+      "reason": "时尚服装构成图已有case-66等，民族融合服饰换题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 707,
+      "key": "poster_case306",
+      "reason": "运动赛事主视觉已有case-3、83等。"
+    },
+    {
+      "status": "skipped",
+      "index": 708,
+      "key": "poster_case307",
+      "reason": "现有case-270角色三视图和部件特写同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 709,
+      "key": "poster_case308",
+      "reason": "品牌园艺分镜和pitch网格与既有商业分镜同类，换行业不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 710,
+      "key": "poster_case309",
+      "reason": "复古流行节庆人物海报与既有品牌/电影拼贴语法同类，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 711,
+      "key": "poster_case310",
+      "reason": "品牌鱼眼近镜产品代言与既有case-322及406同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 712,
+      "key": "poster_case311",
+      "reason": "同人多姿态史诗运动海报已有case-3、350等。"
+    },
+    {
+      "status": "skipped",
+      "index": 713,
+      "key": "poster_case312",
+      "reason": "与670同三维城市字体海报，已有case-511类字体结构，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 714,
+      "key": "poster_case313",
+      "reason": "曼谷三维建筑字与已有case-511及本组670同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 715,
+      "key": "poster_case314",
+      "reason": "这是15秒网球广告视频要求，不是独立静态生图指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 716,
+      "key": "poster_case315",
+      "reason": "既有case-405、435纸艺人物微缩已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 717,
+      "key": "poster_case317",
+      "reason": "体育吉祥物对战仍属既有运动电影海报，换动物主体不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 718,
+      "key": "poster_case318",
+      "reason": "角色设定加故事板的开发提案已由case-119等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 719,
+      "key": "poster_case319",
+      "reason": "极简大字汽车商品广告属于现有产品广告和概念字体语法。"
+    },
+    {
+      "status": "skipped",
+      "index": 720,
+      "key": "poster_case320",
+      "reason": "水彩都市旅行画已有case-445、464等。"
+    },
+    {
+      "status": "skipped",
+      "index": 721,
+      "key": "poster_case321",
+      "reason": "巨大自我雕像与真人内省广告已有case-482超现实自我凝视。"
+    },
+    {
+      "status": "skipped",
+      "index": 722,
+      "key": "poster_case322",
+      "reason": "3D chibi人物服饰说明表已有case-372等。"
+    },
+    {
+      "status": "skipped",
+      "index": 723,
+      "key": "poster_case323",
+      "reason": "多格3D时尚角色系列已有case-325、378等。"
+    },
+    {
+      "status": "selected",
+      "index": 724,
+      "key": "poster_case324",
+      "title": "撕纸罐身果肉广告",
+      "category": "商品电商",
+      "noveltyReason": "一道连贯撕纸口同时穿过铝罐和背景，暴露真实果肉且纸卷延续画幅边缘，区别于既有产品爆炸图。",
+      "notes": "与 marketing 索引45/ad-creative_case197 可能同款撕纸揭原料结构，最终保留更完整者即可。"
+    },
+    {
+      "status": "skipped",
+      "index": 725,
+      "key": "poster_case325",
+      "reason": "旅行票据微缩世界已有case-527，换城市与卡片不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 726,
+      "key": "poster_case326",
+      "reason": "吉祥物设定表已有case-160、306等。"
+    },
+    {
+      "status": "skipped",
+      "index": 727,
+      "key": "poster_case327",
+      "reason": "夸张3D收藏角色人像已有case-378等。"
+    },
+    {
+      "status": "skipped",
+      "index": 728,
+      "key": "poster_case328",
+      "reason": "高对比黑白墨线肖像与case-542及539等同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 729,
+      "key": "poster_case329",
+      "reason": "现有case-371真人迷你分身和涂鸦叠加同类。"
+    },
+    {
+      "status": "selected",
+      "index": 730,
+      "key": "poster_case330",
+      "title": "品牌厚涂油画触感海报",
+      "category": "品牌标志",
+      "noveltyReason": "品牌色转为实体厚涂笔触与隆起颜料，产品融入裸画布油画，不是现有3D品牌物料展示。"
+    },
+    {
+      "status": "skipped",
+      "index": 731,
+      "key": "poster_case331",
+      "reason": "3D水果科普图属既有可爱科普信息图语法，换题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 732,
+      "key": "poster_case332",
+      "reason": "混合版画质感的中世纪插画已有基础，纯孔版媒介本批787更明确完整。"
+    },
+    {
+      "status": "skipped",
+      "index": 733,
+      "key": "poster_case333",
+      "reason": "窄幅眼部漫画海报属于既有漫画/高对比肖像视觉，未有新增独立方法。"
+    },
+    {
+      "status": "skipped",
+      "index": 734,
+      "key": "poster_case334",
+      "reason": "宇宙荒诞写实场景属于既有超现实电影叙事，换剧情不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 735,
+      "key": "poster_case335",
+      "reason": "真实肖像、报纸、笔触的混合媒体拼贴已有case-345、539等。"
+    },
+    {
+      "status": "skipped",
+      "index": 736,
+      "key": "poster_case336",
+      "reason": "等距地标微缩已有case-489等建筑模型表现。"
+    },
+    {
+      "status": "skipped",
+      "index": 737,
+      "key": "poster_case337",
+      "reason": "透明材质3D角色仍为既有3D人物场景，换骨架主体不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 738,
+      "key": "poster_case338",
+      "reason": "粉彩纸片旅行海报已有case-461、464、527等。"
+    },
+    {
+      "status": "skipped",
+      "index": 739,
+      "key": "poster_case339",
+      "reason": "铅笔背景加立体人物/道具破纸与既有case-498、316同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 740,
+      "key": "poster_case340",
+      "reason": "护照内城市微缩世界与既有case-527旅行票据微缩同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 741,
+      "key": "poster_case341",
+      "reason": "与case-504提示词完全相同。"
+    },
+    {
+      "status": "skipped",
+      "index": 742,
+      "key": "poster_case342",
+      "reason": "时尚半3D人物广告与既有case-378等角色体系同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 743,
+      "key": "poster_case343",
+      "reason": "复古套色汽车旅行广告与既有case-278、418旅行版画同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 744,
+      "key": "poster_case344",
+      "reason": "水彩时装速写已有case-458、430等。"
+    },
+    {
+      "status": "skipped",
+      "index": 745,
+      "key": "poster_case345",
+      "reason": "简化色块时尚插画已有case-514等，杂志版式不是新风格。"
+    },
+    {
+      "status": "selected",
+      "index": 746,
+      "key": "poster_case346",
+      "title": "赛博漫画黑胶唱片封套",
+      "category": "文档出版",
+      "noveltyReason": "复古黑胶封套将单色漫画与90年代JDM汽车组合，附转速、声道和曲目等唱片物料细节，新增黑胶出版物设计用途。",
+      "notes": "需上传参考图"
+    },
+    {
+      "status": "skipped",
+      "index": 747,
+      "key": "poster_case347",
+      "reason": "大头像运动员海报已有case-3、350等。"
+    },
+    {
+      "status": "skipped",
+      "index": 748,
+      "key": "poster_case348",
+      "reason": "旅行纸雕胶片分镜与既有case-527、493旅行分镜同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 749,
+      "key": "poster_case349",
+      "reason": "疲倦创作者3D chibi人像与现有case-378收藏角色同类，剧情变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 750,
+      "key": "poster_case350",
+      "reason": "水彩情侣时装插画已有case-458、495等。"
+    },
+    {
+      "status": "skipped",
+      "index": 751,
+      "key": "poster_case351",
+      "reason": "动漫宇宙反派海报与既有动漫角色主视觉同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 752,
+      "key": "poster_case352",
+      "reason": "标准动画角色设定表已有case-270、306等。"
+    },
+    {
+      "status": "skipped",
+      "index": 753,
+      "key": "poster_case353",
+      "reason": "北欧文学极简平面人物插画与既有case-452、514等同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 754,
+      "key": "poster_case354",
+      "reason": "赛事对阵海报已有case-83等。"
+    },
+    {
+      "status": "selected",
+      "index": 755,
+      "key": "poster_case355",
+      "title": "电影构图分析叠图",
+      "category": "信息图表",
+      "noveltyReason": "摄影作品上叠加三分线、视觉质量分布与电影摄影分析信息，新增影像构图讲解用途。"
+    },
+    {
+      "status": "selected",
+      "index": 756,
+      "key": "poster_case356",
+      "title": "古典解剖书页风格重绘",
+      "category": "插画艺术",
+      "noveltyReason": "原主体保留姿态转为骨骼肌肉的非血腥古典解剖图，带拉丁标注和旧书版印，区别于疾病流程信息图。",
+      "notes": "需上传待转换图片；只作非血腥教学插画用途"
+    },
+    {
+      "status": "selected",
+      "index": 757,
+      "key": "poster_case357",
+      "title": "人群马赛克航拍肖像",
+      "category": "插画艺术",
+      "noveltyReason": "数千名真实小人物在俯拍下组成巨大肖像，新增以人群作像素的摄影装置风格。"
+    },
+    {
+      "status": "selected",
+      "index": 758,
+      "key": "poster_case358",
+      "title": "折纸食物建筑剖面",
+      "category": "插画艺术",
+      "noveltyReason": "以折线、咬合片和承重折痕把分层食物做成建筑式折纸结构，并揭示层次，不同于纸片照片拼贴。"
+    },
+    {
+      "status": "selected",
+      "index": 759,
+      "key": "poster_case359",
+      "title": "超现实主义历史梦境时间轴",
+      "category": "信息图表",
+      "noveltyReason": "融化时钟变为时间线，梦境走廊与象征物承载历史节点，区别于常规时间轴、手绘知识图。"
+    },
+    {
+      "status": "skipped",
+      "index": 760,
+      "key": "poster_case360",
+      "reason": "旅行票据破框微缩与现有case-527同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 761,
+      "key": "poster_case361",
+      "reason": "数字镂空生日场景与既有case-355概念字体容器结构同类，主题变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 762,
+      "key": "poster_case362",
+      "reason": "暖色自然光时尚摄影已有case-499等。"
+    },
+    {
+      "status": "skipped",
+      "index": 763,
+      "key": "poster_case363",
+      "reason": "服装商品图/印花展示已有case-520、485等。"
+    },
+    {
+      "status": "skipped",
+      "index": 764,
+      "key": "poster_case364",
+      "reason": "三格时尚夜生活摄影与既有case-382、427拼贴同类，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 765,
+      "key": "poster_case365",
+      "reason": "桌面旅游地图生长微缩地标已有case-489、527等。"
+    },
+    {
+      "status": "skipped",
+      "index": 766,
+      "key": "poster_case366",
+      "reason": "现有case-266圆珠笔手写笔记同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 767,
+      "key": "poster_case367",
+      "reason": "黑白法国电影静帧属已有电影胶片写真语法，换人物关系不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 768,
+      "key": "poster_case368",
+      "reason": "手机观众视角录舞台的电影场景，表现场景已有，换吉祥物机器人不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 769,
+      "key": "poster_case369",
+      "reason": "家具多视角材质资料表与既有case-370等工业设计参考板同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 770,
+      "key": "poster_case370",
+      "reason": "角色非对称概念展示已有case-473、512等，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 771,
+      "key": "poster_case371",
+      "reason": "抽象多巴胺3D海报风格与既有case-503等3D编辑广告同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 772,
+      "key": "poster_case372",
+      "reason": "北欧个人品牌物料系统已有case-354、362等。"
+    },
+    {
+      "status": "skipped",
+      "index": 773,
+      "key": "poster_case373",
+      "reason": "现有case-366摄影叠加手绘涂鸦同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 774,
+      "key": "poster_case374",
+      "reason": "现有case-47日式四格广告同款，源文又截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 775,
+      "key": "poster_case375",
+      "reason": "与788国家队制服广告同模板，源文截断；既有运动品牌广告覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 776,
+      "key": "poster_case376",
+      "reason": "食物剖面商品摄影已有case-373、443等。"
+    },
+    {
+      "status": "skipped",
+      "index": 777,
+      "key": "poster_case377",
+      "reason": "手工黏土定格风格与本批599合并，换耳机与角色不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 778,
+      "key": "poster_case378",
+      "reason": "新艺术植物装饰与神话关系图同既有关系图/神话档案语法，题材变化不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 779,
+      "key": "poster_case379",
+      "reason": "从礼物盒内看代言人的特殊视角与既有case-517杯内鱼眼同类，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 780,
+      "key": "poster_case380",
+      "reason": "幻想角色揭示分镜与既有动画电影分镜同类，源文截断。"
+    },
+    {
+      "status": "skipped",
+      "index": 781,
+      "key": "poster_case381",
+      "reason": "手机屏幕延伸实体照片带与既有case-404社媒破屏广告同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 782,
+      "key": "poster_case382",
+      "reason": "旅行明信片和美食微缩人物与既有case-454、527同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 783,
+      "key": "poster_case383",
+      "reason": "与本批571同一地貌字母提示词的重述。"
+    },
+    {
+      "status": "selected",
+      "index": 784,
+      "key": "poster_case384",
+      "title": "复古套印跨页杂志档案",
+      "category": "文档出版",
+      "noveltyReason": "1950至60年代杂志双页跨页、骑缝、栏文和套色网点组成架空历史文献，区别于既有80年代单张广告。",
+      "notes": "正文主题为虚构讽刺，不是历史资料"
+    },
+    {
+      "status": "skipped",
+      "index": 785,
+      "key": "poster_case385",
+      "reason": "只有主题标题，没有可复用完整视觉指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 786,
+      "key": "poster_case386",
+      "reason": "复古人物旅游拼贴已有case-401等，换国家不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 787,
+      "key": "poster_case387",
+      "title": "孔版印刷雨林科普小志",
+      "category": "信息图表",
+      "noveltyReason": "严格三色Risograph孔版套印、错版、网点和叠色的独立科学zine排版，新增完整孔版印刷风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 788,
+      "key": "poster_case388",
+      "reason": "国家队服装时尚大字广告已有case-351等，国家变体不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 789,
+      "key": "poster_case389",
+      "reason": "官方赛事标志的国家配色变体，既有Logo/符号设计覆盖，不当作新风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 790,
+      "key": "poster_case390",
+      "reason": "现有case-359剪影双曝光人物海报同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 791,
+      "key": "poster_case391",
+      "reason": "与case-419同一8格皮克斯烹饪模板，仅换土耳其烤肉。"
+    },
+    {
+      "status": "skipped",
+      "index": 792,
+      "key": "poster_case392",
+      "reason": "运动街头撕纸拼贴已有case-486、350等。"
+    },
+    {
+      "status": "skipped",
+      "index": 793,
+      "key": "poster_case393",
+      "reason": "文明分层历史图仍与既有case-456历史事件信息图和296博物馆拆解同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 794,
+      "key": "poster_case394",
+      "reason": "现有case-70、71相机爆炸拆解同类，换Sony不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 795,
+      "key": "poster_case395",
+      "title": "半透明机械仿生器官",
+      "category": "商品电商",
+      "noveltyReason": "人体器官转为磨砂注塑壳体，内部用齿轮活塞电路替代组织，新增机械器官产品化设计语言。"
+    },
+    {
+      "status": "selected",
+      "index": 796,
+      "key": "poster_case396",
+      "title": "WPA风太阳风暴信息海报",
+      "category": "海报排版",
+      "noveltyReason": "1930年代WPA公园海报的平涂水粉、粗黑轮廓与图形色带用于天文流程，区别于既有细排线中世纪旅行海报。"
+    },
+    {
+      "status": "skipped",
+      "index": 797,
+      "key": "poster_case397",
+      "reason": "汽车规格广告是已有产品参数图鉴同类，未新增图形风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 798,
+      "key": "poster_case398",
+      "reason": "与771同多巴胺C4D海报，仅换主题。"
+    },
+    {
+      "status": "skipped",
+      "index": 799,
+      "key": "poster_case399",
+      "reason": "与486同普通方形文案广告的英文版。"
+    },
+    {
+      "status": "skipped",
+      "index": 800,
+      "key": "poster_case400",
+      "reason": "爆炸街景动作电影镜头属于已有电影叙事摄影，换剧情不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 801,
+      "key": "poster_case401",
+      "reason": "墨线编辑人像已有case-539等同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 802,
+      "key": "poster_case402",
+      "reason": "等距地标微缩与现有case-489及本组736同类。"
+    },
+    {
+      "status": "selected",
+      "index": 803,
+      "key": "poster_case403",
+      "title": "发条动力微缩世界",
+      "category": "商品电商",
+      "noveltyReason": "明确可见发条、弹簧、凸轮和联动结构驱动迷你叙事世界，新增可动收藏玩具机关设计。"
+    },
+    {
+      "status": "selected",
+      "index": 804,
+      "key": "poster_case404",
+      "title": "太阳朋克水母空中城市",
+      "category": "建筑空间",
+      "noveltyReason": "生物水母作为充气建筑与步道网络，强调半透明生长结构和生物太阳朋克，区别于普通未来城市高楼。",
+      "promptOverride": "A serene daylight scene on an alien desert planet, wide cinematic shot of a floating city made from enormous translucent jellyfish creatures drifting just above endless dunes; each jellyfish (Aeromedusae) is house‑sized, with a bulbous semi‑transparent dome filled with pale turquoise gas, long trailing tendrils weaving together into suspended walkways, platforms and hammock‑like membranes that form an aerial village; nacreous plates and chitin ribs have grown along their undersides to create skeletal arches and open “rooms,” shimmering with opalescent highlights; several Aeromedusae cluster together in a loose line, casting soft, organic shadows on the sand below; tiny silhouettes of ground caravans with insect‑like vehicles and fabric canopies move through the dunes, clearly dwarfed by the floating city overhead; distant rusted anchor towers and cables rise from the sand, hinting at a human or alien attempt to tether these living buildings; palette of warm sand beige, pale turquoise, dusty coral and soft white, with high noon sunlight, subtle heat haze and gentle lens bloom; the camera sits at a medium distance, slightly low angle, capturing both the jellyfish city and the ground caravans in one frame, 35mm lens, peaceful solarpunk‑like atmosphere, painterly yet detailed, no horror, one frame from a larger alien desert universe.\n\nNEGATIVE PROMPT:\nhuman-like alien, blue-skinned humanoid, generic sci-fi city, skyscrapers, cyberpunk neon, dark horror tone, gore, tentacle monster cliché, cheap sci-fi armor, guns, war scene, cartoon, anime chibi, bad anatomy, cluttered composition, oversaturated colors, heavy bloom, low detail, blurry image, noisy grain, HUD, UI, readable text, watermark, logo, plastic toy look, realistic Earth desert animals, Earth buildings, spaceships dogfighting",
+      "promptOverrideReason": "去掉标题与社媒介绍，保留完整水母城市生图指令。"
+    },
+    {
+      "status": "skipped",
+      "index": 805,
+      "key": "poster_case405",
+      "reason": "与现有case-489城市地图微缩旅行海报同款。"
+    },
+    {
+      "status": "skipped",
+      "index": 806,
+      "key": "poster_case406",
+      "reason": "霓虹动漫活动海报属于既有动漫封面/广告语法。"
+    },
+    {
+      "status": "skipped",
+      "index": 807,
+      "key": "poster_case407",
+      "reason": "抽象概念雕塑加瑞士字体海报已有case-355概念字体主视觉。"
+    },
+    {
+      "status": "skipped",
+      "index": 808,
+      "key": "poster_case408",
+      "reason": "现有case-297及14等食谱信息图同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 809,
+      "key": "poster_case409",
+      "reason": "与807同概念雕塑/瑞士字体结构，换AI主题不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 810,
+      "key": "poster_case410",
+      "reason": "与89同狮驼岭暗黑神话场景的英文重述，既有暗黑国风覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 811,
+      "key": "poster_case411",
+      "reason": "城市字形内景已有case-511和431等。"
+    },
+    {
+      "status": "skipped",
+      "index": 812,
+      "key": "poster_case412",
+      "reason": "静止人物对比长曝光人流属于已有电影人像语法，换地铁剧情不另录。"
+    },
+    {
+      "status": "skipped",
+      "index": 813,
+      "key": "poster_case413",
+      "reason": "暖色侧逆光时尚写真已有case-318等。"
+    },
+    {
+      "status": "skipped",
+      "index": 814,
+      "key": "poster_case414",
+      "reason": "黑金聚光灯时尚人像属既有商业写真，灯光形状变化不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 815,
+      "key": "poster_case420",
+      "title": "机器内部微型工人剖面",
+      "category": "信息图表",
+      "noveltyReason": "机器45度等距剖面中微型工人操作机械与能量路径，新增系统维护工厂式剖面场景。"
+    },
+    {
+      "status": "skipped",
+      "index": 816,
+      "key": "poster_case421",
+      "reason": "日式钢笔水彩日常插画已有case-442、452等。"
+    },
+    {
+      "status": "skipped",
+      "index": 817,
+      "key": "poster_case422",
+      "reason": "现有case-276红绸广州海报同款英文重述。"
+    },
+    {
+      "status": "selected",
+      "index": 818,
+      "key": "poster_case423",
+      "title": "地形等高线人物数据海报",
+      "category": "海报排版",
+      "noveltyReason": "人物融入等高线、轨迹和抽象地图的成长数据视觉，区别于已有字体人物与霓虹运动涂鸦海报。"
+    },
+    {
+      "status": "skipped",
+      "index": 819,
+      "key": "poster_case424",
+      "reason": "日本文具风极简城市插画与已有case-513、474等近同。"
+    },
+    {
+      "status": "skipped",
+      "index": 820,
+      "key": "poster_case425",
+      "reason": "普通瑞士风演唱会图形海报，现有概念字体和编辑海报覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 821,
+      "key": "poster_case426",
+      "reason": "石墨梦幻人像与既有case-430素描等同类。"
+    },
+    {
+      "status": "selected",
+      "index": 822,
+      "key": "poster_case427",
+      "title": "涂鸦破墙互动幻觉海报",
+      "category": "海报排版",
+      "noveltyReason": "墙上画作仅手臂破墙与真人互动，需保持墙绘本体平面，新增二维壁画局部立体化的光学幻觉。",
+      "notes": "需提供真人及角色参考图（按原文保留）"
+    },
+    {
+      "status": "skipped",
+      "index": 823,
+      "key": "poster_case428",
+      "reason": "黑白人像加红霓虹轮廓与既有case-484霓虹涂鸦肖像同类。"
+    },
+    {
+      "status": "skipped",
+      "index": 824,
+      "key": "poster_case429",
+      "reason": "旅行照水彩手账拼贴已有case-445、464等。"
+    },
+    {
+      "status": "skipped",
+      "index": 825,
+      "key": "poster_case430",
+      "reason": "现有case-445、464等水彩城市旅行插画，恋人情节不另录。"
+    },
+    {
+      "status": "selected",
+      "index": 826,
+      "key": "poster_case431",
+      "title": "CMYK错版套印肖像海报",
+      "category": "海报排版",
+      "noveltyReason": "真实肖像局部显露青品黄黑印刷分色与精细套准错位，区别于既有数字RGB干扰与普通单色拼贴。"
+    },
+    {
+      "status": "skipped",
+      "index": 827,
+      "key": "ui_case190",
+      "reason": "模块化野生动物百科图的用途已由 case-8、case-222 通用科普图鉴覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 828,
+      "key": "ui_case2",
+      "reason": "与现有 case-262 从观众远处拍摄苹果发布会的提示词重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 829,
+      "key": "ui_case3",
+      "reason": "与现有 case-266 黑色圆珠笔手写笔记手机照片重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 830,
+      "key": "ui_case4",
+      "reason": "与现有 case-267 宋朝文人朋友圈重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 831,
+      "key": "ui_case5",
+      "reason": "四个平台截图内容已有 case-258、case-259、case-260、case-269 等分条收录。"
+    },
+    {
+      "status": "skipped",
+      "index": 832,
+      "key": "ui_case7",
+      "reason": "与现有 case-239 刘亦菲举牌抖音直播截图重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 833,
+      "key": "ui_case8",
+      "reason": "与现有 case-268 李成桂威化岛回军前的 X 页面重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 834,
+      "key": "ui_case9",
+      "reason": "与现有 case-243 参考风格生成网页、移动端及控件的 UI 系统重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 835,
+      "key": "ui_case10",
+      "reason": "与现有 case-19 桃太郎解说幻灯片重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 836,
+      "key": "ui_case25",
+      "reason": "与现有 case-296 博物馆式中文拆解信息图正文重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 837,
+      "key": "ui_case32",
+      "reason": "侧重手相分析与建议，未给出明确图片布局和视觉描述，不作为完整生图模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 838,
+      "key": "ui_case33",
+      "reason": "仅一行生成某字体字帖，已有书法与临摹方向，缺少新的视觉细节。"
+    },
+    {
+      "status": "skipped",
+      "index": 839,
+      "key": "ui_case34",
+      "reason": "要求先搜索 OpenClaw 资料再模仿店铺 POP，未提供具体可复用的画面与内容描述。"
+    },
+    {
+      "status": "skipped",
+      "index": 840,
+      "key": "ui_case35",
+      "reason": "仅一句日式手游抽卡画面，未描述版式和组件，不是完整新模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 841,
+      "key": "ui_case36",
+      "reason": "举牌打赏与抖音直播 UI 已由 case-21、case-48、case-49、case-249 等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 842,
+      "key": "ui_case37",
+      "reason": "与 832 及现有 case-239 同一刘亦菲举牌直播，仅标点不同。"
+    },
+    {
+      "status": "selected",
+      "index": 843,
+      "key": "ui_case38",
+      "title": "赛博霓虹界面设计系统",
+      "category": "UI 与界面",
+      "noveltyReason": "明确城市夜景、玻璃反射、紫蓝粉霓虹和高对比光影，覆盖桌面、移动端及控件，补充具体可执行的赛博界面风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 844,
+      "key": "ui_case39",
+      "reason": "社交直播、人物主页、黑板文字与 T-800 淘宝详情均已有收录，后两项与 case-300、case-301 重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 845,
+      "key": "ui_case40",
+      "reason": "混合模型辨别、游戏开发资料、游戏截图和引用分镜广告多种零散要求，没有单一完整图像模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 846,
+      "key": "ui_case63",
+      "reason": "依赖未提供角色与既有游戏风格，只一句 PVP 截图指令，且既有游戏截图类型已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 847,
+      "key": "ui_case64",
+      "reason": "只有按参考图风格生成落地页一句话，缺少结构与内容，已有 case-243 通用风格转界面。"
+    },
+    {
+      "status": "skipped",
+      "index": 848,
+      "key": "ui_case88",
+      "reason": "只有人物、口红陈列与口号的极短直播背景设定，既有直播与美妆方向已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 849,
+      "key": "ui_case44",
+      "reason": "近景手持耳机与卖点信息的广告语法与本源 179 同型，保留 179 完整代表。"
+    },
+    {
+      "status": "skipped",
+      "index": 850,
+      "key": "ui_case45",
+      "reason": "只有商品名和电商信息图类型，缺少可执行布局；完整同类保留本源 179。"
+    },
+    {
+      "status": "skipped",
+      "index": 851,
+      "key": "ui_case46",
+      "reason": "人物持产品加彩色功能标注与本源 179 同类，现有美妆广告也已有相近用法。"
+    },
+    {
+      "status": "skipped",
+      "index": 852,
+      "key": "ui_case47",
+      "reason": "仅要求某游戏续作的 AAA 截图并附外链，缺少可独立复用画面说明。"
+    },
+    {
+      "status": "selected",
+      "index": 853,
+      "key": "ui_case91",
+      "title": "晨间妆容教程封面",
+      "category": "海报排版",
+      "noveltyReason": "补充生活化梳妆场景、化妆物品清单与西语教程图文的竖版 GRWM 内容封面。"
+    },
+    {
+      "status": "selected",
+      "index": 854,
+      "key": "ui_case92",
+      "title": "雨城爆炸追逐场景",
+      "category": "场景叙事",
+      "noveltyReason": "新增暴雨街峡、正面逃生人物、建筑爆炸与车辆碎片的高动态写实动作电影镜头。"
+    },
+    {
+      "status": "skipped",
+      "index": 855,
+      "key": "ui_case93",
+      "reason": "动漫主播、霓虹直播房与大字游戏缩略图与现有 case-92 等同类，仅角色与游戏主题变化。"
+    },
+    {
+      "status": "selected",
+      "index": 856,
+      "key": "ui_case94",
+      "title": "夜间治愈动漫耳语场景",
+      "category": "插画艺术",
+      "noveltyReason": "以双耳 ASMR 麦克风、双手互动和卧室环境灯为视觉核心，补充音频内容创作者的治愈场景类型。"
+    },
+    {
+      "status": "skipped",
+      "index": 857,
+      "key": "ui_case95",
+      "reason": "仅一行某明星开直播，不具备新视觉风格或完整画面说明。"
+    },
+    {
+      "status": "skipped",
+      "index": 858,
+      "key": "ui_case96",
+      "reason": "动漫人物与发光花体姓名横幅属于既有动漫人物宣传与封面排版延展，未新增独立用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 859,
+      "key": "ui_case97",
+      "reason": "与本源 858、860、861 同一发光姓名加动漫角色横幅系列，颜色和角色变体不重复收录。"
+    },
+    {
+      "status": "skipped",
+      "index": 860,
+      "key": "ui_case98",
+      "reason": "与本源 858、859、861 同一动漫姓名横幅系列，粉色甜点主题未形成独立用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 861,
+      "key": "ui_case99",
+      "reason": "与本源 858、859、860 同一动漫角色姓名横幅系列，角色与构图方向变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 862,
+      "key": "ui_case100",
+      "reason": "赛博角色、霓虹法阵与都市屋顶属于既有科幻角色和幻想场景方向，未新增设计用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 863,
+      "key": "ui_case101",
+      "reason": "动漫奇幻旅行电影海报已有 case-128 等，车站与沿海城市为题材替换。"
+    },
+    {
+      "status": "skipped",
+      "index": 864,
+      "key": "ui_case102",
+      "reason": "动漫人物、霓虹背景和多组日语活动文字为已有动漫宣传海报语法，未增加独立类型。"
+    },
+    {
+      "status": "selected",
+      "index": 865,
+      "key": "ui_case103",
+      "title": "热带彩色像素马赛克",
+      "category": "插画艺术",
+      "noveltyReason": "以带黑色网格的细小彩色方砖铺满画面，形成类似彩玻或 LED 的装饰马赛克，而非普通像素游戏场景。"
+    },
+    {
+      "status": "skipped",
+      "index": 866,
+      "key": "ui_case104",
+      "reason": "手持饮品、植物逆光和散景与现有 case-150 夏日饮品商业摄影近似，场所变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 867,
+      "key": "ui_case105",
+      "reason": "只是无缝人物网格通用模板，怀旧联系表留本源 880 的完整十六场景代表；959 也与此重复。"
+    },
+    {
+      "status": "skipped",
+      "index": 868,
+      "key": "ui_case106",
+      "reason": "只说明手写信纸质感，正文主题不具体，已有 case-266 等写实纸面文字照片。"
+    },
+    {
+      "status": "selected",
+      "index": 869,
+      "key": "ui_case107",
+      "title": "动漫乐队谢幕群像",
+      "category": "场景叙事",
+      "noveltyReason": "从舞台后方呈现多人并肩谢幕、满场应援灯与场馆大屏，补充音乐演出终场叙事构图。"
+    },
+    {
+      "status": "selected",
+      "index": 870,
+      "key": "ui_case108",
+      "title": "真人与动漫角色约会拼贴",
+      "category": "插画艺术",
+      "noveltyReason": "在十六格生活照片中将真人与保持二维赛璐璐质感的角色共同置入真实摄影光线，补充双媒介人物互动。"
+    },
+    {
+      "status": "skipped",
+      "index": 871,
+      "key": "ui_case109",
+      "reason": "奢华生活方式模特与车辆的写实人像已有相近摄影类型，更换车型与海岸背景不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 872,
+      "key": "ui_case110",
+      "reason": "动漫朋友日常餐馆快照与既有生活类动漫场景相近，主要替换服装与食物。"
+    },
+    {
+      "status": "skipped",
+      "index": 873,
+      "key": "ui_case111",
+      "reason": "哥特女战士、废墟教堂与武器主视觉属于既有暗黑幻想人物场景方向，未新增技术或用途。"
+    },
+    {
+      "status": "selected",
+      "index": 874,
+      "key": "ui_case112",
+      "title": "云形联想涂鸦（需参考图）",
+      "category": "插画艺术",
+      "noveltyReason": "根据原图云朵轮廓识别相似动物或物体再覆盖涂鸦，保留原图，新增形状联想式图像编辑用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 875,
+      "key": "ui_case113",
+      "reason": "日系乡间车站与学生的怀旧动漫场景仍属已有青春日常动漫方向。"
+    },
+    {
+      "status": "skipped",
+      "index": 876,
+      "key": "ui_case114",
+      "reason": "保留实拍背景、只改绘人物的用途已有 case-530，完整动漫转绘也已有 case-285。"
+    },
+    {
+      "status": "skipped",
+      "index": 877,
+      "key": "ui_case115",
+      "reason": "写实环境加动漫人物的冬季露营是已有动漫日常场景题材延展。"
+    },
+    {
+      "status": "skipped",
+      "index": 878,
+      "key": "ui_case116",
+      "reason": "车辆参考保真、双色背景和大字社交海报属于既有产品海报排版，只替换车型与配色。"
+    },
+    {
+      "status": "skipped",
+      "index": 879,
+      "key": "ui_case117",
+      "reason": "暗色食物英雄图、蒸汽与大字标题已有 case-373 等餐饮广告方向，主要替换食品。"
+    },
+    {
+      "status": "selected",
+      "index": 880,
+      "key": "ui_case118",
+      "title": "胶片情侣十六格回忆",
+      "category": "摄影写实",
+      "noveltyReason": "以明确十六个生活瞬间、微欠曝胶片和薄白分隔线组织带情绪连续性的情侣联系表，作为怀旧回忆网格代表。"
+    },
+    {
+      "status": "skipped",
+      "index": 881,
+      "key": "ui_case119",
+      "reason": "动漫双人宣传缩略图已有 case-126 等浪漫封面类型，模型展示宣传文案不构成新用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 882,
+      "key": "ui_case120",
+      "reason": "画师与发光灵感角色属于已有幻想叙事与超现实双人场景，主要题材变化。"
+    },
+    {
+      "status": "selected",
+      "index": 883,
+      "key": "ui_case121",
+      "title": "修复工程手绘流程分镜",
+      "category": "场景叙事",
+      "noveltyReason": "用铅笔墨线、交叉排线和手写导演注记呈现旧船修复四阶段，新增粗略制作分镜的生产图纸风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 884,
+      "key": "ui_case122",
+      "reason": "前后端与数据库的知识内容更换，结构图和技术科普信息图已有 case-210、case-334 等覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 885,
+      "key": "ui_case123",
+      "reason": "发型、色彩、妆容与珠宝分析已由 case-360、case-364、case-437 等同用途图卡覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 886,
+      "key": "ui_case124",
+      "reason": "一致角色的多格故事分镜已有场景叙事模板，格数改为十二不是新类型；具体新工作流另选 935。"
+    },
+    {
+      "status": "skipped",
+      "index": 887,
+      "key": "ui_case125",
+      "reason": "品牌摄影、撕纸、涂鸦和色块的混乱拼贴与本源 49 同方向，保留展示整个品牌世界更完整的 49。"
+    },
+    {
+      "status": "skipped",
+      "index": 888,
+      "key": "ui_case126",
+      "reason": "人物居中、服饰拆解、表情角度和色板已有 case-270 等角色服饰设定图，未增加独立用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 889,
+      "key": "ui_case127",
+      "reason": "食材数量、编号步骤与成品食物的信息图已有 case-55、case-297，主要更换食谱。"
+    },
+    {
+      "status": "skipped",
+      "index": 890,
+      "key": "ui_case128",
+      "reason": "与现有 case-364 个人季型色彩、服装与配饰对照用途重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 891,
+      "key": "ui_case129",
+      "reason": "同一模特不同机位的时尚 Campaign 已有 case-349 等，机位覆盖通用模板另留本源 926。"
+    },
+    {
+      "status": "skipped",
+      "index": 892,
+      "key": "ui_case130",
+      "reason": "实拍餐桌加手写标注、白色涂鸦与情绪文字已有 case-366、case-408 等风格，主要更换被标注对象。"
+    },
+    {
+      "status": "skipped",
+      "index": 893,
+      "key": "ui_case131",
+      "reason": "人物饮品、极简天台与超大编辑字属于既有饮料时尚 Campaign，品牌和场景变化为主。"
+    },
+    {
+      "status": "selected",
+      "index": 894,
+      "key": "ui_case132",
+      "title": "多平台关注目标仪表板",
+      "category": "UI 与界面",
+      "noveltyReason": "新增跨平台关注人数与目标进度汇总，包含网页、移动版和 OBS 直播叠加小组件的明确界面用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 895,
+      "key": "ui_case133",
+      "reason": "晨光工作台、手写涂鸦与暖色学习氛围已由 case-408 同类摄影覆盖。"
+    },
+    {
+      "status": "selected",
+      "index": 896,
+      "key": "ui_case134",
+      "title": "改装汽车蓝图渲染板（需参考图）",
+      "category": "信息图表",
+      "noveltyReason": "从车辆照片构建改装方案，结合工程三视图、毫米尺寸、悬挂与车身套件拆解及真实三维渲染。"
+    },
+    {
+      "status": "skipped",
+      "index": 897,
+      "key": "ui_case135",
+      "reason": "城市美食地图已有 case-11、case-18、case-274 等，莫斯科替换城市和菜肴不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 898,
+      "key": "ui_case136",
+      "reason": "参考脸做大头三维收藏玩偶已有 case-378，球衣与运动用品为人物造型变化。"
+    },
+    {
+      "status": "selected",
+      "index": 899,
+      "key": "ui_case137",
+      "title": "博物馆悬吊机械拆解图",
+      "category": "信息图表",
+      "noveltyReason": "零件由可见钢丝与黄铜夹具真实悬吊，重点表现组件和支撑结构投影，区别于自由悬浮爆炸图。"
+    },
+    {
+      "status": "skipped",
+      "index": 900,
+      "key": "ui_case138",
+      "reason": "与现有 case-402 三维个人资料卡镂空坐姿女孩同型，只替换社交平台。"
+    },
+    {
+      "status": "skipped",
+      "index": 901,
+      "key": "ui_case139",
+      "reason": "提示词与现有 case-404 豪华社媒破屏广告重合，前段只是效果宣传。"
+    },
+    {
+      "status": "selected",
+      "index": 902,
+      "key": "ui_case140",
+      "title": "手工民俗涂鸦转绘（需参考图）",
+      "category": "插画艺术",
+      "noveltyReason": "以平面简形、不规则轮廓、马克笔肌理和装饰民俗纹样重绘整图，补充天真民艺式照片改绘。"
+    },
+    {
+      "status": "skipped",
+      "index": 903,
+      "key": "ui_case141",
+      "reason": "交通工具工程手册信息图与现有 case-494 的电动巴士模块化模板同型，仅扩展车辆名。"
+    },
+    {
+      "status": "skipped",
+      "index": 904,
+      "key": "ui_case142",
+      "reason": "与现有 case-428 体育电视直播观众截图同型，只将 F1 换成网球。"
+    },
+    {
+      "status": "selected",
+      "index": 905,
+      "key": "ui_case143",
+      "title": "粉彩手账学习信息图",
+      "category": "信息图表",
+      "noveltyReason": "将知识排版为真实方格纸、荧光笔重点、文具贴纸和粉彩边角涂鸦的规整学习笔记。"
+    },
+    {
+      "status": "skipped",
+      "index": 906,
+      "key": "ui_case144",
+      "reason": "品牌配色、字体和多个触点卡片已有 case-133、case-362，暗色网格版式不形成独立新用途。"
+    },
+    {
+      "status": "selected",
+      "index": 907,
+      "key": "ui_case145",
+      "title": "生态景观竞赛展板",
+      "category": "建筑空间",
+      "noveltyReason": "新增景观设计竞赛用途，上层生态分析与流线、中层航拍效果图、下层连续景观剖面组成专业展板。"
+    },
+    {
+      "status": "selected",
+      "index": 908,
+      "key": "ui_case146",
+      "title": "平面设计作品集棚拍样机",
+      "category": "品牌标志",
+      "noveltyReason": "以工作室桌面、笔记本作品集界面、项目卡片、纸质海报和名片组合展示设计师作品，补充作品集交付场景。"
+    },
+    {
+      "status": "skipped",
+      "index": 909,
+      "key": "ui_case147",
+      "reason": "正侧背、头部角度、服饰材质与制作注记已有 case-439、case-473 等角色概念板，主要换新黑色电影背景。"
+    },
+    {
+      "status": "selected",
+      "index": 910,
+      "key": "ui_case148",
+      "title": "追日动态建筑设计板",
+      "category": "建筑空间",
+      "noveltyReason": "将太阳路径、机器人铰链、可编程百叶与建筑安装效果联动呈现，补充机动建筑与日照响应设计用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 911,
+      "key": "ui_case149",
+      "reason": "标志推导配色、字体、延展与应用的完整品牌规范已有 case-133；923 也是同文变体。"
+    },
+    {
+      "status": "skipped",
+      "index": 912,
+      "key": "ui_case150",
+      "reason": "与 graphics 全局 682（poster_case281）同一参考人物全年手绘月历用途；682 明确十二月网格、月份标题、季节动作和日期规则，留 682。"
+    },
+    {
+      "status": "skipped",
+      "index": 913,
+      "key": "ui_case151",
+      "reason": "四格汽车、巨幅车型字和编辑小图属于既有商品 Campaign 网格，车型替换与格数变化不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 914,
+      "key": "ui_case152",
+      "reason": "车辆悬浮爆炸图属于既有机械结构拆解方向，缺少新增图解机制；独特博物馆悬吊版另选 899。"
+    },
+    {
+      "status": "skipped",
+      "index": 915,
+      "key": "ui_case153",
+      "reason": "保真脸部加发型、胡须、穿搭与颜值分析已有 case-437、case-348 等同用途模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 916,
+      "key": "ui_case154",
+      "reason": "多张同人时尚照片、撕纸与粉色手账拼贴已有 case-481、case-427，地域和角色变化不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 917,
+      "key": "ui_case155",
+      "reason": "摄影设备替换交通工具的模块化工程百科图，与现有 case-494 等参考手册式信息图同型。"
+    },
+    {
+      "status": "selected",
+      "index": 918,
+      "key": "ui_case156",
+      "title": "桌面工位优化对照（需参考图）",
+      "category": "信息图表",
+      "noveltyReason": "审核真实工位照片，给出现状与优化对照、问题分级和按费用分组的整改清单，新增工作环境评估图用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 919,
+      "key": "ui_case157",
+      "reason": "国家体育文化换题材的模块信息图，已有通用科普与体育数据图方向，无新增版式机制。"
+    },
+    {
+      "status": "selected",
+      "index": 920,
+      "key": "ui_case158",
+      "title": "异形描边贴纸转绘（需参考图）",
+      "category": "插画艺术",
+      "noveltyReason": "隔离主体并添加厚奶油色裁切边与真实阴影，明确面向单张异形贴纸成品，而非普通照片重绘。"
+    },
+    {
+      "status": "selected",
+      "index": 921,
+      "key": "ui_case159",
+      "title": "经典墨线塔罗人物牌",
+      "category": "插画艺术",
+      "noveltyReason": "新增经典塔罗牌式的人物象征图像，使用起伏墨线、平涂色块、纸面与印刷质感。"
+    },
+    {
+      "status": "skipped",
+      "index": 922,
+      "key": "ui_case161",
+      "reason": "电影短片多镜头、时长和转场注记已有 case-422 等故事板，情景喜剧主题不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 923,
+      "key": "ui_case162",
+      "reason": "与本源 911 同一品牌规范模板，且已有 case-133 近似用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 924,
+      "key": "ui_case163",
+      "reason": "与现有 case-8、case-222 的竖版模块化科普百科图鉴用途与结构重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 925,
+      "key": "ui_case164",
+      "reason": "带编号、图标和镜头注记的动物短片故事板是已有分镜类型的宠物题材变体。"
+    },
+    {
+      "status": "selected",
+      "index": 926,
+      "key": "ui_case165",
+      "title": "同场景九种镜头联系表（需参考图）",
+      "category": "摄影写实",
+      "noveltyReason": "从单图同一主体与环境生成远景至特写的九种标准镜头，新增摄影机位覆盖参考而非多场景故事拼图。"
+    },
+    {
+      "status": "skipped",
+      "index": 927,
+      "key": "ui_case166",
+      "reason": "与现有 case-310 食品技术线稿叠加信息图同型，只去掉品牌色。"
+    },
+    {
+      "status": "skipped",
+      "index": 928,
+      "key": "ui_case167",
+      "reason": "连续角色与场景、动作路径的多格盗窃短片分镜属于已有故事板类型，题材变化为主。"
+    },
+    {
+      "status": "skipped",
+      "index": 929,
+      "key": "ui_case168",
+      "reason": "中央可爱人物加生活照片、胶带与手写注记的角色手账已有 case-416、case-371 同类。"
+    },
+    {
+      "status": "selected",
+      "index": 930,
+      "key": "ui_case169",
+      "title": "金属浮雕标志压印",
+      "category": "品牌标志",
+      "noveltyReason": "让完整标志从连续拉丝金属面统一凸起，表现倒角、凸面与凹负形，新增钱币压印式品牌材质。"
+    },
+    {
+      "status": "selected",
+      "index": 931,
+      "key": "ui_case170",
+      "title": "水果仿生瓦楞包装",
+      "category": "商品电商",
+      "noveltyReason": "直接设计水果外形、开窗、瓦楞结构和双色果皮纹样的可持续包装成品，区别于既有包装技术展示表。"
+    },
+    {
+      "status": "selected",
+      "index": 932,
+      "key": "ui_case171",
+      "title": "香水香调与使用图鉴",
+      "category": "商品电商",
+      "noveltyReason": "将香调金字塔、成分、留香指标、瓶体结构、场合与使用方式围绕产品统一排版，补充香水信息型详情广告。"
+    },
+    {
+      "status": "selected",
+      "index": 933,
+      "key": "ui_case172",
+      "title": "游戏载入角色肖像（需参考图）",
+      "category": "UI 与界面",
+      "noveltyReason": "把上传者保真转成虚构 AAA 游戏可玩角色并组织为载入界面，新增个人形象与游戏角色资料 UI 的结合。"
+    },
+    {
+      "status": "skipped",
+      "index": 934,
+      "key": "ui_case173",
+      "reason": "能量饮料广告分镜与本源 184 同为产品广告故事板，后半段是视频动画指令，不另收。"
+    },
+    {
+      "status": "selected",
+      "index": 935,
+      "key": "ui_case174",
+      "title": "原创动画角色与分镜开发板",
+      "category": "场景叙事",
+      "noveltyReason": "同图上半部多名原创角色设定、下半部剧情分镜，使用怀旧动画制作质感，补充角色开发到故事预演的一体化提案。"
+    },
+    {
+      "status": "skipped",
+      "index": 936,
+      "key": "ui_case175",
+      "reason": "三维器官主视觉、事实气泡与功能标注属于已有医学和百科信息图方向（case-68、case-8），更换为肝脏知识不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 937,
+      "key": "ui_case176",
+      "reason": "铅笔九格、动作箭头与手写导演注记和本源 883 同为粗绘制作故事板，保留 883 代表。"
+    },
+    {
+      "status": "skipped",
+      "index": 938,
+      "key": "ui_case177",
+      "reason": "与现有 case-493 东京旅行十三格视频封面同型，只替换威尼斯旅行事件。"
+    },
+    {
+      "status": "skipped",
+      "index": 939,
+      "key": "ui_case178",
+      "reason": "成品菜、原料标签、编号流程和营养徽章已有 case-55、case-297 同用途食谱信息图。"
+    },
+    {
+      "status": "skipped",
+      "index": 940,
+      "key": "ui_case179",
+      "reason": "红黑品牌系列、双重人影、胶片颗粒和大字编辑版式已有 case-534、case-490 等相近方向。"
+    },
+    {
+      "status": "skipped",
+      "index": 941,
+      "key": "ui_case180",
+      "reason": "与现有 case-475 包装工业设计结构表正文重合。"
+    },
+    {
+      "status": "selected",
+      "index": 942,
+      "key": "ui_case181",
+      "title": "镜面铬标志编辑主视觉",
+      "category": "品牌标志",
+      "noveltyReason": "将官方标志拉伸为高反射液态铬实体，强调环境映射、棱角星芒和电影摄影，补充镜面金属品牌风格。"
+    },
+    {
+      "status": "selected",
+      "index": 943,
+      "key": "ui_case182",
+      "title": "护肤达人内容分镜板",
+      "category": "场景叙事",
+      "noveltyReason": "以居家达人主肖像和六个 Hook、介绍、涂抹、生活、结果、行动镜头组织 UGC 广告，区别于既有影院式药妆分镜。"
+    },
+    {
+      "status": "selected",
+      "index": 944,
+      "key": "ui_case183",
+      "title": "早期互联网个人作品主页",
+      "category": "UI 与界面",
+      "noveltyReason": "以薄粉浏览器框、黑白扫描肖像、系统时间戳和彩色贴纸导航构成早期个人主页，补充复古网页风格。"
+    },
+    {
+      "status": "selected",
+      "index": 945,
+      "key": "ui_case184",
+      "title": "彩铅蜡笔照片转绘对照（需参考图）",
+      "category": "插画艺术",
+      "noveltyReason": "保留人物与构图后用可见彩铅和蜡笔笔触重绘，并附原照小窗，新增带转换对照的暖调手账插画。"
+    },
+    {
+      "status": "skipped",
+      "index": 946,
+      "key": "ui_case185",
+      "reason": "与现有 case-132 十八区茶品牌吉祥物识别表重合，主要换英文标签。"
+    },
+    {
+      "status": "selected",
+      "index": 947,
+      "key": "ui_case186",
+      "title": "建筑式产品技术目录（需参考图）",
+      "category": "商品电商",
+      "noveltyReason": "上方暖色建筑空间中的保真产品摄影，下方赭红工程视图和材料样片，补充生活方式主图与规格整合的目录页。"
+    },
+    {
+      "status": "skipped",
+      "index": 948,
+      "key": "ui_case187",
+      "reason": "场地、象征物与连续动作的十二格故事板仍属已有电影分镜类型，足球王冠为题材变化。"
+    },
+    {
+      "status": "skipped",
+      "index": 949,
+      "key": "ui_case188",
+      "reason": "与现有 case-239 及本源 832 同一举牌直播截图，主要换英文指令。"
+    },
+    {
+      "status": "selected",
+      "index": 950,
+      "key": "ui_case189",
+      "title": "增强现实超市购物界面",
+      "category": "UI 与界面",
+      "noveltyReason": "新增 AR 眼镜第一视角购物：手持产品旁悬浮营养、口味、新鲜度、购物清单与食谱信息。"
+    },
+    {
+      "status": "skipped",
+      "index": 951,
+      "key": "ui_case191",
+      "reason": "北欧浅色食谱、配料数量与编号步骤已有 case-297 等食谱排版用途，菜肴和色调变化不另收。"
+    },
+    {
+      "status": "skipped",
+      "index": 952,
+      "key": "ui_case192",
+      "reason": "仅给可任选的图标风格占位，既有 UI 设计系统与图标集合已覆盖；具体完整功能套组保留 957。"
+    },
+    {
+      "status": "selected",
+      "index": 953,
+      "key": "ui_case193",
+      "title": "远征路线装备指挥板",
+      "category": "信息图表",
+      "noveltyReason": "以路线风险地图、按重量功能排列的装备清单、目的地环境摄影组成三联任务规划板，新增远征准备用途。"
+    },
+    {
+      "status": "skipped",
+      "index": 954,
+      "key": "ui_case194",
+      "reason": "与本源 185 同一个直播电商界面模板，且现有直播 UI 已覆盖。"
+    },
+    {
+      "status": "skipped",
+      "index": 955,
+      "key": "ui_case195",
+      "reason": "单个圆角拟物 App 图标已有 case-510 等，改名称为 Flash Chat 不增加风格。"
+    },
+    {
+      "status": "selected",
+      "index": 956,
+      "key": "ui_case196",
+      "title": "九宫格产品创意企划（需参考图）",
+      "category": "商品电商",
+      "noveltyReason": "以同一商品保真生成材质、液体、抽象几何、感官等九种不同概念，作为可复用的整套广告创意方向模板。"
+    },
+    {
+      "status": "selected",
+      "index": 957,
+      "key": "ui_case197",
+      "title": "三维音乐播放器功能图标",
+      "category": "UI 与界面",
+      "noveltyReason": "补充具备统一圆角卡片和色彩体系的十二个播放器功能图标，覆盖喜欢、文件夹、歌单和播放设备。"
+    },
+    {
+      "status": "selected",
+      "index": 958,
+      "key": "ui_case198",
+      "title": "原宿千禧年品牌徽章",
+      "category": "品牌标志",
+      "noveltyReason": "按品牌色、片假名、原产旗帜与几何语言设计扁平贴纸徽章，补充 Y2K 原宿矢量徽章风格。"
+    },
+    {
+      "status": "skipped",
+      "index": 959,
+      "key": "ui_case199",
+      "reason": "与本源 867 同一怀旧无缝人物网格；此类保留 880 更具体的完整代表。"
+    },
+    {
+      "status": "selected",
+      "index": 960,
+      "key": "ad_case170",
+      "title": "手持产品展开品牌微世界（需参考图）",
+      "category": "商品电商",
+      "noveltyReason": "产品在近镜头中展开与品牌材料和个性相符的自成世界，同时重塑人物服饰与情绪，补充可复用的品牌叙事广告模板。"
+    },
+    {
+      "status": "skipped",
+      "index": 961,
+      "key": "portrait_case1",
+      "reason": "与现有 case-305 深夜便利店霓虹人像正文重合。"
+    },
+    {
+      "status": "skipped",
+      "index": 962,
+      "key": "ui_case1",
+      "reason": "与现有 case-243 按参考风格生成 UI 设计系统的短指令重合。"
+    }
+  ]
+}
