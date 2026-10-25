@@ -28,18 +28,8 @@ export function InspirationCategoryDialog({
     }
   }, [])
 
-  useEffect(() => {
-    if (!state.dirty) return
-    const warnOnLeave = (event: BeforeUnloadEvent) => {
-      event.preventDefault()
-      event.returnValue = ''
-    }
-    window.addEventListener('beforeunload', warnOnLeave)
-    return () => window.removeEventListener('beforeunload', warnOnLeave)
-  }, [state.dirty])
-
   function close() {
-    if (state.busy || (state.dirty && !window.confirm('放弃尚未保存的分类修改？'))) return
+    if (state.busy) return
     onClose()
   }
 

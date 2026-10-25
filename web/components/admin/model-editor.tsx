@@ -14,6 +14,8 @@ import {
   type ModelChannel,
 } from '@/lib/admin'
 import { ChannelMeasurements } from './channel-measurements'
+import { useActionConfirmation } from '@/components/use-action-confirmation'
+import { getAdminAccessToken } from '@/lib/api'
 import type { ImageMeasurement } from '@/lib/admin'
 import { imageProtocolLabels, type AIEndpoint } from '@/lib/ai-settings'
 import {
@@ -53,6 +55,7 @@ export function AdminModelEditor({
   onClose: () => void
   onSubmit: (event: FormEvent) => void
 }) {
+  const { ask, confirmation } = useActionConfirmation(getAdminAccessToken)
   const editorRef = useRef<HTMLElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
   const formId = useId()
@@ -101,11 +104,15 @@ export function AdminModelEditor({
     onSubmit(event)
   }
   async function testChannel(channel: ModelChannel) {
+    if (locked) return
     if (
-      locked ||
-      !window.confirm(
-        `真实生图测试可能产生上游 API 费用。确认以 ${testRatio} / ${testResolution} 生成一张测试图？`,
-      )
+      !(await ask({
+        title: '确认真实生图测试',
+        description: `将使用 ${channel.upstreamModelId}，按 ${testRatio} / ${testResolution} 生成 1 张测试图。`,
+        detail: '这会调用真实上游接口，可能产生 API 费用。取消不会发起请求。',
+        confirmLabel: '生成 1 张测试图',
+        intent: 'warning',
+      }))
     )
       return
     const model = channel.upstreamModelId.trim()
@@ -561,6 +568,7 @@ export function AdminModelEditor({
           </Button>
         </DialogActions>
       </form>
+      {confirmation}
     </section>
   )
 }

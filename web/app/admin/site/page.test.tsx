@@ -5,7 +5,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Page from './page'
 import { readSiteBranding } from '@/lib/site-settings'
 import { saveSiteBranding } from '@/lib/admin-site-settings'
-import { confirmAdminNavigation } from '@/components/admin/use-unsaved-changes'
 const refresh = vi.hoisted(() => vi.fn())
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }))
 vi.mock('@/lib/site-settings', async (original) => ({
@@ -29,8 +28,8 @@ afterEach(async () => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
-it('uses the existing branding form and protects edits until they are saved', async () => {
-  vi.spyOn(window, 'confirm').mockReturnValue(false)
+it('saves the branding form without a browser confirmation or unload interception', async () => {
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
   await act(async () => root.render(<Page />))
   expect(host.querySelector('h1')?.textContent).toBe('网站配置')
   const input = host.querySelector<HTMLInputElement>('input[type="text"], input:not([type])')!
@@ -42,7 +41,7 @@ it('uses the existing branding form and protects edits until they are saved', as
     )
     input.dispatchEvent(new Event('input', { bubbles: true }))
   })
-  expect(confirmAdminNavigation()).toBe(false)
+  expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(true)
   await act(async () =>
     host
       .querySelector('form')!
@@ -55,5 +54,5 @@ it('uses the existing branding form and protects edits until they are saved', as
   })
   expect(refresh).toHaveBeenCalled()
   expect(host.textContent).toContain('网站配置已保存')
-  expect(confirmAdminNavigation()).toBe(true)
+  expect(confirm).not.toHaveBeenCalled()
 })

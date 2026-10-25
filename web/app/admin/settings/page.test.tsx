@@ -15,9 +15,21 @@ vi.mock('@/lib/admin', async (original) => ({
 vi.mock('@/lib/api', () => ({ getAdminAccessToken: () => 'test-admin-token' }))
 vi.mock('@/components/prompt-template-browser', () => ({ PromptTemplateBrowser: () => null }))
 vi.mock('@/components/site-settings-panel', () => ({ SiteSettingsPanel: () => null }))
-vi.mock('@/components/prompt-reverse-settings-panel', () => ({
-  PromptReverseSettingsPanel: () => null,
-}))
+vi.mock('@/components/prompt-reverse-settings-panel', async () => {
+  const { useState } = await import('react')
+  return {
+    PromptReverseSettingsPanel: () => {
+      const [value, setValue] = useState('原始草稿')
+      return (
+        <input
+          aria-label="反推草稿"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        />
+      )
+    },
+  }
+})
 const endpoint: AIEndpoint = {
   id: 'official',
   name: '已有渠道',
@@ -115,7 +127,9 @@ it('distinguishes connection testing from paid image generation and shows local 
   expect(container.textContent).toContain('连接测试通过')
   const before = request.mock.calls.length
   await act(async () => button('测试生图（可能收费）').click())
-  expect(confirm).toHaveBeenCalled()
+  expect(confirm).not.toHaveBeenCalled()
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('确认真实生图测试')
+  await act(async () => button('取消').click())
   expect(request.mock.calls.length).toBe(before)
   request.mockRejectedValueOnce(new Error('Mock 渠道连接失败'))
   await act(async () => button('测试连接').click())
@@ -147,4 +161,39 @@ it('keeps only AI service and reverse categories after moving prompt and site se
   )
   expect(tabs).toEqual(['AI 服务', '图片反推'])
   expect(container.querySelector('h1')?.textContent).toBe('AI 服务')
+})
+
+it('switches settings tabs without interruption and retains the reverse draft', async () => {
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+  await act(async () => root.render(<Page />))
+  const tab = async (name: string) => {
+    const element = [...container.querySelectorAll<HTMLElement>('[role="tab"]')].find(
+      (e) => e.textContent === name,
+    )!
+    await act(async () =>
+      element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })),
+    )
+  }
+  await tab('图片反推')
+  const draft = container.querySelector<HTMLInputElement>('[aria-label="反推草稿"]')!
+  await change(draft, '未保存的反推草稿')
+  await tab('AI 服务')
+  expect(draft.closest('[hidden]')).toBeTruthy()
+  await tab('图片反推')
+  expect(container.querySelector<HTMLInputElement>('[aria-label="反推草稿"]')?.value).toBe(
+    '未保存的反推草稿',
+  )
+  expect(confirm).not.toHaveBeenCalled()
+  expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(true)
+})
+it('deletes an AI service only after the in-app destructive confirmation', async () => {
+  await act(async () => root.render(<Page />))
+  const remove = () => container.querySelector<HTMLButtonElement>('[aria-label="删除 已有渠道"]')!
+  await act(async () => remove().click())
+  expect(request.mock.calls.some(([, method]) => method === 'DELETE')).toBe(false)
+  await act(async () => button('取消').click())
+  expect(request.mock.calls.some(([, method]) => method === 'DELETE')).toBe(false)
+  await act(async () => remove().click())
+  await act(async () => button('删除服务').click())
+  expect(request).toHaveBeenCalledWith('ai-endpoints/official', 'DELETE')
 })

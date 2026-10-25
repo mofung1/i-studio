@@ -15,7 +15,9 @@ import { BrandLogo } from './brand'
 import { SiteContactFields } from './site-contact-fields'
 import { useSiteBranding } from './site-branding-provider'
 
-export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void }) {
+export function SiteSettingsPanel({
+  onDirtyChange,
+}: { onDirtyChange?: (dirty: boolean) => void } = {}) {
   const router = useRouter()
   const { updateBranding } = useSiteBranding()
   const [original, setOriginal] = useState<SiteBranding | null>(null)
@@ -84,17 +86,8 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
   }, [contactQr])
 
   useEffect(() => {
-    onDirtyChange(dirty)
+    onDirtyChange?.(dirty)
   }, [dirty, onDirtyChange])
-  useEffect(() => {
-    if (!dirty) return
-    const warnOnLeave = (event: BeforeUnloadEvent) => {
-      event.preventDefault()
-      event.returnValue = ''
-    }
-    window.addEventListener('beforeunload', warnOnLeave)
-    return () => window.removeEventListener('beforeunload', warnOnLeave)
-  }, [dirty])
 
   function chooseLogo(file?: File) {
     if (!file) return

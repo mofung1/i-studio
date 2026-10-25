@@ -1,5 +1,7 @@
 'use client'
 import { AdminPageHeader } from './admin/page-header'
+import { useActionConfirmation } from './use-action-confirmation'
+import { getAdminAccessToken } from '@/lib/api'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
@@ -41,6 +43,7 @@ export function AdminDashboard({
   view: 'overview' | 'models' | 'users' | 'operations' | 'tasks' | 'audit'
 }) {
   const { account, refresh: refreshAdmin } = useAdminAccount()
+  const { ask, confirmation } = useActionConfirmation(getAdminAccessToken)
   const [models, setModels] = useState<Model[]>([])
   const [endpoints, setEndpoints] = useState<AIEndpoint[]>([])
   const [members, setMembers] = useState<Member[]>([])
@@ -404,18 +407,23 @@ export function AdminDashboard({
                   setAdjustmentKey(crypto.randomUUID())
                   setError('')
                 }}
-                onToggle={(member) => {
+                onToggle={async (member) => {
                   if (
-                    window.confirm(
-                      `${member.status === 'active' ? '停用' : '启用'}账号 ${member.username}？`,
-                    )
+                    member.status === 'active' &&
+                    !(await ask({
+                      title: '停用用户账号',
+                      description: `确定停用账号「${member.username}」？`,
+                      detail: '停用后该用户将无法继续访问账号功能，可在后台重新启用。',
+                      confirmLabel: '停用账号',
+                    }))
                   )
-                    void action(() =>
-                      request(`users/${member.id}`, 'PUT', {
-                        role: member.role,
-                        status: member.status === 'active' ? 'disabled' : 'active',
-                      }),
-                    )
+                    return
+                  void action(() =>
+                    request(`users/${member.id}`, 'PUT', {
+                      role: member.role,
+                      status: member.status === 'active' ? 'disabled' : 'active',
+                    }),
+                  )
                 }}
               />
             )}
@@ -536,6 +544,7 @@ export function AdminDashboard({
           />
         </InfoDialog>
       )}
+      {confirmation}
     </main>
   )
 }

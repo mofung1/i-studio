@@ -1252,18 +1252,7 @@
   color: var(--foreground-3);
   overflow-wrap: anywhere;
 }
-.personal-discard {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-}
-.personal-discard p {
-  margin-top: 0;
-}
-.personal-discard button {
-  margin-right: 8px;
-}
+
 .personal-apply-preview {
   max-height: 240px;
   overflow-y: auto;

@@ -253,7 +253,7 @@ it('keeps the active category when renamed and clears the filter after migration
   expect(container.querySelector('tbody')?.textContent).toContain('人像')
 })
 
-it('opens legacy category links as a modal and protects unsaved category input', async () => {
+it('closes unsaved category input directly without browser confirmation', async () => {
   window.history.replaceState(null, '', '/admin/inspiration?categories=1')
   await act(async () => root.render(<Page />))
   const dialog = container.querySelector<HTMLDialogElement>('.inspiration-category-dialog')!
@@ -261,10 +261,7 @@ it('opens legacy category links as a modal and protects unsaved category input',
   await change(dialog.querySelector('#inspiration-new-category')!, '尚未保存')
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
   await click('关闭分类管理')
-  expect(dialog.open).toBe(true)
-  expect(confirm).toHaveBeenCalledOnce()
-  confirm.mockReturnValue(true)
-  await click('关闭分类管理')
+  expect(confirm).not.toHaveBeenCalled()
   expect(container.querySelector('.inspiration-category-dialog')).toBeNull()
   expect(window.location.search).toBe('')
 })

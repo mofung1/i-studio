@@ -176,8 +176,13 @@ it('requires explicit cost confirmation and tests the selected upstream model on
   await act(async () => root.render(<Editor />))
   await act(async () => buttons('真实生图测试')[0]!.click())
   expect(adminRequest).not.toHaveBeenCalled()
-  confirm.mockReturnValue(true)
-  await act(async () => buttons('真实生图测试')[0]!.click())
+  expect(confirm).not.toHaveBeenCalled()
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('确认真实生图测试')
+  await act(async () =>
+    [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')]
+      .find((b) => b.textContent === '生成 1 张测试图')!
+      .click(),
+  )
   expect(adminRequest).toHaveBeenCalledWith('ai-endpoints/official/test', 'POST', {
     mode: 'generate',
     confirmCost: true,
@@ -198,6 +203,11 @@ it('keeps an upstream failure on its own binding and locks saving during a test'
   )
   await act(async () => root.render(<Editor />))
   await act(async () => buttons('真实生图测试')[0]!.click())
+  await act(async () =>
+    [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')]
+      .find((b) => b.textContent === '生成 1 张测试图')!
+      .click(),
+  )
   expect(buttons('保存模型')[0]!.disabled).toBe(true)
   expect(container.textContent).toContain('正在生成测试图')
   await act(async () => finish({ success: false, message: 'Mock API Key 无效' }))

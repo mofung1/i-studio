@@ -51,7 +51,7 @@ export function PromptReverseSettingsPanel({
 }: {
   endpoints: AIEndpoint[]
   templates: PromptTemplate[]
-  onDirtyChange: (dirty: boolean) => void
+  onDirtyChange?: (dirty: boolean) => void
   onSavingChange: (saving: boolean) => void
   onOpenServices: () => void
   onOpenTemplates: (key: string) => void
@@ -86,8 +86,8 @@ export function PromptReverseSettingsPanel({
         : '还没有可用的识图服务，请先添加支持图片识别的 Prompt 服务。')
 
   useEffect(() => {
-    onDirtyChange(dirty)
-    return () => onDirtyChange(false)
+    onDirtyChange?.(dirty)
+    return () => onDirtyChange?.(false)
   }, [dirty, onDirtyChange])
   useEffect(() => {
     onSavingChange(saving)
@@ -120,15 +120,6 @@ export function PromptReverseSettingsPanel({
       })
     return () => controller.abort()
   }, [loadAttempt])
-  useEffect(() => {
-    if (!dirty) return
-    const warn = (event: BeforeUnloadEvent) => {
-      event.preventDefault()
-      event.returnValue = ''
-    }
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty])
 
   function update(patch: Partial<SettingsDraft>) {
     setDraft((previous) => (previous ? { ...previous, ...patch } : previous))

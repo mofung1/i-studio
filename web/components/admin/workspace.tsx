@@ -8,7 +8,6 @@ import { useAdminAccount } from '@/components/account-provider'
 import { useSiteBranding } from '@/components/site-branding-provider'
 import { BrandLogo } from '@/components/brand'
 import { siteLogoUrl } from '@/lib/site-settings'
-import { confirmAdminNavigation } from './use-unsaved-changes'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { adminNavigation, currentAdminPage } from './navigation'
 import { Avatar, AvatarFallback } from './ui/avatar'
@@ -85,7 +84,6 @@ function AccountMenu({ sidebar = false }: { sidebar?: boolean }) {
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => {
-              if (!confirmAdminNavigation()) return
               window.localStorage.removeItem('istudio-admin-token')
               refresh()
             }}

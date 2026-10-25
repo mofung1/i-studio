@@ -48,7 +48,6 @@ export function PersonalPromptEditor({
   const [nextBefore, setNextBefore] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [discard, setDiscard] = useState(false)
   const [endpoints, setEndpoints] = useState<Array<{ id: string; name: string; model: string }>>([])
   const [storedCategories, setStoredCategories] = useState<string[]>([])
   useEffect(() => {
@@ -79,27 +78,9 @@ export function PersonalPromptEditor({
       })
     return () => controller.abort()
   }, [kind])
-  const original = JSON.stringify([
-    (item?.title ?? seed?.title ?? '').slice(0, 160),
-    item?.category ?? '',
-    item?.prompt ?? seed?.prompt ?? '',
-    item?.tags.join('、') ?? '',
-    item?.config ?? seed?.config ?? {},
-    item?.favorite ?? seed?.favorite ?? false,
-  ])
-  const dirty = JSON.stringify([title, category, prompt, tags, config, favorite]) !== original
   function close() {
-    if (busy) return
-    if (dirty) setDiscard(true)
-    else onClose()
+    if (!busy) onClose()
   }
-  useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => {
-      if (dirty || busy) event.preventDefault()
-    }
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [dirty, busy])
   async function save() {
     if (busy) return
     setBusy(true)
@@ -440,17 +421,6 @@ export function PersonalPromptEditor({
           <p role="alert" className="settings-error">
             {error}
           </p>
-        )}
-        {discard && (
-          <div className="personal-discard" role="alert">
-            <p>有尚未保存的修改。</p>
-            <button type="button" className="library-command" onClick={() => setDiscard(false)}>
-              继续编辑
-            </button>
-            <button type="button" className="library-command" onClick={onClose}>
-              放弃修改
-            </button>
-          </div>
         )}
       </form>
     </LibraryDialog>

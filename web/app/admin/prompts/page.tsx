@@ -1,7 +1,7 @@
 'use client'
 import { AdminPageHeader } from '@/components/admin/page-header'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle, RotateCcw, Save } from 'lucide-react'
 import { adminRequest } from '@/lib/admin'
 import type { PromptTemplate } from '@/lib/ai-settings'
@@ -9,7 +9,6 @@ import { promptGroupLabel } from '@/lib/prompt-groups'
 import { PromptTemplateBrowser } from '@/components/prompt-template-browser'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Button } from '@/components/admin/ui/button'
-import { useAdminUnsavedChanges } from '@/components/admin/use-unsaved-changes'
 
 const promptVariableLabels: Record<string, string> = {
   prompt: '用户输入的画面描述',
@@ -34,7 +33,7 @@ export default function AdminPromptsPage() {
   const promptDirty =
     !!activeTemplate &&
     (promptDraft !== activeTemplate.content || promptEnabled !== activeTemplate.enabled)
-  useAdminUnsavedChanges(promptDirty)
+  const drafts = useRef(new Map<string, { content: string; enabled: boolean }>())
 
   const load = useCallback(async (signal?: AbortSignal) => {
     const data = await adminRequest<{ templates: PromptTemplate[] }>(
@@ -68,19 +67,20 @@ export default function AdminPromptsPage() {
   }, [load, attempt])
   useEffect(() => {
     if (activeTemplate) {
-      setPromptDraft(activeTemplate.content)
-      setPromptEnabled(activeTemplate.enabled)
+      const cached = drafts.current.get(activeTemplate.key)
+      setPromptDraft(cached?.content ?? activeTemplate.content)
+      setPromptEnabled(cached?.enabled ?? activeTemplate.enabled)
     }
   }, [activeTemplate])
 
   function selectTemplate(key: string) {
     if (key === selectedKey || busy) return
-    if (promptDirty && !window.confirm('放弃未保存的修改？')) return
+    drafts.current.set(selectedKey, { content: promptDraft, enabled: promptEnabled })
     setSelectedKey(key)
     setSaved('')
     setMessage('')
   }
-  async function savePrompt(restoreDefault = false) {
+  async function savePrompt() {
     if (busy || !activeTemplate) return
     setBusy(true)
     setMessage('')
@@ -90,10 +90,11 @@ export default function AdminPromptsPage() {
         key: selectedKey,
         content: promptDraft,
         enabled: promptEnabled,
-        restoreDefault,
+        restoreDefault: false,
       })
+      drafts.current.delete(activeTemplate.key)
       await load()
-      setSaved(restoreDefault ? '已恢复默认提示词' : '提示词已保存')
+      setSaved('提示词已保存')
     } catch (error) {
       setMessage(errorMessage(error))
     } finally {
@@ -193,11 +194,13 @@ export default function AdminPromptsPage() {
                 variant="outline"
                 disabled={!!busy}
                 onClick={() => {
-                  if (window.confirm('恢复默认提示词？当前修改将被替换。')) savePrompt(true)
+                  setPromptDraft(promptDefault)
+                  setSaved('')
+                  setMessage('')
                 }}
               >
                 <RotateCcw data-icon="inline-start" />
-                恢复默认
+                填入默认内容
               </Button>
               <Button disabled={!!busy || !promptDraft.trim()} onClick={() => savePrompt()}>
                 <Save data-icon="inline-start" />

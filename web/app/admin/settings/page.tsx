@@ -40,10 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/select'
-import {
-  confirmAdminNavigation,
-  useAdminUnsavedChanges,
-} from '@/components/admin/use-unsaved-changes'
+import { useActionConfirmation } from '@/components/use-action-confirmation'
 import { getAdminAccessToken } from '@/lib/api'
 import { adminRequest } from '@/lib/admin'
 import {
@@ -83,8 +80,8 @@ function errorMessage(error: unknown) {
 export default function AISettingsPage() {
   const router = useRouter()
   const [view, setView] = useState<'services' | 'reverse'>('services')
-  const [reverseDirty, setReverseDirty] = useState(false)
-  useAdminUnsavedChanges(reverseDirty)
+  const [reverseVisited, setReverseVisited] = useState(false)
+  const { ask, confirmation } = useActionConfirmation(getAdminAccessToken)
   const [reverseSaving, setReverseSaving] = useState(false)
   const [endpoints, setEndpoints] = useState<AIEndpoint[]>([])
   const [templates, setTemplates] = useState<PromptTemplate[]>([])
@@ -119,7 +116,10 @@ export default function AISettingsPage() {
       window.location.replace(tab === 'site' ? '/admin/site' : '/admin/prompts')
       return
     }
-    if (tab === 'reverse') setView(tab)
+    if (tab === 'reverse') {
+      setView(tab)
+      setReverseVisited(true)
+    }
     if (!getAdminAccessToken()) {
       setLoggedIn(false)
       setLoading(false)
@@ -185,7 +185,17 @@ export default function AISettingsPage() {
     endpoint: AIEndpoint,
     mode: 'connection' | 'generate' = 'connection',
   ) {
-    if (mode === 'generate' && !window.confirm('真实测试可能产生 API 费用，确认继续？')) return
+    if (
+      mode === 'generate' &&
+      !(await ask({
+        title: '确认真实生图测试',
+        description: `将通过「${endpoint.name}」生成 1 张测试图。`,
+        detail: '这会调用真实上游接口，可能产生 API 费用。取消不会发起请求。',
+        confirmLabel: '生成 1 张测试图',
+        intent: 'warning',
+      }))
+    )
+      return
     setBusy(endpoint.id)
     setMessage('')
     try {
@@ -218,13 +228,7 @@ export default function AISettingsPage() {
   function switchView(next: typeof view) {
     if (next === view) return true
     if (busy || reverseSaving) return false
-    if (
-      view === 'reverse' &&
-      reverseDirty &&
-      !window.confirm('当前配置尚未保存，仍要切换设置分类？')
-    )
-      return false
-    setReverseDirty(false)
+    if (next === 'reverse') setReverseVisited(true)
     setSaved('')
     setMessage('')
     setView(next)
@@ -271,225 +275,230 @@ export default function AISettingsPage() {
                   <AlertDescription>{saved}</AlertDescription>
                 </Alert>
               )}
-              <TabsContent value={view}>
-                {view === 'reverse' ? (
+              <TabsContent value="reverse" forceMount hidden={view !== 'reverse'}>
+                {reverseVisited && (
                   <PromptReverseSettingsPanel
                     endpoints={endpoints}
                     templates={templates}
-                    onDirtyChange={setReverseDirty}
                     onSavingChange={setReverseSaving}
                     onOpenServices={() => switchView('services')}
                     onOpenTemplates={(key) => {
-                      if (confirmAdminNavigation())
-                        router.push(`/admin/prompts?template=${encodeURIComponent(key)}`)
+                      router.push(`/admin/prompts?template=${encodeURIComponent(key)}`)
                     }}
                   />
-                ) : (
-                  <div id="services-panel">
-                    {(['image', 'prompt'] as const).map((purpose) => (
-                      <section className="endpoint-section" key={purpose}>
-                        <div className="endpoint-section-head">
-                          <div className="admin-service-heading">
-                            <span className="admin-service-icon" aria-hidden="true">
-                              {purpose === 'prompt' ? <ScanText size={20} /> : <Images size={20} />}
-                            </span>
-                            <div>
-                              <h2>{purpose === 'prompt' ? '提示词与识图服务' : '生图渠道'}</h2>
-                              <p>
-                                {purpose === 'prompt'
-                                  ? '用于提示词优化、服装分析和图片反推；反推需支持识图。'
-                                  : '连接生图接口，前台展示名称与积分消耗在「模型与定价」中设置。'}
-                              </p>
-                            </div>
+                )}
+              </TabsContent>
+              <TabsContent value="services">
+                <div id="services-panel">
+                  {(['image', 'prompt'] as const).map((purpose) => (
+                    <section className="endpoint-section" key={purpose}>
+                      <div className="endpoint-section-head">
+                        <div className="admin-service-heading">
+                          <span className="admin-service-icon" aria-hidden="true">
+                            {purpose === 'prompt' ? <ScanText size={20} /> : <Images size={20} />}
+                          </span>
+                          <div>
+                            <h2>{purpose === 'prompt' ? '提示词与识图服务' : '生图渠道'}</h2>
+                            <p>
+                              {purpose === 'prompt'
+                                ? '用于提示词优化、服装分析和图片反推；反推需支持识图。'
+                                : '连接生图接口，前台展示名称与积分消耗在「模型与定价」中设置。'}
+                            </p>
                           </div>
-                          {canManage && (
-                            <Button variant="outline" onClick={() => edit(undefined, purpose)}>
-                              <Plus data-icon="inline-start" />
-                              {purpose === 'image' ? '添加生图渠道' : '添加提示词服务'}
-                            </Button>
-                          )}
                         </div>
-                        {!endpoints.some((endpoint) => endpoint.purpose === purpose) ? (
-                          <p className="settings-empty">
-                            {purpose === 'image'
-                              ? '还没有生图渠道。添加官方服务或中转站，保存后前往「模型与定价」完成绑定。'
-                              : '还没有提示词服务。添加后可用于 AI 帮写和图片识别。'}
-                          </p>
-                        ) : (
-                          <div className="endpoint-list">
-                            {endpoints
-                              .filter((endpoint) => endpoint.purpose === purpose)
-                              .map((endpoint) => (
-                                <article className="endpoint-row" key={endpoint.id}>
-                                  <div className="endpoint-details">
-                                    <div className="endpoint-name">
-                                      <h3>{endpoint.name}</h3>
-                                      {purpose === 'prompt' && endpoint.isDefault && (
-                                        <span className="admin-default-badge">
-                                          <Check size={12} />
-                                          默认
-                                        </span>
-                                      )}
-                                      <label className="settings-switch">
-                                        <input
-                                          type="checkbox"
-                                          checked={endpoint.enabled}
-                                          disabled={!canManage || !!busy}
-                                          onChange={() =>
-                                            action(endpoint.id, () =>
-                                              adminRequest(`ai-endpoints/${endpoint.id}`, 'PUT', {
-                                                ...endpoint,
-                                                enabled: !endpoint.enabled,
-                                                isDefault: false,
-                                              }),
-                                            )
-                                          }
-                                        />
-                                        <span
-                                          className="admin-switch-label"
-                                          data-tone={endpoint.enabled ? 'success' : 'danger'}
-                                        >
-                                          {endpoint.enabled ? '已启用' : '已停用'}
-                                        </span>
-                                      </label>
-                                    </div>
-                                    <div className="endpoint-meta">
-                                      <span>
-                                        {purpose === 'image'
-                                          ? imageProtocolLabels[endpoint.protocol]
-                                          : protocolLabels[endpoint.protocol]}
+                        {canManage && (
+                          <Button variant="outline" onClick={() => edit(undefined, purpose)}>
+                            <Plus data-icon="inline-start" />
+                            {purpose === 'image' ? '添加生图渠道' : '添加提示词服务'}
+                          </Button>
+                        )}
+                      </div>
+                      {!endpoints.some((endpoint) => endpoint.purpose === purpose) ? (
+                        <p className="settings-empty">
+                          {purpose === 'image'
+                            ? '还没有生图渠道。添加官方服务或中转站，保存后前往「模型与定价」完成绑定。'
+                            : '还没有提示词服务。添加后可用于 AI 帮写和图片识别。'}
+                        </p>
+                      ) : (
+                        <div className="endpoint-list">
+                          {endpoints
+                            .filter((endpoint) => endpoint.purpose === purpose)
+                            .map((endpoint) => (
+                              <article className="endpoint-row" key={endpoint.id}>
+                                <div className="endpoint-details">
+                                  <div className="endpoint-name">
+                                    <h3>{endpoint.name}</h3>
+                                    {purpose === 'prompt' && endpoint.isDefault && (
+                                      <span className="admin-default-badge">
+                                        <Check size={12} />
+                                        默认
                                       </span>
-                                      <span aria-hidden="true">·</span>
-                                      {endpoint.model && (
-                                        <span>
-                                          {purpose === 'image' ? '测试模型：' : '模型：'}
-                                          {endpoint.model}
-                                        </span>
-                                      )}
-                                      {purpose === 'prompt' && (
-                                        <AdminStatusBadge
-                                          tone={
-                                            endpoint.capabilities.vision ? 'success' : 'neutral'
-                                          }
-                                        >
-                                          {endpoint.capabilities.vision ? '已启用识图' : '仅文本'}
-                                        </AdminStatusBadge>
-                                      )}
-                                      <span>{endpoint.timeoutSeconds} 秒超时</span>
-                                    </div>
-                                    {canManage && (
-                                      <p className="endpoint-url">
-                                        {endpoint.baseUrl}
-                                        <span>{endpoint.apiKeyMasked}</span>
-                                      </p>
                                     )}
-                                    {tests[endpoint.id] && (
-                                      <p
-                                        className={
-                                          tests[endpoint.id]?.success
-                                            ? 'connection-result'
-                                            : 'settings-error'
+                                    <label className="settings-switch">
+                                      <input
+                                        type="checkbox"
+                                        checked={endpoint.enabled}
+                                        disabled={!canManage || !!busy}
+                                        onChange={() =>
+                                          action(endpoint.id, () =>
+                                            adminRequest(`ai-endpoints/${endpoint.id}`, 'PUT', {
+                                              ...endpoint,
+                                              enabled: !endpoint.enabled,
+                                              isDefault: false,
+                                            }),
+                                          )
                                         }
-                                        role="status"
+                                      />
+                                      <span
+                                        className="admin-switch-label"
+                                        data-tone={endpoint.enabled ? 'success' : 'danger'}
                                       >
-                                        <strong>
-                                          {tests[endpoint.id]?.mode === 'generate'
-                                            ? '生图测试'
-                                            : '连接测试'}
-                                          {tests[endpoint.id]?.success ? '通过' : '失败'}
-                                        </strong>
-                                        <span>
-                                          {' '}
-                                          · {tests[endpoint.id]?.message} ·{' '}
-                                          {tests[endpoint.id]?.responseTimeMs} ms
-                                        </span>
-                                      </p>
+                                        {endpoint.enabled ? '已启用' : '已停用'}
+                                      </span>
+                                    </label>
+                                  </div>
+                                  <div className="endpoint-meta">
+                                    <span>
+                                      {purpose === 'image'
+                                        ? imageProtocolLabels[endpoint.protocol]
+                                        : protocolLabels[endpoint.protocol]}
+                                    </span>
+                                    <span aria-hidden="true">·</span>
+                                    {endpoint.model && (
+                                      <span>
+                                        {purpose === 'image' ? '测试模型：' : '模型：'}
+                                        {endpoint.model}
+                                      </span>
                                     )}
+                                    {purpose === 'prompt' && (
+                                      <AdminStatusBadge
+                                        tone={endpoint.capabilities.vision ? 'success' : 'neutral'}
+                                      >
+                                        {endpoint.capabilities.vision ? '已启用识图' : '仅文本'}
+                                      </AdminStatusBadge>
+                                    )}
+                                    <span>{endpoint.timeoutSeconds} 秒超时</span>
                                   </div>
                                   {canManage && (
-                                    <div className="endpoint-actions">
-                                      {purpose === 'prompt' &&
-                                        endpoint.enabled &&
-                                        !endpoint.isDefault && (
-                                          <Button
-                                            variant="outline"
-                                            className="endpoint-default-action"
-                                            disabled={!!busy}
-                                            onClick={() =>
-                                              action(endpoint.id, () =>
-                                                adminRequest(
-                                                  `ai-endpoints/${endpoint.id}/default`,
-                                                  'POST',
-                                                ),
-                                              )
-                                            }
-                                          >
-                                            设为默认
-                                          </Button>
-                                        )}
-                                      <Button
-                                        variant="outline"
-                                        className="endpoint-edit-action"
-                                        title="编辑"
-                                        aria-label={`编辑 ${endpoint.name}`}
-                                        disabled={!!busy}
-                                        onClick={() => edit(endpoint)}
-                                      >
-                                        <Pencil data-icon="inline-start" />
-                                        编辑
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        className="endpoint-test-action"
-                                        title="只查询模型列表，验证地址和密钥；不生成图片"
-                                        aria-label={`测试 ${endpoint.name} 连接`}
-                                        disabled={!!busy}
-                                        onClick={() => testEndpoint(endpoint)}
-                                      >
-                                        {busy === endpoint.id ? (
-                                          <LoaderCircle className="settings-spinner" size={15} />
-                                        ) : (
-                                          <Zap data-icon="inline-start" />
-                                        )}
-                                        测试连接
-                                      </Button>
-                                      {purpose === 'image' && (
+                                    <p className="endpoint-url">
+                                      {endpoint.baseUrl}
+                                      <span>{endpoint.apiKeyMasked}</span>
+                                    </p>
+                                  )}
+                                  {tests[endpoint.id] && (
+                                    <p
+                                      className={
+                                        tests[endpoint.id]?.success
+                                          ? 'connection-result'
+                                          : 'settings-error'
+                                      }
+                                      role="status"
+                                    >
+                                      <strong>
+                                        {tests[endpoint.id]?.mode === 'generate'
+                                          ? '生图测试'
+                                          : '连接测试'}
+                                        {tests[endpoint.id]?.success ? '通过' : '失败'}
+                                      </strong>
+                                      <span>
+                                        {' '}
+                                        · {tests[endpoint.id]?.message} ·{' '}
+                                        {tests[endpoint.id]?.responseTimeMs} ms
+                                      </span>
+                                    </p>
+                                  )}
+                                </div>
+                                {canManage && (
+                                  <div className="endpoint-actions">
+                                    {purpose === 'prompt' &&
+                                      endpoint.enabled &&
+                                      !endpoint.isDefault && (
                                         <Button
                                           variant="outline"
-                                          disabled={
-                                            !!busy || !endpoint.enabled || !endpoint.model.trim()
+                                          className="endpoint-default-action"
+                                          disabled={!!busy}
+                                          onClick={() =>
+                                            action(endpoint.id, () =>
+                                              adminRequest(
+                                                `ai-endpoints/${endpoint.id}/default`,
+                                                'POST',
+                                              ),
+                                            )
                                           }
-                                          onClick={() => testEndpoint(endpoint, 'generate')}
                                         >
-                                          测试生图（可能收费）
+                                          设为默认
                                         </Button>
                                       )}
+                                    <Button
+                                      variant="outline"
+                                      className="endpoint-edit-action"
+                                      title="编辑"
+                                      aria-label={`编辑 ${endpoint.name}`}
+                                      disabled={!!busy}
+                                      onClick={() => edit(endpoint)}
+                                    >
+                                      <Pencil data-icon="inline-start" />
+                                      编辑
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      className="endpoint-test-action"
+                                      title="只查询模型列表，验证地址和密钥；不生成图片"
+                                      aria-label={`测试 ${endpoint.name} 连接`}
+                                      disabled={!!busy}
+                                      onClick={() => testEndpoint(endpoint)}
+                                    >
+                                      {busy === endpoint.id ? (
+                                        <LoaderCircle className="settings-spinner" size={15} />
+                                      ) : (
+                                        <Zap data-icon="inline-start" />
+                                      )}
+                                      测试连接
+                                    </Button>
+                                    {purpose === 'image' && (
                                       <Button
                                         variant="outline"
-                                        className="settings-icon endpoint-delete-action admin-action"
-                                        data-tone="danger"
-                                        title="删除"
-                                        aria-label={`删除 ${endpoint.name}`}
-                                        disabled={!!busy}
-                                        onClick={() => {
-                                          if (window.confirm(`删除“${endpoint.name}”？`))
-                                            action(endpoint.id, () =>
-                                              adminRequest(`ai-endpoints/${endpoint.id}`, 'DELETE'),
-                                            )
-                                        }}
+                                        disabled={
+                                          !!busy || !endpoint.enabled || !endpoint.model.trim()
+                                        }
+                                        onClick={() => testEndpoint(endpoint, 'generate')}
                                       >
-                                        <Trash2 data-icon="inline-start" />
+                                        测试生图（可能收费）
                                       </Button>
-                                    </div>
-                                  )}
-                                </article>
-                              ))}
-                          </div>
-                        )}
-                      </section>
-                    ))}
-                  </div>
-                )}
+                                    )}
+                                    <Button
+                                      variant="outline"
+                                      className="settings-icon endpoint-delete-action admin-action"
+                                      data-tone="danger"
+                                      title="删除"
+                                      aria-label={`删除 ${endpoint.name}`}
+                                      disabled={!!busy}
+                                      onClick={async () => {
+                                        if (
+                                          await ask({
+                                            title: '删除 AI 服务',
+                                            description: `确定删除「${endpoint.name}」及其配置？`,
+                                            detail:
+                                              '删除后不可恢复。仍被模型引用的渠道需先解除绑定。',
+                                            confirmLabel: '删除服务',
+                                          })
+                                        )
+                                          action(endpoint.id, () =>
+                                            adminRequest(`ai-endpoints/${endpoint.id}`, 'DELETE'),
+                                          )
+                                      }}
+                                    >
+                                      <Trash2 data-icon="inline-start" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </article>
+                            ))}
+                        </div>
+                      )}
+                    </section>
+                  ))}
+                </div>
               </TabsContent>
             </Tabs>
           </>
@@ -762,6 +771,7 @@ export default function AISettingsPage() {
           )}
         </DialogContent>
       </Dialog>
+      {confirmation}
     </>
   )
 }

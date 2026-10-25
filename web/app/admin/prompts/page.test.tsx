@@ -5,7 +5,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import Page from './page'
 import { adminRequest } from '@/lib/admin'
 import type { PromptTemplate } from '@/lib/ai-settings'
-import { confirmAdminNavigation } from '@/components/admin/use-unsaved-changes'
 
 vi.mock('@/lib/admin', () => ({ adminRequest: vi.fn() }))
 const originalTemplates: PromptTemplate[] = [
@@ -99,36 +98,34 @@ it('loads independently and opens the reverse template selected in the URL', asy
   expect(host.textContent).toContain('提示词已保存')
   expect(host.textContent).not.toContain('未保存更改')
 })
-it('preserves edits when leaving is cancelled and releases the guard after saving', async () => {
+it('keeps a draft when switching templates and does not intercept ordinary navigation', async () => {
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
   await act(async () => root.render(<Page />))
   await edit('保留我的修改')
-  expect(confirmAdminNavigation()).toBe(false)
+  const select = async (name: string) => {
+    const search = host.querySelector<HTMLInputElement>('[aria-label="搜索内置提示词"]')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, name)
+      search.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => host.querySelector<HTMLButtonElement>('.prompt-template-item')!.click())
+  }
+  await select('提示词优化')
+  expect(host.querySelector('textarea')?.value).toBe('优化原文')
+  await select('风格反推')
   expect(host.querySelector('textarea')?.value).toBe('保留我的修改')
-  const link = document.createElement('a')
-  link.href = '/admin/site'
-  host.append(link)
-  let allowed = true
-  await act(async () => {
-    allowed = link.dispatchEvent(
-      new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }),
-    )
-  })
-  expect(allowed).toBe(false)
-  const unload = new Event('beforeunload', { cancelable: true })
-  expect(window.dispatchEvent(unload)).toBe(false)
-  await act(async () => button('保存').click())
-  expect(confirmAdminNavigation()).toBe(true)
-  expect(confirm).toHaveBeenCalledTimes(2)
+  expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(true)
+  expect(confirm).not.toHaveBeenCalled()
 })
-it('restores only the selected template after confirmation', async () => {
+it('fills defaults locally and saves only after the explicit Save action', async () => {
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
   await act(async () => root.render(<Page />))
-  await act(async () => button('恢复默认').click())
+  await act(async () => button('填入默认内容').click())
   expect(request.mock.calls.some(([, method]) => method === 'PUT')).toBe(false)
-  confirm.mockReturnValue(true)
-  await act(async () => button('恢复默认').click())
   expect(host.querySelector('textarea')?.value).toBe('默认风格')
+  expect(host.textContent).toContain('未保存更改')
+  await act(async () => button('保存').click())
   expect(templates[0]?.content).toBe('优化原文')
-  expect(host.textContent).toContain('已恢复默认提示词')
+  expect(host.textContent).toContain('提示词已保存')
+  expect(confirm).not.toHaveBeenCalled()
 })

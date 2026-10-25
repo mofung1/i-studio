@@ -143,15 +143,6 @@ export function InspirationPromptManager() {
       ;(focusRef.current?.isConnected ? focusRef.current : addRef.current)?.focus()
     }
   }, [editorOpen])
-  useEffect(() => {
-    if (!dirty) return
-    const warnOnLeave = (event: BeforeUnloadEvent) => {
-      event.preventDefault()
-      event.returnValue = ''
-    }
-    window.addEventListener('beforeunload', warnOnLeave)
-    return () => window.removeEventListener('beforeunload', warnOnLeave)
-  }, [dirty])
 
   function edit(item?: ManagedInspirationPrompt) {
     focusRef.current = document.activeElement as HTMLElement
@@ -165,7 +156,7 @@ export function InspirationPromptManager() {
     setCategoryError('')
   }
   function closeEditor() {
-    if (saving || categorySaving || (dirty && !window.confirm('放弃尚未保存的提示词修改？'))) return
+    if (saving || categorySaving) return
     setEditing(null)
   }
   function field(patch: Partial<InspirationPromptInput>) {
