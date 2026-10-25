@@ -1,5 +1,7 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
+
 import {
   Archive,
   Clock3,
@@ -973,7 +975,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 {error}
               </p>
             )}
-            <div className="library-form-actions">
+            <DialogActions className="library-form-actions">
               <button
                 className="studio-secondary"
                 type="button"
@@ -985,7 +987,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
               <button className="studio-primary" disabled={!!busy}>
                 {busy === 'metadata' ? '保存中…' : '保存'}
               </button>
-            </div>
+            </DialogActions>
           </form>
         </LibraryDialog>
       )}
@@ -1019,7 +1021,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 {error}
               </p>
             )}
-            <div className="library-form-actions">
+            <DialogActions className="library-form-actions">
               <button
                 className="studio-secondary"
                 type="button"
@@ -1031,7 +1033,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
               <button className="studio-primary" disabled={!!busy || !projectName.trim()}>
                 保存项目
               </button>
-            </div>
+            </DialogActions>
           </form>
         </LibraryDialog>
       )}
@@ -1093,11 +1095,11 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
               </dd>
             </div>
           </dl>
-          <div className="library-form-actions">
+          <DialogActions className="library-form-actions">
             <Link className="studio-primary" href={historyWorkbenchUrl(detailTask)}>
               载入配置继续创作
             </Link>
-          </div>
+          </DialogActions>
         </InfoDialog>
       )}
       {comparison && (

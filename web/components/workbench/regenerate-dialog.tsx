@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
 import { ChevronDown, ChevronUp, Sparkles, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -151,7 +152,7 @@ export function RegenerateDialog({
           />
           <span>以后重新生成不再提示</span>
         </label>
-        <div className="confirm-dialog-actions">
+        <DialogActions className="confirm-dialog-actions">
           <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>
             取消
           </button>
@@ -159,7 +160,7 @@ export function RegenerateDialog({
             <Sparkles size={15} aria-hidden="true" />
             确认生成
           </button>
-        </div>
+        </DialogActions>
       </div>
     </div>,
     document.body,

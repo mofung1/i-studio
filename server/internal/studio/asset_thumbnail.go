@@ -131,6 +131,10 @@ func jpegThumbnailMemory(raw []byte, config image.Config) (int64, error) {
 }
 
 func generateAssetThumbnail(ctx context.Context, raw []byte) ([]byte, error) {
+	return generateAssetPreview(ctx, raw, 480)
+}
+
+func generateAssetPreview(ctx context.Context, raw []byte, edge int) ([]byte, error) {
 	config, format, err := image.DecodeConfig(bytes.NewReader(raw))
 	if err != nil {
 		return nil, err
@@ -150,7 +154,7 @@ func generateAssetThumbnail(ctx context.Context, raw []byte) ([]byte, error) {
 		}
 		thumbnailMemory.Release(reserved)
 	}()
-	return renderAssetThumbnail(raw)
+	return renderAssetPreview(raw, edge)
 }
 
 func fitThumbnailSize(width, height, edge int) (int, int) {
@@ -164,6 +168,10 @@ func fitThumbnailSize(width, height, edge int) (int, int) {
 }
 
 func renderAssetThumbnail(raw []byte) ([]byte, error) {
+	return renderAssetPreview(raw, 480)
+}
+
+func renderAssetPreview(raw []byte, edge int) ([]byte, error) {
 	source, _, err := image.Decode(bytes.NewReader(raw))
 	if err != nil {
 		return nil, err
@@ -171,14 +179,14 @@ func renderAssetThumbnail(raw []byte) ([]byte, error) {
 	bounds := source.Bounds()
 	// Kernel scaling allocates a buffer proportional to source height. Reduce
 	// huge originals first, keeping the high-quality final pass bounded.
-	if max(bounds.Dx(), bounds.Dy()) > 1920 {
-		width, height := fitThumbnailSize(bounds.Dx(), bounds.Dy(), 960)
+	if max(bounds.Dx(), bounds.Dy()) > edge*4 {
+		width, height := fitThumbnailSize(bounds.Dx(), bounds.Dy(), edge*2)
 		intermediate := image.NewRGBA(image.Rect(0, 0, width, height))
 		draw.ApproxBiLinear.Scale(intermediate, intermediate.Bounds(), source, bounds, draw.Src, nil)
 		source = intermediate
 		bounds = source.Bounds()
 	}
-	width, height := fitThumbnailSize(bounds.Dx(), bounds.Dy(), 480)
+	width, height := fitThumbnailSize(bounds.Dx(), bounds.Dy(), edge)
 	thumb := image.NewRGBA(image.Rect(0, 0, width, height))
 	draw.Draw(thumb, thumb.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
 	draw.CatmullRom.Scale(thumb, thumb.Bounds(), source, bounds, draw.Over, nil)

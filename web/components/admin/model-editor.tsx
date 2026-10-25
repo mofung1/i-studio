@@ -1,4 +1,5 @@
 'use client'
+import { DialogActions } from '@/components/dialog-actions'
 import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/admin/ui/field'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
@@ -539,8 +540,10 @@ export function AdminModelEditor({
             </div>
           ))}
         </FieldSet>
-        <div className="settings-form-actions model-editor-footer">
-          <span>{testing ? '生图测试进行中，请等待测试完成' : '保存后生效'}</span>
+        <DialogActions sticky className="settings-form-actions model-editor-footer">
+          <span className="dialog-actions-note">
+            {testing ? '生图测试进行中，请等待测试完成' : '保存后生效'}
+          </span>
           <Button variant="outline" type="button" disabled={locked} onClick={onClose}>
             取消
           </Button>
@@ -556,7 +559,7 @@ export function AdminModelEditor({
             )}
             {busy ? '保存中…' : '保存模型'}
           </Button>
-        </div>
+        </DialogActions>
       </form>
     </section>
   )

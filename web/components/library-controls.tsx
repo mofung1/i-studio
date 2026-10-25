@@ -65,8 +65,9 @@ export function LibraryDialog({
       hideActions
       portalContainer={portalContainer}
       footer={footer}
+      scrollBody={!!footer}
     >
-      <div className="library-dialog-body">{children}</div>
+      <div className={`library-dialog-body${footer ? ' dialog-scroll-body' : ''}`}>{children}</div>
     </InfoDialog>
   )
 }

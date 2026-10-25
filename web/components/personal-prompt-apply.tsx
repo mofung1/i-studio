@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import { DialogActions } from './dialog-actions'
 import { LibraryDialog } from './library-controls'
 import {
   applicationFor,
@@ -22,6 +23,7 @@ export function PersonalPromptApply({
     values: Record<string, string>,
   ) => void | Promise<void>
 }) {
+  const formId = useId()
   const [values, setValues] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -32,8 +34,19 @@ export function PersonalPromptApply({
       onClose={() => {
         if (!busy) onClose()
       }}
+      footer={
+        <DialogActions>
+          <button className="studio-secondary" type="button" disabled={busy} onClick={onClose}>
+            取消
+          </button>
+          <button form={formId} type="submit" className="studio-primary" disabled={busy}>
+            {busy ? '应用中…' : '应用到工作台'}
+          </button>
+        </DialogActions>
+      }
     >
       <form
+        id={formId}
         onSubmit={(event) => {
           event.preventDefault()
           if (busy) return
@@ -70,14 +83,6 @@ export function PersonalPromptApply({
             {error}
           </p>
         )}
-        <div className="library-form-actions">
-          <button className="studio-secondary" type="button" disabled={busy} onClick={onClose}>
-            取消
-          </button>
-          <button className="studio-primary" disabled={busy}>
-            {busy ? '应用中…' : '应用到工作台'}
-          </button>
-        </div>
       </form>
     </LibraryDialog>
   )

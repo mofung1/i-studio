@@ -28,6 +28,7 @@ export function AdminEditorDialog({
   portalContainer?: HTMLElement | null
   footer?: ReactNode
 }) {
+  const fixedBody = !!footer || !hideActions
   return (
     <Dialog
       open
@@ -35,12 +36,15 @@ export function AdminEditorDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="admin-editor-dialog" portalContainer={portalContainer}>
+      <DialogContent
+        className={`admin-editor-dialog${fixedBody ? ' admin-editor-with-footer' : ''}`}
+        portalContainer={portalContainer}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{subtitle ?? '修改后保存，配置将立即生效。'}</DialogDescription>
         </DialogHeader>
-        {children}
+        {fixedBody ? <div className="dialog-scroll-body">{children}</div> : children}
         {footer}
         {!hideActions && (
           <DialogFooter>

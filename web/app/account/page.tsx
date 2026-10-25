@@ -39,6 +39,7 @@ const kinds: Record<string, string> = {
   reserve: '生成预留',
   settlement: '生成结算',
   checkin: '签到奖励',
+  inspiration_reward: '投稿奖励',
 }
 export default function AccountPage() {
   const { account, refresh } = useAccount()

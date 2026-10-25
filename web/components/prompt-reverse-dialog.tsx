@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
 import { SavePersonalPrompt } from './save-personal-prompt'
 
 import { AccountAccess } from './account-access'
@@ -959,7 +960,7 @@ export function PromptReverseDialog({
                     </Select>
                   )}
                 </div>
-                <div className="reverse-commands">
+                <DialogActions className="reverse-commands">
                   <button
                     type="button"
                     className="settings-command"
@@ -996,7 +997,7 @@ export function PromptReverseDialog({
                     应用到生图
                     <ArrowUpRight size={15} aria-hidden="true" />
                   </button>
-                </div>
+                </DialogActions>
               </footer>
             )}
           </>

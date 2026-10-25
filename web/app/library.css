@@ -1010,6 +1010,24 @@
   }
 }
 @media (max-width: 700px) {
+  .asset-projects {
+    flex-wrap: wrap;
+    max-height: 240px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .asset-projects-title {
+    flex-basis: 100%;
+    padding: 4px 8px 0;
+    border-top: 1px solid var(--border-soft);
+  }
+  .asset-projects details {
+    flex-basis: 100%;
+  }
+  .asset-projects-title button {
+    width: 44px;
+    height: 44px;
+  }
   .asset-manager .library-views {
     margin-bottom: 0;
   }
@@ -1118,7 +1136,7 @@
   color: var(--foreground-3);
   font-size: 12px;
 }
-.personal-prompt-card :is(header, footer) > button:not(.studio-primary):not(.studio-secondary) {
+.personal-prompt-card .personal-prompt-icon {
   display: grid;
   place-items: center;
   width: 30px;
@@ -1129,7 +1147,7 @@
   color: var(--foreground-3);
   cursor: pointer;
 }
-.personal-prompt-card :is(header, footer) > button:focus-visible {
+.personal-prompt-card :is(header, footer) button:focus-visible {
   outline: 2px solid var(--foreground);
   outline-offset: 2px;
 }
@@ -1159,18 +1177,31 @@
 .personal-prompt-card footer {
   display: flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
   padding-top: 16px;
   margin-top: auto;
 }
-.personal-prompt-card footer .studio-primary {
-  margin-left: auto;
+.personal-prompt-tools,
+.personal-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.personal-prompt-actions {
+  justify-content: flex-end;
+  margin-inline-start: auto;
+}
+.personal-prompt-actions > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
   min-height: 32px;
   padding: 0 12px;
   font-size: 12px;
 }
 @media (pointer: coarse), (max-width: 700px) {
-  .personal-prompt-card :is(header, footer) > button:not(.studio-primary):not(.studio-secondary) {
+  .personal-prompt-card .personal-prompt-icon {
     width: 44px;
     height: 44px;
   }

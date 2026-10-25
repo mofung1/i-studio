@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
 import { useEffect, useState } from 'react'
 import {
   ArrowUpRight,
@@ -503,7 +504,7 @@ export function PromptReverseSettingsPanel({
                 <span>配置已同步 · 仅对新建分析生效</span>
               )}
             </div>
-            <div className="reverse-config-actions">
+            <DialogActions className="reverse-config-actions">
               <button
                 type="button"
                 className="settings-command"
@@ -525,7 +526,7 @@ export function PromptReverseSettingsPanel({
                 )}
                 {saving ? '保存中…' : '保存配置'}
               </button>
-            </div>
+            </DialogActions>
           </footer>
         </form>
       )}

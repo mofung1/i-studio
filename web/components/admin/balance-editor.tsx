@@ -1,4 +1,5 @@
 'use client'
+import { DialogActions } from '@/components/dialog-actions'
 import { Field, FieldGroup, FieldLabel } from '@/components/admin/ui/field'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
@@ -55,12 +56,12 @@ export function AdminBalanceEditor({
             </FieldLabel>
           </Field>
         </FieldGroup>
-        <div className="settings-form-actions">
+        <DialogActions sticky className="settings-form-actions">
           <Button variant="outline" type="button" disabled={busy} onClick={() => onClose()}>
             取消
           </Button>
           <Button disabled={busy}>确认调整</Button>
-        </div>
+        </DialogActions>
       </form>
     </section>
   )

@@ -12,16 +12,19 @@ import (
 )
 
 type inspirationPromptRow struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Category  string `json:"category"`
-	Prompt    string `json:"prompt"`
-	Source    string `json:"source"`
-	ImageURL  string `json:"imageUrl"`
-	Width     int    `json:"width"`
-	Height    int    `json:"height"`
-	SortOrder int    `json:"sortOrder"`
-	Enabled   bool   `json:"enabled"`
+	SubmissionID      string `json:"submissionId,omitempty"`
+	Instructions      string `json:"instructions,omitempty"`
+	RequiresReference bool   `json:"requiresReference,omitempty"`
+	ID                string `json:"id"`
+	Title             string `json:"title"`
+	Category          string `json:"category"`
+	Prompt            string `json:"prompt"`
+	Source            string `json:"source"`
+	ImageURL          string `json:"imageUrl"`
+	Width             int    `json:"width"`
+	Height            int    `json:"height"`
+	SortOrder         int    `json:"sortOrder"`
+	Enabled           bool   `json:"enabled"`
 }
 
 // Visitors see enabled prompts; signed-in management also includes disabled rows.
@@ -144,7 +147,7 @@ func (s *Service) inspirationCategories(w http.ResponseWriter, r *http.Request) 
 // 配置了 CDN_BASE_URL 时直接返回 CDN 全址（图片已上传到 CDN），
 // 否则走本地服务接口 /v1/inspiration/images/{key}。
 func inspirationImageURL(imageKey string) string {
-	if cdn := strings.TrimRight(runtimeconfig.Env("CDN_BASE_URL", ""), "/"); cdn != "" && !strings.HasPrefix(imageKey, "@storage/") {
+	if cdn := strings.TrimRight(runtimeconfig.Env("CDN_BASE_URL", ""), "/"); cdn != "" && !strings.HasPrefix(imageKey, "@storage/") && !communityInspirationKey(imageKey) {
 		return cdn + "/" + imageKey
 	}
 	return "/v1/inspiration/images/" + imageKey
@@ -159,7 +162,16 @@ func (s *Service) inspirationImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.redirectStoredObject(w, r, storageKey) {
+	community := communityInspirationKey(storageKey)
+	if community {
+		w.Header().Set("Cache-Control", "no-store")
+		var published bool
+		if s.db == nil || s.db.QueryRowContext(r.Context(), "SELECT EXISTS(SELECT 1 FROM inspiration_prompts WHERE image_key=$1 AND enabled=true AND submission_id IS NOT NULL)", storageKey).Scan(&published) != nil || !published {
+			s.error(w, 404, "INSPIRATION_IMAGE_NOT_FOUND", "图片不存在")
+			return
+		}
+	}
+	if !community && s.redirectStoredObject(w, r, storageKey) {
 		return
 	}
 	file, err := s.storage.Open(storageKey)
@@ -169,7 +181,9 @@ func (s *Service) inspirationImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 	w.Header().Set("Content-Type", inspirationImageMime(filepath.Ext(key)))
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	if !community {
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+	}
 	_, _ = io.Copy(w, file)
 }
 

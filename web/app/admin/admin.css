@@ -1721,3 +1721,172 @@ html[data-theme='dark'] .admin-shell {
     min-height: 44px;
   }
 }
+
+/* Keep submission settings and list filters on the admin spacing scale. */
+.admin-shell .submission-admin {
+  gap: var(--admin-section-gap);
+}
+.admin-shell .submission-admin > .ops-card {
+  margin: 0;
+}
+.admin-shell .submission-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px 24px;
+  padding: var(--admin-panel-padding);
+}
+.admin-shell .submission-settings-fields {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  min-width: 0;
+}
+.admin-shell .submission-settings-fields > [data-slot='field'] {
+  flex: 0 0 auto;
+  width: auto;
+}
+.admin-shell .submission-setting-toggle .submission-check {
+  min-height: 40px;
+  margin: 0;
+  font-size: 13px;
+}
+.admin-shell .submission-setting-limit {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.admin-shell .submission-setting-limit > [data-slot='field-label'] {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.admin-shell .submission-setting-limit > [data-slot='input'] {
+  flex: 0 0 88px;
+  width: 88px;
+}
+.admin-shell .submission-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 156px auto auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.admin-shell .select-chevron {
+  color: var(--muted-foreground);
+}
+.admin-shell .submission-toolbar > .select-trigger {
+  width: 100%;
+  min-width: 0;
+}
+.admin-shell .submission-toolbar > [data-slot='button'] {
+  white-space: nowrap;
+}
+.admin-shell :is(.submission-toolbar, .submission-settings) > [data-slot='button'],
+.admin-shell .submission-toolbar > [data-slot='input'],
+.admin-shell .submission-toolbar > .select-trigger,
+.admin-shell .submission-setting-limit > [data-slot='input'] {
+  height: 40px;
+  min-height: 40px;
+}
+@media (max-width: 767px) {
+  .admin-shell .submission-settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .admin-shell .submission-settings-fields {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .admin-shell .submission-setting-limit {
+    justify-content: space-between;
+  }
+  .admin-shell .submission-settings > [data-slot='button'] {
+    justify-self: end;
+  }
+  .admin-shell .submission-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+  .admin-shell .submission-toolbar > [data-slot='input'] {
+    grid-column: 1 / -1;
+  }
+  .admin-shell :is(.submission-toolbar, .submission-settings) > [data-slot='button'],
+  .admin-shell .submission-toolbar > [data-slot='input'],
+  .admin-shell .submission-toolbar > .select-trigger,
+  .admin-shell .submission-setting-limit > [data-slot='input'] {
+    height: 44px;
+    min-height: 44px;
+  }
+  .admin-shell .submission-setting-toggle .submission-check {
+    min-height: 44px;
+  }
+}
+
+/* Full-site review: shared controls must remain readable in both admin palettes. */
+.admin-shell
+  :is(
+    .inspiration-manager-search,
+    .confirm-dialog-head button,
+    .confirm-dialog-note,
+    .confirm-dialog-skip,
+    .dialog-actions-note,
+    .submission-meta
+  ) {
+  color: var(--muted-foreground);
+}
+.admin-shell .inspiration-manager-toolbar {
+  gap: 8px;
+}
+.admin-shell .inspiration-manager-search {
+  flex-basis: 200px;
+}
+.admin-shell .inspiration-manager-category {
+  flex-basis: 156px;
+  width: 156px;
+}
+.admin-shell .inspiration-manager-status {
+  flex-basis: 128px;
+  width: 128px;
+}
+.admin-shell .inspiration-manager-toolbar > button:not(.select-trigger) {
+  white-space: nowrap;
+}
+.admin-shell .admin-pagination-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+}
+.admin-shell .ops-pagination-buttons {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+@media (max-width: 767px) {
+  .admin-shell .admin-pagination-navigation {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+  .admin-shell .admin-pagination-navigation .ops-pagination-buttons {
+    justify-content: flex-end;
+    margin-inline-start: auto;
+  }
+  .admin-shell .inspiration-manager-toolbar > button:not(.select-trigger) {
+    min-height: 44px;
+  }
+  .admin-shell .inspiration-manager-toolbar > button:not(.select-trigger) > svg {
+    display: none;
+  }
+  .admin-shell :is(.inspiration-manager-category, .inspiration-manager-status) {
+    width: 100%;
+    min-width: 0;
+    flex-basis: auto;
+  }
+}

@@ -1,5 +1,7 @@
 'use client'
 
+import { DialogActions } from './dialog-actions'
+
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Bell, X } from 'lucide-react'
@@ -77,9 +79,11 @@ export function SiteAnnouncement() {
         </div>
         <h2 id="site-announcement-title">{notice.title}</h2>
         <div className="site-announcement-body">{notice.content}</div>
-        <button type="button" className="studio-primary" onClick={close}>
-          我知道了
-        </button>
+        <DialogActions>
+          <button type="button" className="studio-primary" onClick={close}>
+            我知道了
+          </button>
+        </DialogActions>
       </dialog>
     </>
   )

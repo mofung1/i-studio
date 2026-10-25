@@ -80,6 +80,14 @@ func (s Handlers) registerPromptRoutes(api *gin.RouterGroup) {
 	prompts.POST("/reverse/:id/cancel", gin.WrapF(s.PromptReverseByID))
 
 	personal := api.Group("/personal")
+	registerMethods(personal, "/inspiration-submissions", s.InspirationSubmissions, "GET", "POST")
+	submission := func(c *gin.Context) {
+		s.InspirationSubmissionByID(c.Writer, c.Request, c.Param("id"), c.Param("action"))
+	}
+	personal.GET("/inspiration-submissions/:id", submission)
+	personal.PUT("/inspiration-submissions/:id", submission)
+	personal.GET("/inspiration-submissions/:id/cover", func(c *gin.Context) { s.InspirationSubmissionByID(c.Writer, c.Request, c.Param("id"), "cover") })
+	personal.POST("/inspiration-submissions/:id/withdraw", func(c *gin.Context) { s.InspirationSubmissionByID(c.Writer, c.Request, c.Param("id"), "withdraw") })
 	registerMethods(personal, "/prompts", s.PersonalPrompts, "GET", "POST")
 	registerMethods(personal, "/prompts/:id", s.PersonalPromptByID, "GET", "PUT", "PATCH", "DELETE")
 	personal.GET("/prompts/:id/versions", gin.WrapF(s.PersonalPromptByID))
@@ -111,6 +119,7 @@ func (s Handlers) registerSettingsRoutes(api *gin.RouterGroup) {
 
 func (s Handlers) registerInspirationRoutes(api *gin.RouterGroup) {
 	inspiration := api.Group("/inspiration")
+	inspiration.GET("/submission-settings", gin.WrapF(s.InspirationSubmissionSettings))
 	prompts := inspiration.Group("/prompts", s.auditConfiguration("inspiration/prompts"))
 	registerMethods(prompts, "", s.InspirationPrompts, "GET", "POST")
 	registerMethods(prompts, "/:id", s.InspirationPromptByID, "PUT", "DELETE")

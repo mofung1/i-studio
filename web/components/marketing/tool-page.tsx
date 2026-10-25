@@ -21,7 +21,10 @@ export function ToolPage({ tool }: { tool: ToolContent }) {
           className="marketing-section marketing-section-first"
           aria-labelledby="tool-features"
         >
-          <h2 id="tool-features">{tool.name}，从这里了解</h2>
+          <h2 id="tool-features" className="marketing-tool-feature-title">
+            <span>{tool.name}，</span>
+            <span>从这里了解</span>
+          </h2>
           <div className="marketing-highlight-grid">
             {tool.highlights.map((item, i) => (
               <article

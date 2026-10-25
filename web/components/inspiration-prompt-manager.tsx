@@ -1,4 +1,5 @@
 'use client'
+import { DialogActions } from '@/components/dialog-actions'
 import { AdminPageHeader } from './admin/page-header'
 
 import Link from 'next/link'
@@ -287,34 +288,42 @@ export function InspirationPromptManager() {
       header: '操作',
       size: 180,
       pin: 'right',
-      cell: (item) => (
-        <div className="ops-row-actions">
-          <button
-            type="button"
+      cell: (item) =>
+        item.submissionId ? (
+          <a
             className="settings-command"
-            aria-label={`编辑 ${item.title}`}
-            disabled={loading}
-            onClick={() => edit(item)}
+            href={`/admin/submissions?id=${encodeURIComponent(item.submissionId)}`}
           >
-            <Pencil size={15} />
-            编辑
-          </button>
-          <button
-            type="button"
-            className="settings-command admin-action"
-            data-tone="danger"
-            aria-label={`删除 ${item.title}`}
-            disabled={loading}
-            onClick={() => {
-              setDeleteError('')
-              setDeleting(item)
-            }}
-          >
-            <Trash2 size={15} />
-            删除
-          </button>
-        </div>
-      ),
+            查看投稿
+          </a>
+        ) : (
+          <div className="ops-row-actions">
+            <button
+              type="button"
+              className="settings-command"
+              aria-label={`编辑 ${item.title}`}
+              disabled={loading}
+              onClick={() => edit(item)}
+            >
+              <Pencil size={15} />
+              编辑
+            </button>
+            <button
+              type="button"
+              className="settings-command admin-action"
+              data-tone="danger"
+              aria-label={`删除 ${item.title}`}
+              disabled={loading}
+              onClick={() => {
+                setDeleteError('')
+                setDeleting(item)
+              }}
+            >
+              <Trash2 size={15} />
+              删除
+            </button>
+          </div>
+        ),
     },
   ]
 
@@ -656,7 +665,7 @@ export function InspirationPromptManager() {
                 </label>
               </div>
             </fieldset>
-            <div className="settings-form-actions">
+            <DialogActions sticky className="settings-form-actions">
               <button
                 type="button"
                 className="settings-command"
@@ -684,7 +693,7 @@ export function InspirationPromptManager() {
                 )}
                 {saving ? '保存中' : '保存提示词'}
               </button>
-            </div>
+            </DialogActions>
           </form>
         )}
       </dialog>

@@ -1,7 +1,8 @@
 'use client'
 
 import { Check, Folder, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import { DialogActions } from '@/components/dialog-actions'
 import { LibraryDialog } from '@/components/library-controls'
 import type { LibraryAsset, LibraryProject } from '@/lib/library'
 
@@ -20,6 +21,7 @@ export function AssetProjectDialog({
   onClose: () => void
   onMove: (projectId: string) => void
 }) {
+  const formId = useId()
   const firstProject = assets[0]?.projectId || ''
   const sameProject = assets.every((asset) => asset.projectId === firstProject)
   const [target, setTarget] = useState(sameProject ? firstProject : '')
@@ -36,8 +38,24 @@ export function AssetProjectDialog({
       onClose={() => {
         if (!busy) onClose()
       }}
+      footer={
+        <DialogActions>
+          <button type="button" className="studio-secondary" disabled={busy} onClick={onClose}>
+            取消
+          </button>
+          <button
+            form={formId}
+            type="submit"
+            className="studio-primary"
+            disabled={busy || unchanged}
+          >
+            {busy ? '移动中…' : unchanged ? '已在此项目' : '确认移动'}
+          </button>
+        </DialogActions>
+      }
     >
       <form
+        id={formId}
         onSubmit={(event) => {
           event.preventDefault()
           if (!unchanged && !busy) onMove(target)
@@ -84,14 +102,6 @@ export function AssetProjectDialog({
             {error}
           </p>
         )}
-        <div className="library-form-actions">
-          <button type="button" className="studio-secondary" disabled={busy} onClick={onClose}>
-            取消
-          </button>
-          <button type="submit" className="studio-primary" disabled={busy || unchanged}>
-            {busy ? '移动中…' : unchanged ? '已在此项目' : '确认移动'}
-          </button>
-        </div>
       </form>
     </LibraryDialog>
   )

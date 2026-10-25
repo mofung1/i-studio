@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
 import { FavoriteStar } from '@/components/favorite-star'
 import { Check, ChevronLeft, ChevronRight, Images, Maximize2, Plus, Search, X } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
@@ -337,7 +338,7 @@ export function AssetPicker({
       onClose={onClose}
       footer={
         <footer className="asset-picker-footer">
-          <div className="asset-picker-footer-actions">
+          <DialogActions className="asset-picker-footer-actions">
             <span aria-live="polite">
               已选择 {selected.length} / {limit} 张
             </span>
@@ -360,7 +361,7 @@ export function AssetPicker({
             >
               使用所选素材
             </button>
-          </div>
+          </DialogActions>
         </footer>
       }
     >

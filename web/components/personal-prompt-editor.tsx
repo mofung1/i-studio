@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
+import { DialogActions } from './dialog-actions'
 import { LibraryDialog, LibrarySelect } from './library-controls'
 import { libraryRequest } from '@/lib/library'
 import {
@@ -34,6 +35,7 @@ export function PersonalPromptEditor({
   onClose: () => void
   onSaved: (item: PersonalPrompt) => void
 }) {
+  const formId = useId()
   const kind = item?.kind ?? (seed?.config ? 'preset' : 'prompt')
   const [title, setTitle] = useState((item?.title ?? seed?.title ?? '').slice(0, 160))
   const [category, setCategory] = useState(item?.category ?? '')
@@ -159,8 +161,24 @@ export function PersonalPromptEditor({
       }
       onClose={close}
       portalContainer={portalContainer}
+      footer={
+        <DialogActions>
+          <button type="button" className="studio-secondary" disabled={busy} onClick={close}>
+            取消
+          </button>
+          <button
+            form={formId}
+            type="submit"
+            className="studio-primary"
+            disabled={busy || !title.trim() || (kind === 'prompt' && !prompt.trim())}
+          >
+            {busy ? '保存中…' : '保存到我的提示词'}
+          </button>
+        </DialogActions>
+      }
     >
       <form
+        id={formId}
         onSubmit={(event) => {
           event.preventDefault()
           void save()
@@ -434,17 +452,6 @@ export function PersonalPromptEditor({
             </button>
           </div>
         )}
-        <div className="library-form-actions">
-          <button type="button" className="studio-secondary" disabled={busy} onClick={close}>
-            取消
-          </button>
-          <button
-            className="studio-primary"
-            disabled={busy || !title.trim() || (kind === 'prompt' && !prompt.trim())}
-          >
-            {busy ? '保存中…' : '保存到我的提示词'}
-          </button>
-        </div>
       </form>
     </LibraryDialog>
   )

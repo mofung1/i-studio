@@ -48,6 +48,7 @@ export const adminNavigation = [
         title: '公共灵感库',
         icon: BookOpen,
       },
+      { href: '/admin/submissions', title: '用户投稿审核', icon: ShieldCheck },
     ],
   },
   {

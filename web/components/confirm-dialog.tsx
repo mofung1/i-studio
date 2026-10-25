@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
 import { AlertTriangle, Loader2, X } from 'lucide-react'
 import { useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
@@ -78,7 +79,7 @@ export function ConfirmDialog({
             {detail}
           </p>
         )}
-        <div className="confirm-dialog-actions">
+        <DialogActions className="confirm-dialog-actions">
           <button
             type="button"
             className="confirm-dialog-cancel"
@@ -96,7 +97,7 @@ export function ConfirmDialog({
             {busy && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
             {confirmLabel}
           </button>
-        </div>
+        </DialogActions>
       </div>
     </div>,
     container,

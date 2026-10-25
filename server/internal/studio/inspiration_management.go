@@ -10,7 +10,7 @@ import (
 	"github.com/istudio/server/internal/repository"
 )
 
-const inspirationPromptColumns = "id,title,category,prompt,source,image_key,image_width,image_height,sort_order,enabled"
+const inspirationPromptColumns = "id,title,category,prompt,source,image_key,image_width,image_height,sort_order,enabled,COALESCE(submission_id,''),instructions,requires_reference"
 
 type inspirationScanner interface {
 	Scan(dest ...any) error
@@ -19,7 +19,7 @@ type inspirationScanner interface {
 func scanInspirationPrompt(scanner inspirationScanner) (inspirationPromptRow, error) {
 	var row inspirationPromptRow
 	var imageKey string
-	err := scanner.Scan(&row.ID, &row.Title, &row.Category, &row.Prompt, &row.Source, &imageKey, &row.Width, &row.Height, &row.SortOrder, &row.Enabled)
+	err := scanner.Scan(&row.ID, &row.Title, &row.Category, &row.Prompt, &row.Source, &imageKey, &row.Width, &row.Height, &row.SortOrder, &row.Enabled, &row.SubmissionID, &row.Instructions, &row.RequiresReference)
 	if imageKey != "" {
 		row.ImageURL = inspirationImageURL(imageKey)
 	}
@@ -44,6 +44,17 @@ func (s *Service) saveInspirationPrompt(w http.ResponseWriter, r *http.Request, 
 	if s.db == nil {
 		s.error(w, 503, "INSPIRATION_DATABASE_REQUIRED", "灵感提示词管理需要连接 PostgreSQL 数据库")
 		return
+	}
+	if id != "" {
+		var submitted bool
+		if err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM inspiration_prompts WHERE id=$1 AND submission_id IS NOT NULL)", id).Scan(&submitted); err != nil {
+			s.submissionFailure(w, err)
+			return
+		}
+		if submitted {
+			s.error(w, 409, "SUBMISSION_REVIEW_REQUIRED", "用户投稿请在用户投稿审核中处理，修改内容需重新审核")
+			return
+		}
 	}
 	var input inspirationPromptInput
 	if !decode(r, &input) {
@@ -123,6 +134,15 @@ func (s *Service) inspirationPromptByID(w http.ResponseWriter, r *http.Request) 
 		}
 		if s.db == nil {
 			s.error(w, 503, "INSPIRATION_DATABASE_REQUIRED", "灵感提示词管理需要连接 PostgreSQL 数据库")
+			return
+		}
+		var submitted bool
+		if err := s.db.QueryRow("SELECT EXISTS(SELECT 1 FROM inspiration_prompts WHERE id=$1 AND submission_id IS NOT NULL)", id).Scan(&submitted); err != nil {
+			s.submissionFailure(w, err)
+			return
+		}
+		if submitted {
+			s.error(w, 409, "SUBMISSION_REVIEW_REQUIRED", "用户投稿请在用户投稿审核中下架，保留审核与奖励记录")
 			return
 		}
 		result, err := s.db.Exec("DELETE FROM inspiration_prompts WHERE id=$1", id)

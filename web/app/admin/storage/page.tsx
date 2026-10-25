@@ -1,4 +1,5 @@
 'use client'
+import { DialogActions } from '@/components/dialog-actions'
 import { AdminPageHeader } from '@/components/admin/page-header'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
@@ -407,7 +408,7 @@ export default function StoragePage() {
                 存储位置已固定。更换平台、桶或目录时请添加新配置，避免旧图片失效。
               </p>
             )}
-            <footer className="asset-picker-footer">
+            <DialogActions sticky className="asset-picker-footer">
               <Button
                 variant="outline"
                 type="button"
@@ -421,7 +422,7 @@ export default function StoragePage() {
               <Button type="submit" disabled={busy}>
                 {busy ? '保存中…' : '保存配置'}
               </Button>
-            </footer>
+            </DialogActions>
           </form>
         </LibraryDialog>
       )}

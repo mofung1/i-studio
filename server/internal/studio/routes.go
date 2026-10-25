@@ -10,7 +10,12 @@ import (
 
 func (s *Service) router() *gin.Engine {
 	return httpapi.NewRouter(httpapi.Handlers{
-		AuthorizeAdmin: s.authorizeAdmin,
+		InspirationSubmissionSettings:  s.inspirationSubmissionSettings,
+		InspirationSubmissions:         s.inspirationSubmissions,
+		InspirationSubmissionByID:      s.inspirationSubmissionByID,
+		AdminInspirationSubmissions:    s.adminInspirationSubmissions,
+		AdminInspirationSubmissionByID: s.adminInspirationSubmissionByID,
+		AuthorizeAdmin:                 s.authorizeAdmin,
 		ConfigurationChanged: func(r *http.Request, action, target, detail string) {
 			if actor, ok := s.currentAdministrator(r); ok {
 				s.audit(actor.ID, action, target, detail)

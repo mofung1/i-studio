@@ -1,4 +1,5 @@
 'use client'
+import { DialogActions } from '@/components/dialog-actions'
 
 import { GenerationCost, useGenerationCost } from '../generation-cost'
 import { LoaderCircle, Sparkles, X } from 'lucide-react'
@@ -145,7 +146,7 @@ export function ClothingPlanDialog({
       </div>
       <footer className="clothing-plan-footer">
         <GenerationCost {...cost} />
-        <div>
+        <DialogActions>
           <button type="button" className="settings-command" onClick={onClose}>
             返回设置
           </button>
@@ -159,7 +160,7 @@ export function ClothingPlanDialog({
           >
             确认生成 {plan.shots.length} 张
           </button>
-        </div>
+        </DialogActions>
       </footer>
     </dialog>
   )

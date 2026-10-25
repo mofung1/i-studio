@@ -759,3 +759,8 @@
     transition: none;
   }
 }
+
+.marketing-tool-feature-title > span {
+  display: inline-block;
+  max-width: 100%;
+}

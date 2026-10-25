@@ -2,7 +2,6 @@
 
 import { Moon, Sun } from 'lucide-react'
 import { useRef, useState, useSyncExternalStore } from 'react'
-import type { MouseEvent } from 'react'
 
 const storageKey = 'istudio-theme'
 const changeEvent = 'istudio-theme-change'
@@ -28,31 +27,8 @@ function applyTheme(dark: boolean) {
   window.dispatchEvent(new Event(changeEvent))
 }
 
-type ViewTransitionLike = {
-  finished: Promise<void>
-}
-
-type ViewTransitionDocument = Document & {
-  startViewTransition?: (update: () => void) => ViewTransitionLike
-}
-
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-function transitionOrigin(button: HTMLButtonElement) {
-  const rect = button.getBoundingClientRect()
-  const x = rect.left + rect.width / 2
-  const y = rect.top + rect.height / 2
-  const width = window.innerWidth
-  const height = window.innerHeight
-  const radius = Math.max(
-    Math.hypot(x, y),
-    Math.hypot(width - x, y),
-    Math.hypot(x, height - y),
-    Math.hypot(width - x, height - y),
-  )
-  return { x, y, radius }
 }
 
 function addFallbackFade(dark: boolean) {
@@ -89,14 +65,9 @@ export function ThemeToggle() {
   const transitioningRef = useRef(false)
   const label = dark ? '切换至日间模式' : '切换至夜间模式'
 
-  function handleToggle(event: MouseEvent<HTMLButtonElement>) {
+  function handleToggle() {
     if (transitioningRef.current) return
     const next = !getTheme()
-    const origin = transitionOrigin(event.currentTarget)
-    const root = document.documentElement
-    root.style.setProperty('--theme-transition-x', `${origin.x}px`)
-    root.style.setProperty('--theme-transition-y', `${origin.y}px`)
-    root.style.setProperty('--theme-transition-radius', `${origin.radius}px`)
     try {
       localStorage.setItem(storageKey, next ? 'dark' : 'light')
     } catch {
@@ -106,39 +77,16 @@ export function ThemeToggle() {
     transitioningRef.current = true
     setTransitioning(true)
     const reduceMotion = prefersReducedMotion()
-    const viewTransition = (document as ViewTransitionDocument).startViewTransition
-
-    if (!reduceMotion && viewTransition) {
-      let transition: ViewTransitionLike
-      try {
-        transition = viewTransition.call(document, () => applyTheme(next))
-      } catch {
-        applyTheme(next)
-        transitioningRef.current = false
-        setTransitioning(false)
-        return
-      }
-      const cleanup = () => {
-        root.style.removeProperty('--theme-transition-x')
-        root.style.removeProperty('--theme-transition-y')
-        root.style.removeProperty('--theme-transition-radius')
-        transitioningRef.current = false
-        setTransitioning(false)
-      }
-      transition.finished.then(cleanup, cleanup)
-      return
-    }
 
     if (reduceMotion) {
       applyTheme(next)
-      root.style.removeProperty('--theme-transition-x')
-      root.style.removeProperty('--theme-transition-y')
-      root.style.removeProperty('--theme-transition-radius')
       transitioningRef.current = false
       setTransitioning(false)
       return
     }
 
+    // Root view-transition snapshots can swallow clicks even with pointer-events disabled.
+    // Keep the page live beneath a short, non-interactive fade instead.
     const fade = addFallbackFade(next)
     applyTheme(next)
     requestAnimationFrame(() => {
@@ -146,9 +94,6 @@ export function ThemeToggle() {
     })
     window.setTimeout(() => {
       fade.remove()
-      root.style.removeProperty('--theme-transition-x')
-      root.style.removeProperty('--theme-transition-y')
-      root.style.removeProperty('--theme-transition-radius')
       transitioningRef.current = false
       setTransitioning(false)
     }, 240)

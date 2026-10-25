@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
 import Link from 'next/link'
 import { Folder, LoaderCircle, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -433,7 +434,7 @@ export function InspirationCategoryManager({
                 {deleteError}
               </p>
             )}
-            <div className="settings-form-actions">
+            <DialogActions className="settings-form-actions">
               <button
                 type="button"
                 className="settings-command"
@@ -454,7 +455,7 @@ export function InspirationCategoryManager({
                 )}
                 {deleting.count ? '迁移并删除分类' : '删除空分类'}
               </button>
-            </div>
+            </DialogActions>
           </>
         )}
       </dialog>

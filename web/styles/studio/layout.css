@@ -862,8 +862,14 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
     margin-top: 4px;
     padding-top: 6px;
     border-top: 1px solid var(--border-soft);
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: visible;
+  }
+  .workbench-rail .workbench-rail-nav .studio-task-nav :is(a, button) {
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 4px;
   }
   .workbench-rail .studio-rail-footer {
     display: none;
@@ -898,5 +904,22 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .studio-shell:has(.personal-library) .studio-topbar:has(.studio-primary),
+  .mode-commerce .workbench-nav {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .studio-shell:has(.personal-library) .studio-topbar:has(.studio-primary) .studio-breadcrumb,
+  .mode-commerce .workbench-nav .studio-breadcrumb {
+    flex-basis: 100%;
+  }
+  .studio-shell:has(.personal-library) .studio-topbar:has(.studio-primary) .studio-topbar-actions,
+  .mode-commerce .workbench-nav .workbench-nav-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }

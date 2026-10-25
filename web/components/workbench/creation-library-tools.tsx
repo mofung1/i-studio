@@ -1,5 +1,7 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
+
 import { BookMarked, Plus, RotateCcw, Search } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
@@ -204,9 +206,11 @@ export function CreationLibraryTools({
                   </button>
                 )}
               </div>
-              <Link className="creation-library-manage" href={`/prompts?kind=${kind}`}>
-                管理我的提示词与预设
-              </Link>
+              <DialogActions>
+                <Link className="creation-library-manage" href={`/prompts?kind=${kind}`}>
+                  管理我的提示词与预设
+                </Link>
+              </DialogActions>
             </>
           )}
         </LibraryDialog>

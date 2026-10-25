@@ -2,6 +2,7 @@ import { InspirationGallery } from '@/components/inspiration-gallery'
 import { StudioShell } from '@/components/studio-shell'
 import { PromptReverseButton } from '@/components/prompt-reverse-provider'
 import { getSiteBranding } from '@/lib/site-settings-server'
+import Link from 'next/link'
 
 export async function generateMetadata() {
   const { name } = await getSiteBranding()
@@ -18,6 +19,12 @@ export default function InspirePage() {
       title="灵感"
       actions={
         <div className="inspiration-topbar-tools">
+          <Link className="studio-secondary" href="/inspire/submissions">
+            我的投稿
+          </Link>
+          <Link className="studio-primary" href="/inspire/submissions?new=1">
+            分享提示词
+          </Link>
           <PromptReverseButton />
         </div>
       }

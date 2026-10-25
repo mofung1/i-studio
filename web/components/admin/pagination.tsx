@@ -59,47 +59,49 @@ export function AdminPagination({
         disabled={loading}
         onChange={(value) => onPageSizeChange(Number(value))}
       />
-      <span className="admin-page-position">
-        第 {page} / {totalPages} 页
-      </span>
-      <div className="ops-pagination-buttons">
-        <Button
-          variant="outline"
-          type="button"
-          aria-label={`上一页${label}`}
-          disabled={loading || page <= 1}
-          onClick={() => onPageChange(page - 1)}
-        >
-          <ChevronLeft data-icon="inline-start" aria-hidden="true" />
-        </Button>
-        {steps.map((step) =>
-          typeof step === 'number' ? (
-            <Button
-              variant="outline"
-              key={step}
-              type="button"
-              aria-label={`第 ${step} 页${label}`}
-              aria-current={page === step ? 'page' : undefined}
-              disabled={loading}
-              onClick={() => onPageChange(step)}
-            >
-              {step}
-            </Button>
-          ) : (
-            <span key={step} aria-hidden="true">
-              …
-            </span>
-          ),
-        )}
-        <Button
-          variant="outline"
-          type="button"
-          aria-label={`下一页${label}`}
-          disabled={loading || page >= totalPages}
-          onClick={() => onPageChange(page + 1)}
-        >
-          <ChevronRight data-icon="inline-start" aria-hidden="true" />
-        </Button>
+      <div className="admin-pagination-navigation">
+        <span className="admin-page-position">
+          第 {page} / {totalPages} 页
+        </span>
+        <div className="ops-pagination-buttons">
+          <Button
+            variant="outline"
+            type="button"
+            aria-label={`上一页${label}`}
+            disabled={loading || page <= 1}
+            onClick={() => onPageChange(page - 1)}
+          >
+            <ChevronLeft data-icon="inline-start" aria-hidden="true" />
+          </Button>
+          {steps.map((step) =>
+            typeof step === 'number' ? (
+              <Button
+                variant="outline"
+                key={step}
+                type="button"
+                aria-label={`第 ${step} 页${label}`}
+                aria-current={page === step ? 'page' : undefined}
+                disabled={loading}
+                onClick={() => onPageChange(step)}
+              >
+                {step}
+              </Button>
+            ) : (
+              <span key={step} aria-hidden="true">
+                …
+              </span>
+            ),
+          )}
+          <Button
+            variant="outline"
+            type="button"
+            aria-label={`下一页${label}`}
+            disabled={loading || page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+          >
+            <ChevronRight data-icon="inline-start" aria-hidden="true" />
+          </Button>
+        </div>
       </div>
       <form
         className="admin-pagination-jump"

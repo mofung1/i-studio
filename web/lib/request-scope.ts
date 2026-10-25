@@ -1,4 +1,6 @@
 const adminResources = new Set([
+  'inspiration-submissions',
+  'inspiration-submission-settings',
   'overview',
   'monitoring',
   'models',

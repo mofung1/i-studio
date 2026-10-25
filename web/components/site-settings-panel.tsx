@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoaderCircle, RotateCcw, Save, Upload, X } from 'lucide-react'
@@ -285,7 +286,7 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
               {saved}
             </p>
           )}
-          <div className="settings-form-actions">
+          <DialogActions className="settings-form-actions">
             <button
               type="button"
               className="settings-command"
@@ -319,7 +320,7 @@ export function SiteSettingsPanel({ onDirtyChange }: { onDirtyChange: (dirty: bo
               )}
               {saving ? '保存中' : '保存设置'}
             </button>
-          </div>
+          </DialogActions>
         </form>
       )}
     </section>

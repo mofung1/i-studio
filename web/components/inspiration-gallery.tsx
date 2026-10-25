@@ -1,5 +1,6 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
 import { ArrowUpRight, Check, Copy, Image as ImageIcon, RefreshCw, Search, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -277,7 +278,13 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
             </p>
           )}
           <p className="inspiration-dialog-prompt">{selectedPrompt.prompt}</p>
-          <div className="inspiration-dialog-actions">
+          {selectedPrompt.requiresReference && (
+            <p className="library-count">此提示词需要参考图，请按使用说明准备素材。</p>
+          )}
+          {selectedPrompt.instructions && (
+            <p className="submission-full-prompt">使用说明：{selectedPrompt.instructions}</p>
+          )}
+          <DialogActions sticky className="inspiration-dialog-actions">
             <button
               type="button"
               className="studio-secondary"
@@ -307,7 +314,7 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
                 <ArrowUpRight size={15} />
               </Link>
             )}
-          </div>
+          </DialogActions>
         </InfoDialog>
       )}
     </div>

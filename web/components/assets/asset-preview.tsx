@@ -1,5 +1,7 @@
 'use client'
 
+import { DialogActions } from '@/components/dialog-actions'
+
 import { Columns2, Maximize2, Pencil, ScanText, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRef } from 'react'
@@ -99,7 +101,7 @@ export function AssetPreview({
                 <span key={tag}>{tag}</span>
               ))}
             </div>
-            <div className="asset-preview-actions">
+            <DialogActions className="asset-preview-actions">
               {onCompareOriginal && (
                 <button type="button" className="studio-secondary" onClick={onCompareOriginal}>
                   <Columns2 size={15} aria-hidden="true" />
@@ -133,7 +135,7 @@ export function AssetPreview({
                   继续创作
                 </Link>
               )}
-            </div>
+            </DialogActions>
           </aside>
         </div>
       </div>

@@ -19,6 +19,7 @@ import { LibrarySelect } from './library-controls'
 import { ConfirmDialog } from './confirm-dialog'
 import { PersonalPromptEditor } from './personal-prompt-editor'
 import { PersonalPromptApply } from './personal-prompt-apply'
+import { PersonalPromptShare } from './personal-prompt-share'
 import { libraryRequest, mergeLibraryPage } from '@/lib/library'
 import { copyText } from '@/lib/clipboard'
 import { getAccessToken } from '@/lib/api'
@@ -60,6 +61,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
   const [editing, setEditing] = useState<PersonalPrompt | 'new' | null>(null)
   const [applying, setApplying] = useState<PersonalPrompt | null>(null)
   const [deleting, setDeleting] = useState<PersonalPrompt | null>(null)
+  const [sharing, setSharing] = useState<PersonalPrompt | null>(null)
   const [busy, setBusy] = useState('')
   const epoch = useRef(0)
   const params = new URLSearchParams({ kind, limit: '40' })
@@ -252,6 +254,9 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
         {notice && (
           <p className="library-feedback" role="status">
             {notice}
+            {notice === '已提交审核，通过后会在发现灵感中公开。' && (
+              <Link href="/inspire/submissions">查看我的投稿</Link>
+            )}
           </p>
         )}
         {loading ? (
@@ -271,6 +276,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
                   <span>{item.category || '未分类'}</span>
                   {!trash && (
                     <button
+                      className="personal-prompt-icon"
                       aria-label={item.favorite ? `取消收藏 ${item.title}` : `收藏 ${item.title}`}
                       aria-pressed={item.favorite}
                       disabled={!!busy}
@@ -314,34 +320,54 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
                     </button>
                   ) : (
                     <>
-                      <button
-                        aria-label={`复制 ${item.title}`}
-                        title="复制"
-                        disabled={!!busy || !item.prompt}
-                        onClick={() => void action('copy', () => copyText(item.prompt), '已复制')}
-                      >
-                        <Copy size={15} />
-                      </button>
-                      <button
-                        aria-label={`编辑 ${item.title}`}
-                        title="编辑与版本记录"
-                        onClick={() => {
-                          setError('')
-                          setEditing(item)
-                        }}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        aria-label={`删除 ${item.title}`}
-                        title="移入回收站"
-                        onClick={() => setDeleting(item)}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                      <button className="studio-primary" onClick={() => setApplying(item)}>
-                        应用
-                      </button>
+                      <div className="personal-prompt-tools">
+                        <button
+                          className="personal-prompt-icon"
+                          aria-label={`复制 ${item.title}`}
+                          title="复制"
+                          disabled={!!busy || !item.prompt}
+                          onClick={() => void action('copy', () => copyText(item.prompt), '已复制')}
+                        >
+                          <Copy size={15} />
+                        </button>
+                        <button
+                          className="personal-prompt-icon"
+                          aria-label={`编辑 ${item.title}`}
+                          title="编辑与版本记录"
+                          onClick={() => {
+                            setError('')
+                            setEditing(item)
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          className="personal-prompt-icon"
+                          aria-label={`删除 ${item.title}`}
+                          title="移入回收站"
+                          onClick={() => setDeleting(item)}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                      <div className="personal-prompt-actions">
+                        {item.kind === 'prompt' && (
+                          <button
+                            type="button"
+                            className="studio-secondary"
+                            aria-label={`提交分享 ${item.title}`}
+                            onClick={() => {
+                              setError('')
+                              setSharing(item)
+                            }}
+                          >
+                            提交分享
+                          </button>
+                        )}
+                        <button className="studio-primary" onClick={() => setApplying(item)}>
+                          应用
+                        </button>
+                      </div>
                     </>
                   )}
                 </footer>
@@ -387,6 +413,17 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
           </button>
         )}
       </main>
+      {sharing && (
+        <PersonalPromptShare
+          key={`${sharing.id}-${sharing.version}`}
+          source={sharing}
+          onClose={() => setSharing(null)}
+          onSaved={() => {
+            setSharing(null)
+            setNotice('已提交审核，通过后会在发现灵感中公开。')
+          }}
+        />
+      )}
       {editing && (
         <PersonalPromptEditor
           key={editing === 'new' ? 'new' : editing.id}

@@ -5,6 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiBaseUrl } from '@/lib/api'
 
 export interface InspirationPrompt {
+  submissionId?: string
+  instructions?: string
+  requiresReference?: boolean
   id: string
   title: string
   category: string

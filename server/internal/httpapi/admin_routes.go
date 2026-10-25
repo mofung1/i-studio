@@ -8,6 +8,14 @@ import (
 )
 
 func (s Handlers) registerAdminRoutes(admin *gin.RouterGroup) {
+	registerMethods(admin, "/inspiration-submission-settings", s.InspirationSubmissionSettings, "GET", "PUT")
+	admin.GET("/inspiration-submissions", gin.WrapF(s.AdminInspirationSubmissions))
+	admin.GET("/inspiration-submissions/:id", func(c *gin.Context) { s.AdminInspirationSubmissionByID(c.Writer, c.Request, c.Param("id"), "") })
+	admin.GET("/inspiration-submissions/:id/cover", func(c *gin.Context) { s.AdminInspirationSubmissionByID(c.Writer, c.Request, c.Param("id"), "cover") })
+	admin.POST("/inspiration-submissions/:id/review", func(c *gin.Context) { s.AdminInspirationSubmissionByID(c.Writer, c.Request, c.Param("id"), "review") })
+	admin.POST("/inspiration-submissions/:id/unpublish", func(c *gin.Context) {
+		s.AdminInspirationSubmissionByID(c.Writer, c.Request, c.Param("id"), "unpublish")
+	})
 	registerMethods(admin, "/settings", s.AdminSettings, "GET", "PUT")
 	registerMethods(admin, "/storage", s.AdminStorage, "GET", "POST", "PUT")
 	admin.GET("/overview", gin.WrapF(s.AdminOverview))

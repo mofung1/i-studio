@@ -1,4 +1,5 @@
 'use client'
+import { DialogActions } from '@/components/dialog-actions'
 import { AdminPageHeader } from '@/components/admin/page-header'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Field, FieldLabel, FieldLegend, FieldSet } from '@/components/admin/ui/field'
@@ -739,7 +740,7 @@ export default function AISettingsPage() {
                   请先确认模型支持图片输入，再勾选「支持图片识别」。图片反推可单独指定此服务，无需设为默认。
                 </p>
               )}
-              <div className="settings-form-actions">
+              <DialogActions className="settings-form-actions">
                 <Button
                   variant="outline"
                   type="button"
@@ -756,7 +757,7 @@ export default function AISettingsPage() {
                       ? '保存渠道'
                       : '保存服务'}
                 </Button>
-              </div>
+              </DialogActions>
             </form>
           )}
         </DialogContent>
