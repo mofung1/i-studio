@@ -7,6 +7,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 import { useAccount } from './account-provider'
 import { LoginLink } from './login-link'
+import { FeedbackButton } from './feedback-provider'
 import { formatCredits, refreshAccount } from '@/lib/credits'
 
 export function AccountMenu() {
@@ -129,6 +130,13 @@ export function AccountMenu() {
             <Link href="/account" role="menuitem" onClick={() => setMenuOpen(false)}>
               个人中心与余额
             </Link>
+            <FeedbackButton
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false)
+                triggerRef.current?.focus()
+              }}
+            />
             <button type="button" role="menuitem" onClick={logout}>
               <LogOut size={16} aria-hidden="true" />
               退出登录

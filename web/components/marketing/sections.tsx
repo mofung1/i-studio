@@ -10,6 +10,7 @@ import {
   Package,
 } from 'lucide-react'
 import { Brand } from '@/components/brand'
+import { FeedbackButton } from '@/components/feedback-provider'
 import { tools, repositoryUrl, type FaqItem, type MarketingExample } from '@/lib/marketing-content'
 
 const exampleIcons = {
@@ -154,6 +155,7 @@ export function MarketingFooter({ name }: { name: string }) {
         <nav aria-label="产品链接">
           <h2>产品</h2>
           <Link href="/studio">创作工作台</Link>
+          <FeedbackButton className="marketing-feedback" />
           <a href={repositoryUrl} target="_blank" rel="noopener noreferrer">
             GitHub 仓库 <ArrowUpRight size={14} aria-hidden="true" />
           </a>

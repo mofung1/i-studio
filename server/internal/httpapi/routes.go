@@ -25,6 +25,10 @@ func NewRouter(s Handlers) *gin.Engine {
 	api.GET("/health", gin.WrapF(s.Health))
 	api.GET("/operation-settings", gin.WrapF(s.PublicOperationSettings))
 	api.GET("/account", gin.WrapF(s.AccountHandler))
+	api.POST("/feedback", gin.WrapF(s.FeedbackCreate))
+	api.GET("/feedback/:id/images/:position", func(c *gin.Context) {
+		s.FeedbackImage(c.Writer, c.Request, c.Param("id"), c.Param("position"), false)
+	})
 	registerMethods(api, "/account/checkin", s.AccountCheckin, "GET", "POST")
 
 	auth := api.Group("/auth")

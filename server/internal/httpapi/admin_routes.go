@@ -8,6 +8,11 @@ import (
 )
 
 func (s Handlers) registerAdminRoutes(admin *gin.RouterGroup) {
+	admin.GET("/feedback", gin.WrapF(s.AdminFeedback))
+	for _, method := range []string{"GET", "PATCH"} {
+		admin.Handle(method, "/feedback/:id", func(c *gin.Context) { s.AdminFeedbackByID(c.Writer, c.Request, c.Param("id")) })
+	}
+	admin.GET("/feedback/:id/images/:position", func(c *gin.Context) { s.FeedbackImage(c.Writer, c.Request, c.Param("id"), c.Param("position"), true) })
 	registerMethods(admin, "/inspiration-submission-settings", s.InspirationSubmissionSettings, "GET", "PUT")
 	admin.GET("/inspiration-submissions", gin.WrapF(s.AdminInspirationSubmissions))
 	admin.GET("/inspiration-submissions/:id", func(c *gin.Context) { s.AdminInspirationSubmissionByID(c.Writer, c.Request, c.Param("id"), "") })

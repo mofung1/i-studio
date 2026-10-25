@@ -117,7 +117,7 @@
   border-radius: var(--radius-control);
 }
 .studio-rail-nav :is(a, button):focus-visible,
-.studio-rail-footer > a:focus-visible,
+.studio-rail-footer > :is(a, button):focus-visible,
 .studio-new:focus-visible {
   outline-offset: 2px;
 }
@@ -882,7 +882,7 @@ html[data-studio-rail='collapsed'] .studio-rail-toggle {
   .workbench-rail.is-navigation-open .studio-rail-footer {
     display: flex;
   }
-  .workbench-rail .studio-rail-footer > a {
+  .workbench-rail .studio-rail-footer > :is(a, button) {
     display: flex;
     width: 100%;
     min-height: 44px;

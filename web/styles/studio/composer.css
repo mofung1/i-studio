@@ -531,7 +531,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.studio-rail-footer > a:hover {
+.studio-rail-footer > :is(a, button):hover {
   color: var(--foreground);
   background: var(--control-bg);
 }

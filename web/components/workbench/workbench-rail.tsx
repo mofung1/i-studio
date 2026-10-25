@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
 import { Brand } from '@/components/brand'
+import { FeedbackButton } from '@/components/feedback-provider'
 import type { CommerceTaskType } from '@/lib/contracts'
 import { commerceTasks, type WorkbenchMode } from './shared'
 
@@ -262,6 +263,7 @@ export function WorkbenchRail({
         className="studio-rail-footer"
         onClick={() => setNavigationOpen(false)}
       >
+        <FeedbackButton />
         <Link
           href="/account"
           aria-label="个人中心"

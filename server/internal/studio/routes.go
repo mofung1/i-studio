@@ -10,6 +10,10 @@ import (
 
 func (s *Service) router() *gin.Engine {
 	return httpapi.NewRouter(httpapi.Handlers{
+		FeedbackCreate:                 s.feedbackCreate,
+		FeedbackImage:                  s.feedbackImage,
+		AdminFeedback:                  s.adminFeedback,
+		AdminFeedbackByID:              s.adminFeedbackByID,
 		InspirationSubmissionSettings:  s.inspirationSubmissionSettings,
 		InspirationSubmissions:         s.inspirationSubmissions,
 		InspirationSubmissionByID:      s.inspirationSubmissionByID,

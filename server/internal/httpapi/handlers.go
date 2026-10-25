@@ -5,6 +5,10 @@ import "net/http"
 // Handlers supplies application operations to the transport without coupling
 // routing or middleware to database, AI, storage, or billing implementations.
 type Handlers struct {
+	FeedbackCreate                 func(http.ResponseWriter, *http.Request)
+	FeedbackImage                  func(http.ResponseWriter, *http.Request, string, string, bool)
+	AdminFeedback                  func(http.ResponseWriter, *http.Request)
+	AdminFeedbackByID              func(http.ResponseWriter, *http.Request, string)
 	InspirationSubmissionSettings  func(http.ResponseWriter, *http.Request)
 	InspirationSubmissions         func(http.ResponseWriter, *http.Request)
 	InspirationSubmissionByID      func(http.ResponseWriter, *http.Request, string, string)

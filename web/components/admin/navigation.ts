@@ -6,6 +6,7 @@ import {
   Coins,
   Images,
   LayoutDashboard,
+  MessageSquare,
   ScrollText,
   Settings2,
   ShieldCheck,
@@ -54,6 +55,7 @@ export const adminNavigation = [
   {
     title: '系统管理',
     items: [
+      { href: '/admin/feedback', title: '意见反馈', icon: MessageSquare },
       {
         href: '/admin/site',
         title: '网站配置',

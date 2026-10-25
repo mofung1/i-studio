@@ -8,12 +8,14 @@ import { getSeoEnvironment, privateRobots } from '@/lib/seo'
 
 import { AccountProvider } from '@/components/account-provider'
 import { SiteAnnouncement } from '@/components/site-announcement'
+import { FeedbackProvider } from '@/components/feedback-provider'
 import './operations.css'
 import './globals.css'
 import './studio.css'
 import './prompt-reverse.css'
 import './library.css'
 import '../styles/marketing.css'
+import '../styles/feedback.css'
 
 /**
  * 工作台骨架屏渲染前就把配置面板方向定下来：
@@ -51,8 +53,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <body>
         <SiteBrandingProvider initialBranding={branding}>
           <AccountProvider>
-            <PromptReverseProvider>{children}</PromptReverseProvider>
-            <SiteAnnouncement />
+            <FeedbackProvider>
+              <PromptReverseProvider>{children}</PromptReverseProvider>
+              <SiteAnnouncement />
+            </FeedbackProvider>
           </AccountProvider>
         </SiteBrandingProvider>
       </body>

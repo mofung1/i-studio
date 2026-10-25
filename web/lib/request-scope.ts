@@ -1,4 +1,5 @@
 const adminResources = new Set([
+  'feedback',
   'inspiration-submissions',
   'inspiration-submission-settings',
   'overview',
@@ -17,6 +18,7 @@ const adminResources = new Set([
   'inspiration',
 ])
 const frontendResources = new Set([
+  'feedback',
   'account',
   'assets',
   'projects',
