@@ -227,7 +227,8 @@ export default function AISettingsPage() {
   }
   function switchView(next: typeof view) {
     if (next === view) return true
-    if (busy || reverseSaving) return false
+    // Channel checks keep running in this page when their panel is hidden.
+    if (reverseSaving) return false
     if (next === 'reverse') setReverseVisited(true)
     setSaved('')
     setMessage('')
@@ -252,13 +253,21 @@ export default function AISettingsPage() {
           <>
             <Tabs value={view} onValueChange={(value) => switchView(value as typeof view)}>
               <TabsList aria-label="设置分类">
-                <TabsTrigger value="services" disabled={reverseSaving}>
+                <TabsTrigger
+                  value="services"
+                  disabled={reverseSaving}
+                  onClick={() => switchView('services')}
+                >
                   <Settings2 />
                   AI 服务
                 </TabsTrigger>
                 {canManage && (
                   <>
-                    <TabsTrigger value="reverse" disabled={reverseSaving}>
+                    <TabsTrigger
+                      value="reverse"
+                      disabled={reverseSaving}
+                      onClick={() => switchView('reverse')}
+                    >
                       <ScanText />
                       图片反推
                     </TabsTrigger>

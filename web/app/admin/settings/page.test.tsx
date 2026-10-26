@@ -170,9 +170,8 @@ it('switches settings tabs without interruption and retains the reverse draft', 
     const element = [...container.querySelectorAll<HTMLElement>('[role="tab"]')].find(
       (e) => e.textContent === name,
     )!
-    await act(async () =>
-      element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })),
-    )
+    await act(async () => element.click())
+    expect(element.getAttribute('aria-selected')).toBe('true')
   }
   await tab('图片反推')
   const draft = container.querySelector<HTMLInputElement>('[aria-label="反推草稿"]')!
@@ -185,6 +184,30 @@ it('switches settings tabs without interruption and retains the reverse draft', 
   )
   expect(confirm).not.toHaveBeenCalled()
   expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(true)
+})
+it('allows the first tab click while a channel connection check is pending', async () => {
+  let complete!: (result: unknown) => void
+  await act(async () => root.render(<Page />))
+  request.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        complete = resolve
+      }),
+  )
+  await act(async () => button('测试连接').click())
+  const reverse = button('图片反推')
+  expect(reverse.disabled).toBe(false)
+  await act(async () => {
+    reverse.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+    reverse.focus()
+    reverse.click()
+  })
+  expect(reverse.getAttribute('aria-selected')).toBe('true')
+  expect(container.querySelector('[aria-label="反推草稿"]')).not.toBeNull()
+  await act(async () => complete({ success: true, message: '连接成功', responseTimeMs: 12 }))
+  expect(reverse.getAttribute('aria-selected')).toBe('true')
+  await act(async () => button('AI 服务').click())
+  expect(container.textContent).toContain('连接测试通过')
 })
 it('deletes an AI service only after the in-app destructive confirmation', async () => {
   await act(async () => root.render(<Page />))

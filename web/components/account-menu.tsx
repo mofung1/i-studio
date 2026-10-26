@@ -128,7 +128,8 @@ export function AccountMenu() {
             }}
           >
             <Link href="/account" role="menuitem" onClick={() => setMenuOpen(false)}>
-              个人中心与余额
+              <UserRound size={16} aria-hidden="true" />
+              个人中心
             </Link>
             <FeedbackButton
               role="menuitem"
