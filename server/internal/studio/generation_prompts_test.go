@@ -187,6 +187,91 @@ func TestConfiguredModulesAlsoReachPromptEnhancement(t *testing.T) {
 	}
 }
 
+func TestGeneralPromptEnhancementUsesGenerationSettingsWithoutCommerceContext(t *testing.T) {
+	s := testAIStore(t)
+	for key, content := range map[string]string{
+		"image.style.handdrawn":  "仅用蓝色细线与平涂色块，不画写实阴影",
+		"image.reference.low":    "以文字为主，仅借鉴参考配色",
+		"image.reference.medium": "适度保留参考图片的视觉特征",
+		"image.reference.high":   "保持参考人物的脸型与姿态",
+	} {
+		if w := saveTestTemplate(t, s, key, content, true, false); w.Code != 200 {
+			t.Fatal(w.Body.String())
+		}
+	}
+	for _, test := range []struct {
+		name, strength, want string
+		images               int
+	}{
+		{"low", "low", "以文字为主，仅借鉴参考配色", 1},
+		{"medium", "medium", "适度保留参考图片的视觉特征", 1},
+		{"high", "high", "保持参考人物的脸型与姿态", 1},
+		{"legacy default", "", "适度保留参考图片的视觉特征", 1},
+		{"unknown strength", "unknown", "适度保留参考图片的视觉特征", 1},
+		{"text only", "high", "", 0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			original := "保留人物和姿态，变成蓝白插画，右侧写“周末”。"
+			r := newPromptRequestWithFields(t, "token", original, test.images, [][2]string{
+				{"style", "handdrawn"}, {"referenceStrength", test.strength},
+				// Stale commerce options must not turn a general request into an ad.
+				{"taskType", "product-retouch"}, {"platform", "amazon"}, {"outputLanguage", "en"},
+				{"moduleMode", "custom"}, {"modules", "卖点主图×2"},
+			})
+			if err := r.ParseMultipartForm(maxPromptBodySize); err != nil {
+				t.Fatal(err)
+			}
+			defer r.MultipartForm.RemoveAll()
+			system, user, err := s.buildPrompt("prompt", original, r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(user, "仅用蓝色细线与平涂色块") || !strings.HasSuffix(user, original) {
+				t.Fatal("saved style or exact user text missing", user)
+			}
+			if test.want != "" && !strings.Contains(user, test.want) {
+				t.Fatal("wrong reference instruction", user)
+			}
+			if test.images == 0 && strings.Contains(user, "参考要求：") {
+				t.Fatal("text-only input claims to use an image", user)
+			}
+			for _, unwanted := range []string{"本次任务是产品精修", "本次是局部精修", "亚马逊", "文字语言：英文", "卖点主图×2"} {
+				if strings.Contains(system+user, unwanted) {
+					t.Fatal("commerce settings leaked into general optimization", unwanted)
+				}
+			}
+		})
+	}
+}
+
+func TestGeneralPromptEnhancementRespectsDisabledStylesAndStoredReferences(t *testing.T) {
+	s := testAIStore(t)
+	for _, key := range []string{"image.style.studio", "image.reference.high"} {
+		if w := saveTestTemplate(t, s, key, "已停用的视觉要求", false, false); w.Code != 200 {
+			t.Fatal(w.Body.String())
+		}
+	}
+	for _, strength := range []string{"high", "low"} {
+		r := newPromptRequestWithFields(t, "token", "使用已选素材", 0, [][2]string{
+			{"style", "studio"}, {"referenceStrength", strength},
+			{"imagesSources", `[{"assetId":"owned-reference"}]`},
+		})
+		if err := r.ParseMultipartForm(maxPromptBodySize); err != nil {
+			t.Fatal(err)
+		}
+		_, user, err := s.buildPrompt("prompt", "使用已选素材", r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(user, "期望风格：") || strings.Contains(user, "已停用的视觉要求") {
+			t.Fatal("disabled style was injected into optimization", user)
+		}
+		if got := strings.Contains(user, "参考要求："); got != (strength == "low") {
+			t.Fatal("stored reference or disabled reference instruction not respected", user)
+		}
+	}
+}
+
 func TestConfigurableStyleRetouchClothingAndTextInstructions(t *testing.T) {
 	s := testAIStore(t)
 	saved := map[string]string{"image.style.studio": "自定义摄影棚指令", "image.reference.high": "自定义高参考强度", "retouch.background": "只清理墙面", "image.clothing.model": "保持眼镜人物", "clothing.style.natural": "窗边柔和自然光", "module.clothing-set.clothing-model": "展示用户确认的图案", "clothing.pose.1": "人物向右转身", "image.text.language": "文案只使用{{language}}"}

@@ -276,6 +276,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         taskType: isGeneral ? undefined : task,
         platform: isGeneral ? undefined : platform,
         style,
+        referenceStrength: isGeneral && files.length > 0 ? referenceStrength : undefined,
         moduleMode: usesModules ? moduleMode : undefined,
         modules: usesModules
           ? selectedModules.map(({ label, count }) => `${label}×${count}`)

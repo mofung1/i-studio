@@ -169,6 +169,65 @@ func TestLegacyAIImportIsIdempotentAndKeepsTemplates(t *testing.T) {
 	}
 }
 
+func TestRewriteDefaultUpgradePreservesCustomContentAndDisabledState(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		custom  bool
+		enabled bool
+	}{
+		{"default", false, true},
+		{"disabled default", false, false},
+		{"custom", true, true},
+		{"disabled custom", true, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s := testAIStore(t)
+			const oldDefault = "旧版固定栏目优化模板"
+			const custom = "管理员自定义的优化要求"
+			if err := s.ai.withConfig(true, func(state *aiConfiguration) error {
+				for i := range state.Templates {
+					template := &state.Templates[i]
+					if template.Key == "rewrite" {
+						template.Content, template.DefaultContent = oldDefault, oldDefault
+						template.Enabled = test.enabled
+						if test.custom {
+							template.Content = custom
+						}
+					}
+				}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			for range 2 {
+				if err := s.ai.migrateLegacy(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			fresh := &Service{storageRoot: s.storageRoot}
+			fresh.ai = newAIConfigStore(fresh)
+			templates, err := fresh.promptSnapshot()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, template := range templates {
+				if template.Key != "rewrite" {
+					continue
+				}
+				want := promptRewriteSystemPrompt
+				if test.custom {
+					want = custom
+				}
+				if template.Content != want || template.DefaultContent != promptRewriteSystemPrompt || template.Enabled != test.enabled {
+					t.Fatal("optimizer migration lost saved state")
+				}
+				return
+			}
+			t.Fatal("rewrite template missing")
+		})
+	}
+}
+
 func TestAISettingsAuthorizationAndRestoreDefault(t *testing.T) {
 	s := testAIStore(t)
 	input := testEndpointInput("prompt", "openai_chat")

@@ -118,6 +118,32 @@ func TestPromptEnhanceAcceptsTextOrImage(t *testing.T) {
 	}
 }
 
+func TestPromptEnhanceImageTaskFollowsUserGoal(t *testing.T) {
+	for _, test := range []struct {
+		name, text, want, unwanted string
+	}{
+		{"image and edit", "只把背景改成深蓝色，人物别动", "以用户文字中的创作或修改目标为准", "选择一至三项适合该图的具体改进"},
+		{"image only", "", "选择一至三项适合该图的具体改进", "请根据上传的图片完成上面的任务"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			client := &fakePromptClient{reply: "针对参考图的优化指令"}
+			s := &Service{secret: []byte("test-secret"), promptClient: client}
+			token := s.testToken(domain.User{ID: "image-optimizer"})
+			w := httptest.NewRecorder()
+			s.promptEnhance(w, newPromptRequest(t, token, test.text, 1))
+			if w.Code != http.StatusOK || client.images != 1 {
+				t.Fatalf("image optimization failed: %d", w.Code)
+			}
+			if !strings.Contains(client.lastText, test.want) || strings.Contains(client.lastText, test.unwanted) {
+				t.Fatal("image request received the wrong optimization task", client.lastText)
+			}
+			if test.text != "" && !strings.HasSuffix(client.lastText, test.text) {
+				t.Fatal("user's edit goal was changed", client.lastText)
+			}
+		})
+	}
+}
+
 func TestPromptEnhanceAuthAndConfig(t *testing.T) {
 	s := &Service{secret: []byte("test-secret"), promptClient: &fakePromptClient{reply: "x"}}
 	recorder := httptest.NewRecorder()

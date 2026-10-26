@@ -71,6 +71,7 @@ export interface PromptEnhanceInput {
     taskType?: string
     platform?: string
     style?: string
+    referenceStrength?: 'low' | 'medium' | 'high'
     /** 模块模式与已选模块（仅电商主图 / 详情页），用于让 AI 知道这组图要表达什么 */
     moduleMode?: string
     /** 可读模块名（模块名×张数），服务端不认识也能正常展示 */
@@ -134,6 +135,7 @@ export async function enhancePrompt({
   if (context?.taskType) body.append('taskType', context.taskType)
   if (context?.platform) body.append('platform', context.platform)
   if (context?.style) body.append('style', context.style)
+  if (context?.referenceStrength) body.append('referenceStrength', context.referenceStrength)
   if (context?.moduleMode) body.append('moduleMode', context.moduleMode)
   for (const item of context?.modules ?? []) body.append('modules', item)
   for (const item of context?.moduleKeys ?? []) body.append('moduleKeys', item)

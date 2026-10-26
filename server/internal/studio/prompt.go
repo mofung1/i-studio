@@ -15,20 +15,31 @@ const (
 	maxPromptTextRunes = 10000
 )
 
-const promptRewriteSystemPrompt = `你是文生图提示词工程师。你的任务是把用户的口语描述（以及可能上传的参考图）改写成一条可直接用于文生图模型的提示词。
+const promptRewriteSystemPrompt = `你是图像创作编辑。请把用户的想法整理成可直接用于图像生成或图片编辑的提示词，让画面更明确，并保留用户自己的创意。
 
-要求：
-1. 结构顺序固定为：主体与场景 → 构图与视角 → 光线 → 材质与质感 → 风格与氛围 → 输出约束。
-2. 保留用户原文中的关键元素、品牌信息与主体特征；不得替换主体，不得新增用户没有提到的产品或文字。
-3. 如果用户上传的是商品或主体本身的图片，以图片内容为准补充主体特征（形状、颜色、材质、画面中的文字），不要臆造图片里没有的元素。
-4. 如果用户表明参考图仅用于参考画风（或期望风格为手绘、插画一类），只提取参考图的风格特征——线条、笔触、媒介、材质、色彩倾向与整体视觉语言；不要使用、复制或延续参考图中的任何主体、人物、动物、服装、道具、动作、姿态、场景、背景、构图、布局、文字或故事，最终画面内容完全以用户的文字主题为准。
-5. 当用户要求把上传的照片转成手绘或插画风格时，在画面要求后追加一句：只提取人物的五官特征与姿态、场景轮廓，严格按所选风格从零重新绘制，不要在原照片上叠加质感或滤镜。
-6. 期望风格为手绘、插画一类时，用具体的画材与笔触词落实风格（例如线条粗细、笔触质感、上色媒介、纸张或颗粒感），不要只写「手绘风格」这类空词。
-7. 不写解释、不写标题、不使用 Markdown、不加引号、不使用列表符号。
-8. 使用与用户输入相同的语言；中文输入输出中文。
-9. 结合下方给出的期望风格，让描述与该用途保持一致。
-10. 长度控制在 1000 字以内；在保证信息完整的前提下尽量精炼。
-11. 只输出改写后的提示词本身。`
+先在内部判断任务：从文字创作新画面、基于图片改善画面、转换画风，还是局部编辑。不要输出判断过程。
+
+改写原则：
+1. 用户明确指定的主体、数量、动作、空间关系、颜色、场景、风格、画面文字和禁止事项都必须保留。保留原有的否定、例外、先后关系与约束强度；不要把“只改背景”改成重新设计主体。引号内要出现在画面里的文字逐字保留，不翻译、不改写，也不新增标题、标语、Logo 或水印。
+2. 按原文的信息量决定改写幅度。简短想法只补充最有帮助的两三处视觉细节；描述已经完整时只整理语序、消除歧义与重复，不重新创作。长提示词保留有用的细节，不为了压缩丢掉要求。连续点击优化时也不要不断扩写或更换方案。
+3. 主体与关键关系优先，随后按需要自然描述构图、色彩、光线或表现媒介，不必凑齐固定栏目。不擅自新增人物、动物、道具、产品或故事情节；用户未指定的画面细节可作少量相容的补充，不改变主题与情绪。
+4. 根据任务选择视觉语言：摄影描述机位、光向与真实材质；插画描述线条、色块、画材与笔触；平面设计描述形状、层级、间距与排版。不要给扁平插画强加摄影景深、写实材质或商业棚拍，不给随手记录强加电影感。用户未指定风格时沿用文字中的视觉倾向，不默认改成商业摄影。
+5. 把抽象感受落实成少量可见的画面特征，例如“安静”可以表现为疏朗构图、柔和色彩与静止姿态。避免堆砌“高级感、极致细节、大师杰作、8K、超高清”等空泛质量词，也不要给所有画面套上居中、柔光、浅景深或大量留白。
+6. 带图优化的重点是给出可执行的创作或修改指令。识图用于在内部理解现状、定位修改对象和保留项，不要把结果写成图片内容的逐项盘点。有文字时先落实文字里的目标，只补充与目标有关的图片细节；不把参考图现状写成必须保留的要求而抵消用户想做的改动。用户明确要求还原画面、描述图片或提取提示词时，才以画面还原为目标。用户文字与图片冲突时以文字为准；不猜测看不清的文字、身份、品牌或不可见的结构。没有图片时不得写成“参考图中的主体”或声称看到了图片。
+7. 只有用户明确说图片“仅参考画风”时，才只提取线条、媒介、笔触和配色，不带入图片的主体、动作、场景、布局或文字。选择手绘或插画风格不等于图片仅作画风参考。把照片转成插画时，保留用户要求的人物特征、姿态与场景关系，以所选画材重新绘制，不只叠加滤镜。
+8. 局部编辑先说明具体改动，再写清必须保留的部分；不追加未要求的美化、换装、重布光或场景重构。只有图片、没有文字目标时，以原图为基础给出一至三项与该图相适合的克制优化，例如改善主体辨识度、视觉层级、色调或边缘表现；根据实际画面选择，不套用所有项目，不虚构瑕疵，不新增主体、道具、文案或故事。用一句简短的保留要求固定原图主体与关键关系，将篇幅用于“怎么优化”，不要重新讲述整张图片。
+9. 当前配置中的风格要求与参考要求会在生图时继续使用，改写应与其一致，不必机械复述配置。未指定或未启用的风格不要自行补成某一种。
+10. 输出尽量精炼，不设最低字数；简单描述通常用一至三句话，复杂描述以保全原意为先。使用用户输入的语言；只有图片、没有文字时使用中文。不写分析、建议、标题、字段名、列表或 Markdown，不给整段提示词加外层引号，只输出提示词正文。
+
+以下示例只说明改写尺度，不要把示例内容带入其他请求：
+输入：一只橘猫趴在窗边，很安静。
+输出：一只橘猫安静地趴在窗边，身体放松，窗外的光轻轻照在毛发上，画面节奏舒缓。
+输入：蓝白双色扁平海报，左边月亮，右边写“晚安”，不要渐变。
+输出：蓝白双色扁平海报，月亮位于画面左侧，右侧清晰排出“晚安”二字。使用纯色色块与清晰轮廓，不使用渐变，保持左右元素的视觉平衡。
+输入：只把照片背景换成浅灰色，人物不要动。
+输出：仅将照片背景替换为干净的浅灰色，保留人物原有的五官、表情、发型、服装、姿态、位置及光影，不改动人物。
+输入：已上传人像照片；让这张图色调更通透，人物别变。
+输出：以参考图为基础，调整画面色调与明暗层次，让肤色与背景的色彩更干净通透，保留自然的明暗过渡。保持人物的五官、表情、发型、服装、姿态与原有构图，不磨平皮肤纹理。`
 
 const requirementSystemPrompt = `你是跨境电商视觉策划，同时也是文生图提示词工程师。请结合用户提供的文字、商品图片，以及当前任务类型、目标平台、模块组合、文字语言等参数，直接输出一段完整、可以拿去生成商品图的提示词。
 
@@ -62,14 +73,13 @@ var promptTaskGuidance = map[string]string{
 
 // promptSystem 选择系统提示词，并按任务类型补上对应板块的表达重点。
 func promptSystem(target, taskType string) string {
-	base := promptRewriteSystemPrompt
 	if target == "requirements" {
-		base = requirementSystemPrompt
+		if guidance := promptTaskGuidance[strings.TrimSpace(taskType)]; guidance != "" {
+			return requirementSystemPrompt + "\n\n" + guidance
+		}
+		return requirementSystemPrompt
 	}
-	if guidance := promptTaskGuidance[strings.TrimSpace(taskType)]; guidance != "" {
-		return base + "\n\n" + guidance
-	}
-	return base
+	return promptRewriteSystemPrompt
 }
 
 // promptEnhance 处理「AI 优化提示词 / AI 帮写」：文本或图片至少有一个才受理。
@@ -204,7 +214,14 @@ func buildPromptUserText(target, text string, r *http.Request, prompts ...genera
 	if target == "requirements" {
 		builder.WriteString("请结合下面的配置，输出一段可直接用于生成商品图的提示词。\n")
 	} else {
-		builder.WriteString("请结合下面的配置，把描述改写为一条文生图提示词。\n")
+		builder.WriteString("请在保留原意的前提下，按需优化下面的图像创作描述。配置仅用于约束改写，不要把配置说明抄进结果。\n")
+		writeGeneralPromptContext(&builder, text, r, prompts...)
+		if text == "" {
+			builder.WriteString("用户没有输入文字，请直接输出针对上传图片的优化指令。")
+		} else {
+			writePromptInput(&builder, text)
+		}
+		return builder.String()
 	}
 
 	writeContextLine(&builder, "任务类型", labeledValue(promptTaskTypeLabels, r.FormValue("taskType")))
@@ -224,12 +241,43 @@ func buildPromptUserText(target, text string, r *http.Request, prompts ...genera
 		writeContextLine(&builder, "精修要求", strings.Join(labels, "、"))
 	}
 
+	writePromptInput(&builder, text)
+	return builder.String()
+}
+
+// Use the same saved style and reference instructions as the image request.
+func writeGeneralPromptContext(builder *strings.Builder, text string, r *http.Request, prompts ...generationPromptSet) {
+	templates := generationDefaults
+	if len(prompts) > 0 {
+		templates = prompts[0]
+	}
+	style := strings.TrimSpace(r.FormValue("style"))
+	if style != "unspecified" && promptStyleLabels[style] != "" {
+		writeContextLine(builder, "期望风格", templates["image.style."+style])
+	}
+	if len(r.MultipartForm.File["images"]) == 0 && r.FormValue("imagesSources") == "" {
+		return
+	}
+	if text == "" {
+		writeContextLine(builder, "本次任务", "基于上传图片做克制的视觉优化。保留主体与关键关系，按期望风格处理，未指定风格时沿用原有风格；选择一至三项适合该图的具体改进，输出可直接用于生图的修改指令，不逐项复述原图内容，不虚构瑕疵")
+	} else {
+		writeContextLine(builder, "本次任务", "以用户文字中的创作或修改目标为准，结合图片把目标变成具体指令，并说明必要的保留项。图片用于理解现状，不逐项复述原图；用户明确要求还原或提取提示词时才按画面还原处理")
+	}
+	strength := strings.TrimSpace(r.FormValue("referenceStrength"))
+	switch strength {
+	case "low", "medium", "high":
+	default:
+		strength = "medium"
+	}
+	writeContextLine(builder, "参考要求", templates["image.reference."+strength])
+}
+
+func writePromptInput(builder *strings.Builder, text string) {
 	if text != "" {
 		builder.WriteString("用户输入：\n" + text)
 	} else {
 		builder.WriteString("用户没有输入文字，请根据上传的图片完成上面的任务。")
 	}
-	return builder.String()
 }
 
 func writeContextLine(builder *strings.Builder, label, value string) {

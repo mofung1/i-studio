@@ -5,6 +5,39 @@ afterEach(() => {
   localStorage.clear()
   vi.unstubAllGlobals()
 })
+it('forwards the selected reference strength with mixed local and stored images', async () => {
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(new Response(JSON.stringify({ text: '保留人物姿态，改成蓝白插画。' })))
+  vi.stubGlobal('fetch', fetcher)
+  await enhancePrompt({
+    target: 'prompt',
+    text: '保留人物姿态，改成蓝白插画',
+    files: [
+      new File(['image'], 'reference.png', { type: 'image/png' }),
+      {
+        kind: 'asset',
+        assetId: 'owned-reference',
+        name: '人物照片',
+        type: 'image/png',
+        size: 5,
+        width: 1,
+        height: 1,
+        contentPath: '/v1/assets/owned-reference/content',
+        thumbnailPath: '/v1/assets/owned-reference/thumbnail',
+      },
+    ],
+    context: { style: 'handdrawn', referenceStrength: 'high' },
+  })
+  const body = fetcher.mock.calls[0]?.[1]?.body as FormData
+  expect(body.get('style')).toBe('handdrawn')
+  expect(body.get('referenceStrength')).toBe('high')
+  expect(body.getAll('images')).toHaveLength(1)
+  expect(JSON.parse(String(body.get('imagesSources')))).toEqual([
+    { fileIndex: 0 },
+    { assetId: 'owned-reference' },
+  ])
+})
 it('sends authenticated mixed input and surfaces the actionable provider failure', async () => {
   localStorage.setItem('istudio-access-token', 'test-session')
   const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
