@@ -25,3 +25,6 @@ vibe_images
 .codex
 .agents
 docs
+
+# Local deployment backups
+backups

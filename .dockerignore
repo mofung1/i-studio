@@ -28,3 +28,6 @@ test
 .codex
 .agents
 docs
+
+# Local deployment backups
+backups

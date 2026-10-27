@@ -37,3 +37,6 @@ docker/data/
 /test/reports/
 /test/previews/
 /vibe_images/
+
+# Local deployment backups
+/backups/

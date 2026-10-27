@@ -1,12 +1,65 @@
-# 使用 Docker 镜像安装 iStudio
+# 安装部署
 
-应用镜像：`mofugn1/istudio`，同时提供 `linux/amd64` 和 `linux/arm64`。Docker 会按当前电脑架构选择镜像，适用于普通 Intel/AMD 电脑、Linux 服务器和 Apple Silicon 的 Docker Desktop。
+本指南使用仓库根目录的 `compose.yml`。应用、PostgreSQL 与 Redis 使用独立容器，默认仅发布网站 8080 端口；数据库与 Redis 不向宿主机发布端口。
 
-一个应用镜像包含 Next.js 前端、Go API、同源访问网关，以及版本化的公共灵感库。Compose 另行启动 PostgreSQL 和 Redis。目标电脑只需 Docker Engine / Docker Desktop 与 Docker Compose v2，无需安装 Node.js、Go、Python，无需下载源码或构建镜像。
+## 环境要求
 
-## 首次安装
+- Docker Engine 与 Compose v2 或更新版本，或运行 Linux 容器的 Docker Desktop。
+- Linux amd64 / arm64；Docker 自动选择镜像架构。
+- 能访问 Docker Hub。启用 AI 功能还需要能访问所配置的供应商服务。
+- 网站上传与生成图片需要持久存储空间，按实际用量规划。
 
-在一个新的空目录打开终端，可直接从镜像导出 [`compose.yml`](../compose.yml)，再生成随机数据库密码和管理员密码：
+使用发布镜像不需要在宿主机安装 Go、Node.js、PostgreSQL、Redis 或 GPU 驱动。外部 AI 服务由管理员单独配置。
+
+## clone 代码并部署
+
+```sh
+git clone https://github.com/mofung1/i-studio.git
+cd i-studio
+```
+
+仅全新安装执行以下配置生成命令：
+
+```sh
+umask 077
+docker run --rm mofugn1/istudio:latest setup > .env
+```
+
+`.env` 已包含随机数据库密码、随机后台管理员密码和默认端口。可在编辑器中按下表调整；不要把它提交到 Git。
+
+```sh
+docker compose up -d --wait --wait-timeout 180
+docker compose ps
+```
+
+打开 `http://localhost:8080`，后台为 `http://localhost:8080/admin/login`。管理员会在首次启动时自动创建，凭据取自根目录 `.env`，详见 [管理员说明](administrator.md)。
+
+如果是服务器或局域网电脑，将 `localhost` 换成部署机器的 IP，并允许所选网站端口通过该机器的防火墙。
+
+## 手工创建配置
+
+也可复制根目录 `.env.example` 为 `.env`，用编辑器填写新的 `POSTGRES_PASSWORD` 和 `ADMIN_PASSWORD`，确认 `ADMIN_USERNAME` 后再启动。Windows PowerShell 用户可使用此方式；文件保存为 UTF-8。
+
+| 字段                   | 作用                                                             |
+| ---------------------- | ---------------------------------------------------------------- |
+| `ISTUDIO_IMAGE`        | 应用镜像，默认 `mofugn1/istudio:latest`；也可固定已发布版本标签  |
+| `WEB_PORT`             | 宿主机网站端口，默认 `8080`                                      |
+| `BIND_ADDRESS`         | 默认 `0.0.0.0`；仅本机访问或由本机反向代理接入时可设 `127.0.0.1` |
+| `POSTGRES_PASSWORD`    | 新数据库密码，首次初始化数据库时使用                             |
+| `ADMIN_USERNAME`       | 后台管理员用户名，3–32 位小写字母、数字或下划线                  |
+| `ADMIN_PASSWORD`       | 后台管理员密码；建议使用 12–128 位 ASCII 长密码，不含换行        |
+| `INSTALL_INSPIRATION`  | 全新公共库是否导入内置内容，默认 `true`                          |
+| `GENERATION_WORKERS`   | 生成 Worker 数量，默认 `2`                                       |
+| `SITE_ENV`             | 默认 `preview` 阻止搜索收录，正式公开站点可设 `production`       |
+| `NEXT_PUBLIC_SITE_URL` | 正式站点的 HTTPS 根地址，见 [域名与 SEO](seo.md)                 |
+
+密码含 `$`、空格或 `#` 时，使用符合 Compose 规则的单引号值；自动生成的十六进制密码无需额外处理。
+
+已有 PostgreSQL 数据卷初始化后，单独修改 `POSTGRES_PASSWORD` 不会修改数据库内的密码。日常管理员改密只调整 `ADMIN_PASSWORD`，不要顺带重设数据库密码。
+
+## 不下载源码安装
+
+也可以在新的空目录中从镜像导出 Compose：
 
 ```sh
 umask 077
@@ -15,66 +68,40 @@ docker run --rm mofugn1/istudio:latest setup > .env
 docker compose up -d --wait --wait-timeout 180
 ```
 
-`.env` 是当前安装的配置文件，请保存好。管理员用户名为 `admin`，密码是该文件中的 `ADMIN_PASSWORD`；没有通用默认密码。`setup > .env` 只用于新的安装目录，已有安装请保留原文件。
+管理员、数据和后续操作与 clone 安装一致。
 
-也可以复制 [`.env.example`](../.env.example) 为 `.env`，在编辑器里填写新的 `POSTGRES_PASSWORD` 和 12–128 位 `ADMIN_PASSWORD`，然后执行同一条 Compose 启动命令。Windows PowerShell 可使用此方式；使用重定向生成配置时，应将文件保存为 UTF-8。
+## 从源码构建
 
-启动完成后打开：
-
-- 当前电脑：`http://localhost:8080`
-- 同一局域网其他电脑：`http://这台电脑的IP:8080`
-- 后台：`http://localhost:8080/admin/login`
-
-端口由 `.env` 的 `WEB_PORT` 控制。只需本机访问时设 `BIND_ADDRESS=127.0.0.1`。数据库和 Redis 不对宿主机发布端口。应用浏览器请求使用同源 `/v1/`，无需为不同 IP、端口或域名重新构建前端。
-
-## 首次初始化与后续升级
-
-当前镜像内置 798 条公共提示词、13 个分类和 798 张封面。首次启动自动迁移数据库、校验并复制封面、创建灵感库及独立后台管理员。原仓库图片仍保存在 `server/storage/uploads/inspiration/`，构建时从这个原目录复制进镜像，没有移动到其他种子图片目录。
-
-每个数据库只初始化公共库一次。重启、重建容器或换新镜像会保留已编辑、停用和删除的条目；接入已有公共库时也不会合并覆盖。新镜像增加的内置条目不会自动写入已有站点，需按对应增量批次有选择地导入。全新站点不需要内置灵感时，在第一次启动前设置 `INSTALL_INSPIRATION=false`。
-
-镜像只携带公共内容，不携带开发电脑的账号、积分、用户上传、私人作品、AI 服务配置或密钥。AI 地址、密钥、模型和价格在新站后台配置；前台注册的用户仍为普通用户。
-
-升级：
-
-```sh
-docker compose pull
-docker compose up -d --wait --wait-timeout 180
-```
-
-需要固定版本时，在 `.env` 把 `ISTUDIO_IMAGE` 从 `mofugn1/istudio:latest` 改为对应版本标签，再执行上述命令。数据库迁移随应用执行；升级前应先备份，旧版本不保证兼容新版本迁移后的数据库。
-
-查看状态和日志、停止服务：
-
-```sh
-docker compose ps
-docker compose logs --tail 100 app
-docker compose down
-```
-
-数据库、Redis 和上传/生成图片使用当前 Compose 项目的命名卷持久化。普通 `down` 保留数据；不要对需要保留的安装执行 `down -v`。备份至少包括 `.env`、PostgreSQL 导出和 `uploads` 数据卷，后者也保存应用自动生成的签名及配置加密密钥。
-
-公网服务应由现有反向代理提供 HTTPS，并转发到宿主机的 `WEB_PORT`。需要网站收录时设置 `SITE_ENV=production` 和 `NEXT_PUBLIC_SITE_URL=https://你的域名`，重建应用容器即可；默认 `preview` 阻止搜索收录。
-
-## 构建与发布
-
-维护者更新公开灵感内容后，重新导出版本化清单：
-
-```sh
-python3 scripts/prepare-image-catalog.py
-```
-
-这一步只读查询本地公共库，输出 `server/seed/inspiration-catalog.json` 和封面校验值；不复制或迁移图片。清单只保留公开字段，拒绝云存储、跨目录路径和符号链接。公共清单与原图片目录一起提交。
-
-本机构建当前架构并验证：
+根目录 Compose 使用 `image:`，不会因为增加 `--build` 就自动构建源码。先在仓库根目录构建应用镜像：
 
 ```sh
 docker buildx build -f docker/image.Dockerfile -t istudio:local --load .
-python3 scripts/test-docker-image.py --image istudio:local
 ```
 
-验收脚本使用随机项目名、独立数据卷和仅本机访问的端口，检查公共图片、管理员登录、升级保留和进程故障恢复；结束后仅清理自己的测试项目，不调用收费 AI。
+全新安装可继续执行：
 
-GitHub Actions 的 `Publish Docker image` 提供手动发布。在仓库 Actions 配置变量 `DOCKERHUB_USERNAME` 和密钥 `DOCKERHUB_TOKEN`，手动选择 Docker Hub 镜像名与版本标签后，同时构建并推送 amd64、arm64。凭据不写入仓库或镜像。参照 [Docker 官方多架构构建说明](https://docs.docker.com/build/ci/github-actions/multi-platform/)。
+```sh
+umask 077
+docker run --rm istudio:local setup istudio:local > .env
+docker compose up -d --wait --wait-timeout 180
+```
 
-原有 `docker/docker-compose.yml` 继续用于本地开发，`docker/compose.production.yml` 和 `docker/compose.baota.yml` 保留现有部署用途；根目录 `compose.yml` 专用于镜像安装，使用独立项目名和命名卷。
+已有站点请保留原 `.env`，仅将 `ISTUDIO_IMAGE` 改为 `istudio:local`，再运行：
+
+```sh
+docker compose up -d --no-deps --force-recreate --wait --wait-timeout 180 app
+```
+
+源码构建需要联网下载构建镜像和依赖；Docker 会在构建环境内编译前后端，无需宿主机安装语言工具链。
+
+## 首次初始化
+
+应用会自动执行数据库迁移，创建配置指定的管理员，并向全新公共库导入 798 条提示词和 798 张封面。账号、余额、个人作品和 AI 配置均属于当前安装，不从其他站点复制。
+
+公共库只初始化一次。重启或更新镜像会保留管理员对条目的编辑、停用和删除；新版本增加的公共内容不会自动覆盖已有库。
+
+## 下一步
+
+- [登录并维护管理员](administrator.md)
+- [配置 AI、模型、积分和网站](configuration.md)
+- [备份、升级与常见问题](operations.md)
