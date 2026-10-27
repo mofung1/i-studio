@@ -16,7 +16,6 @@
       "disclosure": "AI 视觉概念示例；在上一版主视觉基础上重绘为高分辨率版本。",
       "generator": {
         "model": "gemini-3-pro-image-preview",
-        "taskId": "31de4a35b66901272f451134339e64f4",
         "resolution": "4K"
       }
     },

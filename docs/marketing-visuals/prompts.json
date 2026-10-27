@@ -79,7 +79,6 @@
       "model": "gemini-3-pro-image-preview",
       "resolution": "4K",
       "aspectRatio": "16:9",
-      "taskId": "31de4a35b66901272f451134339e64f4",
       "referenceId": "ai-story-city-sunny",
       "prompt": "Recreate this exact scene at ultra high resolution as a premium website hero: the same butter-yellow handmade miniature robot on a mint-green scooter carrying tiny art canvases through a sunlit Mediterranean seaside town, warm peach houses, teal shutters, flowers, turquoise sea and distant sailboat. Preserve the left third as calm shaded teal sea and hills for white website text. Match the charming handcrafted miniature 3D aesthetic with tactile clay and painted resin, soft cinematic depth of field, warm afternoon light. Keep composition identical. No text, letters, logos, watermark, UI or borders.",
       "output": "5504×3072 原始 PNG，发布裁切为 3328×1872 WebP"

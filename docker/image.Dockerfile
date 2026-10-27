@@ -27,6 +27,7 @@ ARG VCS_REF=unknown
 LABEL org.opencontainers.image.title="iStudio" \
       org.opencontainers.image.description="iStudio web, API and gateway with the public inspiration library" \
       org.opencontainers.image.source="https://github.com/mofung1/i-studio" \
+      org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.revision=$VCS_REF
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 \
@@ -42,6 +43,9 @@ COPY --from=gateway /usr/bin/caddy /usr/local/bin/caddy
 COPY --from=gateway /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY server/seed/inspiration-catalog.json /opt/istudio/inspiration/catalog.json
 COPY server/storage/uploads/inspiration/ /opt/istudio/inspiration/images/
+COPY LICENSE /opt/istudio/licenses/istudio-LICENSE
+COPY server/seed/awesome-gpt-image-2/LICENSE /opt/istudio/licenses/awesome-gpt-image-2-LICENSE
+COPY server/seed/awesome-gpt-image-2/README.md /opt/istudio/licenses/awesome-gpt-image-2-README.md
 COPY server/seed/evolink/LICENSE /opt/istudio/licenses/evolink-LICENSE
 COPY server/seed/handraw/LICENSE /opt/istudio/licenses/handraw-LICENSE
 COPY server/seed/evolink/README.md /opt/istudio/licenses/evolink-README.md

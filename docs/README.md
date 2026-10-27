@@ -1,4 +1,4 @@
-# 使用文档
+# 项目文档
 
 首次部署按以下顺序阅读：
 
@@ -20,3 +20,9 @@
 除专门说明外，命令均在仓库根目录执行，使用根目录 `compose.yml`。该部署方式的网站默认端口为 8080，应用服务名为 `app`，管理员在 `/admin/login` 登录。
 
 仓库中的 `docker/docker-compose.yml`、`docker/compose.production.yml` 和 `docker/compose.baota.yml` 是其他环境的独立配置，与根目录配置的服务名、端口和数据卷不同。首次部署按本文档使用根目录配置即可。
+
+参与开发：
+
+- [本地开发与测试](development.md)：工具版本、开发服务、测试数据库和检查命令。
+- [贡献指南](../CONTRIBUTING.md)：问题反馈、提交范围及公共素材要求。
+- [开源准备检查](open-source-audit.md)：已整理的内容、许可说明及后续社区文档待办。

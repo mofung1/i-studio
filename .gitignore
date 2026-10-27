@@ -12,17 +12,37 @@ server/server
 server/api-go
 server/bin/
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
-docker/.env.production
-docker/.env.baota
+!.env.*.example
 docker/data/
 .DS_Store
+
+# 本地日志、数据库导出和私钥；SQL 迁移及配置示例继续跟踪。
+*.log
+*.pid
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
+*.dump
+*.backup
+*.sql.gz
+*.pem
+*.key
+*.p12
+*.pfx
+*.bak
+*.orig
+*.swp
+*~
 
 # 运行时上传和生成图片保持忽略；公共灵感库图片在原目录跟踪
 /server/storage/uploads/*
 !/server/storage/uploads/inspiration/
+# 站点审核通过的投稿也是运行数据，不自动成为随软件分发的内置素材。
+/server/storage/uploads/inspiration/community/
 
 # 测试截图、真实出图、识图原始结果和覆盖率报告，仅保存在本地。
 /test/artifacts/

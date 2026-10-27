@@ -132,5 +132,17 @@ docker compose up -d --wait --wait-timeout 180
 - [对象存储与 CDN](docs/object-storage.md)
 - [域名与 SEO](docs/seo.md)
 - [公共内容与来源许可](docs/assets.md)
+- [本地开发与测试](docs/development.md)
+- [贡献指南](CONTRIBUTING.md)
 
-公共提示词及图片来源保留各自授权与署名；[handraw-style 许可](server/seed/handraw/LICENSE) 和 [EvoLink 许可](server/seed/evolink/LICENSE) 随仓库提供。
+## 许可证与致谢
+
+项目原创代码采用 [MIT 许可证](LICENSE)，版权声明为 Copyright (c) 2026 mofung1。
+
+公共提示词及图片保留各自来源的许可与署名，感谢以下项目：
+
+- [freestylefly/awesome-gpt-image-2](https://github.com/freestylefly/awesome-gpt-image-2)：早期 549 条案例集合，附 [MIT 许可副本](server/seed/awesome-gpt-image-2/LICENSE) 与 [来源说明](server/seed/awesome-gpt-image-2/README.md)。
+- [yang0/handraw-style](https://github.com/yang0/handraw-style)：101 条风格提示词批次，附 [许可副本](server/seed/handraw/LICENSE)。
+- [EvoLink 图片提示词](https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts)：148 条提示词批次，附 [CC0-1.0 许可副本](server/seed/evolink/LICENSE)。
+
+详细适用范围见 [公共内容与来源许可](docs/assets.md)，项目整理进度见 [仓库检查记录](docs/open-source-audit.md)。

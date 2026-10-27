@@ -10,6 +10,17 @@
 **/*.tsbuildinfo
 **/.DS_Store
 **/*.log
+**/*.pid
+**/*.db
+**/*.sqlite*
+**/*.dump
+**/*.backup
+**/*.sql.gz
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.bak
 **/.env*
 docker/data
 server/bin
@@ -17,6 +28,7 @@ server/server
 server/api-go
 server/storage/uploads/*
 !server/storage/uploads/inspiration/
+server/storage/uploads/inspiration/community/
 test
 vibe_images
 
