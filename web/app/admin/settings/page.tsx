@@ -1,6 +1,7 @@
 'use client'
 import { DialogActions } from '@/components/dialog-actions'
 import { AdminPageHeader } from '@/components/admin/page-header'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Field, FieldLabel, FieldLegend, FieldSet } from '@/components/admin/ui/field'
 import { Input } from '@/components/admin/ui/input'
@@ -89,7 +90,7 @@ export default function AISettingsPage() {
   const [loading, setLoading] = useState(true)
   const [loggedIn, setLoggedIn] = useState(true)
   const [message, setMessage] = useState('')
-  const [saved, setSaved] = useState('')
+  const [saved, setSaved] = useTransientMessage()
   const [busy, setBusy] = useState('')
   const [editing, setEditing] = useState<{ id?: string; input: EndpointInput } | null>(null)
   const [tests, setTests] = useState<

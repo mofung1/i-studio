@@ -1,6 +1,7 @@
 'use client'
 import { DialogActions } from '@/components/dialog-actions'
 import { AdminPageHeader } from './admin/page-header'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 
 import Link from 'next/link'
 import {
@@ -53,7 +54,7 @@ export function InspirationPromptManager() {
   const [refresh, setRefresh] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useTransientMessage()
   const [editing, setEditing] = useState<{
     item?: ManagedInspirationPrompt
     draft: InspirationPromptInput

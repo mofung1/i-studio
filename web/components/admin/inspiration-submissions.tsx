@@ -1,4 +1,5 @@
 'use client'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 
 import { useEffect, useRef, useState } from 'react'
 import { useAdminAccount } from '@/components/account-provider'
@@ -270,7 +271,7 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useTransientMessage()
   const [detail, setDetail] = useState<SubmissionDetail | null>(null)
   const alive = useRef(true)
   const detailPending = useRef(false)

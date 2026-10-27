@@ -2,6 +2,7 @@
 import { AdminPageHeader } from './admin/page-header'
 import { useActionConfirmation } from './use-action-confirmation'
 import { getAdminAccessToken } from '@/lib/api'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
@@ -70,7 +71,7 @@ export function AdminDashboard({
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [success, setSuccess] = useTransientMessage()
   const [editing, setEditing] = useState<Model | null>(null)
   const [price, setPrice] = useState('0')
   const [adjusting, setAdjusting] = useState<Member | null>(null)

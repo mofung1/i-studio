@@ -1,6 +1,7 @@
 'use client'
 import { DialogActions } from '@/components/dialog-actions'
 import { AdminPageHeader } from '@/components/admin/page-header'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
 
@@ -62,7 +63,7 @@ export default function StoragePage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [editorError, setEditorError] = useState('')
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useTransientMessage()
   const load = useCallback(async () => {
     const data = await adminRequest<{ activeProfile: string; profiles: Profile[] }>('storage')
     setProfiles(data.profiles)

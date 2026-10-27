@@ -120,6 +120,10 @@ it('keeps balance retries idempotent and starts a new adjustment after editing',
   await change(inputs[1]!, '测试发放')
   await submit(editor().querySelector('form')!)
   expect(container.querySelector('[role="alert"]')?.textContent).toContain('连接中断')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(5000)
+  })
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('连接中断')
   await submit(editor().querySelector('form')!)
   expect(submissions[0]!.requestKey).toBeTruthy()
   expect(submissions[1]).toEqual(submissions[0])
@@ -168,6 +172,11 @@ it('submits precise model pricing and clears the default flag when taking it off
     isDefault: false,
   })
   expect(container.querySelector('[aria-label="编辑前台模型"]')).toBeNull()
+  expect(container.querySelector('.settings-saved')?.textContent).toBe('已保存')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(4000)
+  })
+  expect(container.querySelector('.settings-saved')).toBeNull()
 })
 
 it('keeps search focused while loading and ignores an older search response', async () => {

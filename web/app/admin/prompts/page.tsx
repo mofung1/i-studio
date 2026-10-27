@@ -1,4 +1,5 @@
 'use client'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 import { AdminPageHeader } from '@/components/admin/page-header'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -26,7 +27,7 @@ export default function AdminPromptsPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
-  const [saved, setSaved] = useState('')
+  const [saved, setSaved] = useTransientMessage()
   const [attempt, setAttempt] = useState(0)
   const activeTemplate = templates.find((template) => template.key === selectedKey)
   const promptDefault = activeTemplate?.defaultContent ?? ''

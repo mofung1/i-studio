@@ -1,6 +1,7 @@
 'use client'
 
 import { DialogActions } from '@/components/dialog-actions'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoaderCircle, RotateCcw, Save, Upload, X } from 'lucide-react'
@@ -32,7 +33,7 @@ export function SiteSettingsPanel({
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [saved, setSaved] = useState('')
+  const [saved, setSaved] = useTransientMessage()
   const [reload, setReload] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
   const dirty =

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 import {
   ArrowUpRight,
   Check,
@@ -60,7 +61,7 @@ export function PromptReverseSettingsPanel({
   const [original, setOriginal] = useState<SettingsDraft | null>(null)
   const [configuration, setConfiguration] = useState<ReverseConfiguration | null>(null)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useTransientMessage()
   const [saving, setSaving] = useState(false)
   const [loadAttempt, setLoadAttempt] = useState(0)
   const choices = endpoints.filter(

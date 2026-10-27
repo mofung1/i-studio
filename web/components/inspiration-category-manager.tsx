@@ -1,6 +1,7 @@
 'use client'
 
 import { DialogActions } from '@/components/dialog-actions'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 import Link from 'next/link'
 import { Folder, LoaderCircle, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -43,7 +44,7 @@ export function InspirationCategoryManager({
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null)
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useTransientMessage()
   const [deleting, setDeleting] = useState<ManagedInspirationCategory | null>(null)
   const [moveToId, setMoveToId] = useState('')
   const [deleteError, setDeleteError] = useState('')
