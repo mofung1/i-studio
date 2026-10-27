@@ -47,7 +47,7 @@ docker compose ps
 | `BIND_ADDRESS`         | 默认 `0.0.0.0`；仅本机访问或由本机反向代理接入时可设 `127.0.0.1` |
 | `POSTGRES_PASSWORD`    | 新数据库密码，首次初始化数据库时使用                             |
 | `ADMIN_USERNAME`       | 后台管理员用户名，3–32 位小写字母、数字或下划线                  |
-| `ADMIN_PASSWORD`       | 后台管理员密码；建议使用 12–128 位 ASCII 长密码，不含换行        |
+| `ADMIN_PASSWORD`       | 后台管理员密码，6–128 位 ASCII 字符，不含换行                     |
 | `INSTALL_INSPIRATION`  | 全新公共库是否导入内置内容，默认 `true`                          |
 | `GENERATION_WORKERS`   | 生成 Worker 数量，默认 `2`                                       |
 | `SITE_ENV`             | 默认 `preview` 阻止搜索收录，正式公开站点可设 `production`       |

@@ -32,6 +32,10 @@ func ValidUsername(value string) bool {
 	return true
 }
 
+func ValidAdministratorPassword(value string) bool {
+	return len(value) >= 6 && len(value) <= 128 && strings.TrimSpace(value) != "" && !strings.ContainsAny(value, "\x00\r\n")
+}
+
 func HashPassword(password string) string {
 	salt := make([]byte, 16)
 	_, _ = rand.Read(salt)

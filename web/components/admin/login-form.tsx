@@ -94,12 +94,12 @@ export function LoginForm() {
                     type="password"
                     autoComplete="current-password"
                     required
-                    minLength={8}
+                    minLength={6}
                     maxLength={128}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={busy}
-                    placeholder="输入管理员密码"
+                    placeholder="6–128 位"
                   />
                 </Field>
                 {error && (

@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { LoginForm } from './login-form'
+import { LoginForm as AdminLoginForm } from './admin/login-form'
 
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }))
 vi.mock('@/components/theme-toggle', () => ({ ThemeToggle: () => <button>主题</button> }))
@@ -35,6 +36,8 @@ it('lets users reveal and hide the password without submitting or changing autof
   const toggle = container.querySelector<HTMLButtonElement>('.auth-password-toggle')!
   expect(input.type).toBe('password')
   expect(input.autocomplete).toBe('current-password')
+  expect(input.minLength).toBe(8)
+  expect(input.placeholder).toBe('8–128 位')
   expect(input.labels?.[0]?.textContent).toBe('密码')
   expect(toggle.type).toBe('button')
   expect(toggle.getAttribute('aria-label')).toBe('显示密码')
@@ -62,16 +65,21 @@ it('hides the password again when switching to registration and preserves new-pa
   const input = container.querySelector<HTMLInputElement>('input[name="password"]')!
   expect(input.type).toBe('password')
   expect(input.autocomplete).toBe('new-password')
+  expect(input.minLength).toBe(8)
   expect(container.querySelector('.auth-password-toggle')?.getAttribute('aria-pressed')).toBe(
     'false',
   )
 })
 
-it('keeps the admin login password field unchanged and has no reveal control', async () => {
-  await act(async () => root.render(<LoginForm admin />))
+it('allows six-character admin passwords and has no reveal control', async () => {
+  await act(async () => root.render(<AdminLoginForm />))
+  expect(container.querySelector('form#admin-login')).not.toBeNull()
   const input = container.querySelector<HTMLInputElement>('input[name="admin-password"]')!
   expect(input.type).toBe('password')
   expect(input.autocomplete).toBe('current-password')
+  expect(input.minLength).toBe(6)
+  expect(input.maxLength).toBe(128)
+  expect(input.placeholder).toBe('6–128 位')
   expect(container.querySelector('.auth-password-toggle')).toBeNull()
   expect(container.querySelector('.auth-page-public')).toBeNull()
   expect(fetchMock).not.toHaveBeenCalled()

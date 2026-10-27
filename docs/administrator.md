@@ -9,7 +9,7 @@
 - `ADMIN_USERNAME`：默认 `admin`，可改成自己的用户名。
 - `ADMIN_PASSWORD`：由 `setup` 随机生成的密码，可在首次启动前替换。
 
-用户名使用 3–32 位小写字母、数字或下划线。密码使用 12–128 位 ASCII 长密码，不含换行。手工复制 `.env.example` 时，必须补全管理员密码和数据库密码，不能留空启动。
+用户名使用 3–32 位小写字母、数字或下划线。密码使用 6–128 位 ASCII 字符，不含换行。手工复制 `.env.example` 时，必须补全管理员密码和数据库密码，不能留空启动。
 
 ```sh
 docker compose up -d --wait --wait-timeout 180
@@ -39,6 +39,18 @@ docker compose up -d --no-deps --force-recreate --wait --wait-timeout 180 app
 应用按环境绑定更新同一个管理员身份，旧后台会话立即失效；使用新凭据重新登录。前台账号、素材和余额不受影响。
 
 单纯运行 `docker compose restart app` 不会重新读取修改后的 Compose 环境变量。更改配置后使用上述 `up` 命令。
+
+### 宝塔分容器部署
+
+当前腾讯云站点将 `/www/istudio/docker/.env.baota` 只读挂载到 API 的工作目录，每次启动时直接读取管理员用户名和密码。在该文件修改 `ADMIN_PASSWORD` 并保存后，直接在宝塔中重启 `i-studio-baota-api-1`，或执行：
+
+```sh
+docker restart i-studio-baota-api-1
+```
+
+管理员改密后，旧后台会话失效，随后使用新密码登录。端口、数据库连接和挂载等 Compose 部署参数仍需重新创建容器；此重启改密方式适用于上述宝塔分容器配置。
+
+已有的旧宝塔部署需要先应用工作目录、只读文件挂载和管理员环境变量的配置变更，重新创建一次 API 容器，之后日常改密只需重启。不要另外给容器设置 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 环境变量，否则它们会优先于文件生效。
 
 用户名不能改成另一个已存在管理员的用户名。首次把环境配置绑定到已有管理员时，需要提供其当前密码；程序不会覆盖一个无关账号的密码。
 

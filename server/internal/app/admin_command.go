@@ -38,8 +38,8 @@ func runAdminCommand(args []string) int {
 		}
 		password = strings.TrimSuffix(strings.TrimSuffix(string(raw), "\n"), "\r")
 	}
-	if len(password) < 12 || len(password) > 128 || strings.ContainsAny(password, "\x00\r\n") || strings.TrimSpace(password) == "" {
-		fmt.Fprintln(os.Stderr, "请通过 ADMIN_PASSWORD 或 --password-stdin 提供 12–128 位后台密码")
+	if !authn.ValidAdministratorPassword(password) {
+		fmt.Fprintln(os.Stderr, "请通过 ADMIN_PASSWORD 或 --password-stdin 提供 6–128 位后台密码，且不能包含换行")
 		return 2
 	}
 	db, err := database.Open(runtimeconfig.Env("DATABASE_URL", ""))

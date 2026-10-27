@@ -47,9 +47,10 @@ services:
 
   api:
     <<: *service-defaults
-    image: istudio-api:cloud-amd64
+    image: istudio-api:admin-six-amd64
     pull_policy: never
     mem_limit: 224m
+    working_dir: /run/istudio
     environment:
       API_HOST: 0.0.0.0
       API_PORT: 4000
@@ -57,14 +58,18 @@ services:
       REDIS_URL: redis://redis:6379
       STORAGE_ROOT: /data/uploads
       WEB_ORIGINS: ${APP_ORIGIN:-http://127.0.0.1:33000}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       GOMEMLIMIT: 160MiB
       AUTH_TRUSTED_PROXY_CIDRS: ${PROXY_SUBNET:-172.29.241.0/24}
       GENERATION_WORKERS: 1
       GENERATION_POLL_TIMEOUT_SECONDS: 600
     volumes:
       - ./data/uploads:/data/uploads
+      - type: bind
+        source: ./.env.baota
+        target: /run/istudio/.env
+        read_only: true
+        bind:
+          create_host_path: false
     networks: [private, proxy]
     depends_on:
       postgres:
@@ -79,7 +84,7 @@ services:
 
   web:
     <<: *service-defaults
-    image: istudio-web:cloud-unoptimized-amd64
+    image: istudio-web:admin-six-form-amd64
     pull_policy: never
     mem_limit: 192m
     environment:

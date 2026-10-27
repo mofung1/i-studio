@@ -39,7 +39,7 @@ func (s *Service) adminLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct{ Username, Password string }
-	if !decode(r, &input) || !authn.ValidUsername(strings.ToLower(strings.TrimSpace(input.Username))) || len(input.Password) < 8 || len(input.Password) > 128 {
+	if !decode(r, &input) || !authn.ValidUsername(strings.ToLower(strings.TrimSpace(input.Username))) || !authn.ValidAdministratorPassword(input.Password) {
 		s.error(w, 400, "AUTH_INPUT_INVALID", "请填写有效的管理员用户名和密码")
 		return
 	}

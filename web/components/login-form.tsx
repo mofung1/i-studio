@@ -127,12 +127,12 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
               type={!admin && passwordVisible ? 'text' : 'password'}
               autoComplete={register ? 'new-password' : 'current-password'}
               required
-              minLength={8}
+              minLength={admin ? 6 : 8}
               maxLength={128}
               disabled={isSubmitting}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="8–128 位"
+              placeholder={admin ? '6–128 位' : '8–128 位'}
             />
             {!admin && (
               <button

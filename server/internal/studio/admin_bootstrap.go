@@ -30,8 +30,8 @@ func readEnvironmentAdminConfig() (environmentAdminConfig, error) {
 	if !authn.ValidUsername(c.Username) {
 		return c, errors.New("ADMIN_USERNAME 需为 3–32 位字母、数字或下划线")
 	}
-	if len(c.Password) < 12 || len(c.Password) > 128 || strings.TrimSpace(c.Password) == "" || strings.ContainsAny(c.Password, "\x00\r\n") {
-		return c, errors.New("ADMIN_PASSWORD 需为 12–128 位，且不能包含换行")
+	if !authn.ValidAdministratorPassword(c.Password) {
+		return c, errors.New("ADMIN_PASSWORD 需为 6–128 位，且不能包含换行")
 	}
 	return c, nil
 }

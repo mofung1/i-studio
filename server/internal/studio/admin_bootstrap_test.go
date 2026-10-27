@@ -31,13 +31,17 @@ func findEnvironmentTestAdmin(t *testing.T, s *Service, name string) domain.User
 }
 func TestEnvironmentAdministratorCreatesOnceWithoutWallet(t *testing.T) {
 	s := environmentAdminTestServer(t)
-	setTestEnvironmentAdmin(t, "Studio_Admin", "Fixture-secret-1234")
+	setTestEnvironmentAdmin(t, "Studio_Admin", "Start1")
 	if err := s.syncEnvironmentAdmin(); err != nil {
 		t.Fatal(err)
 	}
 	first := findEnvironmentTestAdmin(t, s, "studio_admin")
-	if !authn.CheckPassword("Fixture-secret-1234", first.PasswordHash) {
+	if !authn.CheckPassword("Start1", first.PasswordHash) {
 		t.Fatal("credentials missing")
+	}
+	login := operationRequest(s, "POST", "/v1/admin/auth/login", `{"username":"studio_admin","password":"Start1"}`, "", s.router().ServeHTTP)
+	if login.Code != 200 || !strings.Contains(login.Body.String(), `"accessToken"`) {
+		t.Fatal("six-character administrator password could not log in", login.Code)
 	}
 	if err := s.syncEnvironmentAdmin(); err != nil {
 		t.Fatal(err)
@@ -47,7 +51,7 @@ func TestEnvironmentAdministratorCreatesOnceWithoutWallet(t *testing.T) {
 		t.Fatal("restart changed credentials")
 	}
 	var wallets, front, audits int
-	if err := s.db.QueryRow("SELECT (SELECT count(*) FROM credit_accounts),(SELECT count(*) FROM users),(SELECT count(*) FROM admin_audit)").Scan(&wallets, &front, &audits); err != nil || wallets != 0 || front != 0 || audits != 1 {
+	if err := s.db.QueryRow("SELECT (SELECT count(*) FROM credit_accounts),(SELECT count(*) FROM users),(SELECT count(*) FROM admin_audit WHERE action='admin.environment.create')").Scan(&wallets, &front, &audits); err != nil || wallets != 0 || front != 0 || audits != 1 {
 		t.Fatal(wallets, front, audits, err)
 	}
 	token := authn.SignForAudience(s.secret, second, "admin")
@@ -72,13 +76,26 @@ func TestEnvironmentPasswordRotationAndRenameOnlyAffectAdministrator(t *testing.
 	if _, ok := s.currentAdministrator(withToken(oldToken)); !ok {
 		t.Fatal("initial session invalid")
 	}
-	setTestEnvironmentAdmin(t, "operator_renamed", "Rotated-fixture-5678")
+	setTestEnvironmentAdmin(t, "operator_renamed", "Next_2")
 	if err := s.syncEnvironmentAdmin(); err != nil {
 		t.Fatal(err)
 	}
 	rotated := findEnvironmentTestAdmin(t, s, "operator_renamed")
-	if rotated.ID != initial.ID || rotated.AuthVersion != initial.AuthVersion+1 || !authn.CheckPassword("Rotated-fixture-5678", rotated.PasswordHash) {
+	if rotated.ID != initial.ID || rotated.AuthVersion != initial.AuthVersion+1 || !authn.CheckPassword("Next_2", rotated.PasswordHash) {
 		t.Fatal("rotation failed")
+	}
+	for _, test := range []struct {
+		password string
+		status   int
+	}{
+		{"Initial-fixture-1234", 401},
+		{"Next_2", 200},
+		{"short", 400},
+	} {
+		login := operationRequest(s, "POST", "/v1/admin/auth/login", fmt.Sprintf(`{"username":"operator_renamed","password":%q}`, test.password), "", s.router().ServeHTTP)
+		if login.Code != test.status {
+			t.Fatal("administrator login after rotation", login.Code, test.status)
+		}
 	}
 	if _, ok := s.currentAdministrator(withToken(oldToken)); ok {
 		t.Fatal("old administrator session survived rotation")
@@ -159,7 +176,7 @@ func TestEnvironmentAdministratorConfigValidation(t *testing.T) {
 		name, password string
 		valid          bool
 	}{
-		{"", "", true}, {"admin", "", false}, {"", "Long-fixture-1234", false}, {"bad username", "Long-fixture-1234", false}, {"admin", "short", false}, {"admin", "Long-fixture-1234\n", false}, {"admin", "Valid-fixture-1234", true},
+		{"", "", true}, {"admin", "", false}, {"", "Long-fixture-1234", false}, {"bad username", "Long-fixture-1234", false}, {"admin", "short", false}, {"admin", "Abc123", true}, {"admin", "Abc123456", true}, {"admin", strings.Repeat("a", 128), true}, {"admin", strings.Repeat("a", 129), false}, {"admin", "      ", false}, {"admin", "Long-fixture-1234\n", false}, {"admin", "Valid-fixture-1234", true},
 	} {
 		t.Run(fmt.Sprintf("case_%d", index), func(t *testing.T) {
 			setTestEnvironmentAdmin(t, test.name, test.password)
