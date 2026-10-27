@@ -239,6 +239,8 @@ go run ./cmd/server seed-inspiration \
 
 默认图片源及参数见 `seed-inspiration -h`。图片保存于 `STORAGE_ROOT/inspiration`，不进入 Git；Compose API 的绑定挂载会复用这些文件。`CDN_BASE_URL` 可切换到已上传的案例图地址。
 
+2026-10-27 对照 [yang0/handraw-style](https://github.com/yang0/handraw-style) 的 366 条风格，补充 101 条缺失风格及 100 张上游示例图，当前本地公共库共 798 条。在「发现灵感」搜索 `yang0` 可查看；筛选记录、上游许可证、错配封面说明和重放命令见 [handraw-style 增量批次](server/seed/handraw/README.md)。
+
 ## 验证
 
 ```bash
