@@ -47,6 +47,17 @@ def load_batch(path):
             if (item['imageKey'] or item['width'] or item['height'] or item['imageBytes']
                     or not item.get('rejectedCover', {}).get('reason')):
                 raise ValueError('A rejected cover must not be published')
+        elif item.get('coverStatus') == 'verified-project-generation':
+            generation = item.get('generationRecord', {})
+            if (item.get('imageOrigin') != 'project-generation'
+                    or not re.fullmatch(r'[a-f0-9]{64}', item.get('imageSha256', ''))
+                    or item['imageKey'] != item['id'] + '-generated-' + item['imageSha256'][:10] + '.png'
+                    or item.get('imageFormat') != 'PNG'
+                    or not (0 < item['width'] and 0 < item['height'] and 0 < item['imageBytes'] <= 32000000)
+                    or not generation.get('taskId') or not generation.get('prompt')
+                    or generation.get('originalSha256') != item['imageSha256']
+                    or generation.get('originalBytes') != item['imageBytes']):
+                raise ValueError('Invalid project-generated cover metadata')
         elif (item.get('coverStatus') != 'verified-upstream'
               or item['imageKey'] != item['id'] + '.webp'
               or not (0 < item['width'] and 0 < item['height'] and 0 < item['imageBytes'] <= 8000000)):
@@ -62,12 +73,14 @@ def load_batch(path):
 def verify_cover(data, item):
     if len(data) != item['imageBytes'] or hashlib.sha256(data).hexdigest() != item['imageSha256']:
         raise ValueError(f"Cover checksum mismatch: {item['id']}")
-    blob = b'blob ' + str(len(data)).encode() + b'\0' + data
-    if hashlib.sha1(blob).hexdigest() != item['upstreamImageBlob']:
-        raise ValueError(f"Upstream blob mismatch: {item['id']}")
+    generated = item.get('imageOrigin') == 'project-generation'
+    if not generated:
+        blob = b'blob ' + str(len(data)).encode() + b'\0' + data
+        if hashlib.sha1(blob).hexdigest() != item['upstreamImageBlob']:
+            raise ValueError(f"Upstream blob mismatch: {item['id']}")
     with Image.open(io.BytesIO(data)) as image:
         image.load()
-        if image.format != 'WEBP' or image.size != (item['width'], item['height']):
+        if image.format != ('PNG' if generated else 'WEBP') or image.size != (item['width'], item['height']):
             raise ValueError(f"Cover format or dimensions mismatch: {item['id']}")
 
 
@@ -78,7 +91,7 @@ def prepare_cover(batch, item, image_dir, download):
     if target.exists():
         verify_cover(target.read_bytes(), item)
         return
-    if not download:
+    if not download or item.get('imageOrigin') == 'project-generation':
         raise FileNotFoundError(f'Missing cover: {target}')
     url = ('https://raw.githubusercontent.com/yang0/handraw-style/'
            f"{batch['upstreamCommit']}/{item['upstreamImage']}")

@@ -4,6 +4,8 @@
 
 官网路由、SEO 环境开关与展示素材维护见 [官网与 SEO](docs/seo.md)。原 `/workbench` 继续可用；旧首页上的创作参数链接会保留参数进入 `/studio`。
 
+其他电脑可使用应用镜像 `mofugn1/istudio` 和根目录 [`compose.yml`](compose.yml) 安装，无需本机构建前后端。镜像内置完整公共灵感库，首次自动初始化，数据保存在独立命名卷。安装、升级和备份见 [Docker 镜像部署](docs/docker-image.md)。
+
 运营部署、管理员初始化和扣费规则见 [运营模式说明](docs/hosted-platform.md)。代码组织与开发约定见 [开发指南](docs/development.md)。
 
 ## 当前功能

@@ -26,8 +26,10 @@ func Run(args []string) int {
 			return runAdminCommand(args[1:])
 		case "seed-inspiration":
 			return runInspirationSeed(args[1:])
+		case "bootstrap-inspiration":
+			return runCatalogBootstrap(args[1:])
 		case "-h", "--help":
-			fmt.Fprintln(os.Stdout, "用法: istudio-server [admin --username 用户名 | seed-inspiration -h]")
+			fmt.Fprintln(os.Stdout, "用法: istudio-server [admin --username 用户名 | seed-inspiration -h | bootstrap-inspiration -h]")
 			return 0
 		default:
 			fmt.Fprintln(os.Stderr, "未知命令，请使用 --help 查看用法")

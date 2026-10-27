@@ -1,0 +1,77 @@
+name: istudio
+
+x-defaults: &defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  app:
+    <<: *defaults
+    image: ${ISTUDIO_IMAGE:-mofugn1/istudio:latest}
+    init: true
+    stop_grace_period: 25s
+    ports:
+      - "${BIND_ADDRESS:-0.0.0.0}:${WEB_PORT:-8080}:8080"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: istudio
+      POSTGRES_USER: istudio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      REDIS_URL: redis://redis:6379
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set a new ADMIN_PASSWORD in .env}
+      INSTALL_INSPIRATION: ${INSTALL_INSPIRATION:-true}
+      GENERATION_WORKERS: ${GENERATION_WORKERS:-2}
+      SITE_ENV: ${SITE_ENV:-preview}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [private, public]
+
+  postgres:
+    <<: *defaults
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: istudio
+      POSTGRES_USER: istudio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [private]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U istudio -d istudio"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    <<: *defaults
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    volumes:
+      - redis_data:/data
+    networks: [private]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+networks:
+  private:
+    internal: true
+  public:
+
+volumes:
+  uploads:
+  postgres_data:
+  redis_data:
