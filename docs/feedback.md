@@ -38,4 +38,4 @@
 | `PATCH /v1/admin/feedback/:id`                | 设置 `status` 为 `pending` 或 `handled`                                           |
 | `GET /v1/admin/feedback/:id/images/:position` | 后台读取附件                                                                      |
 
-本地验证、截图和边界测试见 [开发验收报告](../test/reports/feedback-2026-10-26.md)。
+本地验证、截图和边界测试见 开发验收报告（历史记录，可从 Git 历史查看）。

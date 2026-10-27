@@ -1,0 +1,29 @@
+flowchart TB
+  browser[浏览器：官网 / 创作工作台 / 运营后台]
+  subgraph image[应用镜像 mofugn1/istudio]
+    gateway[Caddy :8080 · 同源入口]
+    web[Next.js :3000 · 页面与交互]
+    api[Go / Gin :4000 · 业务 API]
+    worker[进程内 Worker · 生图 / 分析 / 结算]
+    seed[798 条提示词 + 798 张公共封面]
+  end
+  postgres[(PostgreSQL 17)]
+  redis[(Redis 7)]
+  uploads[(uploads 持久卷)]
+  cloud[可选：OSS / Kodo / COS / S3 / CDN]
+  provider[外部图片模型 / Prompt / Vision 服务]
+  browser --> gateway
+  gateway -->|页面与静态资源| web
+  gateway -->|/v1/*| api
+  web -.->|服务端公开品牌与 SEO 数据| api
+  api --> postgres
+  api --> redis
+  api --> worker
+  worker --> redis
+  worker --> postgres
+  worker --> provider
+  worker --> uploads
+  api --> uploads
+  api --> cloud
+  seed -.->|全新公共库首次初始化| postgres
+  seed -.->|复制公共封面| uploads

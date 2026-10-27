@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1100" viewBox="0 0 1440 1100" role="img" aria-labelledby="title desc">
+<title id="title">iStudio 系统架构</title>
+<desc id="desc">浏览器通过 Caddy 访问 Next.js 与 Go API。API 内的 Worker 连接模型服务、数据库、Redis 与图片存储。</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8Z" fill="#6b7a92"/></marker></defs>
+<style>text{font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;fill:#182438}.label{font-size:15px;fill:#53657e}.small{font-size:14px;fill:#53657e}.heading{font-size:24px;font-weight:700}.body{font-size:17px}.eyebrow{font-size:14px;font-weight:700;letter-spacing:1.5px;fill:#53657e}.line{fill:none;stroke:#6b7a92;stroke-width:2;marker-end:url(#arrow)}.seed{stroke:#9ba8bb;stroke-dasharray:6 5}</style>
+<rect width="1440" height="1100" rx="24" fill="#f7f9fc"/>
+<text x="64" y="58" class="heading" text-anchor="start">iStudio / 系统架构</text>
+<text x="64" y="88" class="body" text-anchor="start">镜像部署 · 同源访问 · 异步生成 · 数据持久化</text>
+<rect x="420" y="120" width="600" height="76" rx="16" fill="#fff" stroke="#d9e2ef"/>
+<text x="444" y="157" class="heading" text-anchor="start">浏览器 · 官网 / 创作工作台 / 运营后台</text>
+<rect x="64" y="234" width="968" height="510" rx="22" fill="#edf3fe" stroke="#c7d7f1" stroke-dasharray="7 5"/>
+<text x="88" y="264" class="eyebrow" text-anchor="start">APPLICATION IMAGE · mofugn1/istudio</text>
+<path d="M720 196 V292" class="line"/>
+<text x="738" y="224" class="label" text-anchor="start">HTTP :8080</text>
+<path d="M600 376 V404 H300 V436" class="line"/>
+<text x="315" y="395" class="label" text-anchor="start">页面 / 静态资源</text>
+<path d="M760 376 V436" class="line"/>
+<text x="777" y="415" class="label" text-anchor="start">/v1/*</text>
+<path d="M480 494 H620" class="line seed"/>
+<text x="488" y="479" class="label" text-anchor="start">公开品牌 / SEO</text>
+<path d="M980 484 H1080" class="line"/>
+<text x="993" y="471" class="label" text-anchor="start">AI 调用</text>
+<path d="M980 600 H1052 V651 H1080" class="line"/>
+<text x="1001" y="636" class="label" text-anchor="start">存储路由</text>
+<path d="M660 646 V786 H352 V872" class="line"/>
+<text x="365" y="778" class="label" text-anchor="start">账号 · 任务 · 积分 · 索引</text>
+<path d="M800 646 V872" class="line"/>
+<text x="817" y="780" class="label" text-anchor="start">队列唤醒 / 处理中</text>
+<path d="M940 646 V808 H1156 V872" class="line"/>
+<text x="1020" y="799" class="label" text-anchor="start">图片 · 应用密钥</text>
+<path d="M250 710 V872" class="line seed"/>
+<text x="136" y="821" class="label" text-anchor="start">首次初始化</text>
+<rect x="320" y="292" width="460" height="84" rx="16" fill="#172d4e" stroke="#172d4e"/>
+<text x="344" y="329" class="heading" style="fill:#fff" text-anchor="start">Caddy · :8080</text>
+<text x="344" y="361" class="body" style="fill:#d5e5ff" text-anchor="start">页面与 API 共用一个入口</text>
+<rect x="120" y="436" width="360" height="116" rx="16" fill="#fff" stroke="#d9e2ef"/>
+<text x="144" y="473" class="heading" text-anchor="start">Next.js · :3000</text>
+<text x="144" y="505" class="body" text-anchor="start">React / TypeScript</text>
+<text x="144" y="530" class="small" text-anchor="start">页面、交互与服务端渲染</text>
+<rect x="620" y="436" width="360" height="210" rx="16" fill="#fff" stroke="#d9e2ef"/>
+<text x="644" y="473" class="heading" text-anchor="start">Go / Gin API · :4000</text>
+<text x="644" y="505" class="body" text-anchor="start">鉴权、模型、资产与业务事务</text>
+<line x1="644" y1="530" x2="956" y2="530" stroke="#d9e2ef"/>
+<text x="644" y="568" class="heading" text-anchor="start">进程内 Worker</text>
+<text x="644" y="599" class="body" text-anchor="start">生图 / Prompt / Vision / 结算</text>
+<text x="644" y="625" class="small" text-anchor="start">与 API 同进程，按任务状态与租约恢复</text>
+<rect x="120" y="600" width="360" height="110" rx="16" fill="#fff" stroke="#d9e2ef"/>
+<text x="144" y="637" class="heading" text-anchor="start">公共灵感清单</text>
+<text x="144" y="669" class="body" text-anchor="start">798 条提示词 + 798 张封面</text>
+<text x="144" y="694" class="small" text-anchor="start">全新公共库一次初始化；后续保留编辑</text>
+<rect x="1080" y="436" width="296" height="116" rx="16" fill="#fff6ea" stroke="#f0d8b5"/>
+<text x="1104" y="473" class="heading" text-anchor="start">模型服务</text>
+<text x="1104" y="505" class="body" text-anchor="start">图片生成 / Prompt / Vision</text>
+<text x="1104" y="530" class="small" text-anchor="start">由后台配置通道、能力与价格</text>
+<rect x="1080" y="600" width="296" height="110" rx="16" fill="#fff6ea" stroke="#f0d8b5"/>
+<text x="1104" y="637" class="heading" text-anchor="start">可选对象存储</text>
+<text x="1104" y="669" class="body" text-anchor="start">OSS / Kodo / COS / S3</text>
+<text x="1104" y="694" class="small" text-anchor="start">CDN 与签名访问</text>
+<text x="88" y="1024" class="eyebrow" text-anchor="start">PERSISTENCE · Compose 命名卷 / 内部网络</text>
+<rect x="96" y="872" width="384" height="126" rx="16" fill="#f0f8f5" stroke="#bfded2"/>
+<text x="120" y="909" class="heading" text-anchor="start">PostgreSQL 17</text>
+<text x="120" y="941" class="body" text-anchor="start">账号、任务、积分、配置与索引</text>
+<text x="120" y="966" class="small" text-anchor="start">postgres_data 持久卷</text>
+<rect x="552" y="872" width="360" height="126" rx="16" fill="#f0f8f5" stroke="#bfded2"/>
+<text x="576" y="909" class="heading" text-anchor="start">Redis 7</text>
+<text x="576" y="941" class="body" text-anchor="start">任务调度与处理中队列</text>
+<text x="576" y="966" class="small" text-anchor="start">redis_data 持久卷</text>
+<rect x="984" y="872" width="392" height="126" rx="16" fill="#f0f8f5" stroke="#bfded2"/>
+<text x="1008" y="909" class="heading" text-anchor="start">uploads 数据卷</text>
+<text x="1008" y="941" class="body" text-anchor="start">上传、作品、公共封面、密钥</text>
+<text x="1008" y="966" class="small" text-anchor="start">也可按资产归属路由至对象存储</text>
+<text x="64" y="1052" class="body" text-anchor="start">部署边界：仅公开应用入口；PostgreSQL 与 Redis 不发布宿主机端口。</text>
+<text x="64" y="1080" class="small" text-anchor="start">Worker 位于 API 进程内；数据库保存业务状态，Redis 提供队列调度。完整模块与时序见 docs/architecture.md。</text>
+</svg>

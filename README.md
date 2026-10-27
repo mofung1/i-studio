@@ -1,278 +1,150 @@
 # iStudio
 
-支持对外运营的 AI 图片创作平台：`/` 为公开 SEO 官网，五个 `/tools/*` 页面介绍创作与电商工具，`/studio` 进入原有工作台。管理员在独立后台配置 AI、提示词和模型定价，用户注册登录后消耗账户余额生成图片。余额默认称为「积分」，可在后台修改。
+面向个人创作者与电商团队的 AI 图片创作平台，提供文字生图、参考图创作、商品图工具、图片反推，以及独立的运营后台。
 
-官网路由、SEO 环境开关与展示素材维护见 [官网与 SEO](docs/seo.md)。原 `/workbench` 继续可用；旧首页上的创作参数链接会保留参数进入 `/studio`。
+[Docker Hub](https://hub.docker.com/r/mofugn1/istudio) · [部署说明](docs/docker-image.md) · [架构说明](docs/architecture.md) · [文档目录](docs/README.md)
 
-其他电脑可使用应用镜像 `mofugn1/istudio` 和根目录 [`compose.yml`](compose.yml) 安装，无需本机构建前后端。镜像内置完整公共灵感库，首次自动初始化，数据保存在独立命名卷。安装、升级和备份见 [Docker 镜像部署](docs/docker-image.md)。
+## 项目效果
 
-运营部署、管理员初始化和扣费规则见 [运营模式说明](docs/hosted-platform.md)。代码组织与开发约定见 [开发指南](docs/development.md)。
+以下为本地实际运行页面截图。官网展示作品是 AI 概念示例；灵感库封面按条目保留来源说明。
 
-## 当前功能
+**官网首页**
 
-- **运营后台与积分**：独立 `/admin`，管理员在 `/admin/login` 登录，账号表、密码和会话与前台分离；管理员管理 AI 通道、公共模型与每张价格、系统提示词、网站品牌、用户状态与余额、任务结算和审计。普通用户进入个人中心查看余额与流水，前台只能选择已上架模型。提交预留，按实际保存张数扣费，未交付部分自动退回。支持精确到 0.01 的单价、注册赠送、并发和请求次数上限；首版不包含支付。
+![iStudio 官网首页](docs/images/screenshots/home.png)
 
-- **资产管理**：生成作品、我的素材与创作记录分别浏览；点击创作页原上传区域，统一在素材弹窗中选择本地图片或库内素材，支持混选、等比预览与原图放大。历史恢复直接复用素材 ID，同账号重复上传去重。支持分页、搜索筛选、收藏、项目整理和批量 ZIP 下载；视图、分类与筛选栏固定，作品和记录在内容区内滚动，模型名称筛选已移除。见 [资产管理说明](docs/asset-management.md)。
-- **多云图片存储**：后台 `/admin/storage` 支持本地、阿里云 OSS、七牛云 Kodo、腾讯云 COS 与 S3 / MinIO，保存多套配置并切换新图片的默认存储。可配置 CDN 签名下载，旧图片保持原存储归属，密钥加密保存。见 [对象存储与 CDN](docs/object-storage.md)。
-- **我的提示词与预设**：账号私有提示词、分类/标签/收藏、变量填空、版本记录和回收站；可从灵感、资产和反推结果保存。所有生图工具可保存与应用创作预设，支持撤销，素材另选，不自动生成。见 [私有提示词与预设](docs/personal-prompts.md)。
-- **图片对比**：资产库选中两张图片，或从生成结果进入对比；支持并排、滑杆、交换图片、同步缩放和平移，以及商品原图/参考图对照。手机默认使用滑杆，按原图比例显示，不调用 AI。见 [图片对比说明](docs/image-comparison.md)。
-- **AI 生图**：文字描述、最多 6 张参考图、模型选择、画面比例、1K / 2K / 4K、风格与参考强度；界面一次可生成 1–4 张。参考图、比例和清晰度按后台声明的模型能力开放；切换模型或恢复历史时保留配置及素材，不兼容则提示并阻止提交。
-- **图片反推**：从 AI 生图、发现灵感或本人生成资产上传/选择图片，提炼「还原画面」或「只提取风格」的双语提示词；支持编辑、复制、追加/替换并撤销、选择原图参考、保存到个人提示词。分析在后台继续，切页或刷新可恢复；可取消或清除临时记录。管理员在「后台 → AI 与网站配置 → 图片反推」指定支持 Vision 的 Prompt 服务、超时、图片细节和保留时间，两个分析模板也可自定义。见 [图片反推使用说明](docs/image-to-prompt.md)。
-- **网站配置**：管理员在「后台 → AI 与网站配置 → 网站配置」修改网站名称、上传 PNG / JPG Logo（不超过 2 MB）或恢复默认品牌；保存后同步到全站导航、浏览器标题和图标。仅管理员可修改，配置由后端持久保存。
-- **电商工具**：商品主图、商品详情、爆款复刻、产品精修、服装组图；主图和详情页可按模块组合，单个模块最多 4 张，总计最多 16 张。
-- **电商生成约束**：区分商品原图与构图参考，精修默认保留原场景，主图与服装商品图要求完整轮廓，详情模块只采用已提供的信息。结果区显示图片实际像素，便于核对接口返回尺寸；包装小字、印花和人物一致性仍需检查原图。
-- **服装组图**：商品组图与模特上身两种模式；上传服装素材，查看并编辑逐张拍摄规划，确认后生成。支持 AI 识图分析、手动规划、单图及整组 ZIP 下载、完整历史配置回填。
-- **生成结果**：黑白生成状态动画（适配减少动态效果）、完整比例主图预览、逐图切换、最近生成列表、下载、继续创作与重新生成。
-- **通用生图布局**：创作面板默认左侧停靠，PC 可通过手柄拖动、左右方向键或按钮切换停靠侧，支持恢复默认布局；收起后显示 48px 圆形入口（日间黑底白图标，夜间浅色底深色图标），可直接拖动至内容区任意位置悬停，并释放全部画布宽度，浏览器记住停靠与收缩偏好，手机保持完整配置。费用与生成按钮常驻面板底部，生成中不强制改变用户布局；长提示词可展开编辑，多张参考图片保留堆叠与展开管理。最近生成统一采用按任务分组的横向缩略图带，可收起并进入全部记录，不重复展示同组缩略图。主图按实际比例适配，支持全屏查看、缩放、拖动、适应窗口与本地裁剪下载。
-- **资产与历史**：查看生成图片、提示词和参数；载入历史配置继续编辑；删除图片或整条记录。生成中的任务需完成后才能删除；没有结果图片的失败任务使用专属插画，点击可查看失败原因。
-- **灵感库**：公开浏览，支持搜索、分类、分页加载、复制提示词和带入工作台；内容可手动维护，也可批量导入案例数据。
-- **AI 配置**：仅管理员可在后台管理全局服务和 75 个内置 Prompt 模板。采用「用途分组 → 模板」两级导航，默认只展开当前分组，支持跨分组搜索、编辑、启用/停用及恢复默认；覆盖实际生图、模块、精修项、服装规划、AI 帮写和图片反推。Prompt AI 支持图片识别能力开关，API Key 仍以加密方式保存并以掩码展示。
-- **灵感提示词管理**：在「后台 → 公共灵感库」新增、编辑、删除提示词，支持标题、分类、来源、内容、启用状态和排序；管理列表支持关键词搜索、分类下拉和启用状态筛选，分类包含仅有未启用提示词的条目。顶部可返回发现灵感，公开灵感库只展示已启用内容。编辑文字保留原有案例图片，删除提示词不删除图片文件。
-- **灵感分类管理**：从后台公共灵感库进入；支持新增、改名、搜索及删除分类。旧分类自动纳入管理，空分类持久保留；删除有内容的分类时先将提示词迁移到其他分类，保留文字、图片和启用状态。新增/编辑提示词通过下拉框选择分类，也可在编辑弹窗中就地新增并选择。
+**AI 创作工作台**
 
-全站下拉选择框共用同一套组件和主题样式，覆盖资产、私有提示词、图片对比、工作台与设置；支持长列表滚动、清晰的选中/焦点状态及弹窗内选择。见 [下拉控件约定](docs/select-controls.md)。
+![创作设置与真实生成结果，现有产品截图](web/public/images/marketing/workbench/workbench-creation-2026-10.webp)
 
-风格与参考强度通过发送给模型的文字指令表达；实际尺寸、参考效果及可用分辨率取决于所配置的模型。
+**电商工具**
 
-2026-10-13 使用已配置的 GPT Image 2 完成六个电商场景、共 12 张真实出图对照。观察结果、已实施改进及仍存在的印花和尺寸限制见 [电商效果测试记录](test/reports/commerce-effects-2026-10-13.md)。
+![商品主图、精修、复刻与服装组图入口](docs/images/screenshots/commerce.png)
 
-2026-10-13 另外完成 6 次真实识图验证，未生成图片；测试发现的风格主体混入与照片方向问题已修正，修正后尚未追加付费复测。见 [图片反推效果记录](test/reports/prompt-reverse-evaluation-2026-10-13.md)。
+**公共灵感库**
 
-## 目录结构
+![798 条提示词与分类浏览](docs/images/screenshots/inspiration.png)
+
+## 主要功能
+
+| 模块         | 功能                                                                    |
+| ------------ | ----------------------------------------------------------------------- |
+| AI 生图      | 文字描述、最多 6 张参考图、模型与画幅选择、生成进度、下载和历史恢复     |
+| 电商工具     | 商品主图、详情素材、爆款复刻、产品精修、服装组图与模特上身              |
+| 图片反推     | 提取画面或风格提示词，编辑后带入创作或保存到个人提示词                  |
+| 资产与提示词 | 账号私有素材、生成作品、收藏、项目、批量下载、图片对比与创作预设        |
+| 公共灵感库   | 内置 798 条提示词、13 个分类、798 张封面，支持搜索、复制和投稿审核      |
+| 运营后台     | 独立管理员登录、AI 通道与公共模型、定价、积分、用户、网站品牌和任务监控 |
+| 图片存储     | 本地、OSS、Kodo、COS、S3 / MinIO，以及 CDN 与签名访问                   |
+
+任务提交时预留积分，按实际保存的图片张数结算，未交付部分退回。模型、价格、奖励与可用能力由管理员配置；目前没有在线支付充值。
+
+## Docker 快速安装
+
+目标电脑安装 Docker 与 Compose v2 即可，镜像支持 **Linux amd64 / arm64**，包含前端、API、网关和公共灵感库；PostgreSQL 与 Redis 由 Compose 启动。
+
+在一个**新的空目录**运行：
+
+```sh
+umask 077
+docker run --rm mofugn1/istudio:latest compose > compose.yml
+docker run --rm mofugn1/istudio:latest setup > .env
+docker compose up -d --wait --wait-timeout 180
+```
+
+- 网站：<http://localhost:8080>
+- 后台：<http://localhost:8080/admin/login>
+- 管理员用户名：`admin`；随机密码保存在 `.env` 的 `ADMIN_PASSWORD`。
+- 首次登录后台后配置 AI 服务、密钥、模型能力和价格。
+
+`.env` 需妥善保存，已有安装不要再次执行 `setup > .env`。数据库、上传图片和应用密钥使用命名卷持久保存；`docker compose down` 保留数据，`down -v` 会删除数据卷。
+
+更新镜像：
+
+```sh
+docker compose pull
+docker compose up -d --wait --wait-timeout 180
+```
+
+端口、域名、HTTPS、备份和版本固定见 [完整部署说明](docs/docker-image.md)。公共库仅在新站点初始化一次，升级保留已有编辑和删除。源码生产部署与已有宝塔环境分别见 [云服务器部署](docs/cloud-deployment.md) 和 [宝塔部署](docs/baota-deployment.md)。
+
+## 系统架构
+
+![iStudio 系统架构](docs/images/architecture.svg)
+
+镜像内由 Caddy 提供同源入口：页面转发给 Next.js，`/v1/*` 转发给 Go API。API 内的 Worker 执行异步任务，PostgreSQL 保存业务数据与结算状态，Redis 提供队列调度，图片保存到本地卷或配置的对象存储。
+
+完整部署图、模块依赖和生成时序见 [架构说明](docs/architecture.md)；可编辑源文件为 [architecture.mmd](docs/diagrams/architecture.mmd)，另提供 [PNG 版本](docs/images/architecture.png)。
+
+## 技术与目录
+
+| 层级 | 技术                                                       |
+| ---- | ---------------------------------------------------------- |
+| 前端 | Next.js 15、React 19、TypeScript、Tailwind CSS 4、Radix UI |
+| 后端 | Go 1.27.3、Gin、PostgreSQL 17、Redis 7                     |
+| 部署 | Docker 多阶段构建、Compose、Caddy，支持 amd64 / arm64      |
+| 验证 | Vitest / jsdom、Go 单元与隔离数据库测试、Docker 安装验收   |
 
 ```text
-web/       Next.js 15 + React 19 用户端与运营后台，独立 pnpm 项目
-server/    Go 1.27.3 + Gin API，独立 Go module
-  cmd/server/   API / 部署命令入口
-  internal/
-    app/        启动编排、依赖组装与 CLI
-    httpapi/    Gin 路由、中间件和 JSON 响应
-    studio/     创作、积分、资产与后台业务协调
-    domain/     共享业务数据模型
-    repository/ 账户、任务、资产与分类的数据访问
-    database/   PostgreSQL 连接及内嵌 SQL 迁移
-    auth/       密码、令牌和持久化签名密钥
-    storage/    本地 / 多云对象存储与配置路由
-    config/     运行配置及 .env 读取
-    inspiration/ 灵感案例解析与导入
-    idgen/      标识生成
-  Makefile      构建、格式化、检查与测试命令
-  seed/         灵感库导入所需的 Markdown
-  storage/      本地运行数据（仅 uploads/inspiration 公共图片纳入 Git）
-docker/         Docker Compose 和前后端 Dockerfile
-docs/           使用说明、开发指南与功能设计
-test/           测试记录与测试产物，详见 test/README.md
-  reports/      效果评估、界面验证与项目检查报告
-  previews/     独立界面原型，不作为生产页面发布
-  artifacts/    测试图片、截图与原始结果（不提交 Git）
-  backups/      本地数据库备份（不提交 Git）
-dev.sh          本地前后端启动脚本
-TODO.md         后续功能计划
+.
+├── compose.yml                 # 从已发布镜像安装
+├── .env.example                # 镜像安装配置模板
+├── dev.sh                      # 本地开发入口
+├── web/                        # 官网、工作台与运营后台
+│   ├── app/                    # Next.js 页面与路由
+│   ├── components/             # 工作台、电商、资产与后台组件
+│   ├── lib/                    # 请求入口、数据契约与纯函数
+│   └── public/                 # 当前页面使用的静态资源
+├── server/
+│   ├── cmd/server/             # API 与部署命令入口
+│   ├── internal/               # 业务、HTTP、鉴权、存储与数据库迁移
+│   ├── seed/                   # 公共清单、导入工具与来源许可证
+│   └── storage/uploads/        # 运行图片与密钥；inspiration 公共封面跟踪 Git
+├── docker/                     # 镜像构建、开发与生产部署配置
+├── scripts/                    # 灵感迁移、清单导出与镜像验收
+├── docs/                       # 架构、部署、功能说明与正式截图
+└── test/README.md              # 测试入口与临时产物约定
 ```
 
-旧 `ui`、`UI-1`～`UI-4` 换肤副本、废弃首页与临时骨架屏预览已移除；当前唯一前端位于 `web`。自动化测试源码随各自模块保存，手工测试产生的图片、截图、报告与原型统一放在 [`test/`](test/README.md)。
+## 本地开发
 
-## 电商工具主页
+需要 Node.js **22.12+**、pnpm **10**、Go **1.27.3**，以及 PostgreSQL / Redis。开发环境使用独立的 `i-studio` Compose 项目，和镜像安装的 `istudio` 数据卷分离。
 
-电商工具采用 Bento 卡片布局：商品主图为核心大卡，精修、复刻与服装组图紧凑排列，详情素材横向展示。主图与精修支持拖动前后对比，卡片直接进入对应工具。顶部不展示额外大标题与描述；适配日夜主题及手机布局，示例图片均为本地 WebP。见 [布局与展示素材说明](docs/commerce-bento.md)。
-
-## 创作配置布局
-
-AI 生图和五个电商工具共用悬浮配置面板。PC 端可从标题区拖动至左右两侧停靠，或用位置按钮切换；拖动时按 Esc 取消，聚焦拖动手柄后可用左右方向键停靠。收起面板后显示随主题切换颜色的圆形入口（日间黑底白图标，夜间浅色底深色图标），可在内容区内直接拖动并原地悬停；点击展开，方向键移动，Home 复位，拖动时 Esc 取消。展开再收起会保留本次页面内的悬停位置，窗口缩小会自动限制到可见范围；已输入的描述、素材和模块设置仍保留；积分估算、可用余额与生成操作固定在面板底部。
-
-电商工具共享一套布局偏好，与 AI 生图分别记忆，支持恢复默认布局。多张商品或服装素材沿用堆叠展开效果；爆款参考图、模特照片与场景仍独立分区。手机端隐藏桌面停靠与收缩操作，服装设置保留抽屉和生成规划流程。
-
-## 服装组图
-
-从「电商工具 → 服装组图」进入，页面路径为 `/workbench?mode=commerce&task=clothing-set`。
-
-- **商品组图**：上传同一件服装的 1–6 张不同角度照片；选择正面精修、背面精修、立体展示、人台展示、细节特写或卖点图。默认生成正面、立体、细节各一张；每类最多 4 张，整组最多 16 张。立体展示产出静态图片。
-- **模特上身**：上传同套搭配的服装照片和一张模特照片，可另上传一张场景参考；生成 1–4 张。模特用于人物身份和体型，场景只用于背景；不提供 AI 模特或场景图库。
-- **规划确认**：填写拍摄风格、平台、文字语言、比例与清晰度。支持 Vision 的默认 Prompt 服务可分析图片并提供逐张规划；未配置识图服务或分析失败时仍可手动编辑。每张规划生成一张独立图片，分析本身不创建生图任务。
-- **保真要求**：提示词要求保留颜色、版型、印花、Logo 与可见工艺，不编造面料成分、尺码、性能和认证；背面参考不足时显示提醒。实际服装和人物一致性取决于所用模型，生成后应核对原图。
-- **结果与历史**：逐张预览、下载，或下载包含已完成图片的 ZIP；重新生成时先回填素材和已确认的逐张规划，供再次检查。中途失败会保留已生成图片。
-
-素材支持 JPG / PNG / WebP，单张最多 10 MB、1 亿像素，一次全部素材合计最多 20 MB。服装分析使用 `/v1/clothing/plan`，通过可配置的服装规划模板调用 Prompt 服务，JSON 返回格式由程序固定；通用 AI 帮写模板不参与此接口。生成仍使用现有任务队列，素材和 ZIP 下载都校验账号归属。
-
-## 快速启动
-
-云服务器全新初始化、仅迁移灵感提示词与封面的部署方案见 [云服务器部署](docs/cloud-deployment.md)。它使用独立生产 Compose、HTTPS 域名和存储，不复用本机账号、AI 密钥或业务卷。
-
-当前腾讯云宝塔服务器已接入 `https://istudio.mcode.fun`，运行目录、维护命令和管理员 / AI 服务待办见 [宝塔部署记录](docs/baota-deployment.md)。已有宝塔 Nginx 占用 80/443 时使用该方案。
-
-### Docker（完整持久化环境）
-
-需要 Docker 和支持 `env_file.required` 的 Docker Compose v2。AI 服务可在网页中配置，无需先填写供应商密钥。
-
-```bash
-cd docker
-docker compose up --build
-```
-
-| 服务 | 默认地址 / 端口 |
-| --- | --- |
-| Web | http://127.0.0.1:33000 |
-| API | http://127.0.0.1:44000 |
-| PostgreSQL | 127.0.0.1:55432 |
-| Redis | 127.0.0.1:56379 |
-
-默认仅绑定宿主机回环地址。`WEB_PORT`、`API_PORT`、`POSTGRES_PORT` 和 `REDIS_PORT` 可覆盖端口；前端 API 地址和 CORS 会随 Web / API 端口变化。例如：
-
-```bash
-WEB_PORT=33100 API_PORT=44100 docker compose up --build
-```
-
-如果通过其他主机名或反向代理访问，需要配置浏览器可达的 `NEXT_PUBLIC_API_BASE_URL` 与 API 的 `WEB_ORIGINS`。`NEXT_PUBLIC_*` 在构建时写入前端，改地址后必须重新构建 Web。
-
-前台按 `Ctrl+C` 停止服务。后台启动用 `docker compose up -d --build`，查看日志用 `docker compose logs -f api web`，停止用 `docker compose down`。`down` 保留命名卷，`down -v` 会删除数据库及 Redis 数据。
-
-构建输出中的 `FINISHED` 只表示镜像构建完成，随后还会启动容器。可用以下命令等待整个服务就绪、查看状态和启动日志（在 `docker/` 下执行）：
-
-```bash
-docker compose up -d --build --wait --wait-timeout 120
-docker compose ps -a
-docker compose logs --tail 100 api web
-```
-
-前端容器直接使用 Node.js 启动已安装的 Next.js，不在启动时下载 pnpm。镜像拉取或依赖下载仍需要网络；构建停在 `load metadata`、`FROM` 或下载进度时，应检查 Docker 的网络、代理或镜像源。已有镜像且代码未变时，可用 `docker compose up -d --no-build --wait --wait-timeout 120` 启动，跳过构建。
-
-### 本地开发
-
-需要 Node.js 22.12+、pnpm 10 和 Go 1.27.3。首次运行先复制后端配置：
-
-```bash
+```sh
 cp server/.env.example server/.env
 ./dev.sh --infra
 ```
 
-`--infra` 启动 Compose 中的 PostgreSQL / Redis。前端默认 http://127.0.0.1:3000，API 默认 http://127.0.0.1:4000。
+默认前端 <http://127.0.0.1:3000>，API <http://127.0.0.1:4000>。也可构建完整开发容器：
 
-```bash
-./dev.sh                                   # 使用已启动的基础服务
-./dev.sh --web-port 3100 --api-port 4100     # 自定义前后端端口
-./dev.sh --no-install                       # 跳过前端依赖安装
+```sh
+docker compose -f docker/docker-compose.yml up -d --build --wait
 ```
 
-脚本自动将前端连接到本次 API 端口，无需修改 `.env.local`；检查端口、安装缺失的前端依赖、构建 API，并带 `[api]` / `[web]` 前缀输出日志。停止时只清理本次启动的进程。
+开发容器的前端端口为 `33000`，API 为 `44000`。同一数据库只运行一套 API / Worker；切换为本地 API 前，先停止开发容器的 API。管理员初始化、目录约定和开发参数见 [开发指南](docs/development.md) 与 [运营模式说明](docs/hosted-platform.md)。
 
-同一套数据库 / Redis 当前应只运行一个 API 进程；使用本地 API 前，先停止 Compose 的 API：
+常用检查：
 
-```bash
-cd docker
-docker compose stop api
+```sh
+pnpm -C web typecheck
+pnpm -C web format:check
+pnpm -C web test
+go -C server test ./...
+go -C server vet ./...
 ```
 
-也可以分别启动：
+数据库回归通过 `TEST_DATABASE_URL` 启用，使用独立 schema；默认测试使用模拟 AI，不发起收费生成。镜像构建与完整安装验收见 [测试说明](test/README.md)。
 
-```bash
-# 终端 1
-cd server
-go run ./cmd/server
+## 文档与数据维护
 
-# 终端 2
-cd web
-pnpm install --frozen-lockfile
-pnpm dev
-```
+- [部署、升级与备份](docs/docker-image.md)
+- [系统架构与任务流程](docs/architecture.md)
+- [AI 渠道、模型与价格](docs/ai-channel-configuration.md)
+- [账号、积分与运营](docs/hosted-platform.md)
+- [存储与 CDN](docs/object-storage.md)
+- [公共灵感库来源与导入](server/seed/handraw/README.md)
+- [全部功能文档](docs/README.md)
+- [文件清理与保留规则](docs/maintenance.md)
 
-前端单独开发默认请求 `http://127.0.0.1:4000`。如果连接 Docker 后端，可在 `web/.env.local` 配置：
+公共封面保存在 `server/storage/uploads/inspiration/` 并纳入 Git；Docker 初始化数据为 `server/seed/inspiration-catalog.json`。其他上传、生成作品、配置密钥和数据库属于运行数据，按部署说明独立备份。
 
-```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:44000
-```
-
-同时将该前端来源加入后端 `WEB_ORIGINS`；Compose 默认允许 33000 和本地开发的 3000。
-
-## 首次配置 AI
-
-1. 复制 `server/.env.example` 为 `server/.env` 并配置数据库等运行参数。前台首个注册账号仍是普通用户。
-2. 在 `server/.env` 配置 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD`（密码 12–128 位），运行 `docker compose -f docker/docker-compose.yml up -d --build --no-deps api`。首次自动创建独立后台管理员，不必先注册；修改后重建 API 容器同步，改密会使旧后台登录失效。也可使用 CLI 创建独立管理员，详见运营说明。
-3. 先在 `/admin/login` 登录，再访问 `/admin/settings`，添加并启用 Image AI 服务，填写协议、Base URL、API Key、Model 和超时。
-4. 在 `/admin/models` 选择通道，配置前台名称、每张积分消耗、上架状态和默认模型。配置服务不等于对用户上架模型。
-5. 按需添加 Prompt AI 并开启 Vision；在后台配置系统提示词、反推与网站品牌。
-6. 在 `/admin/operations` 配置积分名称、注册赠送及日预算、辅助服务总额度、存储额度和可选邀请注册；在 `/admin/users` 给测试账号发放余额。
-7. 普通用户在前台选择模型，核对预计费用并生成；在 `/account` 查看余额和流水。
-
-| 用途 | 支持协议 |
-| --- | --- |
-| Prompt AI | OpenAI Compatible Chat |
-| Image AI | OpenAI Images（生成及 multipart 编辑）、OpenAI Chat 图片输出、Gemini generateContent |
-
-Model 为自由字符串，支持官方、自建或兼容服务。Base URL 填服务根地址或版本根地址；例如 OpenAI Compatible 的 `/v1` 根路径、Gemini 的服务根地址或 `/v1beta`。
-
-AI 服务设置中的 `Timeout / 秒` 控制单次 HTTP 请求（1–600 秒，新增生图服务默认 300 秒）。当前三种图片协议均使用同步请求，不接受仅返回远程任务 ID 的响应。多图按单张顺序调用；每张保存后即可在生成中的任务中预览和下载。
-
-切换页面或工具不会取消服务器中的生成。返回工作台时会查询当前类型的未完成任务；本标签页记录的任务若已完成，会恢复其结果。已知任务恢复只查询状态；创建响应中断时会用原提交编号自动核对，不重复扣款。此前已超时的旧记录不会因延长等待上限而自动补回供应商图片。
-
-Prompt 配置包含提示词优化、通用生图、电商生图、图片模块、精修选项和服装生图与规划、图片反推共 75 个模板。初始化会补齐缺失模板、更新默认内容并保留已保存的自定义内容和停用状态；生成任务提交时冻结模型通道、单价和提示词，整组图片使用同一快照。未配置 Prompt AI 时，输入框可按保存的模板整理文字，不识别图片、不调用 AI 服务。模板作用范围、变量与配置示例见 [内置提示词配置](docs/prompt-configuration.md)。关闭 Vision 时，前端不发送图片，后端也会拒绝图片输入。图片反推的双语输出结构由程序校验；停用对应反推模板会禁止该模式分析，避免绕过自定义设置。
-
-**测试连接会实际调用所选服务；图片测试会生成一张图并可能产生费用。** 自动测试使用模拟客户端，不调用已配置的付费服务。
-
-后台图片测试可选择比例与请求档位，并记录实际像素、文件大小和生成耗时；用户结果和历史同样区分请求档位与实际像素。供应商估算费用与账单费用独立记录，未知留空，不用用户积分替代货币成本。平台额度、存储计量和核验说明见 [平台额度与输出核验](docs/platform-cost-controls.md)。2026-10-22 默认 GPT 通道的五项电商实测及剩余验收见 [L04/L05 报告](test/reports/platform-cost-output-2026-10-22.md)。
-
-后台运营概览提供任务积压、异常预留与存储失败监控，页面可见时每 30 秒刷新；异常记录带定位编号，读取失败明确提示状态未知。告警阈值、记录范围和边界见 [运行监控说明](docs/operational-monitoring.md)。
-
-AI 地址、密钥、模型和提示词统一通过后台配置，`.env` 只保留服务运行、加密与管理员配置。旧 `DEEPSEEK_*` / `BANANA_ROUTER_*` 仅作为历史升级兼容入口；已迁移到数据库后可从本地 `.env` 删除，新示例文件不再包含它们。
-
-## 数据与备份
-
-- PostgreSQL 保存账号与角色、余额与不可覆盖的流水、生图与反推任务、模型定价、资产元数据、灵感库、审计及 AI 配置；Docker 使用 `istudio_postgres_data` 命名卷。
-- 图片默认写入 `STORAGE_ROOT`，Compose 绑定到 `server/storage/uploads`；后台选择云存储后，新图片写入对应桶。更换默认不会自动迁移旧图片，仍需备份原本地目录及旧云桶。
-- AI Key 使用 AES-256-GCM 加密，接口仅返回配置状态和尾四位掩码。未提供 `AI_CONFIG_ENCRYPTION_KEY` 时自动创建 `STORAGE_ROOT/.ai/encryption.key`。
-- 未提供 `AUTH_JWT_SECRET` 时自动创建随机签名密钥 `STORAGE_ROOT/.auth/signing.key`；显式配置时使用自己的随机长字符串。原来使用固定默认密钥的部署，切换到随机密钥后需要重新登录。
-- **备份应同时包含 PostgreSQL、整个 `STORAGE_ROOT`、自定义环境变量及已使用的云桶。** AI 与对象存储密钥共用现有配置加密密钥，丢失后将无法解密。
-
-运营模式必须配置 PostgreSQL；数据库不可用时 API 拒绝启动，避免出现内存账号和丢失余额。Redis 用于任务唤醒，数据库保存逐张阶段、结果及处理租约。中断后保留已保存图片，已记录的加密图片来源可继续保存；结果不确定的同步请求不自动重发，按实际交付结算并退回剩余预留。重新生成会创建新任务并计费。正常切页不影响生成；上游已扣费但没有可交付图片时，用户积分仍退回，API 费用由平台承担。恢复边界及迁移说明见 [模型参数与逐张交付](docs/generation-delivery.md)。
-
-旧部署的通道会迁移为未上架的公共模型，已有账号余额初始化为零；旧预设及版本中的模型标识同步迁移，资产和私有内容继续归原账号所有。上线前请先备份数据库及存储目录，再确认价格、上架模型和发放余额。
-
-## 灵感库导入
-
-需要 PostgreSQL；导入命令读取已准备好的 Markdown，并下载案例图。可指定自己的文件和图片源：
-
-```bash
-cd server
-go run ./cmd/server seed-inspiration -h
-go run ./cmd/server seed-inspiration \
-  -g1 seed/handdraw-gallery.md \
-  -g2 seed/empty.md \
-  -cat seed/handdraw-categories.md
-```
-
-默认图片源及参数见 `seed-inspiration -h`。公共灵感图片保持在 `server/storage/uploads/inspiration/` 原目录并纳入 Git，Compose API 的绑定挂载会复用这些文件。新增或更新图片后执行 `git add server/storage/uploads/inspiration/`。其他上传、生成图片和运行密钥仍被忽略。`CDN_BASE_URL` 可切换到已上传的案例图地址。
-
-Git 中的图片不包含数据库里的提示词和分类；完整迁移仍使用 [灵感库导出与恢复流程](docs/cloud-deployment.md)。
-
-2026-10-27 对照 [yang0/handraw-style](https://github.com/yang0/handraw-style) 的 366 条风格，补充 101 条缺失风格及 100 张上游示例图，当前本地公共库共 798 条。在「发现灵感」搜索 `yang0` 可查看；筛选记录、上游许可证、错配封面说明和重放命令见 [handraw-style 增量批次](server/seed/handraw/README.md)。
-
-## 验证
-
-```bash
-pnpm --dir web typecheck
-pnpm --dir web format:check
-pnpm --dir web test
-pnpm --dir web build
-GOCACHE=/tmp/istudio-go-cache go -C server test -race ./...
-GOCACHE=/tmp/istudio-go-cache go -C server vet ./...
-bash -n dev.sh
-docker compose -f docker/docker-compose.yml config --quiet
-```
-
-数据库回归默认跳过。通过 `TEST_DATABASE_URL` 开启，测试会创建独立 schema 并在结束时清理，不读取业务 AI 配置：
-
-```bash
-TEST_DATABASE_URL='postgresql://istudio:istudio_dev@127.0.0.1:55432/istudio?sslmode=disable' \
-  GOCACHE=/tmp/istudio-go-cache go -C server test -race ./...
-```
-
-后端回归通过 Gin 路由验证跨域预检、后台权限与审计、资产与私有提示词访问、积分结算和任务恢复。图片反推自动回归包含格式校验、幂等、取消、跨账号访问、私有图片、原图/分析图分离、过期清理和灵感封面保留。自动测试使用隔离数据库和模拟 AI 客户端，不产生真实 AI 调用费用。前端自动测试覆盖输入校验、分页合并与图片缓存账号隔离；产品页面的布局与功能验证见 [界面打磨记录](test/reports/ui-polish-2026-10-13.md)。
-
-当前检查结果和仍需演进的设计见 [项目检查报告](test/reports/project-review-2026-10-15.md)，历史记录与测试产物说明见 [测试目录](test/README.md)，产品计划见 [TODO](TODO.md)。
-
-## 本次结构与安全检查
-
-源码直接位于根目录 `server/`、`web/`；Docker、开发脚本、配置示例与文档同步使用新路径。既有部署迁移时须移动整个后端目录，包括忽略的 `.env` 和 `storage/uploads`，并保留原 Compose 项目名与数据库卷。
-
-前后台账号允许同名，但身份、密码与会话独立。管理员不会自动获得前台资产或生图权限；前台用户也不能升级成后台管理员。旧管理员首次升级时拆分为独立后台身份，原前台账号及资产、余额保留为普通用户；旧会话需重新登录。后台账号初始化方式见 [运营模式说明](docs/hosted-platform.md)。
-
-已修复公开灵感图片的云对象访问边界、生成图片下载的内网访问风险、无效 JSON / 图片头校验、数据库健康状态泄露和账户异步刷新覆盖问题；同时改善弹窗滚动与键盘焦点、后台搜索及窄屏布局。生成图片的 HTTP(S) 下载仅允许公网地址，内网模型可返回 Base64 图片。检查范围、验证结果和限制见 [项目检查记录](test/reports/project-review-2026-10-15.md)。
+公共内容保留来源署名：[handraw-style](https://github.com/yang0/handraw-style) 的许可证见 [handraw/LICENSE](server/seed/handraw/LICENSE)，EvoLink 提示词来源许可见 [evolink/LICENSE](server/seed/evolink/LICENSE)。来源示例图与本站生成示例在条目中分别说明。

@@ -22,3 +22,9 @@ coverage
 **/coverage
 **/*.tsbuildinfo
 test
+
+# Local development helpers and historical artifacts
+.claude
+.codex
+.agents
+docs

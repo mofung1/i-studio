@@ -1,12 +1,12 @@
 # 开发指南
 
-前端是独立的 Next.js / React 项目，后端是 Go / Gin 服务。前后台是两个独立项目，根目录直接使用 `server` / `web`；接口继续使用 `/v1` 路径及原有 JSON 字段。
+前端是独立的 Next.js / React 项目，后端是 Go / Gin 服务。前后端分别维护依赖，根目录直接使用 `server` / `web`；接口使用 `/v1` 路径。
 
 ## 后端
 
 后端采用 Go 官方服务端项目建议的 `cmd` / `internal` 结构，保留一个 Go module。`cmd/server/main.go` 只处理进程退出；`internal/app` 负责配置加载、部署命令和依赖组装。参考 [Go 官方模块组织建议](https://go.dev/doc/modules/layout)。
 
-项目声明 Go 1.27 语言版本，并通过 `toolchain go1.27.3` 选择 Go 1.27.3 工具链；Docker 构建镜像同步使用 `golang:1.27.3-alpine`。升级验证记录见 [Go 1.27.3 升级报告](../test/reports/go-upgrade-2026-10-22.md)。
+项目声明 Go 1.27 语言版本，并通过 `toolchain go1.27.3` 选择 Go 1.27.3 工具链；Docker 构建镜像同步使用 `golang:1.27.3-alpine`。升级验证记录见 Go 1.27.3 升级报告（历史记录，可从 Git 历史查看）。
 
 | 包                     | 职责                                                                     |
 | ---------------------- | ------------------------------------------------------------------------ |
@@ -81,7 +81,7 @@ pnpm -C web build
 
 ## 测试文件与运行数据
 
-Go 的 `*_test.go` 与前端 `*.test.ts` / `*.test.tsx` 保留在实现旁边。测试生成的截图、样例图片、原始结果与覆盖率报告统一放在根目录 `test/artifacts/`；Vitest 覆盖率输出使用 `test/artifacts/coverage/web/`，仅配置输出位置，不自动开启覆盖率或调用 AI。检查报告放在 `test/reports/`，独立界面原型放在 `test/previews/`，本地数据库备份放在 `test/backups/`。具体内容见 [测试目录](../test/README.md)。
+Go 的 `*_test.go` 与前端 `*.test.ts` / `*.test.tsx` 保留在实现旁边。测试生成的截图、样例图片、原始结果与覆盖率报告统一放在根目录 `test/artifacts/`；Vitest 覆盖率输出使用 `test/artifacts/coverage/web/`，仅配置输出位置，不自动开启覆盖率或调用 AI。正式功能说明保存在 `docs/`，README 效果图保存在 `docs/images/screenshots/`；本机数据库备份可使用 `test/backups/`。历史报告与原型已移出项目。具体内容见 [测试目录](../test/README.md)。
 
 `test/artifacts/` 和 `test/backups/` 不提交 Git；整个 `test/` 不进入 Docker 构建上下文。`.next/`、`server/bin/` 等可重建产物仍遵循工具默认位置，依靠忽略规则和清理命令管理。上传图片、配置密钥及业务数据继续保存在 `server/storage/uploads/` 和数据库中，不作为测试文件整理。
 

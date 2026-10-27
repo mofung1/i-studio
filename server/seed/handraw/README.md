@@ -54,4 +54,4 @@ docker compose -f docker/docker-compose.yml exec -T postgres \
 
 公共图片在 `server/storage/uploads/inspiration/` 原目录纳入 Git，克隆仓库即可取得已提交的封面；上游图片也可按固定版本重新下载。本站生成的 PNG 缺失时需从 Git 或备份恢复，脚本不会下载错配的上游图，也不会自动收费重生成。脚本发现启用云存储时停止；云环境需先通过项目存储路由保存公开封面。本次实际备份位于忽略目录 `test/backups/handraw-import-2026-10-27/`，后续补图前的公开库备份位于 `test/backups/handraw-fc-030-cover-2026-10-27/`。
 
-实际数据与接口验收见 [导入报告](../../../test/reports/handraw-styles-import-2026-10-27.md)。
+实际数据与接口验收见 导入报告（历史记录，可从 Git 历史查看）。

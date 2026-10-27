@@ -29,3 +29,11 @@ docker/data/
 
 # 数据库备份包含账号哈希和私有配置，仅保存在本机。
 /test/backups/
+
+# Local development helpers and historical artifacts
+/.claude/
+/.codex/
+/.agents/
+/test/reports/
+/test/previews/
+/vibe_images/

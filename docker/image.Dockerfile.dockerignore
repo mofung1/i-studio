@@ -19,3 +19,9 @@ server/storage/uploads/*
 !server/storage/uploads/inspiration/
 test
 vibe_images
+
+# Local development helpers and historical artifacts
+.claude
+.codex
+.agents
+docs

@@ -61,6 +61,6 @@
 | `POST /v1/admin/inspiration-submissions/{id}/review` | 通过或退回，可选积分奖励 |
 | `POST /v1/admin/inspiration-submissions/{id}/unpublish` | 管理员下架，需填写原因并记录操作日志 |
 
-新增迁移 `019_inspiration_submissions.sql`，随 API 启动执行。本机 API 和前端已于 2026-10-25 更新，正式部署时同样需要更新两者。验收与备份见 [专项报告](../test/reports/inspiration-submissions-2026-10-25.md)。
+新增迁移 `019_inspiration_submissions.sql`，随 API 启动执行。本机 API 和前端已于 2026-10-25 更新，正式部署时同样需要更新两者。验收与备份见 专项报告（历史记录，可从 Git 历史查看）。
 
-2026-10-25 补充：当前页分享与弹窗布局验收见 [专项报告](../test/reports/dialogs-sharing-2026-10-25.md)。本次只扩展来源查询条件，无新增数据库迁移。
+2026-10-25 补充：当前页分享与弹窗布局验收见 专项报告（历史记录，可从 Git 历史查看）。本次只扩展来源查询条件，无新增数据库迁移。

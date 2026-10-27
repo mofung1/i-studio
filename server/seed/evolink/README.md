@@ -46,4 +46,4 @@ docker compose -f docker/docker-compose.yml exec -T postgres \
 
 补图批次的公共 PNG 已随原图片目录纳入 Git；若本地缺失，可从 Git 恢复或使用存储备份。将上述命令的 `--manifest` 改为 `server/seed/evolink/2026-10-25-generated.json` 即可重放。缺少已生成封面时脚本会停止，不会下载上游错图或自动发起收费生成。额外 PNG 备份位于本机忽略目录 `test/backups/inspiration-evolink-2026-10-25/generated-covers-png.tar.gz`，私有生成资产及完整运行存储仍随既有备份方式维护。初次导入的 WebP 仅作历史备份，已无数据库引用。
 
-审阅记录见 `review-decisions-2026-10-25.json`，实际导入与验收见 [专项报告](../../../test/reports/evolink-prompts-import-2026-10-25.md)。原始来源提示词中混有视频段、重复版本或末尾残句的精选项，仅截取完整生图段，调整理由保存在批次 `promptAdjustment` 中。
+审阅记录见 `review-decisions-2026-10-25.json`，实际导入与验收见 专项报告（历史记录，可从 Git 历史查看）。原始来源提示词中混有视频段、重复版本或末尾残句的精选项，仅截取完整生图段，调整理由保存在批次 `promptAdjustment` 中。
