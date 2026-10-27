@@ -56,7 +56,7 @@ server/    Go 1.27.3 + Gin API，独立 Go module
     idgen/      标识生成
   Makefile      构建、格式化、检查与测试命令
   seed/         灵感库导入所需的 Markdown
-  storage/      本地运行数据（uploads 下的文件不提交到 Git）
+  storage/      本地运行数据（仅 uploads/inspiration 公共图片纳入 Git）
 docker/         Docker Compose 和前后端 Dockerfile
 docs/           使用说明、开发指南与功能设计
 test/           测试记录与测试产物，详见 test/README.md
@@ -237,7 +237,9 @@ go run ./cmd/server seed-inspiration \
   -cat seed/handdraw-categories.md
 ```
 
-默认图片源及参数见 `seed-inspiration -h`。图片保存于 `STORAGE_ROOT/inspiration`，不进入 Git；Compose API 的绑定挂载会复用这些文件。`CDN_BASE_URL` 可切换到已上传的案例图地址。
+默认图片源及参数见 `seed-inspiration -h`。公共灵感图片保持在 `server/storage/uploads/inspiration/` 原目录并纳入 Git，Compose API 的绑定挂载会复用这些文件。新增或更新图片后执行 `git add server/storage/uploads/inspiration/`。其他上传、生成图片和运行密钥仍被忽略。`CDN_BASE_URL` 可切换到已上传的案例图地址。
+
+Git 中的图片不包含数据库里的提示词和分类；完整迁移仍使用 [灵感库导出与恢复流程](docs/cloud-deployment.md)。
 
 2026-10-27 对照 [yang0/handraw-style](https://github.com/yang0/handraw-style) 的 366 条风格，补充 101 条缺失风格及 100 张上游示例图，当前本地公共库共 798 条。在「发现灵感」搜索 `yang0` 可查看；筛选记录、上游许可证、错配封面说明和重放命令见 [handraw-style 增量批次](server/seed/handraw/README.md)。
 

@@ -52,6 +52,6 @@ docker compose -f docker/docker-compose.yml exec -T postgres \
 
 导入使用与后台分类操作相同的事务锁，仅插入缺失的 `handraw-` ID，逐字段检查所有旧提示词和分类保持原样。重复提交新增为 0，不覆盖已编辑正文、封面或启用状态。提示词通过 Base64 COPY 作为数据传递。已有文件哈希不符时停止，不覆盖文件。
 
-图片保存在忽略目录 `server/storage/uploads/inspiration/`，不进入 Git，可按固定版本重新下载。脚本发现启用云存储时停止；云环境需先通过项目存储路由保存公开封面。本次实际备份位于忽略目录 `test/backups/handraw-import-2026-10-27/`。
+公共图片在 `server/storage/uploads/inspiration/` 原目录纳入 Git，克隆仓库即可取得已提交的封面，也可按固定版本重新下载。脚本发现启用云存储时停止；云环境需先通过项目存储路由保存公开封面。本次实际备份位于忽略目录 `test/backups/handraw-import-2026-10-27/`。
 
 实际数据与接口验收见 [导入报告](../../../test/reports/handraw-styles-import-2026-10-27.md)。

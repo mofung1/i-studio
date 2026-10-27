@@ -11,8 +11,6 @@ __pycache__/
 server/server
 server/api-go
 server/bin/
-# 灵感库案例图：seed-inspiration 命令从公开画廊下载，151MB 可随时重建
-server/storage/uploads/inspiration/
 .env
 .env.local
 .env.*.local
@@ -22,8 +20,9 @@ docker/.env.baota
 docker/data/
 .DS_Store
 
-# 运行时上传和生成图片：保存在本地/挂载卷，不提交到 Git
-server/storage/uploads/
+# 运行时上传和生成图片保持忽略；公共灵感库图片在原目录跟踪
+/server/storage/uploads/*
+!/server/storage/uploads/inspiration/
 
 # 测试截图、真实出图、识图原始结果和覆盖率报告，仅保存在本地。
 /test/artifacts/
