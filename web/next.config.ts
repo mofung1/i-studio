@@ -1,7 +1,11 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  images: { qualities: [75, 85] },
+  output: process.env.NEXT_STANDALONE === '1' ? 'standalone' : undefined,
+  images: {
+    qualities: [75, 85],
+    unoptimized: process.env.NEXT_IMAGE_UNOPTIMIZED === '1',
+  },
   async headers() {
     return [
       {

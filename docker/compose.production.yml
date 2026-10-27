@@ -1,0 +1,134 @@
+name: i-studio-production
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+# Standalone production stack. Do not combine with docker-compose.yml or reuse its data.
+services:
+  postgres:
+    <<: *service-defaults
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: istudio
+      POSTGRES_USER: istudio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Generate a new database password in docker/.env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [private]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U istudio -d istudio"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    <<: *service-defaults
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    volumes:
+      - redis_data:/data
+    networks: [private]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    <<: *service-defaults
+    build:
+      context: ..
+      dockerfile: docker/api.Dockerfile
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: 4000
+      DATABASE_URL: postgresql://istudio:${POSTGRES_PASSWORD:?Database password is required}@postgres:5432/istudio?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      STORAGE_ROOT: /data/uploads
+      WEB_ORIGINS: https://${APP_DOMAIN:?Set your public domain in docker/.env.production}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?Set an administrator username}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set a new administrator password}
+      AUTH_TRUSTED_PROXY_CIDRS: ${PROXY_SUBNET:-172.29.240.0/24}
+      GENERATION_WORKERS: ${GENERATION_WORKERS:-4}
+      GENERATION_POLL_TIMEOUT_SECONDS: 600
+    volumes:
+      - ./data/uploads:/data/uploads
+    networks: [private, proxy]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    <<: *service-defaults
+    build:
+      context: ..
+      dockerfile: docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://${APP_DOMAIN:?Set your public domain}
+        NEXT_PUBLIC_SITE_URL: https://${APP_DOMAIN:?Set your public domain}
+        SITE_ENV: ${SITE_ENV:-preview}
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: https://${APP_DOMAIN:?Set your public domain}
+      NEXT_PUBLIC_SITE_URL: https://${APP_DOMAIN:?Set your public domain}
+      SITE_ENV: ${SITE_ENV:-preview}
+      API_INTERNAL_BASE_URL: http://api:4000
+    networks: [proxy]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/', { method: 'HEAD', signal: AbortSignal.timeout(3000) }).then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 20
+
+  caddy:
+    <<: *service-defaults
+    image: caddy:2-alpine
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set your public domain}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [proxy]
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+networks:
+  private:
+    internal: true
+  proxy:
+    ipam:
+      config:
+        - subnet: ${PROXY_SUBNET:-172.29.240.0/24}
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

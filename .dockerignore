@@ -5,6 +5,8 @@ node_modules
 **/node_modules
 **/.env
 **/.env.local
+**/.env.production
+docker/data
 server/storage/uploads
 server/bin
 server/server

@@ -1,0 +1,131 @@
+name: i-studio-baota
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "5m"
+      max-file: "2"
+
+# Load the prepared amd64 images first. Only the loopback gateway is published.
+# These limits are for a private, low-concurrency trial on a shared small host.
+services:
+  postgres:
+    <<: *service-defaults
+    image: istudio-postgres:17-bookworm-amd64
+    pull_policy: never
+    mem_limit: 128m
+    environment:
+      POSTGRES_DB: istudio
+      POSTGRES_USER: istudio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a new dedicated database password}
+    command: [postgres, -c, shared_buffers=16MB, -c, max_connections=40, -c, work_mem=1MB, -c, maintenance_work_mem=16MB]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [private]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U istudio -d istudio"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    <<: *service-defaults
+    image: istudio-redis:7-amd64
+    pull_policy: never
+    mem_limit: 32m
+    command: [redis-server, --appendonly, "yes", --maxmemory, 16mb, --maxmemory-policy, allkeys-lru]
+    volumes:
+      - redis_data:/data
+    networks: [private]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    <<: *service-defaults
+    image: istudio-api:cloud-amd64
+    pull_policy: never
+    mem_limit: 224m
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: 4000
+      DATABASE_URL: postgresql://istudio:${POSTGRES_PASSWORD:?Set a new dedicated database password}@postgres:5432/istudio?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      STORAGE_ROOT: /data/uploads
+      WEB_ORIGINS: ${APP_ORIGIN:-http://127.0.0.1:33000}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      GOMEMLIMIT: 160MiB
+      AUTH_TRUSTED_PROXY_CIDRS: ${PROXY_SUBNET:-172.29.241.0/24}
+      GENERATION_WORKERS: 1
+      GENERATION_POLL_TIMEOUT_SECONDS: 600
+    volumes:
+      - ./data/uploads:/data/uploads
+    networks: [private, proxy]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    <<: *service-defaults
+    image: istudio-web:cloud-unoptimized-amd64
+    pull_policy: never
+    mem_limit: 192m
+    environment:
+      API_INTERNAL_BASE_URL: http://api:4000
+      NEXT_PUBLIC_API_BASE_URL: ""
+      NEXT_PUBLIC_SITE_URL: ""
+      SITE_ENV: preview
+      NODE_OPTIONS: --max-old-space-size=128
+    networks: [proxy]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/', { method: 'HEAD', signal: AbortSignal.timeout(3000) }).then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 20
+
+  gateway:
+    <<: *service-defaults
+    image: istudio-caddy:2-amd64
+    pull_policy: never
+    mem_limit: 48m
+    environment:
+      GOMEMLIMIT: 32MiB
+      BAOTA_PROXY_IP: ${BAOTA_PROXY_IP:-172.29.241.1}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-33000}:8080"
+    volumes:
+      - ./Caddyfile.internal:/etc/caddy/Caddyfile:ro
+    networks: [proxy]
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+networks:
+  private:
+    internal: true
+  proxy:
+    ipam:
+      config:
+        - subnet: ${PROXY_SUBNET:-172.29.241.0/24}
+
+volumes:
+  postgres_data:
+  redis_data:

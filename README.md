@@ -94,6 +94,10 @@ AI 生图和五个电商工具共用悬浮配置面板。PC 端可从标题区�
 
 ## 快速启动
 
+云服务器全新初始化、仅迁移灵感提示词与封面的部署方案见 [云服务器部署](docs/cloud-deployment.md)。它使用独立生产 Compose、HTTPS 域名和存储，不复用本机账号、AI 密钥或业务卷。
+
+当前腾讯云宝塔服务器已接入 `https://istudio.mcode.fun`，运行目录、维护命令和管理员 / AI 服务待办见 [宝塔部署记录](docs/baota-deployment.md)。已有宝塔 Nginx 占用 80/443 时使用该方案。
+
 ### Docker（完整持久化环境）
 
 需要 Docker 和支持 `env_file.required` 的 Docker Compose v2。AI 服务可在网页中配置，无需先填写供应商密钥。

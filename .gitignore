@@ -5,6 +5,8 @@ node_modules/
 .next-dev/
 dist/
 coverage/
+__pycache__/
+*.pyc
 *.tsbuildinfo
 server/server
 server/api-go
@@ -15,6 +17,9 @@ server/storage/uploads/inspiration/
 .env.local
 .env.*.local
 !.env.example
+docker/.env.production
+docker/.env.baota
+docker/data/
 .DS_Store
 
 # 运行时上传和生成图片：保存在本地/挂载卷，不提交到 Git

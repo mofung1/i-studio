@@ -1,0 +1,17 @@
+{
+	servers {
+		# Only the host Nginx may supply the public HTTPS scheme and client IP.
+		trusted_proxies static {$BAOTA_PROXY_IP:172.29.241.1}/32
+		trusted_proxies_strict
+	}
+}
+
+http://:8080 {
+	@api path /v1 /v1/*
+	handle @api {
+		reverse_proxy api:4000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

@@ -1,0 +1,13 @@
+{$APP_DOMAIN} {
+	@api path /v1 /v1/*
+	handle @api {
+		reverse_proxy api:4000 {
+			# Overwrite user-supplied forwarding headers at the public entry point.
+			header_up X-Forwarded-For {remote_host}
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}
