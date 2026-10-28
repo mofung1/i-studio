@@ -47,6 +47,9 @@ const profile = {
   cdnDomain: 'https://img.example.com',
   cdnMode: 'qiniu_private',
   hasCredentials: true,
+  accessKey: 'fixture-access',
+  secretKey: 'fixture-secret',
+  cdnKey: 'fixture-cdn',
 }
 let host: HTMLDivElement, root: Root
 beforeEach(() => {
@@ -91,10 +94,23 @@ it('edits the same configuration for historical covers and user images', async (
       id: 'shared',
       bucket: 'new-bucket',
       enabled: true,
-      accessKey: '',
-      secretKey: '',
+      accessKey: 'fixture-access',
+      secretKey: 'fixture-secret',
     }),
   )
+})
+
+it('shows saved storage credentials as plain text in separate settings sections', async () => {
+  await act(async () => root.render(<Page />))
+  const access = host.querySelector<HTMLInputElement>('#storage-access')!
+  const secret = host.querySelector<HTMLInputElement>('#storage-secret')!
+  expect(access.type).toBe('text')
+  expect(secret.type).toBe('text')
+  expect(access.value).toBe('fixture-access')
+  expect(secret.value).toBe('fixture-secret')
+  expect(host.textContent).toContain('存储连接')
+  expect(host.textContent).toContain('访问密钥')
+  expect(host.querySelectorAll('[data-slot="card"]')).toHaveLength(4)
 })
 it('checks the draft without enabling it, and can restore all images to local storage', async () => {
   await act(async () => root.render(<Page />))

@@ -66,6 +66,9 @@ func (s *Service) storageDraft(input storageInput) (objectstore.Profile, objects
 }
 
 func (s *Service) adminStorage(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == http.MethodGet {
 		rows, err := s.db.Query("SELECT id FROM storage_profiles ORDER BY created_at,id")
@@ -87,14 +90,17 @@ func (s *Service) adminStorage(w http.ResponseWriter, r *http.Request) {
 			s.error(w, 500, "STORAGE_CONFIG_ERROR", "存储配置读取失败")
 			return
 		}
-		profiles := []objectstore.Profile{}
+		profiles := []any{}
 		for _, id := range ids {
-			p, _, err := s.LoadProfile(id)
+			p, secrets, err := s.LoadProfile(id)
 			if err != nil {
 				s.error(w, 500, "STORAGE_CONFIG_ERROR", "存储密钥无法读取，请检查加密密钥是否恢复")
 				return
 			}
-			profiles = append(profiles, p)
+			profiles = append(profiles, struct {
+				objectstore.Profile
+				objectstore.Secrets
+			}{p, secrets})
 		}
 		var active string
 		if s.db.QueryRow("SELECT active_profile FROM storage_settings WHERE id=true").Scan(&active) != nil {

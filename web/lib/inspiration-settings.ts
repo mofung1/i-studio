@@ -16,6 +16,7 @@ export interface InspirationManagementResponse {
 }
 
 export interface ManagedInspirationCategory {
+  sortOrder?: number
   id: string
   category: string
   count: number

@@ -1,20 +1,26 @@
 package studio
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"regexp"
 	"strings"
 )
 
 func (s *Service) adminSettings(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
 	if r.Method == "GET" {
 		c, err := s.operationSettings()
 		if err != nil {
 			s.error(w, 503, "SETTINGS_UNAVAILABLE", "配置读取失败")
 			return
 		}
-		s.json(w, 200, c)
+		s.writeAdminOperationSettings(w, c)
 		return
 	}
 	if r.Method != "PUT" {
@@ -52,7 +58,11 @@ func (s *Service) adminSettings(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		defer tx.Rollback()
 		if input.RegistrationInviteCode != "" {
-			_, err = tx.Exec("INSERT INTO registration_invite(id,code_hash) VALUES(true,$1) ON CONFLICT(id) DO UPDATE SET code_hash=EXCLUDED.code_hash", inviteHash(input.RegistrationInviteCode))
+			var encrypted string
+			encrypted, err = newAIConfigStore(s).encrypt("registration-invite", input.RegistrationInviteCode)
+			if err == nil {
+				_, err = tx.Exec("INSERT INTO registration_invite(id,code_hash,code_encrypted) VALUES(true,$1,$2) ON CONFLICT(id) DO UPDATE SET code_hash=EXCLUDED.code_hash,code_encrypted=EXCLUDED.code_encrypted", inviteHash(input.RegistrationInviteCode), encrypted)
+			}
 		}
 		var configured bool
 		if err == nil {
@@ -78,5 +88,29 @@ func (s *Service) adminSettings(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 500, "SETTINGS_STORAGE_ERROR", "保存失败")
 		return
 	}
-	s.json(w, 200, c)
+	s.writeAdminOperationSettings(w, c)
+}
+
+func (s *Service) writeAdminOperationSettings(w http.ResponseWriter, c operationSettings) {
+	if s.db == nil {
+		s.json(w, 200, c)
+		return
+	}
+	var encrypted, code string
+	err := s.db.QueryRow("SELECT code_encrypted FROM registration_invite WHERE id=true").Scan(&encrypted)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		s.error(w, 503, "SETTINGS_UNAVAILABLE", "邀请码读取失败")
+		return
+	}
+	if encrypted != "" {
+		code, err = newAIConfigStore(s).decrypt(endpointConfig{ID: "registration-invite", APIKeyEncrypted: encrypted})
+		if err != nil {
+			s.error(w, 503, "SETTINGS_UNAVAILABLE", "邀请码解密失败")
+			return
+		}
+	}
+	s.json(w, 200, struct {
+		operationSettings
+		RegistrationInviteCode string `json:"registrationInviteCode"`
+	}{c, code})
 }

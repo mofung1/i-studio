@@ -11,7 +11,7 @@ import (
 	objectstore "github.com/istudio/server/internal/storage"
 )
 
-func TestStorageProfilesUnifyHistoricalImagesAndHideSecrets(t *testing.T) {
+func TestStorageProfilesUnifyImagesAndShowSecretsOnlyToAdmin(t *testing.T) {
 	s, _, _ := operationTestServer(t)
 	s.storage = objectstore.NewLocal(t.TempDir())
 	s.storage = objectstore.NewRouter(s.storage, s)
@@ -31,8 +31,8 @@ func TestStorageProfilesUnifyHistoricalImagesAndHideSecrets(t *testing.T) {
 		t.Fatal(w.Code, w.Body.String())
 	}
 	w = operationRequest(s, "GET", "/v1/admin/storage", "", admin, s.router().ServeHTTP)
-	if w.Code != 200 || strings.Contains(w.Body.String(), "fixture-access-key") || strings.Contains(w.Body.String(), "fixture-secret-key") {
-		t.Fatal("storage credentials exposed", w.Code)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "fixture-access-key") || !strings.Contains(w.Body.String(), "fixture-secret-key") {
+		t.Fatal("administrator could not read saved credentials", w.Code)
 	}
 	var config struct {
 		Profiles []objectstore.Profile `json:"profiles"`

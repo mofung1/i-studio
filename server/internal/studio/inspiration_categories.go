@@ -11,6 +11,7 @@ import (
 )
 
 type inspirationCategoryRow struct {
+	SortOrder    int    `json:"sortOrder"`
 	ID           string `json:"id"`
 	Category     string `json:"category"`
 	Count        int    `json:"count"`
@@ -19,8 +20,8 @@ type inspirationCategoryRow struct {
 
 func categoryCount(tx *sql.Tx, id string) (inspirationCategoryRow, error) {
 	var row inspirationCategoryRow
-	err := tx.QueryRow(`SELECT c.id,c.name,count(p.id),count(p.id) FILTER(WHERE p.enabled)
-FROM inspiration_categories c LEFT JOIN inspiration_prompts p ON p.category=c.name WHERE c.id=$1 GROUP BY c.id,c.name`, id).Scan(&row.ID, &row.Category, &row.Count, &row.EnabledCount)
+	err := tx.QueryRow(`SELECT c.id,c.name,c.sort_order,count(p.id),count(p.id) FILTER(WHERE p.enabled)
+FROM inspiration_categories c LEFT JOIN inspiration_prompts p ON p.category=c.name WHERE c.id=$1 GROUP BY c.id,c.name`, id).Scan(&row.ID, &row.Category, &row.SortOrder, &row.Count, &row.EnabledCount)
 	return row, err
 }
 
@@ -49,8 +50,8 @@ func (s *Service) listInspirationCategories(w http.ResponseWriter, r *http.Reque
 		count = "count(p.id) FILTER(WHERE p.enabled)"
 		having = " HAVING count(p.id) FILTER(WHERE p.enabled)>0"
 	}
-	rows, err := tx.Query(`SELECT c.id,c.name,` + count + `,count(p.id) FILTER(WHERE p.enabled)
-FROM inspiration_categories c LEFT JOIN inspiration_prompts p ON p.category=c.name GROUP BY c.id,c.name` + having + ` ORDER BY min(p.sort_order) ASC NULLS LAST,c.name ASC`)
+	rows, err := tx.Query(`SELECT c.id,c.name,c.sort_order,` + count + `,count(p.id) FILTER(WHERE p.enabled)
+FROM inspiration_categories c LEFT JOIN inspiration_prompts p ON p.category=c.name GROUP BY c.id,c.name` + having + ` ORDER BY c.sort_order ASC,c.name ASC,c.id ASC`)
 	if err != nil {
 		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "分类查询失败")
 		return
@@ -58,7 +59,7 @@ FROM inspiration_categories c LEFT JOIN inspiration_prompts p ON p.category=c.na
 	list := []inspirationCategoryRow{}
 	for rows.Next() {
 		var row inspirationCategoryRow
-		if err = rows.Scan(&row.ID, &row.Category, &row.Count, &row.EnabledCount); err != nil {
+		if err = rows.Scan(&row.ID, &row.Category, &row.SortOrder, &row.Count, &row.EnabledCount); err != nil {
 			break
 		}
 		list = append(list, row)
@@ -86,16 +87,21 @@ func (s *Service) editInspirationCategory(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var input struct {
-		Name     string `json:"name"`
-		MoveToID string `json:"moveToId"`
+		Name      string `json:"name"`
+		SortOrder *int   `json:"sortOrder"`
+		MoveToID  string `json:"moveToId"`
 	}
 	if (r.Method != http.MethodDelete || r.ContentLength != 0) && !decode(r, &input) {
 		s.error(w, 400, "INSPIRATION_CATEGORY_INVALID", "分类参数格式不正确")
 		return
 	}
 	input.Name = strings.TrimSpace(input.Name)
-	if r.Method != http.MethodDelete && (input.Name == "" || len([]rune(input.Name)) > 80) {
+	if r.Method != http.MethodDelete && ((input.Name == "" && (id == "" || input.SortOrder == nil)) || len([]rune(input.Name)) > 80) {
 		s.error(w, 400, "INSPIRATION_CATEGORY_INVALID", "分类名称需为 1–80 个字符")
+		return
+	}
+	if input.SortOrder != nil && (*input.SortOrder < -1000000 || *input.SortOrder > 1000000) {
+		s.error(w, 400, "INSPIRATION_CATEGORY_INVALID", "排序值需在 -1000000 至 1000000 之间")
 		return
 	}
 	tx, err := repository.BeginInspirationEdit(s.db)
@@ -115,6 +121,9 @@ func (s *Service) editInspirationCategory(w http.ResponseWriter, r *http.Request
 			s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "分类读取失败")
 			return
 		}
+	}
+	if input.Name == "" {
+		input.Name = current.Category
 	}
 	if r.Method == http.MethodDelete {
 		moved := int64(0)
@@ -151,7 +160,7 @@ func (s *Service) editInspirationCategory(w http.ResponseWriter, r *http.Request
 	}
 	if id == "" {
 		id = "category_" + idgen.New()
-		err = tx.QueryRow("INSERT INTO inspiration_categories(id,name) VALUES($1,$2) ON CONFLICT(name) DO NOTHING RETURNING id", id, input.Name).Scan(&id)
+		err = tx.QueryRow("INSERT INTO inspiration_categories(id,name,sort_order) SELECT $1,$2,LEAST(COALESCE(max(sort_order),-10)+10,1000000) FROM inspiration_categories ON CONFLICT(name) DO NOTHING RETURNING id", id, input.Name).Scan(&id)
 		if errors.Is(err, sql.ErrNoRows) {
 			s.error(w, 409, "INSPIRATION_CATEGORY_EXISTS", "此分类已存在")
 			return
@@ -172,6 +181,13 @@ func (s *Service) editInspirationCategory(w http.ResponseWriter, r *http.Request
 	}
 	if err != nil {
 		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "分类保存失败")
+		return
+	}
+	if input.SortOrder != nil && err == nil {
+		_, err = tx.Exec("UPDATE inspiration_categories SET sort_order=$1 WHERE id=$2", *input.SortOrder, id)
+	}
+	if err != nil {
+		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "排序保存失败")
 		return
 	}
 	row, err := categoryCount(tx, id)

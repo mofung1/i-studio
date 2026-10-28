@@ -136,7 +136,7 @@ export default function AISettingsPage() {
     setSaved('')
     setEditing(
       endpoint
-        ? { id: endpoint.id, input: { ...endpoint, apiKey: '' } }
+        ? { id: endpoint.id, input: { ...endpoint, apiKey: endpoint.apiKey ?? '' } }
         : { input: newEndpoint(purpose) },
     )
   }
@@ -392,7 +392,7 @@ export default function AISettingsPage() {
                                   {canManage && (
                                     <p className="endpoint-url">
                                       {endpoint.baseUrl}
-                                      <span>{endpoint.apiKeyMasked}</span>
+                                      <span className="admin-api-key">{endpoint.apiKey}</span>
                                     </p>
                                   )}
                                   {tests[endpoint.id] && (
@@ -661,7 +661,7 @@ export default function AISettingsPage() {
                     <span>API Key</span>
                     <Input
                       ref={keyRef}
-                      type="password"
+                      type="text"
                       autoComplete="new-password"
                       required={!editing.id}
                       value={editing.input.apiKey ?? ''}
@@ -670,7 +670,7 @@ export default function AISettingsPage() {
                     />
                     <small>
                       {editing.id
-                        ? '留空保留已保存的密钥；填写新值会替换密钥。'
+                        ? '密钥在管理员后台直接显示，修改后保存即可替换。'
                         : '密钥加密保存，不会展示给前台用户。'}
                     </small>
                   </FieldLabel>

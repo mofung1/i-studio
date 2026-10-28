@@ -14,6 +14,7 @@ export interface AIEndpoint {
   isDefault: boolean
   apiKeyConfigured: boolean
   apiKeyMasked: string
+  apiKey?: string
 }
 export type EndpointInput = Omit<AIEndpoint, 'id' | 'apiKeyConfigured' | 'apiKeyMasked'> & {
   apiKey?: string

@@ -56,8 +56,8 @@ func TestAIEncryptionDefaultAndPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 	raw, _ := json.Marshal(public)
-	if strings.Contains(string(raw), input.APIKey) || strings.Contains(string(raw), "apiKeyEncrypted") || strings.Contains(string(raw), "\"apiKey\"") {
-		t.Fatal("key leaked")
+	if public["apiKey"] != input.APIKey || strings.Contains(string(raw), "apiKeyEncrypted") {
+		t.Fatal("administrator key view is incorrect")
 	}
 	if public["apiKeyMasked"] != "****abcd" {
 		t.Fatal("unexpected mask")
@@ -253,8 +253,8 @@ func TestAISettingsAuthorizationAndRestoreDefault(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 	s.aiEndpoints(w, request("GET", "/v1/ai-endpoints", "", "other"))
-	if w.Code != 200 || !strings.Contains(w.Body.String(), `"canManage":true`) || strings.Contains(w.Body.String(), input.APIKey) {
-		t.Fatal("explicit administrator cannot manage settings or unmasked key leaked")
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"canManage":true`) || !strings.Contains(w.Body.String(), input.APIKey) {
+		t.Fatal("explicit administrator cannot read its configured key")
 	}
 	w = httptest.NewRecorder()
 	s.promptTemplates(w, request("PUT", "/v1/prompt-templates", `{"key":"rewrite","content":"Custom system","enabled":true}`, "other"))

@@ -543,6 +543,7 @@ func (a *aiConfigStore) public(e endpointConfig) (map[string]any, error) {
 	if len(key) > 4 {
 		masked += key[len(key)-4:]
 	}
+	result["apiKey"] = key
 	result["apiKeyConfigured"] = key != ""
 	result["apiKeyMasked"] = masked
 	return result, nil

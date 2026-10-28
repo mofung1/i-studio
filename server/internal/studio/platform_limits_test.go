@@ -74,8 +74,22 @@ func TestInviteConfigurationDoesNotLeakAndIsEnforced(t *testing.T) {
 	s, _, _ := operationTestServer(t)
 	admin := s.testAdminToken(domain.User{ID: "operator"})
 	w := operationRequest(s, "PUT", "/v1/admin/settings", `{"registrationInviteRequired":true,"registrationInviteCode":"PrivateInvite_123"}`, admin, s.router().ServeHTTP)
-	if w.Code != 200 || strings.Contains(w.Body.String(), "PrivateInvite_123") {
+	if w.Code != 200 || !strings.Contains(w.Body.String(), "PrivateInvite_123") {
 		t.Fatal(w.Code, w.Body.String())
+	}
+
+	read := operationRequest(s, "GET", "/v1/admin/settings", "", admin, s.router().ServeHTTP)
+	if read.Code != 200 || !strings.Contains(read.Body.String(), "PrivateInvite_123") || read.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("administrator could not read invite", read.Code)
+	}
+	var encrypted string
+	if err := s.db.QueryRow("SELECT code_encrypted FROM registration_invite WHERE id=true").Scan(&encrypted); err != nil || strings.Contains(encrypted, "PrivateInvite_123") || encrypted == "" {
+		t.Fatal("invite not encrypted", err)
+	}
+	member := s.testToken(domain.User{ID: "ordinary-member"})
+	denied := operationRequest(s, "GET", "/v1/admin/settings", "", member, s.router().ServeHTTP)
+	if denied.Code != 403 || strings.Contains(denied.Body.String(), "PrivateInvite_123") {
+		t.Fatal("member read invite", denied.Code)
 	}
 	for _, code := range []string{"", "wrong-code"} {
 		if err := s.registerAccount(domain.User{ID: "invite-user", Username: "invite_user", PasswordHash: "test"}, code); err == nil {

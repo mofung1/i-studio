@@ -91,7 +91,7 @@ export function AdminOperationsForm({
           <FieldLabel className="settings-field">
             <span>设置或更换邀请码</span>
             <Input
-              type="password"
+              type="text"
               autoComplete="off"
               value={ops.registrationInviteCode ?? ''}
               minLength={8}
@@ -103,7 +103,8 @@ export function AdminOperationsForm({
               }
             />
             <small>
-              8–64 位字母、数字、下划线或短横线。保存后不返回原文；关闭邀请限制可恢复公开注册。
+              8–64
+              位字母、数字、下划线或短横线。保存后在管理员后台直接显示；旧版仅保存哈希的邀请码需重新填写一次才能显示。
             </small>
           </FieldLabel>
         </Field>

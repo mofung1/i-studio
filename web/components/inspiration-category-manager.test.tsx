@@ -36,6 +36,18 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
+it('persists category order independently from its name and prompt order', async () => {
+  await act(async () => root.render(<InspirationCategoryManager />))
+  const input = container.querySelector<HTMLInputElement>('[aria-label="分类排序 分类-01"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '-20')
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await act(async () => input.dispatchEvent(new FocusEvent('focusout', { bubbles: true })))
+  expect(adminRequest).toHaveBeenCalledWith('inspiration/categories/1', 'PUT', { sortOrder: -20 })
+  expect(container.textContent).toContain('排序已保存')
+})
+
 it('paginates categories, resets scrolling on page changes and searches all categories', async () => {
   await act(async () => root.render(<InspirationCategoryManager />))
   const list = container.querySelector<HTMLElement>('.admin-data-scroll')!

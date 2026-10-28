@@ -1890,3 +1890,117 @@ html[data-theme='dark'] .admin-shell {
     flex-basis: auto;
   }
 }
+
+/* Storage settings are a full page rather than the legacy compact dialog. */
+.admin-shell .storage-admin {
+  max-width: 1180px;
+}
+.admin-shell .storage-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 0;
+  min-width: 0;
+}
+.admin-shell .storage-config-container {
+  min-width: 0;
+  gap: 20px;
+}
+.admin-shell .storage-config-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  min-width: 0;
+}
+.admin-shell .storage-connection-card {
+  grid-row: span 2;
+}
+.admin-shell .storage-config-form [data-slot='card'] {
+  min-width: 0;
+  margin: 0;
+}
+.admin-shell .storage-config-form [data-slot='card-title'] {
+  line-height: 1.5;
+}
+.admin-shell .storage-config-form [data-slot='card-description'] {
+  line-height: 1.7;
+}
+.admin-shell .storage-config-form .storage-config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 16px;
+}
+.admin-shell .storage-config-form .storage-credentials-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.admin-shell .storage-config-form [data-slot='field-description'] {
+  margin: 0;
+  line-height: 1.7;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.admin-shell .storage-config-form .storage-switch {
+  align-items: center;
+  gap: 10px;
+}
+.admin-shell .storage-config-form input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  flex: 0 0 auto;
+  accent-color: var(--primary);
+}
+.admin-shell .storage-config-form [data-orientation='horizontal'] {
+  gap: 10px;
+  align-items: center;
+}
+.admin-shell .storage-config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 0;
+}
+.admin-shell .admin-api-key {
+  display: block;
+  max-width: 320px;
+  overflow-wrap: anywhere;
+  font-family: var(--font-geist-mono), monospace;
+}
+.admin-shell .category-order-input {
+  width: 96px;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.admin-shell .category-order-hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (max-width: 1000px) {
+  .admin-shell .storage-config-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-shell .storage-connection-card {
+    grid-row: auto;
+  }
+}
+@media (max-width: 600px) {
+  .admin-shell .storage-config-form .storage-config-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-shell .storage-config-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .admin-shell .storage-config-actions > button {
+    width: 100%;
+  }
+}

@@ -40,6 +40,7 @@ export function InspirationCategoryManager({
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [sorting, setSorting] = useState<AdminSorting>([])
+  const [orderDrafts, setOrderDrafts] = useState<Record<string, string>>({})
   const [name, setName] = useState('')
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null)
   const [busy, setBusy] = useState('')
@@ -123,6 +124,34 @@ export function InspirationCategoryManager({
       setBusy('')
     }
   }
+  async function saveOrder(row: ManagedInspirationCategory) {
+    const value = orderDrafts[row.id]
+    if (value === undefined || busy) return
+    const sortOrder = Number(value)
+    if (!value.trim() || !Number.isInteger(sortOrder) || Math.abs(sortOrder) > 1000000) {
+      setError('排序值需为 -1000000 至 1000000 的整数')
+      return
+    }
+    if (sortOrder === (row.sortOrder ?? 0)) return
+    setBusy(row.id)
+    setError('')
+    try {
+      await adminRequest(`inspiration/categories/${encodeURIComponent(row.id)}`, 'PUT', {
+        sortOrder,
+      })
+      await refresh()
+      setOrderDrafts((previous) => {
+        const next = { ...previous }
+        delete next[row.id]
+        return next
+      })
+      setNotice('排序已保存，前台分类顺序已更新')
+    } catch (error) {
+      setError(errorText(error))
+    } finally {
+      setBusy('')
+    }
+  }
   function startDelete(row: ManagedInspirationCategory) {
     returnFocus.current = document.activeElement as HTMLElement
     setDeleteError('')
@@ -171,9 +200,11 @@ export function InspirationCategoryManager({
         const delta =
           id === 'category'
             ? a.category.localeCompare(b.category, 'zh-CN')
-            : id === 'count'
-              ? a.count - b.count
-              : a.enabledCount - b.enabledCount
+            : id === 'sortOrder'
+              ? (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+              : id === 'count'
+                ? a.count - b.count
+                : a.enabledCount - b.enabledCount
         return (desc ? -delta : delta) || a.id.localeCompare(b.id)
       })
     : filtered
@@ -186,6 +217,31 @@ export function InspirationCategoryManager({
   }, [page, totalPages])
 
   const columns: AdminColumn<ManagedInspirationCategory>[] = [
+    {
+      id: 'sortOrder',
+      header: '排序',
+      size: 140,
+      sortable: true,
+      cell: (row) => (
+        <input
+          className="category-order-input"
+          type="number"
+          min={-1000000}
+          max={1000000}
+          step={1}
+          aria-label={`分类排序 ${row.category}`}
+          value={orderDrafts[row.id] ?? String(row.sortOrder ?? 0)}
+          disabled={!!busy || loading}
+          onChange={(event) =>
+            setOrderDrafts((previous) => ({ ...previous, [row.id]: event.target.value }))
+          }
+          onBlur={() => void saveOrder(row)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur()
+          }}
+        />
+      ),
+    },
     {
       id: 'category',
       header: '分类名称',
@@ -326,6 +382,9 @@ export function InspirationCategoryManager({
           </button>
         </div>
       </form>
+      <p className="category-order-hint">
+        排序值越小越靠前，修改后按 Enter 或移开焦点即可保存，前台同步生效。
+      </p>
       <label className="inspiration-manager-search inspiration-category-search">
         <Search size={16} aria-hidden="true" />
         <input

@@ -39,6 +39,39 @@ func newTestCategory(t *testing.T, s *Service, name string) inspirationCategoryR
 	return data.Category
 }
 
+func TestCategoryOrderPersistsAndControlsPublicListWithoutChangingPrompts(t *testing.T) {
+	s := testSiteServer(t)
+	s.db = isolatedTestDatabase(t)
+	first := newTestCategory(t, s, "第一类")
+	second := newTestCategory(t, s, "第二类")
+	if _, err := s.db.Exec(`INSERT INTO inspiration_prompts(id,title,category,prompt,enabled,sort_order) VALUES('one','第一张','第一类','保留',true,1),('two','第二张','第二类','保留',true,2)`); err != nil {
+		t.Fatal(err)
+	}
+	w := inspirationRequest(t, s, "PUT", "/v1/inspiration/categories/"+second.ID, map[string]int{"sortOrder": -10}, "member")
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	rows := managedCategories(t, s)
+	if len(rows) != 2 || rows[0].ID != second.ID || rows[0].SortOrder != -10 || rows[1].ID != first.ID {
+		t.Fatal(rows)
+	}
+	public := inspirationRequest(t, s, "GET", "/v1/inspiration/categories", nil, "")
+	var response struct {
+		Categories []inspirationCategoryRow `json:"categories"`
+	}
+	if err := json.Unmarshal(public.Body.Bytes(), &response); err != nil || len(response.Categories) != 2 || response.Categories[0].ID != second.ID {
+		t.Fatal(public.Body.String(), err)
+	}
+	var order int
+	if err := s.db.QueryRow("SELECT sort_order FROM inspiration_prompts WHERE id='two'").Scan(&order); err != nil || order != 2 {
+		t.Fatal("category reorder changed prompt order", order, err)
+	}
+	invalid := inspirationRequest(t, s, "PUT", "/v1/inspiration/categories/"+second.ID, map[string]int{"sortOrder": 1000001}, "member")
+	if invalid.Code != 400 {
+		t.Fatal(invalid.Code)
+	}
+}
+
 func TestCategoryRegistrationEmptyPersistenceRenameAndStableSelection(t *testing.T) {
 	s := testSiteServer(t)
 	s.db = isolatedTestDatabase(t)
