@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
-	runtimeconfig "github.com/istudio/server/internal/config"
+	objectstore "github.com/istudio/server/internal/storage"
 )
 
 type inspirationPromptRow struct {
@@ -121,6 +122,11 @@ func (s *Service) inspirationPrompts(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "灵感库查询失败")
 		return
 	}
+	rows.Close()
+	if err := s.resolvePublicInspirationImages(list); err != nil {
+		s.error(w, 503, "STORAGE_UNAVAILABLE", "图片存储配置暂时不可用")
+		return
+	}
 
 	s.json(w, 200, map[string]any{
 		"prompts":  list,
@@ -143,14 +149,45 @@ func (s *Service) inspirationCategories(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// inspirationImageURL 把 image_key 转成可访问的 URL：
-// 配置了 CDN_BASE_URL 时直接返回 CDN 全址（图片已上传到 CDN），
-// 否则走本地服务接口 /v1/inspiration/images/{key}。
+// All images use the same active backend storage configuration.
 func inspirationImageURL(imageKey string) string {
-	if cdn := strings.TrimRight(runtimeconfig.Env("CDN_BASE_URL", ""), "/"); cdn != "" && !strings.HasPrefix(imageKey, "@storage/") && !communityInspirationKey(imageKey) {
-		return cdn + "/" + imageKey
-	}
 	return "/v1/inspiration/images/" + imageKey
+}
+
+// Public links do not expire and can be used directly by lazy-loaded covers.
+// Private configurations keep a stable API URL and sign when the image loads.
+func (s *Service) resolvePublicInspirationImages(rows []inspirationPromptRow) error {
+	router, ok := s.storage.(*objectstore.Router)
+	if !ok || len(rows) == 0 {
+		return nil
+	}
+	signer, err := router.DownloadSigner()
+	if err != nil {
+		return err
+	}
+	cloud, ok := signer.(*objectstore.Cloud)
+	if !ok || !cloud.PublicDownloads() {
+		return nil
+	}
+	for i := range rows {
+		key := strings.TrimPrefix(rows[i].ImageURL, "/v1/inspiration/images/")
+		if key == "" {
+			continue
+		}
+		object, ok := publicInspirationKey(key)
+		if !ok {
+			continue
+		}
+		object, err = objectstore.RelativeKey(object)
+		if err != nil {
+			return err
+		}
+		rows[i].ImageURL, err = cloud.SignedURL(object, 5*time.Minute)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // inspirationImage 返回本地存储的案例图。公开只读，长期缓存。
@@ -171,7 +208,7 @@ func (s *Service) inspirationImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if !community && s.redirectStoredObject(w, r, storageKey) {
+	if s.redirectStoredObject(w, r, storageKey) {
 		return
 	}
 	file, err := s.storage.Open(storageKey)

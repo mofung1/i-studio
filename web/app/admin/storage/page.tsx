@@ -1,14 +1,21 @@
 'use client'
-import { DialogActions } from '@/components/dialog-actions'
+
+import { useCallback, useEffect, useState, type FormEvent, type ComponentProps } from 'react'
+import { Save, ShieldCheck, Upload } from 'lucide-react'
 import { AdminPageHeader } from '@/components/admin/page-header'
-import { useTransientMessage } from '@/hooks/use-transient-message'
+import { Alert, AlertDescription } from '@/components/admin/ui/alert'
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@/components/admin/ui/field'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
-
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Cloud, HardDrive, Pencil, Plus, X } from 'lucide-react'
 import { LibrarySelect } from '@/components/library-controls'
-import { AdminEditorDialog as LibraryDialog } from '@/components/admin/editor-dialog'
+import { useTransientMessage } from '@/hooks/use-transient-message'
 import { adminRequest } from '@/lib/admin'
 
 interface Profile {
@@ -35,7 +42,7 @@ const providers = [
 ] as const
 const fresh = (): Draft => ({
   id: '',
-  name: '',
+  name: '统一图片存储',
   provider: 'aliyun',
   endpoint: '',
   publicEndpoint: '',
@@ -44,7 +51,7 @@ const fresh = (): Draft => ({
   prefix: '',
   pathStyle: false,
   cdnDomain: '',
-  cdnMode: 'aliyun_type_a',
+  cdnMode: 'public',
   accessKey: '',
   secretKey: '',
   cdnKey: '',
@@ -55,378 +62,359 @@ const hints: Record<string, string> = {
   tencent: '如 ap-guangzhou；Endpoint 如 https://cos.ap-guangzhou.myqcloud.com，桶名包含 APPID',
   s3: '使用服务商提供的 S3 区域、Endpoint 和存储桶；MinIO 通常需要路径风格',
 }
+function StorageField({
+  label,
+  description,
+  wide,
+  ...props
+}: ComponentProps<typeof Input> & {
+  label: string
+  description?: string
+  wide?: boolean
+}) {
+  return (
+    <Field className={wide ? 'storage-config-wide' : undefined}>
+      <FieldLabel htmlFor={props.id}>{label}</FieldLabel>
+      <Input {...props} aria-describedby={description ? `${props.id}-help` : undefined} />
+      {description && <FieldDescription id={`${props.id}-help`}>{description}</FieldDescription>}
+    </Field>
+  )
+}
+
 export default function StoragePage() {
-  const [profiles, setProfiles] = useState<Profile[]>([])
-  const [active, setActive] = useState('local')
-  const [draft, setDraft] = useState<Draft | null>(null)
+  const [draft, setDraft] = useState<Draft>(fresh)
+  const [enabled, setEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [ready, setReady] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [editorError, setEditorError] = useState('')
   const [message, setMessage] = useTransientMessage()
   const load = useCallback(async () => {
     const data = await adminRequest<{ activeProfile: string; profiles: Profile[] }>('storage')
-    setProfiles(data.profiles)
-    setActive(data.activeProfile)
+    const profile = data.profiles.find((p) => p.id === data.activeProfile) ?? data.profiles.at(-1)
+    setDraft(profile ? { ...profile, accessKey: '', secretKey: '', cdnKey: '' } : fresh())
+    setEnabled(data.activeProfile !== 'local')
+    setReady(true)
   }, [])
   useEffect(() => {
     void load()
       .catch((reason) => setError(reason.message))
       .finally(() => setLoading(false))
   }, [load])
-  async function activate(id: string) {
+  const patch = (value: Partial<Draft>) => setDraft((previous) => ({ ...previous, ...value }))
+  async function save(event: FormEvent) {
+    event.preventDefault()
     setBusy(true)
     setError('')
     setMessage('')
     try {
-      await adminRequest('storage', 'PUT', { activeProfile: id })
+      await adminRequest(
+        'storage',
+        'PUT',
+        enabled ? { ...draft, enabled: true } : { enabled: false },
+      )
       await load()
-      setMessage('已切换新图片的存储位置，旧图片继续从原位置读取。')
+      setMessage('统一存储配置已保存，公共封面、上传和生成图片均使用当前配置。')
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '切换失败')
+      setError(reason instanceof Error ? reason.message : '保存失败')
     } finally {
       setBusy(false)
     }
   }
-  async function save(event: FormEvent) {
-    event.preventDefault()
+  async function check() {
     setBusy(true)
-    setEditorError('')
+    setError('')
+    setMessage('')
     try {
-      await adminRequest('storage', 'POST', draft)
-      setDraft(null)
-      await load()
-      setMessage('存储配置已加密保存。确认云端访问权限和跨域设置后，可切换为默认存储。')
+      const result = await adminRequest<{ message: string }>('storage', 'POST', {
+        ...draft,
+        check: true,
+      })
+      setMessage(result.message)
     } catch (reason) {
-      setEditorError(reason instanceof Error ? reason.message : '保存失败')
+      setError(reason instanceof Error ? reason.message : '连接检查失败')
     } finally {
       setBusy(false)
     }
   }
-  const patch = (value: Partial<Draft>) =>
-    setDraft((previous) => (previous ? { ...previous, ...value } : null))
+  async function sync() {
+    setBusy(true)
+    setError('')
+    setMessage('正在检查连接并同步本地图片…')
+    try {
+      let cursor = ''
+      for (;;) {
+        const result = await adminRequest<{
+          total: number
+          completed: number
+          next: string
+          done: boolean
+        }>('storage', 'POST', { ...draft, sync: true, syncAfter: cursor })
+        setMessage(`已同步 ${result.completed} / ${result.total} 张图片`)
+        if (result.done) break
+        cursor = result.next
+      }
+      setMessage('本地图片同步完成，可以保存并启用配置。原有本地文件继续保留。')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '同步失败，可重新同步')
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <main className="ops-page storage-admin">
-      <AdminPageHeader
-        title="图片存储"
-        actions={
-          <Button
-            type="button"
-            disabled={busy || loading}
-            onClick={() => {
-              setDraft(fresh())
-              setEditorError('')
-            }}
-          >
-            <Plus data-icon="inline-start" />
-            添加存储
-          </Button>
-        }
-      />
+      <AdminPageHeader title="图片存储" />
       {error && (
-        <p className="settings-error" role="alert">
-          {error}
-          <Button
-            variant="outline"
-            type="button"
-            onClick={() =>
-              void load()
-                .then(() => setError(''))
-                .catch((reason) => setError(reason.message))
-            }
-          >
-            重试
-          </Button>
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>
+            {error}
+            {!ready && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  void load()
+                    .then(() => setError(''))
+                    .catch((reason) => setError(reason.message))
+                }
+              >
+                重试
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
       )}
       {message && (
         <p className="library-feedback" role="status">
           {message}
         </p>
       )}
-      {loading ? (
-        <p role="status">正在加载存储配置…</p>
-      ) : (
-        <div className="storage-profile-list">
-          {[
-            {
-              id: 'local',
-              name: '本地存储',
-              provider: 'local',
-              bucket: '服务器挂载卷',
-              endpoint: '',
-              region: '',
-            },
-            ...profiles,
-          ].map((profile) => (
-            <article
-              key={profile.id}
-              className={`storage-profile ${profile.id === active ? 'is-active' : ''}`}
-            >
-              <div className="storage-profile-icon">
-                {profile.provider === 'local' ? <HardDrive size={23} /> : <Cloud size={23} />}
-              </div>
-              <div className="storage-profile-copy">
-                <h2>
-                  {profile.name}
-                  {profile.id === active && <span>当前默认</span>}
-                </h2>
-                <p>
-                  {profile.provider === 'local'
-                    ? '无需云配置，原有本地图片始终保留访问。'
-                    : `${providers.find(([id]) => id === profile.provider)?.[1]} · ${profile.bucket} · ${profile.region}`}
-                </p>
-                {profile.endpoint && <small>{profile.endpoint}</small>}
-              </div>
-              <div className="storage-profile-actions">
-                {profile.id !== 'local' && (
-                  <Button
-                    variant="outline"
-                    type="button"
-                    className="studio-secondary"
-                    disabled={busy}
-                    onClick={() => {
-                      setDraft({
-                        ...(profile as Profile),
-                        accessKey: '',
-                        secretKey: '',
-                        cdnKey: '',
-                      })
-                      setEditorError('')
-                    }}
-                  >
-                    <Pencil data-icon="inline-start" />
-                    编辑
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  type="button"
-                  className="studio-secondary"
-                  disabled={busy || profile.id === active}
-                  onClick={() => void activate(profile.id)}
-                >
-                  {profile.id === active ? '正在使用' : '设为默认'}
-                </Button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-      <div className="storage-admin-note">
-        <strong>切换与访问</strong>
-        <p>
-          默认存储只影响新文件。旧存储配置需保留，历史图片不会自动搬迁。配置保存不会连接云平台，也不会开通云服务。
-        </p>
-        <p>
-          云端存储桶请设为私有；配置浏览器可访问的下载 Endpoint，并允许网站域名跨域 GET。CDN
-          还需在云控制台配置私有回源及 URL 鉴权。
-        </p>
-      </div>
-      {draft && (
-        <LibraryDialog
-          title={draft.id ? '编辑存储配置' : '添加存储配置'}
-          hideActions
-          onClose={() => {
-            if (!busy) setDraft(null)
-          }}
-        >
-          <form className="storage-config-form" onSubmit={(event) => void save(event)}>
-            {editorError && (
-              <p className="settings-error" role="alert">
-                {editorError}
-              </p>
-            )}
-            <div className="storage-config-grid">
-              <label>
-                配置名称
-                <Input
-                  required
-                  maxLength={100}
-                  value={draft.name}
-                  onChange={(event) => patch({ name: event.target.value })}
-                  placeholder="例如：生产图片存储"
-                />
-              </label>
-              <label>
-                存储平台
+      {loading && <p role="status">正在加载存储配置…</p>}
+      <form className="ops-card storage-config-form" onSubmit={(event) => void save(event)}>
+        <FieldSet disabled={busy || !ready}>
+          <FieldLegend>统一 OSS / CDN 配置</FieldLegend>
+          <FieldDescription>
+            公共提示词库封面、用户上传、AI 生成图片和网站图片共用这一套配置。本地 uploads
+            同时保留完整副本。
+          </FieldDescription>
+          <Field orientation="horizontal">
+            <input
+              id="storage-enabled"
+              type="checkbox"
+              checked={enabled}
+              onChange={(event) => setEnabled(event.target.checked)}
+            />
+            <FieldLabel htmlFor="storage-enabled">启用 OSS 云存储</FieldLabel>
+          </Field>
+          <FieldSet disabled={!enabled}>
+            <FieldGroup className="storage-config-grid">
+              <Field>
+                <FieldLabel>存储平台</FieldLabel>
                 <LibrarySelect
                   label="存储平台"
                   value={draft.provider}
-                  disabled={!!draft.id}
                   options={providers}
+                  disabled={busy || !enabled || !ready}
                   onChange={(provider) =>
                     patch({
                       provider,
+                      accessKey: '',
+                      secretKey: '',
+                      hasCredentials: false,
                       pathStyle: false,
-                      cdnMode:
-                        provider === 'qiniu'
-                          ? 'qiniu_private'
-                          : provider === 'tencent'
-                            ? 'tencent_type_a'
-                            : 'aliyun_type_a',
+                      cdnMode: 'public',
                     })
                   }
                 />
-              </label>
-              <label>
-                存储区域
-                <Input
-                  required
-                  disabled={!!draft.id}
-                  value={draft.region}
-                  onChange={(event) => patch({ region: event.target.value.trim() })}
-                />
-              </label>
-              <label>
-                存储桶 / 空间名称
-                <Input
-                  required
-                  disabled={!!draft.id}
-                  value={draft.bucket}
-                  onChange={(event) => patch({ bucket: event.target.value.trim() })}
-                />
-              </label>
-              <label className="storage-config-wide">
-                存储 Endpoint
-                <Input
-                  type="url"
-                  required
-                  disabled={!!draft.id}
-                  value={draft.endpoint}
-                  placeholder="https://…"
-                  onChange={(event) => patch({ endpoint: event.target.value.trim() })}
-                />
-                <small>{hints[draft.provider]}</small>
-              </label>
-              <label className="storage-config-wide">
-                <span className="storage-field-label">
-                  外网下载 Endpoint <small>可选</small>
-                </span>
-                <Input
-                  type="url"
-                  value={draft.publicEndpoint}
-                  placeholder="内网读写时，请在这里填写同一存储的外网 Endpoint"
-                  onChange={(event) => patch({ publicEndpoint: event.target.value.trim() })}
-                />
-              </label>
-              <label className="storage-config-wide">
-                <span className="storage-field-label">
-                  对象目录前缀 <small>可选</small>
-                </span>
-                <Input
-                  disabled={!!draft.id}
-                  value={draft.prefix}
-                  placeholder="例如 istudio"
-                  onChange={(event) => patch({ prefix: event.target.value.trim() })}
-                />
-              </label>
+              </Field>
+              <StorageField
+                id="storage-name"
+                label="配置名称"
+                required
+                maxLength={100}
+                value={draft.name}
+                onChange={(event) => patch({ name: event.target.value })}
+              />
+              <StorageField
+                id="storage-region"
+                label="存储区域"
+                required
+                value={draft.region}
+                onChange={(event) => patch({ region: event.target.value.trim() })}
+              />
+              <StorageField
+                id="storage-bucket"
+                label="存储桶 / 空间名称"
+                required
+                value={draft.bucket}
+                onChange={(event) => patch({ bucket: event.target.value.trim() })}
+              />
+              <StorageField
+                id="storage-endpoint"
+                label="存储 Endpoint"
+                wide
+                required
+                type="url"
+                value={draft.endpoint}
+                placeholder="https://…"
+                description={hints[draft.provider]}
+                onChange={(event) => patch({ endpoint: event.target.value.trim() })}
+              />
+              <StorageField
+                id="storage-download"
+                label="外网下载 Endpoint（可选）"
+                wide
+                type="url"
+                value={draft.publicEndpoint}
+                placeholder="读写使用内网时，填写对应外网 Endpoint"
+                onChange={(event) => patch({ publicEndpoint: event.target.value.trim() })}
+              />
+              <StorageField
+                id="storage-prefix"
+                label="对象目录前缀（可选）"
+                wide
+                value={draft.prefix}
+                placeholder="例如 uploads 或 istudio"
+                description="将本地 uploads 目录里的内容放到此前缀下，保留 image/、user/、inspiration/ 等原目录结构。"
+                onChange={(event) => patch({ prefix: event.target.value.trim() })}
+              />
               {draft.provider !== 'aliyun' && (
-                <label className="storage-config-checkbox storage-config-wide">
+                <Field orientation="horizontal" className="storage-config-wide">
                   <input
+                    id="storage-path-style"
                     type="checkbox"
-                    disabled={!!draft.id}
                     checked={draft.pathStyle}
                     onChange={(event) => patch({ pathStyle: event.target.checked })}
                   />
-                  使用 S3 路径风格
-                </label>
+                  <FieldLabel htmlFor="storage-path-style">使用 S3 路径风格</FieldLabel>
+                </Field>
               )}
-              <label>
-                Access Key / SecretId
-                <Input
-                  type="password"
-                  autoComplete="new-password"
-                  required={!draft.id}
-                  value={draft.accessKey}
-                  placeholder={draft.hasCredentials ? '已保存，留空保留' : '填写访问密钥 ID'}
-                  onChange={(event) => patch({ accessKey: event.target.value.trim() })}
+              <StorageField
+                id="storage-access"
+                label="Access Key / SecretId"
+                type="password"
+                autoComplete="new-password"
+                required={!draft.hasCredentials}
+                value={draft.accessKey}
+                placeholder={draft.hasCredentials ? '已保存，留空保留' : '填写访问密钥 ID'}
+                onChange={(event) => patch({ accessKey: event.target.value.trim() })}
+              />
+              <StorageField
+                id="storage-secret"
+                label="Secret Key"
+                type="password"
+                autoComplete="new-password"
+                required={!draft.hasCredentials}
+                value={draft.secretKey}
+                placeholder={draft.hasCredentials ? '已保存，留空保留' : '填写私有访问密钥'}
+                onChange={(event) => patch({ secretKey: event.target.value.trim() })}
+              />
+            </FieldGroup>
+            <details className="storage-cdn-settings" open={draft.cdnDomain ? true : undefined}>
+              <summary>CDN 加速（可选）</summary>
+              <FieldGroup className="storage-config-grid">
+                <StorageField
+                  id="storage-cdn"
+                  label="CDN 域名"
+                  wide
+                  type="url"
+                  value={draft.cdnDomain}
+                  placeholder="https://img.example.com"
+                  description={
+                    draft.provider === 'qiniu'
+                      ? '只填域名，不附加 uploads 等目录。七牛公开空间必须绑定 CDN 域名，S3 服务域名不支持匿名访问。'
+                      : '只填域名，不附加 uploads 等目录；所有资源共用此域名。'
+                  }
+                  onChange={(event) => patch({ cdnDomain: event.target.value.trim() })}
                 />
-              </label>
-              <label>
-                Secret Key
-                <Input
-                  type="password"
-                  autoComplete="new-password"
-                  required={!draft.id}
-                  value={draft.secretKey}
-                  placeholder={draft.hasCredentials ? '已保存，留空保留' : '填写私有访问密钥'}
-                  onChange={(event) => patch({ secretKey: event.target.value.trim() })}
-                />
-              </label>
-            </div>
-            <details className="storage-cdn-settings">
-              <summary>
-                CDN 加速 <span>可选</span>
-              </summary>
-              <div className="storage-config-grid">
-                <label className="storage-config-wide">
-                  CDN 域名
-                  <Input
-                    type="url"
-                    value={draft.cdnDomain}
-                    placeholder="https://images.example.com"
-                    onChange={(event) => patch({ cdnDomain: event.target.value.trim() })}
-                  />
-                </label>
-                <label>
-                  下载鉴权
+                <Field>
+                  <FieldLabel>下载鉴权</FieldLabel>
                   <LibrarySelect
                     label="CDN 下载鉴权"
                     value={draft.cdnMode}
+                    disabled={busy || !enabled || !ready}
                     options={
                       draft.provider === 'qiniu'
-                        ? [['qiniu_private', '七牛私有下载凭证']]
+                        ? [
+                            ['public', '公开直链'],
+                            ['qiniu_private', '七牛私有下载凭证'],
+                          ]
                         : [
+                            ['public', '公开直链'],
                             ['aliyun_type_a', '阿里云 CDN 鉴权 A'],
                             ['tencent_type_a', '腾讯云 CDN 鉴权 A'],
                           ]
                     }
-                    onChange={(cdnMode) => patch({ cdnMode })}
+                    onChange={(cdnMode) => {
+                      if (cdnMode) patch({ cdnMode })
+                    }}
                   />
-                </label>
-                {draft.cdnMode !== 'qiniu_private' && (
-                  <label>
-                    CDN 鉴权密钥
-                    <Input
-                      type="password"
-                      autoComplete="new-password"
-                      value={draft.cdnKey}
-                      placeholder={draft.hasCdnKey ? '已保存，留空保留' : '与 CDN 控制台保持一致'}
-                      onChange={(event) => patch({ cdnKey: event.target.value.trim() })}
-                    />
-                  </label>
+                </Field>
+                {draft.cdnMode !== 'public' && draft.cdnMode !== 'qiniu_private' && (
+                  <StorageField
+                    id="storage-cdn-key"
+                    label="CDN 鉴权密钥"
+                    type="password"
+                    autoComplete="new-password"
+                    value={draft.cdnKey}
+                    placeholder={draft.hasCdnKey ? '已保存，留空保留' : '与 CDN 控制台保持一致'}
+                    onChange={(event) => patch({ cdnKey: event.target.value.trim() })}
+                  />
                 )}
-                <p className="storage-config-wide">
-                  A 类鉴权的有效期请在 CDN 控制台设为 300
-                  秒，使用默认签名参数。云端还需启用私有回源、配置 CORS，并让 CDN
-                  缓存内容时始终校验下载签名。
-                </p>
-              </div>
+                <FieldDescription className="storage-config-wide">
+                  公开直链允许持有链接的人直接查看图片。私有下载需在云端启用相应鉴权；A 类有效期设为
+                  300 秒。允许本站跨域 GET。
+                </FieldDescription>
+                {draft.cdnMode === 'public' && (
+                  <FieldDescription className="storage-config-wide">
+                    公开直链下，用户作品、上传原图和提示词封面使用同一套公开地址，任何拿到链接的人都能访问和转存；
+                    已删除的图片在 CDN 缓存过期前仍可能访问，需立即下线时可在云端刷新缓存。
+                  </FieldDescription>
+                )}
+              </FieldGroup>
             </details>
-            {draft.id && (
-              <p className="library-count">
-                存储位置已固定。更换平台、桶或目录时请添加新配置，避免旧图片失效。
-              </p>
-            )}
-            <DialogActions sticky className="asset-picker-footer">
-              <Button
-                variant="outline"
-                type="button"
-                className="studio-secondary"
-                disabled={busy}
-                onClick={() => setDraft(null)}
-              >
-                <X data-icon="inline-start" />
-                取消
-              </Button>
-              <Button type="submit" disabled={busy}>
-                {busy ? '保存中…' : '保存配置'}
-              </Button>
-            </DialogActions>
-          </form>
-        </LibraryDialog>
-      )}
+          </FieldSet>
+        </FieldSet>
+        <div className="dialog-actions">
+          <Button
+            variant="outline"
+            type="button"
+            disabled={busy || !enabled || !ready}
+            onClick={(event) => {
+              if (event.currentTarget.form?.reportValidity()) void sync()
+            }}
+          >
+            <Upload data-icon="inline-start" />
+            同步本地图片
+          </Button>
+          <Button
+            variant="outline"
+            type="button"
+            disabled={busy || !enabled || !ready}
+            onClick={(event) => {
+              if (event.currentTarget.form?.reportValidity()) void check()
+            }}
+          >
+            <ShieldCheck data-icon="inline-start" />
+            检查连接
+          </Button>
+          <Button type="submit" disabled={busy || !ready}>
+            <Save data-icon="inline-start" />
+            {busy ? '处理中…' : '保存配置'}
+          </Button>
+        </div>
+      </form>
+      <Alert>
+        <AlertDescription>
+          <p>
+            关闭 OSS 时，所有图片从本地 uploads 读取。启用后，新图片同时写入本地与
+            OSS，图片通过同一套 OSS / CDN 配置访问。
+          </p>
+          <p>
+            更换平台前，先将 uploads
+            中的业务文件按原目录结构上传到新空间，再修改此处配置。历史图片也会切换，保存配置不会自动搬迁已有文件。密钥与内部配置文件无需上传。
+          </p>
+        </AlertDescription>
+      </Alert>
     </main>
   )
 }

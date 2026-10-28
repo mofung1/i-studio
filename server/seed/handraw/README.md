@@ -11,7 +11,7 @@
 - `2026-10-27.json`：可导入条目、正文、来源、封面与校验值。
 - `review-decisions-2026-10-27.json`：来源筛选及对应关系。
 - `import.py`：条目和图片校验、导入 SQL 生成工具。
-- 公共图片在 `server/storage/uploads/inspiration/`，随 Git 分发。
+- 公共图片在 `server/storage/uploads/inspiration/library/`，随 Git 分发。
 
 新站按根目录 Compose 部署后自动初始化完整公共库，无需手工导入本批。导入工具仅插入缺失 ID，不覆盖已有条目；默认生成回滚预演 SQL。缺少本站生成 PNG 时需从 Git 或备份恢复，不会自动调用生图。
 

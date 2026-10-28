@@ -37,6 +37,9 @@ test
 .claude
 .codex
 .agents
+.workbuddy
+**/__pycache__
+**/*.pyc
 docs
 
 # Local deployment backups

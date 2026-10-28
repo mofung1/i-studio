@@ -94,6 +94,38 @@ docker compose up -d --no-deps --force-recreate --wait --wait-timeout 180 app
 
 源码构建需要联网下载构建镜像和依赖；Docker 会在构建环境内编译前后端，无需宿主机安装语言工具链。
 
+## 本地发布镜像
+
+macOS / Linux 或 Windows WSL 可在本地源码目录运行更新脚本。先启动 Docker，首次发布时登录有仓库推送权限的 Docker Hub 账号：
+
+```sh
+docker login
+./update-image.sh
+```
+
+默认构建当前工作区的代码并推送 `mofugn1/istudio:latest`，同时支持 `linux/amd64` 和 `linux/arm64`。尚未提交的代码修改也会参与构建。脚本复用 `docker/image.Dockerfile` 和独立的 `istudio-image` 构建器，后续运行复用构建缓存；首次发布会创建构建器。Docker Desktop 已提供跨架构模拟支持，独立 Docker Engine 需具备对应平台的构建能力，详见 [Docker 多平台构建说明](https://docs.docker.com/build/building/multi-platform/)。
+
+其他用法：
+
+```sh
+./update-image.sh --dry-run
+./update-image.sh --image yourname/istudio --tag 2026.10.27
+./update-image.sh --platform linux/amd64
+./update-image.sh --local
+./update-image.sh --help
+```
+
+`--dry-run` 仅打印命令；`--tag` 发布到指定标签；`--local` 只构建并载入本机镜像 `istudio:local`。构建需要联网下载基础镜像和依赖，默认使用缓存；需要重新构建所有层时添加 `--no-cache`。
+
+推送成功后，在服务器的部署目录更新应用容器。服务器 `.env` 中的 `ISTUDIO_IMAGE` 应与本次发布的镜像标签一致：
+
+```sh
+docker compose pull app
+docker compose up -d --no-deps --force-recreate --wait --wait-timeout 180 app
+```
+
+脚本只负责构建和发布镜像，服务器更新由上述命令完成。站点数据维护见 [更新与备份](operations.md)。
+
 ## 首次初始化
 
 应用会自动执行数据库迁移，创建配置指定的管理员，并向全新公共库导入 798 条提示词和 798 张封面。账号、余额、个人作品和 AI 配置均属于当前安装，不从其他站点复制。

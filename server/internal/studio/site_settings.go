@@ -283,6 +283,9 @@ func (s *Service) siteLogo(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if s.redirectStoredObject(w, r, key) {
+		return
+	}
 	file, err := s.storage.Open(key)
 	if err != nil {
 		http.NotFound(w, r)

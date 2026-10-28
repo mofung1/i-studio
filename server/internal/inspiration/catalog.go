@@ -18,7 +18,11 @@ import (
 
 const catalogSeedName = "bundled-inspiration-v1"
 
-var catalogImageName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*\.(jpg|jpeg|png|webp)$`)
+var catalogImageName = regexp.MustCompile(`^([a-zA-Z0-9][a-zA-Z0-9_.-]*|inspiration/library/[a-f0-9]{64})\.(jpg|jpeg|png|webp)$`)
+
+func libraryCoverKey(filename, checksum string) string {
+	return "inspiration/library/" + checksum + strings.ToLower(filepath.Ext(filename))
+}
 
 type Catalog struct {
 	Version    int               `json:"version"`
@@ -105,6 +109,9 @@ func (c *Catalog) validate() error {
 		if !catalogImageName.MatchString(file.Key) || files[file.Key] || err != nil || len(checksum) != sha256.Size || file.Bytes <= 0 || file.Bytes > 32*1024*1024 {
 			return errors.New("invalid or duplicate bundled cover")
 		}
+		if strings.Contains(file.Key, "/") && file.Key != libraryCoverKey(file.Key, file.SHA256) {
+			return errors.New("bundled cover path does not match its checksum")
+		}
 		files[file.Key] = true
 	}
 	ids, references := make(map[string]bool), make(map[string]bool)
@@ -171,7 +178,12 @@ func BootstrapCatalog(ctx context.Context, db *sql.DB, catalog *Catalog, imageDi
 				return result, fmt.Errorf("insert bundled category: %w", err)
 			}
 		}
+		keys := make(map[string]string)
+		for _, file := range catalog.Files {
+			keys[file.Key] = libraryCoverKey(file.Key, file.SHA256)
+		}
 		for _, prompt := range catalog.Prompts {
+			prompt.ImageKey = keys[prompt.ImageKey]
 			_, err := tx.ExecContext(ctx, `INSERT INTO inspiration_prompts
  (id,title,category,prompt,source,image_key,image_width,image_height,enabled,sort_order,instructions,requires_reference)
  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`, prompt.ID, prompt.Title, prompt.Category, prompt.Prompt, prompt.Source, prompt.ImageKey, prompt.ImageWidth, prompt.ImageHeight, prompt.Enabled, prompt.SortOrder, prompt.Instructions, prompt.RequiresReference)
@@ -205,6 +217,9 @@ func installCatalogCovers(ctx context.Context, files []CatalogFile, sourceDir, s
 		return err
 	}
 	defer destination.Close()
+	if err := destination.MkdirAll("library", 0755); err != nil {
+		return err
+	}
 	for _, file := range files {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -237,7 +252,10 @@ func verifyCatalogCover(root *os.Root, file CatalogFile) error {
 }
 
 func copyCatalogCover(source, destination *os.Root, file CatalogFile) error {
-	if err := verifyCatalogCover(source, file); err != nil {
+	sourceFile := file
+	sourceFile.Key = strings.TrimPrefix(file.Key, "inspiration/")
+	file.Key = strings.TrimPrefix(libraryCoverKey(file.Key, file.SHA256), "inspiration/")
+	if err := verifyCatalogCover(source, sourceFile); err != nil {
 		return err
 	}
 	output, err := destination.OpenFile(file.Key, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
@@ -254,7 +272,7 @@ func copyCatalogCover(source, destination *os.Root, file CatalogFile) error {
 			_ = destination.Remove(file.Key)
 		}
 	}()
-	input, err := source.Open(file.Key)
+	input, err := source.Open(sourceFile.Key)
 	if err != nil {
 		return err
 	}

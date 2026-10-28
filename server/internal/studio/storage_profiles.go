@@ -46,6 +46,10 @@ func (s *Service) LoadProfile(id string) (objectstore.Profile, objectstore.Secre
 
 // The API checks ownership before issuing any signed URL. Do not replace a
 // presigned origin URL's hostname: CDN has a separate authentication protocol.
+//
+// A public profile returns a stable unsigned link, so the redirect itself is
+// cacheable and repeat views never reach the API. Private links expire in
+// minutes and must not be cached anywhere.
 func (s *Service) redirectStoredObject(w http.ResponseWriter, r *http.Request, key string) bool {
 	signer, ok := s.storage.(objectstore.SignedStore)
 	if !ok {
@@ -59,7 +63,16 @@ func (s *Service) redirectStoredObject(w http.ResponseWriter, r *http.Request, k
 	if target == "" {
 		return false
 	}
-	w.Header().Set("Cache-Control", "no-store")
+	// Community covers keep the no-store they set before publishing is checked.
+	if w.Header().Get("Cache-Control") == "" {
+		cache := "no-store"
+		if policy, ok := s.storage.(interface{ CacheControl() string }); ok {
+			if value := policy.CacheControl(); value != "" {
+				cache = value
+			}
+		}
+		w.Header().Set("Cache-Control", cache)
+	}
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	http.Redirect(w, r, target, http.StatusFound)
 	return true

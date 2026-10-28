@@ -11,7 +11,7 @@ import (
 	objectstore "github.com/istudio/server/internal/storage"
 )
 
-func TestStorageProfilesKeepOldImagesAndHideSecrets(t *testing.T) {
+func TestStorageProfilesUnifyHistoricalImagesAndHideSecrets(t *testing.T) {
 	s, _, _ := operationTestServer(t)
 	s.storage = objectstore.NewLocal(t.TempDir())
 	s.storage = objectstore.NewRouter(s.storage, s)
@@ -51,8 +51,8 @@ func TestStorageProfilesKeepOldImagesAndHideSecrets(t *testing.T) {
 		t.Fatal(w.Code, w.Body.String())
 	}
 	key := s.newStorageKey("new.png")
-	if key != "@storage/"+id+"/new.png" {
-		t.Fatal("cloud ownership not recorded", key)
+	if key != "new.png" {
+		t.Fatal("new key should be platform independent", key)
 	}
 	file, err := s.storage.Open("legacy.png")
 	if err != nil {
@@ -68,14 +68,73 @@ func TestStorageProfilesKeepOldImagesAndHideSecrets(t *testing.T) {
 		t.Fatal("cannot return to local")
 	}
 	signed, err := s.storage.(objectstore.SignedStore).SignedURL(key, 5*time.Minute)
-	if err != nil || !strings.Contains(signed, "X-Amz-Signature") {
-		t.Fatal("switch broke old cloud image", err)
+	if err != nil || signed != "" {
+		t.Fatal("local mode still depends on old cloud", err)
 	}
 	input["id"] = id
 	input["bucket"] = "other-bucket"
 	raw, _ = json.Marshal(input)
 	w = operationRequest(s, "POST", "/v1/admin/storage", string(raw), admin, s.router().ServeHTTP)
-	if w.Code != 409 {
-		t.Fatal("in-place location change accepted", w.Code)
+	if w.Code != 200 {
+		t.Fatal("cannot change unified storage location", w.Code, w.Body.String())
+	}
+}
+
+func TestPublicCoversUseSameBackendCDNAndCanReturnToLocal(t *testing.T) {
+	t.Setenv("CDN_BASE_URL", "https://obsolete.example.com")
+	s, _, _ := operationTestServer(t)
+	s.storage = objectstore.NewRouter(objectstore.NewLocal(t.TempDir()), s)
+	admin := s.testAdminToken(domain.User{ID: "operator"})
+	input := `{"enabled":true,"name":"统一存储","provider":"qiniu","endpoint":"https://storage.example.com","region":"cn-south-1","bucket":"images","prefix":"uploads","cdnDomain":"https://cdn.example.com","cdnMode":"qiniu_private","accessKey":"fixture-access","secretKey":"fixture-secret"}`
+	w := operationRequest(s, "PUT", "/v1/admin/storage", input, admin, s.router().ServeHTTP)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if _, err := s.db.Exec("INSERT INTO inspiration_prompts(id,title,category,prompt,source,image_key,enabled) VALUES('cover','封面','摄影','提示词','作者','demo.jpg',true)"); err != nil {
+		t.Fatal(err)
+	}
+	rows := readInspirationList(t, inspirationRequest(t, s, "GET", "/v1/inspiration/prompts", nil, ""))
+	if len(rows) != 1 || rows[0].ImageURL != "/v1/inspiration/images/demo.jpg" {
+		t.Fatal("public image reference should remain stable", rows)
+	}
+	w = inspirationRequest(t, s, "GET", rows[0].ImageURL, nil, "")
+	if w.Code != 302 || !strings.HasPrefix(w.Header().Get("Location"), "https://cdn.example.com/uploads/inspiration/demo.jpg?") || !strings.Contains(w.Header().Get("Location"), "token=") {
+		t.Fatal("cover ignores shared configuration", w.Code, w.Header())
+	}
+	if w.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("expiring link must not be cached", w.Header().Get("Cache-Control"))
+	}
+	w = inspirationRequest(t, s, "GET", "/v1/inspiration/images/user/private.png", nil, "")
+	if w.Code == 302 && !strings.Contains(w.Header().Get("Location"), "/inspiration/") {
+		t.Fatal("public route signed user object")
+	}
+	w = operationRequest(s, "PUT", "/v1/admin/storage", `{"enabled":false}`, admin, s.router().ServeHTTP)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	rows = readInspirationList(t, inspirationRequest(t, s, "GET", "/v1/inspiration/prompts", nil, ""))
+	if rows[0].ImageURL != "/v1/inspiration/images/demo.jpg" {
+		t.Fatal("obsolete environment still overrides backend", rows)
+	}
+	var config struct {
+		Profiles []objectstore.Profile `json:"profiles"`
+	}
+	w = operationRequest(s, "GET", "/v1/admin/storage", "", admin, s.router().ServeHTTP)
+	if err := json.Unmarshal(w.Body.Bytes(), &config); err != nil {
+		t.Fatal(err)
+	}
+	p := config.Profiles[0]
+	raw, _ := json.Marshal(map[string]any{"enabled": true, "id": p.ID, "name": p.Name, "provider": p.Provider, "region": p.Region, "bucket": p.Bucket, "endpoint": p.Endpoint, "prefix": p.Prefix, "cdnDomain": p.CDNDomain, "cdnMode": "public"})
+	w = operationRequest(s, "PUT", "/v1/admin/storage", string(raw), admin, s.router().ServeHTTP)
+	if w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	rows = readInspirationList(t, inspirationRequest(t, s, "GET", "/v1/inspiration/prompts", nil, ""))
+	if rows[0].ImageURL != "https://cdn.example.com/uploads/inspiration/demo.jpg" {
+		t.Fatal("public cover should use stable direct link", rows)
+	}
+	w = inspirationRequest(t, s, "GET", "/v1/inspiration/images/demo.jpg", nil, "")
+	if w.Code != 302 || w.Header().Get("Cache-Control") != "public, max-age=600" {
+		t.Fatal("public redirect should stay cacheable", w.Code, w.Header().Get("Cache-Control"))
 	}
 }

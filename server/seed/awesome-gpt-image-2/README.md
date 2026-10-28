@@ -5,7 +5,7 @@
 ## 本仓库中的内容
 
 - 数据：`server/seed/inspiration-catalog.json` 中使用 `case*.jpg` 或 `case*.png` 封面的 549 条早期案例。
-- 图片：`server/storage/uploads/inspiration/case*.jpg` 和 `case*.png`，随 Git 和应用镜像分发。
+- 图片：`server/storage/uploads/inspiration/library/<sha256>.jpg` 或 `.png`；原始 case 文件名保留在来源记录中，随 Git 和应用镜像分发。
 - 作者及来源：保留每条记录的 `source`，不以集合来源覆盖原作者署名。
 - 历史补充材料：`server/seed/handdraw-*.md` 中的 8 条手绘记录仍保留原有的 handraw-style 来源标注。
 

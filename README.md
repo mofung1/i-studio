@@ -87,6 +87,8 @@ docker compose up -d --wait --wait-timeout 180
 
 已有部署请保留 `.env` 和数据卷，只将 `ISTUDIO_IMAGE` 改为 `istudio:local`，重新构建后更新容器。具体步骤见 [源码构建](docs/docker-image.md#从源码构建)。
 
+在本地修改代码后，可运行 `./update-image.sh` 构建并推送 `mofugn1/istudio:latest`，供服务器拉取更新。首次运行前需 `docker login`；指定自己的仓库、版本或仅构建本机镜像见 [本地发布镜像](docs/docker-image.md#本地发布镜像)。
+
 ## 项目效果
 
 **官网首页**
@@ -145,4 +147,4 @@ docker compose up -d --wait --wait-timeout 180
 - [yang0/handraw-style](https://github.com/yang0/handraw-style)：101 条风格提示词批次，附 [许可副本](server/seed/handraw/LICENSE)。
 - [EvoLink 图片提示词](https://github.com/Evolink-AI/awesome-gpt-image-2-API-Prompts)：148 条提示词批次，附 [CC0-1.0 许可副本](server/seed/evolink/LICENSE)。
 
-详细适用范围见 [公共内容与来源许可](docs/assets.md)，项目整理进度见 [仓库检查记录](docs/open-source-audit.md)。
+详细适用范围见 [公共内容与来源许可](docs/assets.md)。

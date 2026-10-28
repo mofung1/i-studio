@@ -68,7 +68,7 @@ func TestCatalogCoversPreserveExistingFilesAndRejectCorruption(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	target := filepath.Join(destination, "inspiration", "cover.png")
+	target := filepath.Join(destination, libraryCoverKey("cover.png", catalog.Files[0].SHA256))
 	if err := os.WriteFile(target, []byte("existing custom cover"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestCatalogCoversPreserveExistingFilesAndRejectCorruption(t *testing.T) {
 	if err := installCatalogCovers(context.Background(), catalog.Files, source, fresh); err == nil {
 		t.Fatal("accepted a corrupt bundled cover")
 	}
-	if _, err := os.Stat(filepath.Join(fresh, "inspiration", "cover.png")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(fresh, libraryCoverKey("cover.png", catalog.Files[0].SHA256))); !os.IsNotExist(err) {
 		t.Fatal("published a corrupt cover")
 	}
 }
@@ -159,6 +159,10 @@ func TestCatalogBootstrapPreservesEditsAndIntentionalEmptyLibrary(t *testing.T) 
 	if err != nil || result.Status != "installed" || result.Prompts != 1 {
 		t.Fatal(result, err)
 	}
+	var storedKey string
+	if err := db.QueryRow("SELECT image_key FROM inspiration_prompts WHERE id='prompt-1'").Scan(&storedKey); err != nil || storedKey != libraryCoverKey("cover.png", catalog.Files[0].SHA256) {
+		t.Fatal("bootstrap did not normalize the database path", storedKey, err)
+	}
 	var original string
 	if err := db.QueryRow("SELECT prompt FROM inspiration_prompts WHERE id='prompt-1'").Scan(&original); err != nil || original != catalog.Prompts[0].Prompt {
 		t.Fatal("prompt content was executed or changed", err)
@@ -216,5 +220,33 @@ func TestCatalogBootstrapRollsBackWhenACoverIsCorrupt(t *testing.T) {
 	var count int
 	if err := db.QueryRow("SELECT (SELECT count(*) FROM inspiration_prompts)+(SELECT count(*) FROM inspiration_categories)+(SELECT count(*) FROM installation_seeds)").Scan(&count); err != nil || count != 0 {
 		t.Fatal("committed partial initialization", count, err)
+	}
+}
+
+func TestCanonicalCatalogPathsInstallWithoutDuplicatingInspiration(t *testing.T) {
+	catalog, source := sampleCatalog(t)
+	key := libraryCoverKey("cover.png", catalog.Files[0].SHA256)
+	relative := key[len("inspiration/"):]
+	if err := os.MkdirAll(filepath.Join(source, "library"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(filepath.Join(source, "cover.png"), filepath.Join(source, relative)); err != nil {
+		t.Fatal(err)
+	}
+	catalog.Files[0].Key = key
+	catalog.Prompts[0].ImageKey = key
+	if err := catalog.validate(); err != nil {
+		t.Fatal(err)
+	}
+	destination := t.TempDir()
+	if err := installCatalogCovers(context.Background(), catalog.Files, source, destination); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(destination, key)); err != nil {
+		t.Fatal(err)
+	}
+	catalog.Files[0].Key = "inspiration/library/" + string(make([]byte, 64)) + ".png"
+	if err := catalog.validate(); err == nil {
+		t.Fatal("accepted mismatched hash path")
 	}
 }

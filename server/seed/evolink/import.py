@@ -56,8 +56,17 @@ def verify_cover(data, item):
             raise ValueError(f"Upstream blob mismatch: {item['id']}")
 
 
+def cover_key(item):
+    if not item['imageKey']:
+        return ''
+    checksum = item['imageSha256']
+    if not re.fullmatch(r'[a-f0-9]{64}', checksum):
+        raise ValueError('Invalid image checksum')
+    return 'inspiration/library/' + checksum + Path(item['imageKey']).suffix.lower()
+
+
 def prepare_cover(batch, item, image_dir, download):
-    target = image_dir / item['imageKey']
+    target = image_dir / cover_key(item).removeprefix('inspiration/')
     if target.exists():
         verify_cover(target.read_bytes(), item)
         return
@@ -72,6 +81,7 @@ def prepare_cover(batch, item, image_dir, download):
         data = response.read(item['imageBytes'] + 1)
     verify_cover(data, item)
     # Exclusive creation keeps an existing cover intact, including concurrent imports.
+    target.parent.mkdir(parents=True, exist_ok=True)
     try:
         with target.open('xb') as cover:
             cover.write(data)
@@ -84,6 +94,8 @@ def render_sql(batch, commit):
         'id', 'title', 'category', 'prompt', 'source', 'imageKey',
         'width', 'height', 'sortOrder', 'enabled',
     )} for item in batch['items']]
+    for row, item in zip(rows, batch['items']):
+        row['imageKey'] = cover_key(item)
     payload = base64.b64encode(json.dumps(rows, ensure_ascii=False).encode()).decode()
     # COPY carries base64 data, so prompt contents never become SQL or psql commands.
     sql = r"""\set ON_ERROR_STOP on

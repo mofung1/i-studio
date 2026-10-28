@@ -3,7 +3,9 @@ package inspiration
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"image"
 	_ "image/jpeg"
@@ -355,10 +357,16 @@ func Seed(db *sql.DB, cases []Case, storageRoot, imageBaseURL string, concurrenc
 
 func seedOneCase(db *sql.DB, item Case, inspirationDir, imageBaseURL string, client *http.Client) error {
 	id := fmt.Sprintf("case-%d", item.Number)
-	// image_key 只存文件名（case-1.jpg），不包含目录前缀：
-	// 本地服务时由图片接口拼 inspiration/ 目录，迁 CDN 时直接拼域名即可。
-	imageKey := item.ImageFile
+	// Download sources stay outside the published cover directory.
+	temporary, err := os.MkdirTemp("", "istudio-seed-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(temporary)
 	localPath := filepath.Join(inspirationDir, item.ImageFile)
+	if _, err := os.Stat(localPath); os.IsNotExist(err) {
+		localPath = filepath.Join(temporary, item.ImageFile)
+	}
 
 	width, height := 0, 0
 	if _, err := os.Stat(localPath); err != nil {
@@ -371,6 +379,20 @@ func seedOneCase(db *sql.DB, item Case, inspirationDir, imageBaseURL string, cli
 			width, height = config.Width, config.Height
 		}
 		_ = file.Close()
+	}
+
+	data, err := os.ReadFile(localPath)
+	if err != nil {
+		return err
+	}
+	checksum := sha256.Sum256(data)
+	imageKey := libraryCoverKey(item.ImageFile, hex.EncodeToString(checksum[:]))
+	target := filepath.Join(inspirationDir, strings.TrimPrefix(imageKey, "inspiration/"))
+	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(target, data, 0644); err != nil {
+		return err
 	}
 
 	tx, err := repository.BeginInspirationEdit(db)

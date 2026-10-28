@@ -117,13 +117,53 @@ func ValidateProfile(p Profile) error {
 	if p.Prefix != "" && (strings.HasPrefix(p.Prefix, "/") || strings.Contains(p.Prefix, "\\") || path.Clean(p.Prefix) != p.Prefix || p.Prefix == ".." || strings.HasPrefix(p.Prefix, "../")) {
 		return fmt.Errorf("存储前缀必须为相对目录，不含末尾斜线")
 	}
-	if p.CDNDomain != "" && p.CDNMode != "aliyun_type_a" && p.CDNMode != "tencent_type_a" && p.CDNMode != "qiniu_private" {
+	if p.CDNDomain != "" && p.CDNMode != "public" && p.CDNMode != "aliyun_type_a" && p.CDNMode != "tencent_type_a" && p.CDNMode != "qiniu_private" {
 		return fmt.Errorf("CDN 必须启用对应的签名鉴权")
 	}
 	if p.CDNMode == "qiniu_private" && p.Provider != "qiniu" {
 		return fmt.Errorf("七牛私有下载鉴权仅适用于七牛存储")
 	}
+	// Qiniu rejects anonymous requests on its S3 service domains even for public
+	// spaces, so a public profile only works through a bound CDN domain.
+	if p.Provider == "qiniu" && p.CDNMode == "public" && p.CDNDomain == "" {
+		return fmt.Errorf("七牛公开直链需填写 CDN 域名，S3 服务域名不支持匿名访问")
+	}
 	return nil
+}
+
+func (c *Cloud) PublicDownloads() bool { return c.profile.CDNMode == "public" }
+
+// Shared caches ignore "private", so a public profile must label objects
+// explicitly. Curated covers never change under the same key and can be cached
+// for a month; user content uses a day so deletions reach the edge quickly.
+func objectCacheControl(mode, key string) string {
+	if mode != "public" {
+		return "private, max-age=300"
+	}
+	if strings.HasPrefix(key, "inspiration/") {
+		return "public, max-age=2592000, immutable"
+	}
+	return "public, max-age=86400"
+}
+
+// CacheControl is the lifetime for a redirect to a public profile URL. It stays
+// short so switching platforms or CDN domains takes effect without a purge.
+func (c *Cloud) CacheControl() string {
+	if !c.PublicDownloads() {
+		return ""
+	}
+	return "public, max-age=600"
+}
+
+func (c *Cloud) downloadURL(target string) string {
+	if c.PublicDownloads() {
+		u, err := url.Parse(target)
+		if err == nil {
+			u.RawQuery = ""
+			return u.String()
+		}
+	}
+	return target
 }
 
 func (c *Cloud) objectKey(key string) (string, error) {
@@ -134,6 +174,7 @@ func (c *Cloud) objectKey(key string) (string, error) {
 }
 
 func (c *Cloud) Save(key string, source io.Reader) error {
+	cache := objectCacheControl(c.profile.CDNMode, key)
 	key, err := c.objectKey(key)
 	if err != nil {
 		return err
@@ -151,7 +192,6 @@ func (c *Cloud) Save(key string, source io.Reader) error {
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
-	cache := "private, max-age=300"
 	if c.oss != nil {
 		_, err = c.oss.PutObject(ctx, &oss.PutObjectRequest{Bucket: &c.profile.Bucket, Key: &key, Body: bytes.NewReader(data), ContentType: &contentType, CacheControl: &cache})
 	} else {
@@ -210,13 +250,13 @@ func (c *Cloud) SignedURL(key string, ttl time.Duration) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return result.URL, nil
+		return c.downloadURL(result.URL), nil
 	}
 	result, err := s3.NewPresignClient(c.s3Public).PresignGetObject(ctx, &s3.GetObjectInput{Bucket: &c.profile.Bucket, Key: &key}, func(o *s3.PresignOptions) { o.Expires = ttl })
 	if err != nil {
 		return "", err
 	}
-	return result.URL, nil
+	return c.downloadURL(result.URL), nil
 }
 
 func (c *Cloud) cdnURL(key string, ttl time.Duration, now time.Time) (string, error) {
@@ -225,6 +265,9 @@ func (c *Cloud) cdnURL(key string, ttl time.Duration, now time.Time) (string, er
 		return "", err
 	}
 	u.Path = "/" + key
+	if c.PublicDownloads() {
+		return u.String(), nil
+	}
 	if c.profile.CDNMode == "qiniu_private" {
 		q := u.Query()
 		q.Set("e", strconv.FormatInt(now.Add(ttl).Unix(), 10))
@@ -237,6 +280,9 @@ func (c *Cloud) cdnURL(key string, ttl time.Duration, now time.Time) (string, er
 		return "", fmt.Errorf("CDN 鉴权密钥未配置")
 	}
 	// CDN console TTL must be 300 seconds; timestamp is the signing time.
+	if ttl < 0 {
+		now = now.Add(ttl - 5*time.Minute)
+	}
 	stamp := strconv.FormatInt(now.Unix(), 10) + "-0-0"
 	digest := md5.Sum([]byte(u.EscapedPath() + "-" + stamp + "-" + c.secrets.CDNKey))
 	q := u.Query()

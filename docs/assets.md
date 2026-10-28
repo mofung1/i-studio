@@ -5,7 +5,7 @@
 内置 798 条提示词、13 个分类和 798 张封面。Docker 新站首次启动自动导入；已有公共库保留管理员的编辑、停用和删除。
 
 - 数据清单：`server/seed/inspiration-catalog.json`。
-- 公共封面：`server/storage/uploads/inspiration/`，随 Git 跟踪。
+- 公共封面：`server/storage/uploads/inspiration/library/`，随 Git 跟踪。
 - 来源元数据和许可证：`server/seed/awesome-gpt-image-2/`、`server/seed/handraw/`、`server/seed/evolink/`。
 
 风格类提示词可能只提供可复用的风格段，需要用户补充主体、场景和具体要求。封面在条目中标明来源或本站生成示例，不保证所有模型得到同样的效果。

@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 
 PROJECT = Path(__file__).resolve().parents[1]
@@ -33,16 +34,30 @@ def prepare(snapshot, image_dir):
                'files': []}
     if not catalog['categories'] or not catalog['prompts']:
         raise ValueError('The public library is empty')
-    images = sorted({p['image_key'] for p in catalog['prompts'] if p['image_key']})
-    for key in images:
-        if not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9_.-]*\.(jpg|jpeg|png|webp)', key):
+    files = {}
+    for prompt in catalog['prompts']:
+        key = prompt['image_key']
+        if not key:
+            continue
+        if not re.fullmatch(r'(?:[a-zA-Z0-9][a-zA-Z0-9_.-]*|inspiration/library/[a-f0-9]{64})\.(jpg|jpeg|png|webp)', key):
             raise ValueError('Only reviewed local public covers can be bundled: ' + key)
-        path = image_dir / key
+        path = image_dir / key.removeprefix('inspiration/')
         if path.is_symlink() or not path.is_file():
             raise ValueError('Missing or symlinked public cover: ' + key)
         data = path.read_bytes()
-        catalog['files'].append({'key': key, 'bytes': len(data),
-                                 'sha256': hashlib.sha256(data).hexdigest()})
+        checksum = hashlib.sha256(data).hexdigest()
+        canonical = 'inspiration/library/' + checksum + path.suffix.lower()
+        target = image_dir / canonical.removeprefix('inspiration/')
+        if target.is_symlink():
+            raise ValueError('Symlinked canonical cover: ' + canonical)
+        if not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, target)
+        if hashlib.sha256(target.read_bytes()).hexdigest() != checksum:
+            raise ValueError('Canonical cover checksum mismatch: ' + canonical)
+        prompt['image_key'] = canonical
+        files[canonical] = {'key': canonical, 'bytes': len(data), 'sha256': checksum}
+    catalog['files'] = [files[k] for k in sorted(files)]
     return catalog
 
 

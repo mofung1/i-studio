@@ -24,18 +24,12 @@ func NewRouter(local Store, source ProfileSource, observer ...func(operation, ke
 }
 
 func (s *Router) NewKey(key string) string {
-	id, err := s.source.ActiveProfile()
-	if err != nil {
-		return "@storage/unavailable/" + key
-	}
-	if id != "local" {
-		return "@storage/" + id + "/" + key
-	}
 	return key
 }
 
-// Unqualified keys always belong to the original local store. Changing the
-// default must never reinterpret an existing key against another bucket.
+// Keys are relative to uploads, independent of the current cloud provider.
+// Local remains a complete mirror so moving uploads and changing the active
+// configuration also moves historical images without editing database rows.
 type Router struct {
 	source    ProfileSource
 	local     Store
@@ -44,18 +38,37 @@ type Router struct {
 	onFailure func(operation, key string)
 }
 
-func (s *Router) resolve(key string) (Store, string, error) {
-	if !strings.HasPrefix(key, "@storage/") {
-		return s.local, key, nil
+func RelativeKey(key string) (string, error) {
+	if strings.HasPrefix(key, "@storage/") {
+		id, object, ok := strings.Cut(strings.TrimPrefix(key, "@storage/"), "/")
+		if !ok || id == "" || object == "" {
+			return "", fmt.Errorf("invalid storage reference")
+		}
+		return object, nil
 	}
-	rest := strings.TrimPrefix(key, "@storage/")
-	id, object, ok := strings.Cut(rest, "/")
-	if !ok || id == "" || object == "" {
-		return nil, "", fmt.Errorf("invalid storage reference")
+	return key, nil
+}
+
+// DownloadSigner snapshots the current configuration once for a gallery page.
+func (s *Router) DownloadSigner() (SignedStore, error) {
+	if s.source == nil {
+		signer, _ := s.local.(SignedStore)
+		return signer, nil
 	}
+	id, err := s.source.ActiveProfile()
+	if err != nil {
+		return nil, err
+	}
+	if id == "local" {
+		return nil, nil
+	}
+	return s.cloud(id)
+}
+
+func (s *Router) cloud(id string) (*Cloud, error) {
 	p, secrets, err := s.source.LoadProfile(id)
 	if err != nil {
-		return nil, "", fmt.Errorf("storage profile unavailable")
+		return nil, fmt.Errorf("storage profile unavailable")
 	}
 	encoded, _ := json.Marshal(p)
 	fingerprint := string(encoded) + p.EncryptedSecrets
@@ -65,7 +78,7 @@ func (s *Router) resolve(key string) (Store, string, error) {
 	if client == nil {
 		client, err = NewCloud(p, secrets)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		if s.clients == nil {
 			s.clients = map[string]*Cloud{}
@@ -76,23 +89,35 @@ func (s *Router) resolve(key string) (Store, string, error) {
 		}
 		s.clients[fingerprint] = client
 	}
-	return client, object, nil
+	return client, nil
 }
 
 func (s *Router) Save(key string, r io.Reader) error {
-	store, object, err := s.resolve(key)
+	object, err := RelativeKey(key)
 	if err == nil {
-		err = store.Save(object, r)
+		err = s.local.Save(object, r)
+	}
+	if err == nil {
+		var signer SignedStore
+		signer, err = s.DownloadSigner()
+		if cloud, ok := signer.(*Cloud); err == nil && ok {
+			var file io.ReadCloser
+			file, err = s.local.Open(object)
+			if err == nil {
+				err = cloud.Save(object, file)
+				_ = file.Close()
+			}
+		}
 	}
 	s.observe("save", key, err)
 	return err
 }
 
 func (s *Router) Open(key string) (io.ReadCloser, error) {
-	store, object, err := s.resolve(key)
+	object, err := RelativeKey(key)
 	var file io.ReadCloser
 	if err == nil {
-		file, err = store.Open(object)
+		file, err = s.local.Open(object)
 	}
 	s.observe("open", key, err)
 	if err != nil || s.onFailure == nil {
@@ -102,26 +127,50 @@ func (s *Router) Open(key string) (io.ReadCloser, error) {
 }
 
 func (s *Router) Delete(key string) error {
-	store, object, err := s.resolve(key)
+	object, err := RelativeKey(key)
 	if err == nil {
-		err = store.Delete(object)
+		var signer SignedStore
+		signer, err = s.DownloadSigner()
+		if cloud, ok := signer.(*Cloud); err == nil && ok {
+			err = cloud.Delete(object)
+		}
+		if err == nil {
+			err = s.local.Delete(object)
+		}
 	}
 	s.observe("delete", key, err)
 	return err
 }
 
 func (s *Router) SignedURL(key string, ttl time.Duration) (string, error) {
-	store, object, err := s.resolve(key)
+	object, err := RelativeKey(key)
+	var signer SignedStore
+	if err == nil {
+		signer, err = s.DownloadSigner()
+	}
 	if err != nil {
 		s.observe("sign", key, err)
 		return "", err
 	}
-	if signer, ok := store.(SignedStore); ok {
+	if signer != nil {
 		url, err := signer.SignedURL(object, ttl)
 		s.observe("sign", key, err)
 		return url, err
 	}
 	return "", nil
+}
+
+// CacheControl describes how long a client may reuse a redirect target. Local
+// storage and signed private links must not be cached.
+func (s *Router) CacheControl() string {
+	signer, err := s.DownloadSigner()
+	if err != nil {
+		return ""
+	}
+	if cloud, ok := signer.(*Cloud); ok {
+		return cloud.CacheControl()
+	}
+	return ""
 }
 
 func (s *Router) observe(operation, key string, err error) {

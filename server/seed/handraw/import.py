@@ -84,10 +84,19 @@ def verify_cover(data, item):
             raise ValueError(f"Cover format or dimensions mismatch: {item['id']}")
 
 
+def cover_key(item):
+    if not item['imageKey']:
+        return ''
+    checksum = item['imageSha256']
+    if not re.fullmatch(r'[a-f0-9]{64}', checksum):
+        raise ValueError('Invalid image checksum')
+    return 'inspiration/library/' + checksum + Path(item['imageKey']).suffix.lower()
+
+
 def prepare_cover(batch, item, image_dir, download):
     if not item['imageKey']:
         return
-    target = image_dir / item['imageKey']
+    target = image_dir / cover_key(item).removeprefix('inspiration/')
     if target.exists():
         verify_cover(target.read_bytes(), item)
         return
@@ -99,6 +108,7 @@ def prepare_cover(batch, item, image_dir, download):
     with urllib.request.urlopen(request, timeout=45) as response:
         data = response.read(item['imageBytes'] + 1)
     verify_cover(data, item)
+    target.parent.mkdir(parents=True, exist_ok=True)
     try:
         with target.open('xb') as cover:
             cover.write(data)
@@ -111,6 +121,8 @@ def render_sql(batch, commit):
         'id', 'title', 'category', 'prompt', 'source', 'imageKey',
         'width', 'height', 'sortOrder', 'enabled', 'instructions',
     )} for item in batch['items']]
+    for row, item in zip(rows, batch['items']):
+        row['imageKey'] = cover_key(item)
     payload = base64.b64encode(json.dumps(rows, ensure_ascii=False).encode()).decode()
     # COPY transmits data; prompt text is never interpolated into SQL or psql commands.
     sql = r"""\set ON_ERROR_STOP on

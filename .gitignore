@@ -54,6 +54,7 @@ docker/data/
 /.claude/
 /.codex/
 /.agents/
+/.workbuddy/
 /test/reports/
 /test/previews/
 /vibe_images/

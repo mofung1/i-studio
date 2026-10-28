@@ -108,3 +108,83 @@ func TestCDNSigningUsesProviderProtocol(t *testing.T) {
 		t.Fatal("invalid Qiniu token", err)
 	}
 }
+
+func TestPublicCDNURLsStayStableAndHaveNoCredentials(t *testing.T) {
+	c := &Cloud{profile: Profile{CDNDomain: "https://img.example.com", CDNMode: "public"}, secrets: Secrets{AccessKey: "fixture-access", SecretKey: "fixture-secret"}}
+	for _, stamp := range []int64{1444435200, 1800000000} {
+		link, err := c.cdnURL("uploads/inspiration/示例 1.jpg", time.Minute, time.Unix(stamp, 0))
+		u, _ := url.Parse(link)
+		if err != nil || u.Path != "/uploads/inspiration/示例 1.jpg" || u.RawQuery != "" || u.Host != "img.example.com" {
+			t.Fatal(link, err)
+		}
+	}
+	if got := c.downloadURL("https://bucket.s3.example.com/a.jpg?X-Amz-Signature=private"); got != "https://bucket.s3.example.com/a.jpg" {
+		t.Fatal(got)
+	}
+}
+
+// Qiniu's S3 service domains always require a signature, so public links only
+// exist through the bound CDN domain.
+func TestQiniuPublicProfileRequiresCDNDomain(t *testing.T) {
+	p := cloudFixture("qiniu")
+	p.CDNMode = "public"
+	if err := ValidateProfile(p); err == nil {
+		t.Fatal("public qiniu profile without CDN domain accepted")
+	}
+	p.CDNDomain = "https://img.example.com"
+	if err := ValidateProfile(p); err != nil {
+		t.Fatal(err)
+	}
+	p.Provider = "aliyun"
+	p.CDNDomain = ""
+	if err := ValidateProfile(p); err != nil {
+		t.Fatalf("public OSS reads anonymously, so no CDN is required: %v", err)
+	}
+}
+
+// A public profile serves unsigned links, so shared caches only reuse them when
+// the object itself is labelled public.
+func TestPublicProfileLabelsObjectsAndRedirectsForCaching(t *testing.T) {
+	var uploaded string
+	transport := storageTransport(func(r *http.Request) (*http.Response, error) {
+		if r.Method == http.MethodPut {
+			uploaded = r.Header.Get("Cache-Control")
+		}
+		return &http.Response{StatusCode: 200, Header: http.Header{"Etag": []string{`"fixture"`}}, Body: io.NopCloser(strings.NewReader("")), Request: r}, nil
+	})
+	p := cloudFixture("aliyun")
+	p.CDNMode = "public"
+	c, err := NewCloudWithClient(p, Secrets{AccessKey: "fixture-access", SecretKey: "fixture-secret"}, &http.Client{Transport: transport})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct{ key, want, note string }{
+		{"inspiration/case.jpg", "public, max-age=2592000, immutable", "curated cover"},
+		{"image/20261028/one.png", "public, max-age=86400", "generated image"},
+		{"user/20261028/two.png", "public, max-age=86400", "uploaded image"},
+	} {
+		if err = c.Save(test.key, strings.NewReader("fixture")); err != nil {
+			t.Fatal(err)
+		}
+		if uploaded != test.want {
+			t.Fatalf("%s cache header = %q, want %q", test.note, uploaded, test.want)
+		}
+		if c.CacheControl() != "public, max-age=600" {
+			t.Fatalf("%s redirect must be cacheable", test.note)
+		}
+	}
+	p.CDNMode = "aliyun_type_a"
+	private, err := NewCloudWithClient(p, Secrets{AccessKey: "fixture-access", SecretKey: "fixture-secret", CDNKey: "fixture-cdn-key"}, &http.Client{Transport: transport})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = private.Save("inspiration/case.jpg", strings.NewReader("fixture")); err != nil {
+		t.Fatal(err)
+	}
+	if uploaded != "private, max-age=300" {
+		t.Fatal("signed profile must not invite shared caching", uploaded)
+	}
+	if private.CacheControl() != "" {
+		t.Fatal("expiring links must not be cached")
+	}
+}
