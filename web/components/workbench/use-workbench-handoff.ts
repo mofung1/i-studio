@@ -3,24 +3,35 @@
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
+import { preserveStudioProject, type StudioQuery } from '@/lib/studio-navigation'
 import type { HistoryTask } from './use-task-history'
 import type { WorkbenchMode } from './shared'
 
-export function historyWorkbenchUrl(record: HistoryTask, regenerate = false) {
+export function historyWorkbenchUrl(
+  record: HistoryTask,
+  regenerate = false,
+  source?: StudioQuery | null,
+) {
   const query = new URLSearchParams({
     mode: record.input.mode === 'commerce' ? 'commerce' : 'general',
     resumeTask: record.id,
   })
   if (record.input.mode === 'commerce') query.set('task', record.input.taskType ?? 'product-main')
+  if (record.input.projectId) query.set('projectId', record.input.projectId)
   if (regenerate) query.set('review', '1')
-  return `/studio?${query}`
+  return preserveStudioProject(`/studio?${query}`, source)
 }
-export function referenceWorkbenchUrl(path: string, mode: WorkbenchMode, taskType: string) {
+export function referenceWorkbenchUrl(
+  path: string,
+  mode: WorkbenchMode,
+  taskType: string,
+  source?: StudioQuery | null,
+) {
   const match = path.match(/^\/v1\/assets\/([^/]+)\/content$/)
   if (!match?.[1]) return null
   const query = new URLSearchParams({ mode, referenceAsset: match[1] })
   if (mode === 'commerce') query.set('task', taskType)
-  return `/studio?${query}`
+  return preserveStudioProject(`/studio?${query}`, source)
 }
 
 /** Transfer protected task/asset IDs between the two workbench components. */

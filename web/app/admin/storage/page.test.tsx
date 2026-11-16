@@ -141,3 +141,50 @@ it('warns that public direct links are readable by anyone', async () => {
   })
   expect(host.textContent).toContain('任何拿到链接的人都能访问和转存')
 })
+
+it('keeps cloud settings out of the local-storage flow and preserves edits when toggling', async () => {
+  vi.mocked(adminRequest).mockResolvedValue({ activeProfile: 'local', profiles: [profile] })
+  await act(async () => root.render(<Page />))
+  const cloud = host.querySelector<HTMLFieldSetElement>('.storage-config-panels')!
+  expect(cloud.hidden).toBe(true)
+  expect(cloud.disabled).toBe(true)
+  expect(button('检查连接').disabled).toBe(true)
+  expect(host.textContent).toContain('无需配置云端地址或密钥')
+  const enabled = host.querySelector<HTMLInputElement>('#storage-enabled')!
+  await act(async () => enabled.click())
+  expect(cloud.hidden).toBe(false)
+  const bucket = host.querySelector<HTMLInputElement>('#storage-bucket')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      bucket,
+      'draft-bucket',
+    )
+    bucket.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await act(async () => enabled.click())
+  await act(async () => enabled.click())
+  expect(bucket.value).toBe('draft-bucket')
+  expect(host.textContent).toContain('有未保存的更改')
+})
+
+it('retains cloud edits and the unsaved state when saving fails', async () => {
+  await act(async () => root.render(<Page />))
+  const bucket = host.querySelector<HTMLInputElement>('#storage-bucket')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      bucket,
+      'keep-this-bucket',
+    )
+    bucket.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  vi.mocked(adminRequest).mockRejectedValueOnce(new Error('配置保存暂时失败'))
+  await act(async () =>
+    host
+      .querySelector('form')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+  )
+  expect(bucket.value).toBe('keep-this-bucket')
+  expect(host.textContent).toContain('配置保存暂时失败')
+  expect(host.textContent).toContain('有未保存的更改')
+  expect(button('保存配置').disabled).toBe(false)
+})

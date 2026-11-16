@@ -1,0 +1,10 @@
+{
+  "run_id": "1975afdc-03ce-491a-a5cd-e769ba5f4589",
+  "project_realpath": "/Users/mofung/Documents/product/game/one-minute-wulin",
+  "started_at": "2026-11-07T11:59:20.152Z",
+  "phase": "finished",
+  "owner_pid": 20958,
+  "finished_at": "2026-11-07T11:59:20.162Z",
+  "result": "FAIL",
+  "runtime_launch_pending": false
+}

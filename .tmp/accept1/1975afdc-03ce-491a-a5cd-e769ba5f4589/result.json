@@ -1,0 +1,20 @@
+{
+  "ok": false,
+  "result": "FAIL",
+  "error": "Runtime is missing. Use preview install through the current Maker distribution.",
+  "run_id": "1975afdc-03ce-491a-a5cd-e769ba5f4589",
+  "evidence_directory": "/Users/mofung/Documents/product/i-studio/.tmp/accept1/1975afdc-03ce-491a-a5cd-e769ba5f4589",
+  "log_path": "/Users/mofung/Documents/product/i-studio/.tmp/accept1/1975afdc-03ce-491a-a5cd-e769ba5f4589/runtime.log",
+  "invocation_path": "/Users/mofung/Documents/product/i-studio/.tmp/accept1/1975afdc-03ce-491a-a5cd-e769ba5f4589/invocation.json",
+  "started_at": "2026-11-07T11:59:20.152Z",
+  "project_realpath": "/Users/mofung/Documents/product/game/one-minute-wulin",
+  "finished_at": "2026-11-07T11:59:20.160Z",
+  "attempt_run_ids": [
+    "1975afdc-03ce-491a-a5cd-e769ba5f4589"
+  ],
+  "next_step": "AI must inspect every PNG for arbitrary in-game loading and gameplay; automatic checks only detect near-total black/transparent pixels and known bootstrap ordering.",
+  "warnings": [],
+  "source_evidence_directory": "/Users/mofung/.taptap-maker/preview/57bf4b41d9398434f35b636c08718eace0cd18aa723a920b7956c4f73f7051e8/validation/1975afdc-03ce-491a-a5cd-e769ba5f4589",
+  "archive_directory": "/Users/mofung/Documents/product/i-studio/.tmp/accept1/1975afdc-03ce-491a-a5cd-e769ba5f4589",
+  "artifacts": []
+}

@@ -4,8 +4,11 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { WorkbenchRail } from './workbench/workbench-rail'
 import { AccountMenu } from './account-menu'
+import { WorkbenchHeader } from './workbench/workbench-header'
+import CommercePage from '@/app/commerce/page'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
+vi.mock('./theme-toggle', () => ({ ThemeToggle: () => <button>主题</button> }))
 vi.mock('./account-provider', () => ({
   useAccount: () => ({
     account: {
@@ -30,6 +33,56 @@ afterEach(async () => {
   await act(async () => root.unmount())
   host.remove()
   vi.unstubAllGlobals()
+})
+it('retains the project through the commerce overview, clothing entry and workbench breadcrumb', async () => {
+  const projectId = '商品项目 & 01'
+  await act(async () => root.render(<WorkbenchRail section="general" projectId={projectId} />))
+  const overview = new URL(host.querySelector<HTMLAnchorElement>('[aria-label="电商工具"]')!.href)
+  expect(overview.pathname).toBe('/commerce')
+  expect(overview.searchParams.get('projectId')).toBe(projectId)
+
+  const page = await CommercePage({
+    searchParams: Promise.resolve({ projectId: overview.searchParams.get('projectId')! }),
+  })
+  await act(async () => root.render(page))
+  const tools = [...host.querySelectorAll<HTMLAnchorElement>('main a[href^="/studio?"]')]
+  expect(tools.length).toBeGreaterThanOrEqual(5)
+  for (const tool of tools) expect(new URL(tool.href).searchParams.get('projectId')).toBe(projectId)
+  const clothing = new URL(
+    host.querySelector<HTMLAnchorElement>('main a[aria-label="进入服装组图"]')!.href,
+  )
+  expect(clothing.searchParams.get('task')).toBe('clothing-set')
+
+  await act(async () =>
+    root.render(
+      <WorkbenchHeader
+        mode="commerce"
+        task="clothing-set"
+        projectId={clothing.searchParams.get('projectId')}
+        panelOpen={false}
+        historyOpen={false}
+        onShowDetails={() => {}}
+        onToggleHistory={() => {}}
+        onTogglePanel={() => {}}
+      />,
+    ),
+  )
+  const breadcrumb = host.querySelector<HTMLAnchorElement>(
+    '.studio-breadcrumb a[href^="/commerce"]',
+  )!
+  expect(new URL(breadcrumb.href).searchParams.get('projectId')).toBe(projectId)
+  const projectLink = host.querySelector<HTMLAnchorElement>(
+    '[aria-label="查看当前项目的素材与作品"]',
+  )!
+  expect(new URL(projectLink.href).searchParams.get('project')).toBe(projectId)
+  expect(projectLink.textContent).toBe('当前项目')
+})
+
+it('does not introduce a project into ordinary commerce browsing', async () => {
+  await act(async () => root.render(await CommercePage({ searchParams: Promise.resolve({}) })))
+  for (const tool of host.querySelectorAll<HTMLAnchorElement>('main a[href^="/studio?"]'))
+    expect(new URL(tool.href).searchParams.has('projectId')).toBe(false)
+  expect(host.querySelector('[aria-label="查看当前项目的素材与作品"]')).toBeNull()
 })
 it('closes mobile navigation after switching a task or pressing Escape and returns focus to the toggle', async () => {
   const changeTask = vi.fn()

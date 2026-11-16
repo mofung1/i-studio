@@ -177,3 +177,64 @@ it('does not offer another reward for a new version of a rewarded submission', a
   expect(reward.disabled).toBe(true)
   expect(host.textContent).toContain('后续版本不重复奖励')
 })
+
+it('uses the shared review list and pages without offering an unsupported page size', async () => {
+  vi.mocked(adminRequest).mockResolvedValueOnce({
+    submissions: [item],
+    total: 21,
+    page: 1,
+    totalPages: 2,
+  })
+  await act(async () => root.render(<AdminInspirationSubmissions />))
+  expect(host.querySelector('h1')?.textContent).toBe('用户投稿审核')
+  expect(host.querySelector('details.submission-rules')?.hasAttribute('open')).toBe(false)
+  expect(host.querySelector('[aria-label="每页投稿条数"]')).toBeNull()
+  const next = host.querySelector<HTMLButtonElement>('[aria-label="下一页投稿"]')!
+  await act(async () => next.click())
+  expect(
+    vi
+      .mocked(adminRequest)
+      .mock.calls.some(([path]) => path.includes('inspiration-submissions?page=2&status=pending')),
+  ).toBe(true)
+})
+
+it('saves posting rules from the secondary settings section', async () => {
+  await act(async () => root.render(<AdminInspirationSubmissions />))
+  await act(async () =>
+    host.querySelector<HTMLElement>('details.submission-rules > summary')!.click(),
+  )
+  await fill(host.querySelector<HTMLInputElement>('#submission-daily-limit')!, '8')
+  await act(async () =>
+    host
+      .querySelector('form[aria-label="投稿设置"]')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+  )
+  expect(adminRequest).toHaveBeenCalledWith('inspiration-submission-settings', 'PUT', {
+    enabled: true,
+    dailyLimit: 8,
+  })
+})
+
+it('keeps unsaved posting rules when filtering and labels them separately from active rules', async () => {
+  await act(async () => root.render(<AdminInspirationSubmissions />))
+  await act(async () =>
+    host
+      .querySelector<HTMLInputElement>('form[aria-label="投稿设置"] input[type="checkbox"]')!
+      .click(),
+  )
+  await fill(host.querySelector<HTMLInputElement>('#submission-daily-limit')!, '9')
+  expect(host.querySelector('.submission-rules > summary')?.textContent).toContain('已开放投稿')
+  expect(host.querySelector('.submission-rules > summary')?.textContent).toContain('每人每天 5 次')
+  expect(host.querySelector('.submission-rules > summary')?.textContent).toContain('有未保存更改')
+  await fill(host.querySelector<HTMLInputElement>('[aria-label="搜索投稿"]')!, '陶瓷')
+  await act(async () =>
+    host
+      .querySelector('form[aria-label="筛选用户投稿"]')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
+  )
+  expect(host.querySelector<HTMLInputElement>('#submission-daily-limit')?.value).toBe('9')
+  expect(
+    host.querySelector<HTMLInputElement>('form[aria-label="投稿设置"] input[type="checkbox"]')
+      ?.checked,
+  ).toBe(false)
+})

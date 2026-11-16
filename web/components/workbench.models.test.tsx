@@ -6,6 +6,13 @@ import { Workbench } from './workbench'
 
 const generation = vi.hoisted(() => ({ submit: vi.fn() }))
 
+// Model behavior assumes local storage is available; draft failures have separate coverage.
+vi.mock('@/lib/creation-drafts', async (original) => ({
+  ...(await original<typeof import('@/lib/creation-drafts')>()),
+  readCreationDraft: vi.fn(async () => null),
+  writeCreationDraft: vi.fn(async () => {}),
+}))
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/workbench',

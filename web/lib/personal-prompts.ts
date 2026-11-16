@@ -34,6 +34,7 @@ const presetSchema = z.object({
   clothingMode: z.enum(['product', 'model']).optional(),
   clothingStyle: z.enum(['studio', 'natural', 'street', 'editorial']).optional(),
 })
+export const presetDraftSchema = presetSchema.partial()
 export type CreationPreset = z.infer<typeof presetSchema>
 export interface PersonalPrompt {
   id: string

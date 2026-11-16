@@ -24,6 +24,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Brand } from '@/components/brand'
 import { FeedbackButton } from '@/components/feedback-provider'
 import type { CommerceTaskType } from '@/lib/contracts'
+import { preserveStudioProject, studioToolUrl } from '@/lib/studio-navigation'
 import { commerceTasks, type WorkbenchMode } from './shared'
 
 export type StudioSection =
@@ -39,6 +40,7 @@ interface WorkbenchRailProps {
   mode?: WorkbenchMode
   section?: StudioSection
   task?: CommerceTaskType
+  projectId?: string | null
   onChangeMode?: (mode: WorkbenchMode) => void
   onChangeTask?: (task: CommerceTaskType) => void
 }
@@ -55,9 +57,11 @@ export function WorkbenchRail({
   mode,
   section = mode ?? 'general',
   task,
+  projectId,
   onChangeMode,
   onChangeTask,
 }: WorkbenchRailProps) {
+  const project = projectId ? new URLSearchParams({ projectId }) : undefined
   const [collapsed, setCollapsed] = useState(false)
   const [navigationOpen, setNavigationOpen] = useState(false)
   const navigationToggle = useRef<HTMLButtonElement>(null)
@@ -143,7 +147,12 @@ export function WorkbenchRail({
           {collapsed ? '展开侧边栏' : '收起侧边栏'}
         </span>
       </button>
-      <a className="studio-new" href="/studio?mode=general" aria-label="新建创作" title="新建创作">
+      <a
+        className="studio-new"
+        href={studioToolUrl('general', undefined, project)}
+        aria-label="新建创作"
+        title="新建创作"
+      >
         <Plus size={18} />
         <span>新建创作</span>
       </a>
@@ -172,7 +181,7 @@ export function WorkbenchRail({
           </button>
         ) : (
           <Link
-            href="/studio?mode=general"
+            href={studioToolUrl('general', undefined, project)}
             className={section === 'general' ? 'active' : ''}
             aria-label="AI 生图"
             title="AI 生图"
@@ -183,7 +192,7 @@ export function WorkbenchRail({
           </Link>
         )}
         <Link
-          href="/commerce"
+          href={preserveStudioProject('/commerce', project)}
           className={section === 'commerce' ? 'active' : ''}
           aria-label="电商工具"
           title="电商工具"
@@ -216,7 +225,7 @@ export function WorkbenchRail({
               ) : (
                 <Link
                   key={id}
-                  href={`/studio?mode=commerce&task=${id}`}
+                  href={studioToolUrl('commerce', id, project)}
                   aria-label={meta.title}
                   title={meta.title}
                   aria-current={task === id ? 'page' : undefined}

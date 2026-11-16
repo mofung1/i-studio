@@ -1,0 +1,377 @@
+.editor {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.editor:focus-within {
+  border-color: var(--line-strong);
+  box-shadow: 0 0 0 3px var(--focus-soft);
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 10px 12px 8px 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.label {
+  min-width: 0;
+  margin: 0;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-inline-start: auto;
+}
+
+.count {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.count.overLimit {
+  color: var(--danger);
+}
+
+.expand,
+.close,
+.action,
+.editor .toolbar button,
+.dialog .toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 5px;
+  min-height: 34px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--foreground-2);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--text-caption);
+  font-weight: 500;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.expand {
+  min-height: 30px;
+  padding: 4px 6px;
+}
+
+.expand:hover,
+.close:hover,
+.action:hover:not(:disabled),
+.editor .toolbar button:hover:not(:disabled),
+.dialog .toolbar button:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--control-bg);
+}
+
+.expand:focus-visible,
+.close:focus-visible,
+.action:focus-visible,
+.editor .toolbar button:focus-visible,
+.dialog .toolbar button:focus-visible {
+  outline: 2px solid var(--line-strong);
+  outline-offset: 2px;
+}
+
+.action:disabled,
+.editor .toolbar button:disabled,
+.dialog .toolbar button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+/* Own the writing surface independently of the older workbench textarea rules. */
+.editor textarea.input,
+.dialog textarea.dialogInput {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  color: var(--foreground);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.75;
+  letter-spacing: normal;
+  resize: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  box-shadow: none;
+}
+
+.editor textarea.input {
+  min-height: 220px;
+  max-height: 360px;
+}
+
+.editor textarea.input:hover,
+.editor textarea.input:focus,
+.dialog textarea.dialogInput:hover,
+.dialog textarea.dialogInput:focus {
+  border: 0;
+  outline: none;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.editor textarea.input::placeholder,
+.dialog textarea.dialogInput::placeholder {
+  color: var(--placeholder);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-height: 46px;
+  padding: 5px 8px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-subtle);
+}
+
+.secondaryActions,
+.primaryActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+}
+
+.primaryActions {
+  justify-content: flex-end;
+  margin-inline-start: auto;
+}
+
+.note {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 8px 16px 12px;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.note > svg {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.note.error {
+  color: var(--danger);
+}
+
+.note button {
+  padding: 0 3px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  top: var(--prompt-viewport-top, 0px);
+  bottom: auto;
+  height: var(--prompt-viewport-height, 100dvh);
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(17 17 17 / 40%);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(840px, 100%);
+  height: 80dvh;
+  max-height: calc(var(--prompt-viewport-height, 100dvh) - 48px);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  outline: none;
+  color: var(--foreground);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.dialogHeader {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.dialogTitle {
+  min-width: 0;
+  margin: 0;
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.close {
+  width: 36px;
+  min-height: 36px;
+  padding: 8px;
+}
+
+.dialogEditor {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 96px;
+  overflow: hidden;
+}
+
+.dialog textarea.dialogInput {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  padding: 24px 28px;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.dialogFooter {
+  flex: 0 1 auto;
+  max-height: 35%;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.dialogFooter .toolbar {
+  min-height: 54px;
+  padding: 8px 20px;
+}
+
+.dialogFooter .note {
+  padding-inline: 28px;
+}
+
+@media (max-width: 780px) {
+  .editor textarea.input {
+    font-size: 16px;
+  }
+
+  .expand,
+  .close,
+  .action,
+  .editor .toolbar button,
+  .dialog .toolbar button {
+    min-height: 44px;
+  }
+
+  .heading {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .backdrop {
+    padding: 0;
+  }
+
+  .dialog {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .dialogHeader {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px
+      max(16px, env(safe-area-inset-left));
+  }
+
+  .dialogTitle {
+    font-size: 15px;
+  }
+
+  .close {
+    width: 44px;
+  }
+
+  .dialog textarea.dialogInput {
+    padding: 20px max(20px, env(safe-area-inset-right)) 20px max(20px, env(safe-area-inset-left));
+  }
+
+  .dialogFooter {
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface-subtle);
+  }
+
+  .dialogFooter .toolbar {
+    padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
+  }
+
+  .dialogFooter .note {
+    padding-inline: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor {
+    transition: none;
+  }
+}

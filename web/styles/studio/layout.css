@@ -533,136 +533,15 @@ html:has(.library-content)::-webkit-scrollbar-thumb,
   border-color: var(--border);
 }
 
-/* Keep the product brief as one writing surface with a quiet, useful action row. */
-.workbench-shell.mode-commerce .config-card-prompt .prompt-editor {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  gap: 0;
-  overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-sm);
-  transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-editor:focus-within {
-  border-color: var(--line-strong);
-  box-shadow: 0 0 0 3px var(--focus-soft);
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-editor .prompt-input {
-  min-height: 168px;
-  margin: 0;
-  padding: 16px 16px 12px;
-  color: var(--foreground);
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  outline: 0;
-  font-size: var(--text-ui);
-  line-height: 1.75;
-  resize: vertical;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-editor .prompt-input:hover,
-.workbench-shell.mode-commerce .config-card-prompt .prompt-editor .prompt-input:focus {
-  border: 0;
-  box-shadow: none;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-editor-bar {
-  flex: 0 0 auto;
-  min-height: 46px;
-  padding: 7px 10px 7px 14px;
-  border-top: 1px solid var(--border-soft);
-  background: var(--surface-subtle);
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-editor-actions {
-  min-width: 0;
-  gap: 6px;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-count {
-  padding: 0;
-  color: var(--foreground-3);
-  background: transparent;
-  border-radius: 0;
-  font-size: var(--text-small);
-  font-variant-numeric: tabular-nums;
-  line-height: 32px;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-count.is-over {
-  color: var(--danger);
-  background: transparent;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-undo {
-  height: 32px;
-  padding: 0 8px;
-  color: var(--foreground-3);
-  background: transparent;
-  border: 0;
-  border-radius: 7px;
-  font-size: var(--text-small);
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-undo:hover {
-  color: var(--foreground);
-  background: var(--control-hover);
-  border-color: transparent;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance {
-  min-height: 32px;
-  padding: 0 12px;
-  color: var(--primary-foreground);
-  background: var(--primary);
-  border: 1px solid var(--primary);
-  border-radius: 7px;
-  font-size: var(--text-small);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance:hover:not(:disabled) {
-  color: var(--primary-foreground);
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance:disabled {
-  color: var(--foreground-3);
-  background: var(--control-bg);
-  border-color: transparent;
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance.is-blocked {
-  color: var(--foreground-3);
-  background: transparent;
-  border-color: var(--border);
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-enhance.is-blocked:hover {
-  color: var(--foreground-2);
-  background: var(--control-hover);
-  border-color: var(--border);
-}
-.workbench-shell.mode-commerce .config-card-prompt .prompt-note {
-  margin: 10px 2px 0;
-}
-
-@media (max-width: 520px) {
-  .workbench-shell.mode-commerce .config-card-prompt .prompt-editor-bar {
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .workbench-shell.mode-commerce .config-card-prompt .prompt-editor-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-}
-
 /* Preserve scrolling while keeping browser scrollbar chrome out of the workspace. */
-*,
+*:not([data-prompt-scroll], [data-gallery-scroll]),
 *::before,
 *::after {
   scrollbar-width: none !important;
   -ms-overflow-style: none;
 }
 
-*::-webkit-scrollbar {
+*:not([data-prompt-scroll], [data-gallery-scroll])::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;

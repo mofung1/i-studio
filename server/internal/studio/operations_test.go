@@ -140,6 +140,49 @@ func TestConcurrentReservationCannotOverdrawAndIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestInsufficientCreditsRejectsSubmissionAndRetryBeforeEnqueue(t *testing.T) {
+	for _, available := range []int64{0, 124, 249} {
+		t.Run(fmt.Sprint(available), func(t *testing.T) {
+			s, model, _ := operationTestServer(t)
+			if _, err := s.db.Exec("UPDATE credit_accounts SET available=$1,held=500 WHERE user_id='member'", available); err != nil {
+				t.Fatal(err)
+			}
+			s.provider = &dynamicImageProvider{server: s}
+			s.queue = &taskQueue{server: s, fallback: make(chan string, 10)}
+			token := s.testToken(domain.User{ID: "member"})
+			raw, _ := json.Marshal(operationInput(model, 2))
+			if _, err := s.db.Exec("INSERT INTO generation_tasks(id,user_id,status,input) VALUES('previous-task','member','failed',$1::jsonb)", raw); err != nil {
+				t.Fatal(err)
+			}
+			router := s.router()
+			quote := operationRequest(s, "GET", "/v1/generation/quote?modelId="+model+"&count=2", "", token, router.ServeHTTP)
+			var quoted struct {
+				CanAfford bool `json:"canAfford"`
+			}
+			if err := json.Unmarshal(quote.Body.Bytes(), &quoted); err != nil || quote.Code != 200 || quoted.CanAfford {
+				t.Fatal("insufficient balance was quoted as affordable", quote.Code, quote.Body.String(), err)
+			}
+			for i, path := range []string{"/v1/generation/tasks", "/v1/generation/tasks/previous-task/retry"} {
+				r := httptest.NewRequest("POST", path, strings.NewReader(string(raw)))
+				r.Header.Set("Authorization", "Bearer "+token)
+				r.Header.Set("Idempotency-Key", fmt.Sprintf("insufficient-%d", i))
+				r.Header.Set("X-Expected-Unit-Price", "125")
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, r)
+				if w.Code != http.StatusPaymentRequired || !strings.Contains(w.Body.String(), "INSUFFICIENT_CREDITS") {
+					t.Fatal("unfunded generation was not rejected", path, w.Code, w.Body.String())
+				}
+			}
+			var remaining, held int64
+			var tasks, charges, ledger int
+			err := s.db.QueryRow(`SELECT available,held,(SELECT count(*) FROM generation_tasks),(SELECT count(*) FROM generation_charges),(SELECT count(*) FROM credit_ledger) FROM credit_accounts WHERE user_id='member'`).Scan(&remaining, &held, &tasks, &charges, &ledger)
+			if err != nil || remaining != available || held != 500 || tasks != 1 || charges != 0 || ledger != 0 || len(s.queue.fallback) != 0 {
+				t.Fatalf("rejected submission changed billing or queued work: available=%d held=%d tasks=%d charges=%d ledger=%d queued=%d err=%v", remaining, held, tasks, charges, ledger, len(s.queue.fallback), err)
+			}
+		})
+	}
+}
+
 func TestPartialDeliverySettlesOnceAndTaskDeletionRetainsLedger(t *testing.T) {
 	s, m, _ := operationTestServer(t)
 	job, _, err := s.reserveGeneration("member", "partial-00001", 125, operationInput(m, 3))

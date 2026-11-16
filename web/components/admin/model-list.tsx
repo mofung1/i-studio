@@ -69,11 +69,16 @@ export function AdminModelList({
       header: '状态',
       size: 115,
       sortable: true,
-      cell: (model) => (
-        <AdminStatusBadge tone={model.enabled ? 'success' : 'danger'}>
-          {model.enabled ? '已上架' : '未上架'}
-        </AdminStatusBadge>
-      ),
+      cell: (model) => {
+        const primary = model.channels?.find((channel) => channel.isActive)
+        const endpoint = endpoints.find((item) => item.id === primary?.endpointId)
+        const available = !!primary?.enabled && !!endpoint?.enabled
+        return (
+          <AdminStatusBadge tone={!model.enabled ? 'neutral' : available ? 'success' : 'warning'}>
+            {!model.enabled ? '未上架' : available ? '已上架' : '渠道不可用'}
+          </AdminStatusBadge>
+        )
+      },
     },
     {
       id: 'actions',
@@ -90,9 +95,9 @@ export function AdminModelList({
   ]
   return (
     <>
-      {!endpoints.length && (
+      {!loading && !endpoints.length && models.length > 0 && (
         <p className="ops-empty">
-          请先<Link href="/admin/settings">添加生图服务通道</Link>，再发布前台模型。
+          请先<Link href="/admin/settings?tab=image">添加生图渠道</Link>，再为模型绑定主渠道。
         </p>
       )}
       <AdminDataTable
@@ -103,7 +108,19 @@ export function AdminModelList({
         loading={loading}
         sorting={sorting}
         onSortingChange={onSortingChange}
-        emptyDescription="添加生图服务后，创建模型并设置积分单价。"
+        emptyTitle={endpoints.length ? '还没有前台模型' : '先连接一个生图渠道'}
+        emptyDescription={
+          endpoints.length
+            ? '点击“添加模型”，填写显示名称与积分单价，绑定主渠道后上架。'
+            : '连接供应商后，再创建用户可选的模型并设置积分单价。'
+        }
+        emptyAction={
+          !endpoints.length ? (
+            <Button asChild variant="outline">
+              <Link href="/admin/settings?tab=image">配置生图渠道</Link>
+            </Button>
+          ) : undefined
+        }
       />
     </>
   )

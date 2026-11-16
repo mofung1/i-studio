@@ -1,223 +1,332 @@
 'use client'
+
+import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { ArrowUpRight, Clock3, Coins, Images, ShieldCheck, Users, Wallet } from 'lucide-react'
-import { formatCredits } from '@/lib/credits'
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from './ui/card'
-import { Alert, AlertTitle, AlertDescription } from './ui/alert'
-import { Button } from './ui/button'
+  ArrowUpRight,
+  ChevronDown,
+  CircleAlert,
+  Clock3,
+  Coins,
+  Images,
+  MessageSquare,
+  Settings2,
+  ShieldCheck,
+} from 'lucide-react'
+import { formatCredits } from '@/lib/credits'
+import styles from './overview.module.css'
+
+function Quota({
+  title,
+  used,
+  limit,
+  unit,
+  format = String,
+  description,
+}: {
+  title: string
+  used?: number
+  limit?: number
+  unit: string
+  format?: (value: number) => string
+  description: string
+}) {
+  const known = used !== undefined && limit !== undefined
+  const percentage = known && limit > 0 ? Math.round((used / limit) * 100) : null
+  return (
+    <div className={styles.quota}>
+      <div className={styles.quotaTitle}>
+        <strong>{title}</strong>
+        <span>{percentage === null ? '—' : `已使用 ${percentage}%`}</span>
+      </div>
+      <p className={styles.quotaValue}>
+        {used === undefined ? '—' : format(used)}
+        <span>
+          {' '}
+          / {limit === undefined ? '—' : format(limit)} {unit}
+        </span>
+      </p>
+      {known && limit > 0 && (
+        <progress
+          aria-label={`${title}额度使用`}
+          value={Math.min(Math.max(used, 0), limit)}
+          max={limit}
+          data-warning={used >= limit * 0.8}
+        />
+      )}
+      <p className={styles.help}>{description}</p>
+    </div>
+  )
+}
 
 export function AdminOverview({
   overview,
   unit,
+  children,
 }: {
   overview: Record<string, number>
   unit: string
+  children?: ReactNode
 }) {
+  const number = (key: string) => (overview[key] === undefined ? '—' : String(overview[key]))
+  const credits = (key: string) =>
+    overview[key] === undefined ? '—' : formatCredits(overview[key])
   const stats = [
-    { title: '注册用户', value: overview.users ?? 0, description: '平台累计注册账户', icon: Users },
     {
-      title: '今日任务',
-      value: overview.todayTasks ?? 0,
-      description: '今日提交的生图任务',
+      title: '今日提交任务',
+      value: number('todayTasks'),
+      description: '北京时间今日',
       icon: Images,
+      href: '/admin/tasks',
     },
     {
       title: '进行中任务',
-      value: overview.activeTasks ?? 0,
-      description: '等待中与生成中的任务',
+      value: number('activeTasks'),
+      description: '等待中与生成中',
       icon: Clock3,
-    },
-    {
-      title: `今日消耗${unit}`,
-      value: formatCredits(overview.todayCharged ?? 0),
-      description: '按现有任务结算规则统计',
-      icon: Coins,
-    },
-    {
-      title: `生成中预留${unit}`,
-      value: formatCredits(overview.held ?? 0),
-      description: '任务完成或失败后结算',
-      icon: Wallet,
+      href: '/admin/tasks',
     },
     {
       title: '今日失败任务',
-      value: overview.todayFailed ?? 0,
-      description: '可在生成任务中查看错误',
-      icon: ShieldCheck,
+      value: number('todayFailed'),
+      description: '查看任务中的失败原因',
+      icon: CircleAlert,
+      href: '/admin/tasks',
+      warning: (overview.todayFailed ?? 0) > 0,
+    },
+    {
+      title: `今日消耗${unit}`,
+      value: credits('todayCharged'),
+      description: '已结算的站内消耗',
+      icon: Coins,
+      href: '/admin/tasks',
     },
   ]
-  const spendAlert =
-    (overview.dailyCreditAlertMinor ?? 0) > 0 &&
-    (overview.todayCharged ?? 0) >= (overview.dailyCreditAlertMinor ?? 0)
-  const signupAlert =
-    (overview.signupGiftDailyBudgetMinor ?? 0) > 0 &&
-    (overview.signupGiftToday ?? 0) >= (overview.signupGiftDailyBudgetMinor ?? 0) * 0.8
-  const auxAlert =
-    (overview.auxiliaryDailyLimit ?? 0) > 0 &&
-    (overview.auxiliaryToday ?? 0) >= (overview.auxiliaryDailyLimit ?? 0) * 0.8
-  const storageAlert = (overview.storageFullAccounts ?? 0) > 0
+  const creditAlert = overview.dailyCreditAlertMinor ?? 0
+  const signupBudget = overview.signupGiftDailyBudgetMinor ?? 0
+  const auxiliaryLimit = overview.auxiliaryDailyLimit ?? 0
+  const notices = [
+    creditAlert > 0 && (overview.todayCharged ?? 0) >= creditAlert
+      ? {
+          text: `今日已结算消耗达到 ${formatCredits(creditAlert)} ${unit}告警阈值。`,
+          href: '/admin/operations',
+          action: '查看额度设置',
+        }
+      : null,
+    signupBudget > 0 && (overview.signupGiftToday ?? 0) >= signupBudget * 0.8
+      ? {
+          text: '今日注册赠送预算已使用 80% 或以上；预算不足将暂停新注册。',
+          href: '/admin/operations',
+          action: '检查注册预算',
+        }
+      : null,
+    auxiliaryLimit > 0 && (overview.auxiliaryToday ?? 0) >= auxiliaryLimit * 0.8
+      ? {
+          text: '今日辅助请求额度已使用 80% 或以上。',
+          href: '/admin/operations',
+          action: '查看辅助额度',
+        }
+      : null,
+    (overview.storageFullAccounts ?? 0) > 0
+      ? {
+          text: `${overview.storageFullAccounts} 个账号已达到存储上限。`,
+          href: '/admin/users',
+          action: '查看用户',
+        }
+      : null,
+  ].filter((item) => item !== null)
+
   return (
-    <>
-      {(spendAlert || signupAlert || auxAlert || storageAlert) && (
-        <Alert>
-          <AlertTitle>平台用量提醒</AlertTitle>
-          <AlertDescription>
-            {spendAlert && (
-              <p>
-                今日已结算消耗达到 {formatCredits(overview.dailyCreditAlertMinor ?? 0)} {unit}
-                告警阈值。
-              </p>
-            )}
-            {signupAlert && <p>今日注册赠送预算已使用 80% 或以上；预算不足将暂停新注册。</p>}
-            {auxAlert && <p>今日辅助请求额度已使用 80% 或以上。</p>}
-            {storageAlert && <p>{overview.storageFullAccounts} 个账号已达到存储上限。</p>}
-            <p>积分消耗、辅助次数与供应商货币账单分别统计；该提醒不表示真实 API 费用。</p>
-          </AlertDescription>
-        </Alert>
+    <div className={styles.overview}>
+      <section aria-label="今日运营数据">
+        <dl className={styles.metrics}>
+          {stats.map((stat) => (
+            <div key={stat.title} className={styles.metric} data-warning={stat.warning}>
+              <dt>
+                <stat.icon size={16} aria-hidden="true" />
+                {stat.title}
+              </dt>
+              <dd>
+                <span className={styles.metricValue}>{stat.value}</span>
+                <Link href={stat.href}>
+                  <span>{stat.description}</span>
+                  <ArrowUpRight size={14} aria-hidden="true" />
+                </Link>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {notices.length > 0 && (
+        <section className={styles.attention} role="alert" aria-label="需要关注">
+          <h2>
+            <CircleAlert size={17} aria-hidden="true" />
+            需要关注
+          </h2>
+          <ul>
+            {notices.map((notice) => (
+              <li key={notice.text}>
+                <span>{notice.text}</span>
+                <Link href={notice.href}>
+                  {notice.action}
+                  <ArrowUpRight size={13} aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p>积分消耗、辅助次数与供应商货币账单分别统计；该提醒不表示真实 API 费用。</p>
+        </section>
       )}
-      <div className="admin-overview-stats">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader>
-              <CardDescription>{stat.title}</CardDescription>
-              <CardAction>
-                <stat.icon className="size-4 text-muted-foreground" />
-              </CardAction>
-              <CardTitle className="sr-only">{stat.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="admin-overview-stat">{stat.value}</div>
-            </CardContent>
-            <CardFooter>
-              <p className="text-xs text-muted-foreground">{stat.description}</p>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>平台额度（北京时间今日）</CardTitle>
-          <CardDescription>
-            仅统计已开始的辅助请求和实际入账的注册赠送；失败请求也占用次数。
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <dl>
-            <div className="admin-task-metric">
-              <dt>辅助请求</dt>
-              <dd>
-                {overview.auxiliaryToday ?? 0} / {overview.auxiliaryDailyLimit ?? 1000} 次；当前并发{' '}
-                {overview.auxiliaryActive ?? 0} / {overview.auxiliaryConcurrentLimit ?? 4}
-              </dd>
+
+      {children}
+
+      <div className={styles.dailyGrid}>
+        <section className={styles.panel} aria-labelledby="overview-quota-title">
+          <header className={styles.sectionHeading}>
+            <div>
+              <h2 id="overview-quota-title">今日额度</h2>
+              <p>北京时间自然日统计</p>
             </div>
-            <div className="admin-task-metric">
-              <dt>注册赠送</dt>
-              <dd>
-                {formatCredits(overview.signupGiftToday ?? 0)} /{' '}
-                {formatCredits(overview.signupGiftDailyBudgetMinor ?? 100000)} {unit}
-              </dd>
+            <Link href="/admin/operations">
+              调整额度
+              <ArrowUpRight size={14} aria-hidden="true" />
+            </Link>
+          </header>
+          <div className={styles.quotas}>
+            <Quota
+              title="辅助请求"
+              used={overview.auxiliaryToday}
+              limit={overview.auxiliaryDailyLimit}
+              unit="次"
+              description={`已开始的请求计数，失败也占次数。当前并发 ${number('auxiliaryActive')} / ${number('auxiliaryConcurrentLimit')}。`}
+            />
+            <Quota
+              title="注册赠送"
+              used={overview.signupGiftToday}
+              limit={overview.signupGiftDailyBudgetMinor}
+              unit={unit}
+              format={formatCredits}
+              description="按实际入账统计；预算不足会暂停新注册。"
+            />
+          </div>
+        </section>
+        <section className={styles.panel} aria-labelledby="overview-actions-title">
+          <header className={styles.sectionHeading}>
+            <div>
+              <h2 id="overview-actions-title">常用操作</h2>
+              <p>处理内容、反馈与模型配置</p>
             </div>
-            <div className="admin-task-metric">
-              <dt>图片存储（含暂存及历史引用）</dt>
-              <dd>{((overview.storageBytes ?? 0) / 1048576).toFixed(1)} MiB</dd>
-            </div>
-          </dl>
-        </CardContent>
-        <CardFooter>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/admin/operations">调整额度与告警</Link>
-          </Button>
-        </CardFooter>
-      </Card>
-      <div className="admin-overview-panels">
-        <Card>
-          <CardHeader>
-            <CardTitle>开放使用前的准备</CardTitle>
-            <CardDescription>按顺序连接 AI 服务、发布模型并配置运营策略。</CardDescription>
-          </CardHeader>
-          <CardContent>
+          </header>
+          <div className={styles.shortcuts}>
             {[
-              [
-                '/admin/settings',
-                '01',
-                '连接 AI 渠道',
-                '添加官方接口或兼容中转站，检查连接与生图能力。',
-              ],
-              [
-                '/admin/models',
-                '02',
-                '发布公共模型',
-                '设置前台名称、积分价格、上游模型 ID 和主渠道。',
-              ],
-              ['/admin/storage', '03', '确认图片存储', '选择本地存储或已有对象存储配置。'],
-              [
-                '/admin/operations',
-                '04',
-                '设置注册与使用策略',
-                '配置积分名称、注册赠送和单用户任务上限。',
-              ],
-            ].map(([href, index, title, description]) => (
-              <Link key={href} href={href!} className="admin-setup-link">
-                <span className="flex items-center gap-4">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs text-muted-foreground">
-                    {index}
-                  </span>
-                  <span>
-                    <strong className="text-sm font-medium">{title}</strong>
-                    <p>{description}</p>
-                  </span>
+              {
+                href: '/admin/submissions',
+                title: '审核用户投稿',
+                description: '检查待发布的公共灵感',
+                icon: ShieldCheck,
+              },
+              {
+                href: '/admin/feedback',
+                title: '处理用户反馈',
+                description: '跟进问题与处理状态',
+                icon: MessageSquare,
+              },
+              {
+                href: '/admin/models',
+                title: '管理模型与定价',
+                description: '调整主渠道、上架状态和单价',
+                icon: Settings2,
+              },
+            ].map((item) => (
+              <Link key={item.href} href={item.href}>
+                <item.icon size={17} aria-hidden="true" />
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.description}</small>
                 </span>
-                <ArrowUpRight className="size-4 shrink-0 text-muted-foreground" />
+                <ArrowUpRight size={14} aria-hidden="true" />
               </Link>
             ))}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>任务与余额</CardTitle>
-            <CardDescription>查看当前任务处理情况和平台可用余额。</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <dl>
-              <div className="admin-task-metric">
-                <dt>今日提交</dt>
-                <dd>{overview.todayTasks ?? 0} 个任务</dd>
-              </div>
-              <div className="admin-task-metric">
-                <dt>等待与生成中</dt>
-                <dd>{overview.activeTasks ?? 0} 个任务</dd>
-              </div>
-              <div className="admin-task-metric">
-                <dt>今日失败</dt>
-                <dd>{overview.todayFailed ?? 0} 个任务</dd>
-              </div>
-              <div className="admin-task-metric">
-                <dt>全平台可用{unit}</dt>
-                <dd>{formatCredits(overview.available ?? 0)}</dd>
-              </div>
-            </dl>
-          </CardContent>
-          <CardFooter className="mt-auto gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin/tasks">
-                查看生成任务
-                <ArrowUpRight data-icon="inline-end" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/admin/users">管理用户余额</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </section>
       </div>
-    </>
+
+      <section className={styles.accountSummary} aria-label="平台累计与余额">
+        <dl>
+          <div>
+            <dt>注册用户</dt>
+            <dd>
+              {number('users')}
+              <small> 个账户</small>
+            </dd>
+          </div>
+          <div>
+            <dt>全平台可用{unit}</dt>
+            <dd>{credits('available')}</dd>
+          </div>
+          <div>
+            <dt>生成中预留{unit}</dt>
+            <dd>{credits('held')}</dd>
+          </div>
+          <div>
+            <dt>图片存储</dt>
+            <dd>
+              {overview.storageBytes === undefined
+                ? '—'
+                : (overview.storageBytes / 1048576).toFixed(1)}
+              <small> MiB</small>
+            </dd>
+          </div>
+        </dl>
+        <p>预留积分在任务结束后结算；存储包含暂存及历史引用。以上为站内统计，不代表供应商账单。</p>
+      </section>
+
+      <details className={styles.setup}>
+        <summary>
+          <Settings2 size={17} aria-hidden="true" />
+          <span>
+            <strong>首次配置与检查</strong>
+            <small>从连接 AI 服务到开放用户使用</small>
+          </span>
+          <ChevronDown size={16} aria-hidden="true" />
+        </summary>
+        <ol>
+          {[
+            {
+              href: '/admin/settings',
+              title: '连接 AI 渠道',
+              description: '添加供应商地址与密钥，验证连接与生图能力。',
+            },
+            {
+              href: '/admin/models',
+              title: '发布前台模型',
+              description: '绑定主渠道，填写上游模型 ID、价格并上架。',
+            },
+            {
+              href: '/admin/storage',
+              title: '确认图片存储',
+              description: '按需选择本地存储或配置云存储。',
+            },
+            {
+              href: '/admin/operations',
+              title: '设置注册与使用额度',
+              description: '检查注册、赠送、并发和存储额度。',
+            },
+          ].map((item, index) => (
+            <li key={item.href}>
+              <span>{index + 1}</span>
+              <Link href={item.href}>
+                <strong>
+                  {item.title}
+                  <ArrowUpRight size={14} aria-hidden="true" />
+                </strong>
+                <p>{item.description}</p>
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </details>
+    </div>
   )
 }

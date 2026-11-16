@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { DialogActions } from './dialog-actions'
 import { LibraryDialog, LibrarySelect } from './library-controls'
 import { libraryRequest } from '@/lib/library'
@@ -12,6 +12,14 @@ import {
 } from '@/lib/personal-prompts'
 import { styleOptions } from './workbench/shared'
 import { clothingStyles } from '@/lib/clothing'
+import { useAccount } from './account-provider'
+import { useActionConfirmation } from './use-action-confirmation'
+import {
+  personalPromptDraftKey,
+  readPersonalPromptDraft,
+  writePersonalPromptDraft,
+  type PersonalPromptDraft,
+} from '@/lib/personal-prompt-draft'
 
 export interface PersonalPromptSeed {
   title?: string
@@ -20,21 +28,47 @@ export interface PersonalPromptSeed {
   config?: CreationPreset
   favorite?: boolean
 }
-export function PersonalPromptEditor({
-  item,
-  seed,
-  categories = [],
-  onClose,
-  onSaved,
-  portalContainer,
-}: {
+interface PersonalPromptEditorProps {
   portalContainer?: HTMLElement | null
   item?: PersonalPrompt
   seed?: PersonalPromptSeed
   categories?: string[]
   onClose: () => void
   onSaved: (item: PersonalPrompt) => void
-}) {
+}
+
+export function PersonalPromptEditor(props: PersonalPromptEditorProps) {
+  const { account, loading } = useAccount()
+  const owner = account.user?.id
+  if (loading || !account.authenticated || !owner)
+    return (
+      <LibraryDialog
+        title="编辑提示词"
+        onClose={props.onClose}
+        portalContainer={props.portalContainer}
+      >
+        <p role="status">{loading ? '正在确认登录状态…' : '请登录后编辑提示词。'}</p>
+      </LibraryDialog>
+    )
+  const identity = props.item
+    ? `${props.item.id}:${props.item.version}`
+    : props.seed?.config
+      ? 'new-preset'
+      : 'new-prompt'
+  return <PersonalPromptEditorContent key={`${owner}:${identity}`} {...props} owner={owner} />
+}
+
+function PersonalPromptEditorContent({
+  item,
+  seed: incomingSeed,
+  categories = [],
+  onClose,
+  onSaved,
+  portalContainer,
+  owner,
+}: PersonalPromptEditorProps & { owner: string }) {
+  // Background model/parameter updates must not replace a draft while its dialog is open.
+  const [seed] = useState(incomingSeed)
   const formId = useId()
   const kind = item?.kind ?? (seed?.config ? 'preset' : 'prompt')
   const [title, setTitle] = useState((item?.title ?? seed?.title ?? '').slice(0, 160))
@@ -50,6 +84,74 @@ export function PersonalPromptEditor({
   const [error, setError] = useState('')
   const [endpoints, setEndpoints] = useState<Array<{ id: string; name: string; model: string }>>([])
   const [storedCategories, setStoredCategories] = useState<string[]>([])
+  const initialDraft = useRef({ title, category, prompt, tags, favorite, config, newCategory })
+  const baseline = JSON.stringify({
+    value: initialDraft.current,
+    source: seed?.source ?? item?.source,
+  })
+  const draftKey = personalPromptDraftKey(
+    owner,
+    item ? `${item.id}:${item.version}` : kind,
+    baseline,
+  )
+  const draftValue: PersonalPromptDraft = {
+    title,
+    category,
+    prompt,
+    tags,
+    favorite,
+    config,
+    newCategory,
+  }
+  const serializedDraft = JSON.stringify(draftValue)
+  const dirty = serializedDraft !== JSON.stringify(initialDraft.current)
+  const [draftReady, setDraftReady] = useState(false)
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [restoredDraft, setRestoredDraft] = useState(false)
+  const savedDraft = useRef('')
+  const completed = useRef(false)
+  const active = useRef(true)
+  const { ask, confirmation } = useActionConfirmation()
+
+  useEffect(() => {
+    active.current = true
+    try {
+      const saved = readPersonalPromptDraft(draftKey, baseline)
+      if (saved) {
+        setTitle(saved.title)
+        setCategory(saved.category)
+        setPrompt(saved.prompt)
+        setTags(saved.tags)
+        setFavorite(saved.favorite)
+        setConfig(saved.config)
+        setNewCategory(saved.newCategory)
+        savedDraft.current = JSON.stringify(saved)
+        setRestoredDraft(true)
+        setDraftStatus('saved')
+      }
+    } catch {
+      setDraftStatus('error')
+    }
+    setDraftReady(true)
+    return () => {
+      active.current = false
+    }
+  }, [draftKey, baseline])
+
+  useEffect(() => {
+    if (!draftReady || completed.current) return
+    if (!dirty && !savedDraft.current) return
+    try {
+      if (dirty) writePersonalPromptDraft(draftKey, baseline, JSON.parse(serializedDraft))
+      else localStorage.removeItem(draftKey)
+      savedDraft.current = serializedDraft
+      setDraftStatus(dirty ? 'saved' : 'idle')
+      if (!dirty) setRestoredDraft(false)
+    } catch {
+      setDraftStatus('error')
+    }
+  }, [draftReady, dirty, draftKey, baseline, serializedDraft])
+
   useEffect(() => {
     const controller = new AbortController()
     void libraryRequest<{ categories: string[] }>(`personal/prompts?kind=${kind}&limit=1`, {
@@ -78,8 +180,45 @@ export function PersonalPromptEditor({
       })
     return () => controller.abort()
   }, [kind])
-  function close() {
-    if (!busy) onClose()
+  async function close() {
+    if (busy) return
+    if (dirty && savedDraft.current !== serializedDraft) {
+      try {
+        writePersonalPromptDraft(draftKey, baseline, draftValue)
+        savedDraft.current = serializedDraft
+      } catch {
+        setDraftStatus('error')
+        if (
+          !(await ask({
+            title: '草稿尚未保存',
+            description: '浏览器无法保存本地草稿，关闭后会丢失本次修改。',
+            confirmLabel: '放弃修改并关闭',
+            intent: 'danger',
+          }))
+        )
+          return
+      }
+    }
+    onClose()
+  }
+  async function discardDraft() {
+    if (
+      busy ||
+      !(await ask({
+        title: '放弃这份草稿？',
+        description: '将清除本次未提交的修改，已保存的提示词不受影响。',
+        confirmLabel: '放弃草稿',
+        intent: 'danger',
+      }))
+    )
+      return
+    try {
+      localStorage.removeItem(draftKey)
+      completed.current = true
+      onClose()
+    } catch {
+      setError('本地草稿暂时无法清除，请重试')
+    }
   }
   async function save() {
     if (busy) return
@@ -103,6 +242,13 @@ export function PersonalPromptEditor({
           }),
         },
       )
+      if (!active.current) return
+      completed.current = true
+      try {
+        localStorage.removeItem(draftKey)
+      } catch {
+        /* The server copy is already saved. */
+      }
       onSaved(data.item)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '保存失败')
@@ -140,13 +286,28 @@ export function PersonalPromptEditor({
           ? `编辑${kind === 'preset' ? '创作预设' : '私有提示词'}`
           : `保存${kind === 'preset' ? '创作预设' : '私有提示词'}`
       }
-      onClose={close}
+      onClose={() => void close()}
       portalContainer={portalContainer}
       footer={
         <DialogActions>
-          <button type="button" className="studio-secondary" disabled={busy} onClick={close}>
-            取消
+          <button
+            type="button"
+            className="studio-secondary"
+            disabled={busy}
+            onClick={() => void close()}
+          >
+            {dirty ? '关闭并保留草稿' : '取消'}
           </button>
+          {(dirty || restoredDraft) && (
+            <button
+              type="button"
+              className="library-command"
+              disabled={busy}
+              onClick={() => void discardDraft()}
+            >
+              放弃草稿
+            </button>
+          )}
           <button
             form={formId}
             type="submit"
@@ -158,6 +319,16 @@ export function PersonalPromptEditor({
         </DialogActions>
       }
     >
+      {confirmation}
+      {draftStatus === 'error' ? (
+        <p className="settings-error" role="alert">
+          草稿未保存，请勿刷新或离开页面。你仍可保存到我的提示词。
+        </p>
+      ) : draftStatus === 'saved' ? (
+        <p className="library-feedback" role="status">
+          {restoredDraft ? '已恢复本地草稿，修改会自动保存。' : '草稿已保存在此浏览器。'}
+        </p>
+      ) : null}
       <form
         id={formId}
         onSubmit={(event) => {

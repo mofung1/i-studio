@@ -3,6 +3,7 @@ import { StudioShell } from '@/components/studio-shell'
 import { PromptReverseButton } from '@/components/prompt-reverse-provider'
 import { getSiteBranding } from '@/lib/site-settings-server'
 import Link from 'next/link'
+import styles from '@/components/inspiration-gallery.module.css'
 
 export async function generateMetadata() {
   const { name } = await getSiteBranding()
@@ -29,8 +30,7 @@ export default function InspirePage() {
         </div>
       }
     >
-      <main className="studio-inspiration">
-        <h1 className="sr-only">公开灵感广场</h1>
+      <main className={styles.page}>
         <InspirationGallery />
       </main>
     </StudioShell>

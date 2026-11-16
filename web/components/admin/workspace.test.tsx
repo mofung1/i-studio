@@ -57,6 +57,10 @@ it('keeps route navigation while removing page search and the category menu entr
   )
   expect(host.textContent).not.toContain('搜索后台页面')
   expect(host.querySelector('a[href="/admin/inspiration/categories"]')).toBeNull()
+  expect(host.querySelector('nav[aria-label="当前页面位置"]')?.textContent).toBe(
+    'AI 配置模型与定价',
+  )
+  expect(host.querySelector('.admin-visit-site')?.getAttribute('href')).toBe('/studio?mode=general')
   await act(async () =>
     document.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }),

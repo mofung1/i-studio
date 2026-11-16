@@ -55,6 +55,25 @@ it('shows the actual record range and jumps only to valid different pages', asyn
 })
 it('keeps an empty list at page one without a usable jump control', async () => {
   await act(async () => root.render(<Fixture total={0} />))
-  expect(host.textContent).toContain('第 0–0 条，共 0 条任务')
+  expect(host.textContent).toContain('暂无任务记录')
   expect(host.querySelector<HTMLInputElement>('input[name="page"]')!.disabled).toBe(true)
+})
+
+it('supports fixed-size endpoints without showing a page-size selector', async () => {
+  await act(async () =>
+    root.render(
+      <AdminPagination
+        page={1}
+        pageSize={20}
+        total={30}
+        totalPages={2}
+        loading={false}
+        label="投稿"
+        onPageChange={changed}
+      />,
+    ),
+  )
+  expect(host.querySelector('[aria-label="每页投稿条数"]')).toBeNull()
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="下一页投稿"]')!.click())
+  expect(changed).toHaveBeenCalledWith(2)
 })

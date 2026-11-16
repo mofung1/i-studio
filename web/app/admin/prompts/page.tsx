@@ -10,6 +10,7 @@ import { promptGroupLabel } from '@/lib/prompt-groups'
 import { PromptTemplateBrowser } from '@/components/prompt-template-browser'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Button } from '@/components/admin/ui/button'
+import styles from '@/components/admin/settings-forms.module.css'
 
 const promptVariableLabels: Record<string, string> = {
   prompt: '用户输入的画面描述',
@@ -35,6 +36,13 @@ export default function AdminPromptsPage() {
     !!activeTemplate &&
     (promptDraft !== activeTemplate.content || promptEnabled !== activeTemplate.enabled)
   const drafts = useRef(new Map<string, { content: string; enabled: boolean }>())
+  const dirtyTemplates = templates.filter((template) => {
+    const draft =
+      template.key === selectedKey
+        ? { content: promptDraft, enabled: promptEnabled }
+        : drafts.current.get(template.key)
+    return draft && (draft.content !== template.content || draft.enabled !== template.enabled)
+  })
 
   const load = useCallback(async (signal?: AbortSignal) => {
     const data = await adminRequest<{ templates: PromptTemplate[] }>(
@@ -127,20 +135,37 @@ export default function AdminPromptsPage() {
           正在读取系统提示词
         </div>
       ) : templates.length ? (
-        <section id="prompts-panel" className="prompt-settings">
-          <div className="prompt-settings-intro">
-            <h2>内置提示词</h2>
-            <p>
-              按用途分组管理，所有账号共享此配置。停用一般模板后不再附加指令；停用反推模板后，对应分析模式不可用。
-            </p>
+        <section id="prompts-panel" className={`prompt-settings ${styles.promptLayout}`}>
+          <div className={styles.promptSidebar}>
+            <h2>选择功能模板</h2>
+            <p>在本页切换模板会保留输入；保存仅更新当前模板。</p>
+            <PromptTemplateBrowser
+              templates={templates}
+              selectedKey={selectedKey}
+              busy={!!busy}
+              onSelect={selectTemplate}
+            />
+            {dirtyTemplates.length > 0 && (
+              <div className={styles.pendingDrafts}>
+                <strong>{dirtyTemplates.length} 个模板有未保存更改</strong>
+                <p>可返回对应模板继续编辑或保存。</p>
+                <div>
+                  {dirtyTemplates.map((template) => (
+                    <button
+                      type="button"
+                      key={template.key}
+                      disabled={busy}
+                      aria-label={`编辑未保存模板：${template.name}`}
+                      onClick={() => selectTemplate(template.key)}
+                    >
+                      {template.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <PromptTemplateBrowser
-            templates={templates}
-            selectedKey={selectedKey}
-            busy={!!busy}
-            onSelect={selectTemplate}
-          />
-          <div className="prompt-settings-editor">
+          <div className={`prompt-settings-editor ${styles.promptEditor}`}>
             {activeTemplate && (
               <p className="prompt-editor-breadcrumb">{promptGroupLabel(activeTemplate)}</p>
             )}
@@ -167,6 +192,11 @@ export default function AdminPromptsPage() {
             {activeTemplate?.description && (
               <p className="prompt-template-purpose">{activeTemplate.description}</p>
             )}
+            <p className="admin-field-hint">
+              {activeTemplate?.category === 'reverse'
+                ? '此模板决定对应图片反推模式的分析方式。停用后，该模式将无法发起分析。'
+                : '此模板由所有账号共享。停用后，该功能不再附加这里的系统指令。'}
+            </p>
             {!!activeTemplate?.variables?.length && (
               <p className="prompt-template-variables">
                 可用变量：
@@ -187,26 +217,35 @@ export default function AdminPromptsPage() {
               onChange={(event) => setPromptDraft(event.target.value)}
             />
             <details className="prompt-default">
-              <summary>查看默认 Prompt</summary>
+              <summary>查看系统默认内容</summary>
               <pre>{promptDefault}</pre>
             </details>
-            <div className="settings-form-actions">
-              <Button
-                variant="outline"
-                disabled={!!busy}
-                onClick={() => {
-                  setPromptDraft(promptDefault)
-                  setSaved('')
-                  setMessage('')
-                }}
-              >
-                <RotateCcw data-icon="inline-start" />
-                填入默认内容
-              </Button>
-              <Button disabled={!!busy || !promptDraft.trim()} onClick={() => savePrompt()}>
-                <Save data-icon="inline-start" />
-                {busy ? '保存中' : '保存'}
-              </Button>
+            <div className={styles.promptFooter}>
+              <p role="status">
+                {promptDraft.length.toLocaleString()} / 20,000 字符
+                {promptDirty ? ' · 当前模板未保存' : ' · 当前模板已同步'}
+              </p>
+              <div className="settings-form-actions">
+                <Button
+                  variant="outline"
+                  disabled={!!busy}
+                  onClick={() => {
+                    setPromptDraft(promptDefault)
+                    setSaved('')
+                    setMessage('')
+                  }}
+                >
+                  <RotateCcw data-icon="inline-start" />
+                  填入默认内容
+                </Button>
+                <Button
+                  disabled={!!busy || !promptDirty || !promptDraft.trim()}
+                  onClick={() => savePrompt()}
+                >
+                  <Save data-icon="inline-start" />
+                  {busy ? '保存中' : '保存'}
+                </Button>
+              </div>
             </div>
           </div>
         </section>

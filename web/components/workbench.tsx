@@ -1,10 +1,30 @@
 'use client'
 
-import type { CreationImage } from '@/lib/creation-images'
+import { addCreationImage, type CreationImage } from '@/lib/creation-images'
+import { studioToolUrl } from '@/lib/studio-navigation'
+import {
+  creationDraftContext,
+  draftEntrySource,
+  prepareGuestDraftLogin,
+} from '@/lib/creation-drafts'
+import {
+  standardCreationDraftSchema,
+  type StandardCreationDraft,
+} from '@/lib/creation-draft-schema'
+import type { InspirationTemplate } from '@/lib/inspiration-handoff'
+import { useCreationDraft } from './workbench/use-creation-draft'
+import { CreationDraftStatus } from './workbench/creation-draft-status'
+import { WorkbenchSkeleton } from './workbench/workbench-skeleton'
+import { useInspirationHandoff } from './workbench/use-inspiration-handoff'
+import {
+  InspirationHandoffStatus,
+  InspirationTemplateNotice,
+} from './workbench/inspiration-template-notice'
+import { AccountAccess } from './account-access'
 import { modelCompatibilityIssue, type PublicImageModel } from '@/lib/generation-models'
 import { loadStoredImage } from '@/lib/library'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
@@ -68,17 +88,22 @@ interface WorkbenchProps {
 }
 
 export function Workbench(props: WorkbenchProps) {
-  const { account } = useAccount()
+  const { account, loading, error } = useAccount()
+  const search = useSearchParams()
+  if (loading) return <WorkbenchSkeleton mode={props.initialMode} />
+  if (error && !account.authenticated)
+    return <AccountAccess title="恢复创作草稿" description="确认账号后即可恢复草稿。" />
   const owner = account.user?.id ?? 'guest'
+  const key = `${owner}:${props.initialMode === 'general' ? 'general' : props.initialTask}:${search.get('projectId') ?? ''}`
   return props.initialMode === 'commerce' && props.initialTask === 'clothing-set' ? (
     <ClothingWorkbench
-      key={owner}
+      key={key}
       initialModel={props.initialModel}
       initialAspectRatio={props.initialAspectRatio}
       initialResolution={props.initialResolution}
     />
   ) : (
-    <StandardWorkbench key={owner} {...props} />
+    <StandardWorkbench key={key} {...props} />
   )
 }
 
@@ -94,10 +119,12 @@ function StandardWorkbench({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { account } = useAccount()
 
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
   const [prompt, setPrompt] = useState(initialPrompt ?? '')
+  const [inspirationTemplate, setInspirationTemplate] = useState<InspirationTemplate | null>(null)
   const [requirements, setRequirements] = useState('')
   const [productFiles, setProductFiles] = useState<CreationImage[]>([])
   const [referenceFiles, setReferenceFiles] = useState<CreationImage[]>([])
@@ -145,6 +172,16 @@ function StandardWorkbench({
   // 切换生图类型会重置结果作用域并顺带清空提示，这里把提示延后到切换完成后再显示
   const pendingNoticeRef = useRef<GenerationNotice | null>(null)
   const configurationRequestRef = useRef(0)
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      configurationRequestRef.current++
+    }
+  }, [])
+  const currentImages = useRef({ productFiles, referenceFiles })
+  currentImages.current = { productFiles, referenceFiles }
 
   const {
     generationTask,
@@ -160,6 +197,127 @@ function StandardWorkbench({
     removeResult,
   } = useGenerationTask(`${mode}:${task}`)
 
+  const draftSnapshot = useMemo<StandardCreationDraft>(
+    () => ({
+      prompt,
+      requirements,
+      productFiles,
+      referenceFiles,
+      count,
+      model,
+      endpointId,
+      aspectRatio,
+      resolution,
+      style,
+      referenceStrength,
+      platform,
+      outputLanguage,
+      moduleMode,
+      moduleCounts,
+      recreateStrength,
+      enhancements,
+      inspirationTemplate,
+    }),
+    [
+      prompt,
+      requirements,
+      productFiles,
+      referenceFiles,
+      count,
+      model,
+      endpointId,
+      aspectRatio,
+      resolution,
+      style,
+      referenceStrength,
+      platform,
+      outputLanguage,
+      moduleMode,
+      moduleCounts,
+      recreateStrength,
+      enhancements,
+      inspirationTemplate,
+    ],
+  )
+  const defaultDraft: StandardCreationDraft = {
+    prompt: initialPrompt ?? '',
+    requirements: '',
+    productFiles: [],
+    referenceFiles: [],
+    count: Math.min(generalMaxCount, Math.max(1, Number(initialCount) || 1)),
+    model,
+    endpointId,
+    aspectRatio: initialAspectRatio ?? '1:1',
+    resolution: initialResolution ?? '2K',
+    style: 'unspecified',
+    referenceStrength: 'medium',
+    platform: 'smart',
+    outputLanguage: 'none',
+    moduleMode: 'smart',
+    moduleCounts: {},
+    recreateStrength: 'style',
+    enhancements: [],
+    inspirationTemplate: null,
+  }
+  const draft = useCreationDraft({
+    owner: account.user?.id ?? 'guest',
+    context: creationDraftContext(
+      mode === 'general' ? 'general' : `commerce:${task}`,
+      searchParams.get('projectId') ?? '',
+    ),
+    source: draftEntrySource(searchParams),
+    enabled: true,
+    value: draftSnapshot,
+    defaultValue: defaultDraft,
+    emptyValue: { ...defaultDraft, prompt: '' },
+    parse: (value) => standardCreationDraftSchema.parse(value),
+    onRestore: (value) => {
+      setPrompt(value.prompt)
+      setRequirements(value.requirements)
+      setProductFiles(value.productFiles)
+      setReferenceFiles(value.referenceFiles)
+      setCount(value.count)
+      setModel(value.model)
+      setEndpointId(value.endpointId)
+      setAspectRatio(value.aspectRatio)
+      setResolution(value.resolution)
+      setStyle(value.style)
+      setReferenceStrength(value.referenceStrength)
+      setPlatform(value.platform)
+      setOutputLanguage(value.outputLanguage)
+      setModuleMode(value.moduleMode)
+      setModuleCounts(value.moduleCounts)
+      setRecreateStrength(value.recreateStrength)
+      setEnhancements(value.enhancements)
+      setInspirationTemplate(value.inspirationTemplate)
+    },
+  })
+  const restoreHandoff = draft.ready && draft.restoredSource !== draftEntrySource(searchParams)
+  const inspiration = useInspirationHandoff({
+    ready: draft.ready && mode === 'general',
+    onApply: async (template) => {
+      if (isGenerating || isSubmitting) throw new Error('当前任务进行中，请完成后再应用模板')
+      const next = { ...draftSnapshot, prompt: template.prompt, inspirationTemplate: template }
+      setPrompt(template.prompt)
+      setInspirationTemplate(template)
+      setConfigCollapsed(false)
+      setPanelOpen(true)
+      await draft.save(next)
+    },
+  })
+  const templateBlockedReason =
+    mode !== 'general'
+      ? undefined
+      : inspiration.loading
+        ? '正在带入灵感模板，请稍候'
+        : inspiration.error
+          ? '灵感模板尚未带入，请重试或取消带入'
+          : inspiration.pending
+            ? '请先填写模板变量'
+            : inspirationTemplate?.requiresReference && referenceFiles.length === 0
+              ? '此模板需要参考图，请先上传自己的素材'
+              : undefined
+
   const hasProductImage = productFiles.length > 0
   const compatibilityIssue = modelCompatibilityIssue(
     imageEndpoints.find((endpoint) => endpoint.id === endpointId),
@@ -171,14 +329,14 @@ function StandardWorkbench({
     },
   )
   useWorkbenchHandoff({
-    ready: aiEnabled !== null,
+    ready: aiEnabled !== null && restoreHandoff,
     onHistory: (record, review) =>
       review ? regenerateFromHistory(record) : loadHistoryConfig(record),
     onReference: (path) => useImageAsReference(path, { mode, taskType: task }),
     onError: (message) => setNotice({ kind: 'error', message }),
   })
   useReversePromptHandoff({
-    ready: aiEnabled !== null && mode === 'general',
+    ready: aiEnabled !== null && restoreHandoff && mode === 'general',
     onApply: (text, file) => {
       if (file && referenceFiles.length >= referenceLimit('general', task))
         throw new Error('参考图已达上限，请先移除一张再应用反推结果')
@@ -186,6 +344,8 @@ function StandardWorkbench({
         applyReverseText(previous, text, previous.trim() ? 'append' : 'replace'),
       )
       if (file) setReferenceFiles((previous) => [...previous, file])
+      setInspirationTemplate(null)
+      draft.markEntryApplied()
       setConfigCollapsed(false)
       setNotice({ kind: 'success', message: '反推提示词已填入，可调整后开始生成' })
     },
@@ -201,6 +361,7 @@ function StandardWorkbench({
   }, [autoRegeneratePending])
 
   useEffect(() => {
+    if (!draft.ready) return
     let current = true
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 10_000)
@@ -233,17 +394,18 @@ function StandardWorkbench({
           setPromptEnhanceEnabled(Boolean(data.promptEnhanceEnabled))
           setPromptVision(Boolean(data.promptVision))
           setImageEndpoints(endpoints)
-          const selected =
-            endpoints.find((endpoint) => endpoint.id === selectedEndpointRef.current) ??
-            endpoints.find(
-              (endpoint) => endpoint.id === initialModel || endpoint.model === initialModel,
-            ) ??
-            endpoints.find((endpoint) => endpoint.isDefault) ??
-            endpoints[0]
+          if (draft.restorationFailed) return
+          const selected = selectedEndpointRef.current
+            ? endpoints.find((endpoint) => endpoint.id === selectedEndpointRef.current)
+            : (endpoints.find(
+                (endpoint) => endpoint.id === initialModel || endpoint.model === initialModel,
+              ) ??
+              endpoints.find((endpoint) => endpoint.isDefault) ??
+              endpoints[0])
           if (selected) {
             setEndpointId(selected.id)
             setModel(selected.model)
-          } else {
+          } else if (!selectedEndpointRef.current) {
             setEndpointId('')
             setModel('')
           }
@@ -253,8 +415,6 @@ function StandardWorkbench({
         if (!current) return
         setAiEnabled(false)
         setImageEndpoints([])
-        setEndpointId('')
-        setModel('')
         setModelsError(
           controller.signal.aborted
             ? '模型列表读取超时，请重试'
@@ -272,7 +432,7 @@ function StandardWorkbench({
       clearTimeout(timeout)
       controller.abort()
     }
-  }, [modelsRevision, initialModel])
+  }, [modelsRevision, initialModel, draft.ready, draft.restorationFailed])
 
   useEffect(() => {
     if (!pendingNoticeRef.current) return
@@ -370,13 +530,15 @@ function StandardWorkbench({
       }
     }
     setConfigCollapsed(false)
+    setInspirationTemplate(null)
+    draft.markEntryApplied()
     setNotice({
       kind: 'success',
       message: restore ? '已撤销应用' : `已应用“${application.title}”，可继续编辑或撤销`,
     })
   }
   usePersonalPromptHandoff({
-    ready: aiEnabled !== null && !isGenerating && !isSubmitting,
+    ready: aiEnabled !== null && restoreHandoff && !isGenerating && !isSubmitting,
     onApply: (application) => applyCollection(application),
     onError: (message) => setNotice({ kind: 'error', message }),
   })
@@ -430,28 +592,37 @@ function StandardWorkbench({
           },
         ]
 
-  function changeMode(nextMode: WorkbenchMode) {
+  async function changeMode(nextMode: WorkbenchMode) {
     configurationRequestRef.current += 1
+    try {
+      await draft.flush()
+    } catch {
+      setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再切换工具' })
+      return
+    }
+    if (!mounted.current) return
     setLoadingConfigId(null)
-    setMode(nextMode)
     const targetLayout = nextMode === 'general' ? generalLayout : commerceLayout
     targetLayout.setCollapsed(false)
     setPanelOpen(false)
     setNotice(null)
-    router.replace(
-      nextMode === 'general' ? '/studio?mode=general' : `/studio?mode=commerce&task=${task}`,
-    )
+    router.replace(studioToolUrl(nextMode, task, searchParams))
   }
 
-  function changeTask(nextTask: CommerceTaskType) {
+  async function changeTask(nextTask: CommerceTaskType) {
     configurationRequestRef.current += 1
+    try {
+      await draft.flush()
+    } catch {
+      setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再切换工具' })
+      return
+    }
+    if (!mounted.current) return
     setLoadingConfigId(null)
-    setTask(nextTask)
-    setMode('commerce')
     commerceLayout.setCollapsed(false)
     setPanelOpen(false)
     setNotice(null)
-    router.replace(`/studio?mode=commerce&task=${nextTask}`)
+    router.replace(studioToolUrl('commerce', nextTask, searchParams))
   }
 
   /** 把一张结果图取回成可以直接放进素材区的文件 */
@@ -476,51 +647,48 @@ function StandardWorkbench({
     path: string,
     source: { mode: WorkbenchMode; taskType: CommerceTaskType },
   ) {
-    if (source.mode === 'commerce' && source.taskType === 'clothing-set') {
-      const target = referenceWorkbenchUrl(path, 'commerce', 'clothing-set')
+    if (source.mode !== mode || (source.mode === 'commerce' && source.taskType !== task)) {
+      try {
+        await draft.flush()
+      } catch {
+        setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再切换工具' })
+        return
+      }
+      if (!mounted.current) return
+      const target = referenceWorkbenchUrl(path, source.mode, source.taskType, searchParams)
       if (target) router.replace(target)
       return
     }
-    const targetMode = source.mode === 'commerce' ? 'commerce' : 'general'
-    const targetTask = (
-      ['product-main', 'detail-page', 'viral-recreate', 'product-retouch'] as CommerceTaskType[]
-    ).includes(source.taskType)
-      ? source.taskType
-      : 'product-main'
-    const targetLayout = targetMode === 'general' ? generalLayout : commerceLayout
-    targetLayout.setCollapsed(false)
+    const requestId = configurationRequestRef.current
+    const slot = mode === 'general' || task === 'viral-recreate' ? 'referenceFiles' : 'productFiles'
+    const limit = mode === 'commerce' && task === 'viral-recreate' ? 1 : referenceLimit(mode, task)
+    setConfigCollapsed(false)
+    setPanelOpen(true)
     setNotice(null)
     try {
       const file = await fetchImageFile(path, 'ref-result')
-      const slot: 'product' | 'reference' =
-        targetMode === 'general' || targetTask === 'viral-recreate' ? 'reference' : 'product'
-      const single = targetTask === 'viral-recreate' || targetTask === 'product-retouch'
-      if (slot === 'reference') {
-        setReferenceFiles((previous) => (single ? [file] : [...previous, file].slice(0, 6)))
-      } else {
-        setProductFiles((previous) => (single ? [file] : [...previous, file].slice(0, 6)))
+      if (!mounted.current || requestId !== configurationRequestRef.current) return
+      const addition = addCreationImage(currentImages.current[slot], file, limit)
+      if (addition.status === 'full') {
+        setNotice({ kind: 'error', message: `素材已达到 ${limit} 张上限，请先移除一张再继续创作` })
+        return
       }
-
-      const sameScope = targetMode === mode && (targetMode === 'general' || targetTask === task)
-      if (!sameScope) {
-        setMode(targetMode)
-        setTask(targetTask)
-        setHistoryTask(null)
-        setHistoryOpen(false)
-        router.replace(
-          targetMode === 'general'
-            ? '/studio?mode=general'
-            : `/studio?mode=commerce&task=${targetTask}`,
-        )
+      if (addition.status === 'added') {
+        currentImages.current = { ...currentImages.current, [slot]: addition.images }
+        if (slot === 'referenceFiles') setReferenceFiles(addition.images)
+        else setProductFiles(addition.images)
       }
-      const message = sameScope
-        ? '已作为参考图填入创作素材区'
-        : `已切到${targetMode === 'general' ? '通用生图' : taskMeta[targetTask].title}，图片已填入素材区`
-      if (sameScope) setNotice({ kind: 'success', message })
-      else pendingNoticeRef.current = { kind: 'success', message }
-      // 参考图已填入左侧，滚动到素材区让用户确认
+      draft.markEntryApplied()
+      setNotice({
+        kind: 'success',
+        message:
+          addition.status === 'existing'
+            ? '这张图片已在素材区，无需重复添加'
+            : '已作为参考图填入创作素材区',
+      })
       document.querySelector('.configuration-scroll')?.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (error) {
+      if (!mounted.current || requestId !== configurationRequestRef.current) return
       setNotice({
         kind: 'error',
         message: error instanceof Error ? error.message : '图片读取失败，请稍后重试',
@@ -530,8 +698,21 @@ function StandardWorkbench({
 
   /** 载入一条历史记录的配置，继续在当前工作台里编辑 */
   async function loadHistoryConfig(historyTaskToLoad: HistoryTask) {
-    if (historyTaskToLoad.input.taskType === 'clothing-set') {
-      router.replace(historyWorkbenchUrl(historyTaskToLoad))
+    if (
+      historyTaskToLoad.input.taskType === 'clothing-set' ||
+      (historyTaskToLoad.input.projectId &&
+        historyTaskToLoad.input.projectId !== searchParams.get('projectId')) ||
+      (historyTaskToLoad.input.mode === 'commerce' ? 'commerce' : 'general') !== mode ||
+      (mode === 'commerce' && historyTaskToLoad.input.taskType !== task)
+    ) {
+      try {
+        await draft.flush()
+      } catch {
+        setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再切换工具' })
+        return false
+      }
+      if (!mounted.current) return false
+      router.replace(historyWorkbenchUrl(historyTaskToLoad, false, searchParams))
       return false
     }
     const requestId = ++configurationRequestRef.current
@@ -578,11 +759,11 @@ function StandardWorkbench({
       setResolution(input.resolution ?? '2K')
       setProductFiles(nextProductFiles)
       setReferenceFiles(nextReferenceFiles)
+      setInspirationTemplate(null)
+      draft.markEntryApplied()
       setHistoryTask(null)
       setHistoryOpen(false)
-      router.replace(
-        nextMode === 'general' ? '/studio?mode=general' : `/studio?mode=commerce&task=${nextTask}`,
-      )
+      router.replace(studioToolUrl(nextMode, nextTask, searchParams))
       const message = '已载入历史记录的配置，可继续调整后生成'
       if (nextMode === mode && (nextMode === 'general' || nextTask === task))
         setNotice({ kind: 'success', message })
@@ -606,8 +787,21 @@ function StandardWorkbench({
       setNotice({ kind: 'error', message: '当前任务正在生成，请完成后再重新生成' })
       return
     }
-    if (historyTaskToLoad.input.taskType === 'clothing-set') {
-      router.replace(historyWorkbenchUrl(historyTaskToLoad, true))
+    if (
+      historyTaskToLoad.input.taskType === 'clothing-set' ||
+      (historyTaskToLoad.input.projectId &&
+        historyTaskToLoad.input.projectId !== searchParams.get('projectId')) ||
+      (historyTaskToLoad.input.mode === 'commerce' ? 'commerce' : 'general') !== mode ||
+      (mode === 'commerce' && historyTaskToLoad.input.taskType !== task)
+    ) {
+      try {
+        await draft.flush()
+      } catch {
+        setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再切换工具' })
+        return
+      }
+      if (!mounted.current) return
+      router.replace(historyWorkbenchUrl(historyTaskToLoad, true, searchParams))
       return
     }
     const loaded = await loadHistoryConfig(historyTaskToLoad)
@@ -701,10 +895,13 @@ function StandardWorkbench({
 
   function createGenerationTask() {
     if (isSubmitting || isGenerating) return
+    if (!draft.ready || templateBlockedReason) {
+      setNotice({ kind: 'error', message: templateBlockedReason || '正在恢复草稿，请稍候' })
+      return
+    }
     const token = getAccessToken()
     if (!token) {
-      const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`
-      router.push(`/login?next=${encodeURIComponent(currentUrl)}`)
+      void login()
       return
     }
     if (aiEnabled === false) {
@@ -753,12 +950,33 @@ function StandardWorkbench({
       productFiles,
       referenceFiles,
       buildPayload,
-      onAuthRequired: () => {
-        const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`
-        router.push(`/login?next=${encodeURIComponent(currentUrl)}`)
-      },
+      onAuthRequired: () => void login(),
     })
   }
+
+  async function login() {
+    const currentUrl = `${pathname}${searchParams.size ? `?${searchParams.toString()}` : ''}`
+    try {
+      await draft.flush()
+      await prepareGuestDraftLogin(currentUrl)
+      if (mounted.current) router.push(`/login?next=${encodeURIComponent(currentUrl)}`)
+    } catch {
+      if (mounted.current) setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再登录' })
+    }
+  }
+
+  async function clearDraft() {
+    configurationRequestRef.current++
+    setLoadingConfigId(null)
+    setCollectionUndo(null)
+    setAutoRegeneratePending(false)
+    setConfirmOpen(false)
+    inspiration.dismiss()
+    await draft.clear()
+    if (mounted.current) router.replace(studioToolUrl(mode, task, searchParams), { scroll: false })
+  }
+
+  if (!draft.ready) return <WorkbenchSkeleton mode={mode} />
 
   return (
     <main className="workbench-page">
@@ -767,33 +985,44 @@ function StandardWorkbench({
       >
         <WorkbenchRail
           mode={mode}
+          projectId={searchParams.get('projectId')}
           onChangeMode={changeMode}
           task={mode === 'commerce' ? task : undefined}
           onChangeTask={changeTask}
         />
         <WorkbenchHeader
+          projectId={searchParams.get('projectId')}
           collectionTools={
-            <CreationLibraryTools
-              config={currentPreset()}
-              prompt={mode === 'general' ? prompt : requirements}
-              disabled={isGenerating || isSubmitting}
-              onApply={(application) => applyCollection(application)}
-              onUndo={
-                collectionUndo
-                  ? () => {
-                      try {
-                        applyCollection(collectionUndo, true)
-                        setCollectionUndo(null)
-                      } catch (reason) {
-                        setNotice({
-                          kind: 'error',
-                          message: reason instanceof Error ? reason.message : '撤销失败',
-                        })
+            <>
+              <CreationDraftStatus
+                status={draft.status}
+                error={draft.error}
+                onRetry={draft.retry}
+                onClear={clearDraft}
+                disabled={isGenerating || isSubmitting}
+              />
+              <CreationLibraryTools
+                config={currentPreset()}
+                prompt={mode === 'general' ? prompt : requirements}
+                disabled={isGenerating || isSubmitting}
+                onApply={(application) => applyCollection(application)}
+                onUndo={
+                  collectionUndo
+                    ? () => {
+                        try {
+                          applyCollection(collectionUndo, true)
+                          setCollectionUndo(null)
+                        } catch (reason) {
+                          setNotice({
+                            kind: 'error',
+                            message: reason instanceof Error ? reason.message : '撤销失败',
+                          })
+                        }
                       }
-                    }
-                  : undefined
-              }
-            />
+                    : undefined
+                }
+              />
+            </>
           }
           mode={mode}
           task={task}
@@ -813,6 +1042,25 @@ function StandardWorkbench({
           }}
         />
         <CreatorSidebar
+          templateBlockedReason={templateBlockedReason}
+          referenceRequired={inspirationTemplate?.requiresReference}
+          draftStatus={draft.status}
+          draftError={draft.error}
+          onRetryDraft={draft.retry}
+          templateNotice={
+            mode === 'general' ? (
+              <>
+                <InspirationHandoffStatus handoff={inspiration} />
+                {inspirationTemplate && (
+                  <InspirationTemplateNotice
+                    template={inspirationTemplate}
+                    referenceCount={referenceFiles.length}
+                    onDismiss={() => setInspirationTemplate(null)}
+                  />
+                )}
+              </>
+            ) : undefined
+          }
           mode={mode}
           configCollapsed={configCollapsed}
           onToggleConfig={() => setConfigCollapsed((collapsed) => !collapsed)}
@@ -856,8 +1104,14 @@ function StandardWorkbench({
           isSubmitting={isSubmitting}
           isGenerating={isGenerating}
           generationStatus={generationTask?.status ?? null}
-          onSetProductFiles={setProductFiles}
-          onSetReferenceFiles={setReferenceFiles}
+          onSetProductFiles={(files) => {
+            currentImages.current = { ...currentImages.current, productFiles: files }
+            setProductFiles(files)
+          }}
+          onSetReferenceFiles={(files) => {
+            currentImages.current = { ...currentImages.current, referenceFiles: files }
+            setReferenceFiles(files)
+          }}
           onSetPrompt={setPrompt}
           onSetRequirements={setRequirements}
           onSetPlatform={setPlatform}

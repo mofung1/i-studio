@@ -137,7 +137,7 @@ it('does not substitute an unrelated vision service when the default is text onl
     '默认 Prompt 服务不支持图片识别',
   )
   expect(container.textContent).toContain('服务待配置')
-  expect(container.textContent).toContain('默认 Prompt 服务也必须支持识图')
+  expect(container.textContent).toContain('默认提示词服务也必须支持识图')
 })
 
 it('keeps the dedicated vision service when restoring recommended analysis parameters', async () => {
@@ -171,6 +171,10 @@ it('shows each mode status and opens its own template editor', async () => {
   expect(style.textContent).toContain('已停用')
   await act(async () => style.click())
   expect(callbacks.onOpenTemplates).toHaveBeenCalledWith('reverse.style')
+  await act(async () => button('管理提示词与识图服务').click())
+  expect(callbacks.onOpenServices).toHaveBeenCalledOnce()
+  expect(container.querySelector('section[aria-label="图片反推配置"]')).not.toBeNull()
+  expect(container.querySelector('[role="tabpanel"]')).toBeNull()
 })
 
 it('allows retry after a load error and preserves edited values when saving fails', async () => {
@@ -187,4 +191,71 @@ it('allows retry after a load error and preserves edited values when saving fail
   expect(container.querySelector<HTMLInputElement>('#reverse-timeout')?.value).toBe('300')
   expect(button('保存配置').disabled).toBe(false)
   expect(callbacks.onDirtyChange).toHaveBeenLastCalledWith(true)
+})
+
+it('refreshes availability after adding a default vision service without replacing the draft', async () => {
+  const settings = { ...configuration().settings, endpointId: '' }
+  fetcher
+    .mockResolvedValueOnce(
+      response(configuration({ settings, available: false, reason: '尚未配置识图服务' })),
+    )
+    .mockResolvedValueOnce(response(configuration({ settings })))
+  await render([])
+  expect(container.textContent).toContain('服务待配置')
+  await changeTimeout('300')
+  await render([endpoint({ isDefault: true })])
+  expect(container.querySelector('.reverse-service-summary')?.textContent).toContain('识图服务')
+  expect(container.textContent).toContain('服务已配置')
+  expect(container.textContent).not.toContain('尚未配置识图服务')
+  expect(container.querySelector<HTMLInputElement>('#reverse-timeout')?.value).toBe('300')
+  expect(button('保存配置').disabled).toBe(false)
+  // An availability refresh must retain the saved baseline as well.
+  await changeTimeout('240')
+  expect(button('保存配置').disabled).toBe(true)
+})
+
+it('retries a failed service refresh while retaining edits and database availability errors', async () => {
+  fetcher
+    .mockResolvedValueOnce(response(configuration()))
+    .mockResolvedValueOnce(response({ message: '状态读取失败' }, 503))
+    .mockResolvedValueOnce(
+      response(
+        configuration({ available: false, reason: '图片反推需要连接数据库，以保存分析任务' }),
+      ),
+    )
+  await render()
+  await changeTimeout('300')
+  await render([endpoint({ updatedAt: '2026-11-16T01:00:00Z' })])
+  expect(container.textContent).toContain('服务状态待确认')
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('当前修改已保留')
+  await act(async () => button('重新读取服务状态').click())
+  expect(container.querySelector('.reverse-service-unavailable')?.textContent).toContain(
+    '需要连接数据库',
+  )
+  expect(container.querySelector<HTMLInputElement>('#reverse-timeout')?.value).toBe('300')
+  expect(button('保存配置').disabled).toBe(false)
+})
+
+it('ignores an outdated availability response after a newer service configuration is loaded', async () => {
+  let finishOld!: (response: Response) => void
+  fetcher
+    .mockResolvedValueOnce(response(configuration()))
+    .mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          finishOld = resolve
+        }),
+    )
+    .mockResolvedValueOnce(response(configuration()))
+  await render()
+  await changeTimeout('300')
+  await render([endpoint({ updatedAt: '2026-11-16T01:00:00Z' })])
+  expect(container.textContent).toContain('正在更新服务状态')
+  await render([endpoint({ updatedAt: '2026-11-16T02:00:00Z' })])
+  await act(async () =>
+    finishOld(response(configuration({ available: false, reason: '旧服务错误' }))),
+  )
+  expect(container.textContent).not.toContain('旧服务错误')
+  expect(container.textContent).toContain('服务已配置')
+  expect(container.querySelector<HTMLInputElement>('#reverse-timeout')?.value).toBe('300')
 })

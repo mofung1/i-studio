@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { Button } from '@/components/admin/ui/button'
 import { OverlayRoot } from '../overlay-root'
-import { act, useState } from 'react'
+import { act, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { AdminDataTable, type AdminColumn, type AdminSorting } from './data-table'
@@ -52,10 +52,12 @@ function Fixture({
   data = items,
   loading = false,
   page = 1,
+  emptyAction,
 }: {
   data?: Item[]
   loading?: boolean
   page?: number
+  emptyAction?: ReactNode
 }) {
   const [sorting, setSorting] = useState<AdminSorting>([])
   return (
@@ -66,6 +68,7 @@ function Fixture({
       getRowId={(item) => item.id}
       loading={loading}
       scrollKey={page}
+      emptyAction={emptyAction}
       sorting={sorting}
       onSortingChange={(value) => {
         sorted(value)
@@ -120,9 +123,8 @@ it('lets users hide optional columns and restore them while preserving fixed ide
   )!
   await act(async () => restore.click())
   expect(container.querySelectorAll('thead th')).toHaveLength(3)
-  await act(async () =>
-    container.querySelector<HTMLButtonElement>('[aria-label="紧凑行距"]')!.click(),
-  )
+  await openColumns()
+  await act(async () => container.querySelector<HTMLElement>('[aria-label="紧凑行距"]')!.click())
   expect(container.querySelector('.admin-data-table')?.getAttribute('data-density')).toBe('compact')
   expect(sorted).not.toHaveBeenCalled()
 })
@@ -145,7 +147,7 @@ it('keeps rows and scroll position while refreshing, and resets scrolling on a d
 })
 
 async function openColumns() {
-  const trigger = container.querySelector<HTMLButtonElement>('[aria-label="测试列表列设置"]')!
+  const trigger = container.querySelector<HTMLButtonElement>('[aria-label="测试列表显示设置"]')!
   trigger.focus()
   await act(async () =>
     trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })),
@@ -181,9 +183,73 @@ it('restores saved table preferences without hiding pinned columns and persists 
   expect(container.querySelector('.admin-data-table')?.getAttribute('data-density')).toBe(
     'comfortable',
   )
-  await act(async () =>
-    container.querySelector<HTMLButtonElement>('[aria-label="紧凑行距"]')!.click(),
-  )
+  await openColumns()
+  await act(async () => container.querySelector<HTMLElement>('[aria-label="紧凑行距"]')!.click())
   const saved = JSON.parse(localStorage.getItem('istudio-admin-table:测试列表')!)
   expect(saved).toEqual({ density: 'compact', visibility: { amount: false } })
+})
+
+it('keeps the active server sort discoverable after hiding that column and can reset it', async () => {
+  await render()
+  await act(async () => heading().querySelector('button')!.click())
+  await openColumns()
+  await act(async () => container.querySelector<HTMLElement>('[aria-label="显示余额"]')!.click())
+  expect(container.querySelector('th[aria-sort]')).toBeNull()
+  expect(container.textContent).toContain('按余额升序排列')
+  await act(async () =>
+    document.activeElement?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    ),
+  )
+  await act(async () =>
+    [...container.querySelectorAll('button')]
+      .find((item) => item.textContent === '恢复默认排序')!
+      .click(),
+  )
+  expect(sorted).toHaveBeenLastCalledWith([])
+  expect(container.textContent).not.toContain('按余额升序排列')
+})
+
+it('reveals horizontal navigation and releases pinned columns in a narrow table viewport', async () => {
+  await render()
+  const scroll = container.querySelector<HTMLElement>('.admin-data-scroll')!
+  Object.defineProperties(scroll, {
+    clientWidth: { value: 350, configurable: true },
+    scrollWidth: { value: 900, configurable: true },
+  })
+  const scrollBy = vi.fn(({ left }: { left: number }) => {
+    scroll.scrollLeft = Math.min(550, Math.max(0, scroll.scrollLeft + left))
+    scroll.dispatchEvent(new Event('scroll', { bubbles: true }))
+  })
+  Object.defineProperty(scroll, 'scrollBy', { value: scrollBy, configurable: true })
+  await act(async () => window.dispatchEvent(new Event('resize')))
+  expect(container.querySelector('td[data-pin]')).toBeNull()
+  expect(container.querySelector('th[data-pin]')).toBeNull()
+  expect(scroll.getAttribute('aria-describedby')).toBeTruthy()
+  const left = container.querySelector<HTMLButtonElement>('[aria-label="向左滚动测试列表"]')!
+  const right = container.querySelector<HTMLButtonElement>('[aria-label="向右滚动测试列表"]')!
+  expect(left.disabled).toBe(true)
+  expect(right.disabled).toBe(false)
+  await act(async () => right.click())
+  expect(scrollBy).toHaveBeenCalledWith({ left: 262.5 })
+  expect(left.disabled).toBe(false)
+  await act(async () => {
+    scroll.scrollLeft = 550
+    scroll.dispatchEvent(new Event('scroll', { bubbles: true }))
+  })
+  expect(right.disabled).toBe(true)
+  Object.defineProperty(scroll, 'clientWidth', { value: 900, configurable: true })
+  await act(async () => window.dispatchEvent(new Event('resize')))
+  expect(container.querySelector('.admin-data-scroll-help')).toBeNull()
+  expect(container.querySelector('td[data-pin="left"]')).not.toBeNull()
+  expect(scroll.getAttribute('aria-describedby')).toBeNull()
+})
+
+it('shows the empty-state action only once loading has completed', async () => {
+  const emptyAction = <a href="/admin/settings">添加服务</a>
+  await render({ data: [], loading: true, emptyAction })
+  expect(container.querySelector('a')).toBeNull()
+  await render({ data: [], emptyAction })
+  expect(container.querySelector('a')?.getAttribute('href')).toBe('/admin/settings')
+  expect(container.querySelector('.admin-data-scroll')?.getAttribute('data-empty')).toBe('true')
 })

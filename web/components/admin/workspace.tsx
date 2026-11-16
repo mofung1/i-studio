@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ArrowUpRight, ChevronsUpDown, LogOut, Settings2, Sparkles } from 'lucide-react'
+import { ArrowUpRight, ChevronsUpDown, LogOut, Sparkles } from 'lucide-react'
 import { useAdminAccount } from '@/components/account-provider'
 import { useSiteBranding } from '@/components/site-branding-provider'
 import { BrandLogo } from '@/components/brand'
@@ -13,7 +13,13 @@ import { adminNavigation, currentAdminPage } from './navigation'
 import { Avatar, AvatarFallback } from './ui/avatar'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from './ui/breadcrumb'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from './ui/breadcrumb'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -197,36 +203,25 @@ export function AdminWorkspaceShell({ children }: { children: ReactNode }) {
         <header className="admin-header">
           <SidebarTrigger aria-label="展开或收起导航" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <nav className="admin-top-navigation" aria-label="快捷导航">
-            {[
-              ['/admin', '概览'],
-              ['/admin/users', '用户'],
-              ['/admin/models', '模型'],
-              ['/admin/settings', 'AI 服务'],
-            ].map(([href, title]) => (
-              <Link
-                key={href}
-                href={href!}
-                aria-current={current?.href === href ? 'page' : undefined}
-              >
-                {title}
-              </Link>
-            ))}
-          </nav>
-          <Breadcrumb className="admin-header-breadcrumb">
+          <Breadcrumb className="admin-header-breadcrumb" aria-label="当前页面位置">
             <BreadcrumbList>
+              <BreadcrumbItem className="admin-breadcrumb-group">
+                <span>{current?.group ?? '后台管理'}</span>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="admin-breadcrumb-group" />
               <BreadcrumbItem>
                 <BreadcrumbPage>{current?.title ?? '后台配置'}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <div className="admin-header-actions">
-            <ThemeToggle />
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/admin/site" aria-label="打开网站配置">
-                <Settings2 />
+            <Button variant="ghost" size="sm" asChild className="admin-visit-site">
+              <Link href="/studio?mode=general">
+                <ArrowUpRight size={15} />
+                查看前台
               </Link>
             </Button>
+            <ThemeToggle />
             <AccountMenu />
           </div>
         </header>

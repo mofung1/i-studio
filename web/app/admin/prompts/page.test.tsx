@@ -82,6 +82,14 @@ async function edit(value: string) {
     textarea.dispatchEvent(new Event('input', { bubbles: true }))
   })
 }
+async function selectTemplate(name: string) {
+  const search = host.querySelector<HTMLInputElement>('[aria-label="搜索内置提示词"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, name)
+    search.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await act(async () => host.querySelector<HTMLButtonElement>('.prompt-template-item')!.click())
+}
 it('loads independently and opens the reverse template selected in the URL', async () => {
   await act(async () => root.render(<Page />))
   expect(host.querySelector('h1')?.textContent).toBe('系统提示词')
@@ -128,4 +136,33 @@ it('fills defaults locally and saves only after the explicit Save action', async
   expect(templates[0]?.content).toBe('优化原文')
   expect(host.textContent).toContain('提示词已保存')
   expect(confirm).not.toHaveBeenCalled()
+})
+
+it('tracks unsaved templates separately and only clears the template that was saved', async () => {
+  await act(async () => root.render(<Page />))
+  expect(button('保存').disabled).toBe(true)
+  await edit('未保存的风格')
+  await selectTemplate('提示词优化')
+  await edit('新的优化指令')
+  expect(host.textContent).toContain('2 个模板有未保存更改')
+  await act(async () => button('保存').click())
+  expect(templates.find((item) => item.key === 'rewrite')?.content).toBe('新的优化指令')
+  expect(templates.find((item) => item.key === 'reverse.style')?.content).toBe('分析风格')
+  expect(host.textContent).toContain('1 个模板有未保存更改')
+  await act(async () =>
+    host.querySelector<HTMLButtonElement>('[aria-label="编辑未保存模板：风格反推"]')!.click(),
+  )
+  expect(host.querySelector('textarea')?.value).toBe('未保存的风格')
+  expect(button('保存').disabled).toBe(false)
+})
+
+it('retains the pending template and shows the save error for retry', async () => {
+  await act(async () => root.render(<Page />))
+  await edit('保持这个草稿')
+  request.mockRejectedValueOnce(new Error('保存失败，请稍后重试'))
+  await act(async () => button('保存').click())
+  expect(host.querySelector('textarea')?.value).toBe('保持这个草稿')
+  expect(host.textContent).toContain('保存失败，请稍后重试')
+  expect(host.textContent).toContain('1 个模板有未保存更改')
+  expect(button('保存').disabled).toBe(false)
 })

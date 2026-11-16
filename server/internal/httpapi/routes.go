@@ -126,7 +126,7 @@ func (s Handlers) registerInspirationRoutes(api *gin.RouterGroup) {
 	inspiration.GET("/submission-settings", gin.WrapF(s.InspirationSubmissionSettings))
 	prompts := inspiration.Group("/prompts", s.auditConfiguration("inspiration/prompts"))
 	registerMethods(prompts, "", s.InspirationPrompts, "GET", "POST")
-	registerMethods(prompts, "/:id", s.InspirationPromptByID, "PUT", "DELETE")
+	registerMethods(prompts, "/:id", s.InspirationPromptByID, "GET", "PUT", "DELETE")
 	categories := inspiration.Group("/categories", s.auditConfiguration("inspiration/categories"))
 	registerMethods(categories, "", s.InspirationCategories, "GET", "POST")
 	registerMethods(categories, "/:id", s.InspirationCategoryByID, "PUT", "DELETE")

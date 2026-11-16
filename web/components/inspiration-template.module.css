@@ -1,0 +1,44 @@
+.requirement {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 0;
+  padding: 4px 7px;
+  border-radius: 5px;
+  color: var(--foreground-2);
+  background: var(--surface-2);
+  font-size: 12px;
+}
+
+.notice {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--foreground-2);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.notice > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notice strong {
+  min-width: 0;
+  color: var(--foreground);
+}
+
+.notice button {
+  flex-shrink: 0;
+}
+
+.notice p {
+  margin: 7px 0 0;
+  white-space: pre-wrap;
+}

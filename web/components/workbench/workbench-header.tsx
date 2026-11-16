@@ -8,6 +8,7 @@ import Link from 'next/link'
 
 import { AccountMenu } from '@/components/account-menu'
 import type { CommerceTaskType } from '@/lib/contracts'
+import { preserveStudioProject } from '@/lib/studio-navigation'
 
 import { taskMeta, type WorkbenchMode } from './shared'
 
@@ -15,6 +16,7 @@ interface WorkbenchHeaderProps {
   collectionTools?: ReactNode
   mode: WorkbenchMode
   task: CommerceTaskType
+  projectId?: string | null
   panelOpen: boolean
   onShowDetails: () => void
   historyOpen: boolean
@@ -27,6 +29,7 @@ export function WorkbenchHeader({
   collectionTools,
   mode,
   task,
+  projectId,
   panelOpen,
   historyOpen,
   onShowDetails,
@@ -34,13 +37,28 @@ export function WorkbenchHeader({
   onTogglePanel,
 }: WorkbenchHeaderProps) {
   const inCommerce = mode === 'commerce'
+  const commerceUrl = preserveStudioProject(
+    '/commerce',
+    projectId ? new URLSearchParams({ projectId }) : undefined,
+  )
 
   return (
     <header className="workbench-nav">
       <div className="studio-breadcrumb">
+        {projectId && (
+          <>
+            <Link
+              href={`/assets?${new URLSearchParams({ project: projectId })}`}
+              aria-label="查看当前项目的素材与作品"
+            >
+              当前项目
+            </Link>
+            <span>/</span>
+          </>
+        )}
         {inCommerce ? (
           <>
-            <Link href="/commerce">电商工具</Link>
+            <Link href={commerceUrl}>电商工具</Link>
             <span>/</span>
             <strong>{taskMeta[task].title}</strong>
           </>

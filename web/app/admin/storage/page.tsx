@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent, type ComponentProps } from 'react'
-import { Save, ShieldCheck, Upload } from 'lucide-react'
+import { Cloud, HardDrive, Save, ShieldCheck, Upload } from 'lucide-react'
 import { AdminPageHeader } from '@/components/admin/page-header'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import {
@@ -22,6 +22,7 @@ import {
   CardContent,
 } from '@/components/admin/ui/card'
 import { adminRequest } from '@/lib/admin'
+import styles from '@/components/admin/settings-forms.module.css'
 
 interface Profile {
   id: string
@@ -97,20 +98,22 @@ export default function StoragePage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [savedDraft, setSavedDraft] = useState('')
   const load = useCallback(async () => {
     const data = await adminRequest<{ activeProfile: string; profiles: Profile[] }>('storage')
     const profile = data.profiles.find((p) => p.id === data.activeProfile) ?? data.profiles.at(-1)
-    setDraft(
-      profile
-        ? {
-            ...profile,
-            accessKey: profile.accessKey ?? '',
-            secretKey: profile.secretKey ?? '',
-            cdnKey: profile.cdnKey ?? '',
-          }
-        : fresh(),
-    )
-    setEnabled(data.activeProfile !== 'local')
+    const nextDraft = profile
+      ? {
+          ...profile,
+          accessKey: profile.accessKey ?? '',
+          secretKey: profile.secretKey ?? '',
+          cdnKey: profile.cdnKey ?? '',
+        }
+      : fresh()
+    const nextEnabled = data.activeProfile !== 'local'
+    setDraft(nextDraft)
+    setEnabled(nextEnabled)
+    setSavedDraft(JSON.stringify({ draft: nextDraft, enabled: nextEnabled }))
     setReady(true)
   }, [])
   useEffect(() => {
@@ -118,9 +121,14 @@ export default function StoragePage() {
       .catch((reason) => setError(reason.message))
       .finally(() => setLoading(false))
   }, [load])
-  const patch = (value: Partial<Draft>) => setDraft((previous) => ({ ...previous, ...value }))
+  const dirty = ready && JSON.stringify({ draft, enabled }) !== savedDraft
+  const patch = (value: Partial<Draft>) => {
+    setDraft((previous) => ({ ...previous, ...value }))
+    setMessage('')
+  }
   async function save(event: FormEvent) {
     event.preventDefault()
+    if (busy || !ready) return
     setBusy(true)
     setError('')
     setMessage('')
@@ -210,29 +218,51 @@ export default function StoragePage() {
         <FieldSet disabled={busy || !ready} className="storage-config-container">
           <Card className="storage-intro-card">
             <CardHeader>
-              <CardTitle>统一 OSS / CDN 配置</CardTitle>
+              <CardTitle>图片保存位置</CardTitle>
               <CardDescription>
                 公共提示词库封面、用户上传、AI 生成图片和网站图片共用这一套配置。本地 uploads
                 同时保留完整副本。
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className={styles.storageMode}>
+                {enabled ? (
+                  <Cloud size={22} aria-hidden="true" />
+                ) : (
+                  <HardDrive size={22} aria-hidden="true" />
+                )}
+                <div>
+                  <strong>{enabled ? '云存储，同时保留本地副本' : '本地存储'}</strong>
+                  <p>
+                    {enabled
+                      ? '填写下方连接信息和密钥。检查连接、同步历史图片后，再保存启用。'
+                      : '图片保存在服务器的 uploads 目录，无需配置云端地址或密钥。需要云存储时再打开下方开关。'}
+                  </p>
+                </div>
+              </div>
               <Field orientation="horizontal" className="storage-switch">
                 <input
                   id="storage-enabled"
                   type="checkbox"
                   checked={enabled}
-                  onChange={(event) => setEnabled(event.target.checked)}
+                  onChange={(event) => {
+                    setEnabled(event.target.checked)
+                    setMessage('')
+                  }}
                 />
                 <FieldLabel htmlFor="storage-enabled">启用 OSS 云存储</FieldLabel>
               </Field>
             </CardContent>
           </Card>
-          <FieldSet disabled={!enabled} className="storage-config-panels">
+          <FieldSet
+            disabled={!enabled}
+            hidden={!enabled}
+            className={`storage-config-panels ${styles.cloudPanels}`}
+          >
             <Card className="storage-connection-card">
               <CardHeader>
-                <CardTitle>存储连接</CardTitle>
-                <CardDescription>填写空间、区域及上传地址。</CardDescription>
+                <CardTitle>1. 存储连接</CardTitle>
+                <CardDescription>必填：选择平台，填写存储桶、区域及上传地址。</CardDescription>
               </CardHeader>
               <CardContent>
                 <FieldGroup className="storage-config-grid">
@@ -322,7 +352,7 @@ export default function StoragePage() {
             </Card>
             <Card className="storage-credentials-card">
               <CardHeader>
-                <CardTitle>访问密钥</CardTitle>
+                <CardTitle>2. 访问密钥</CardTitle>
                 <CardDescription>
                   已保存的密钥在管理员后台直接显示，修改后保存生效。
                 </CardDescription>
@@ -354,8 +384,10 @@ export default function StoragePage() {
             </Card>
             <Card className="storage-cdn-card">
               <CardHeader>
-                <CardTitle>CDN 加速</CardTitle>
-                <CardDescription>所有业务图片通过同一个域名访问。</CardDescription>
+                <CardTitle>3. 图片访问与 CDN</CardTitle>
+                <CardDescription>
+                  设置图片的访问域名与鉴权；七牛公开直链需配置域名，其他情况可按需使用 CDN。
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <FieldGroup className="storage-config-grid">
@@ -422,47 +454,54 @@ export default function StoragePage() {
             </Card>
           </FieldSet>
         </FieldSet>
-        <div className="storage-config-actions">
-          <Button
-            variant="outline"
-            type="button"
-            disabled={busy || !enabled || !ready}
-            onClick={(event) => {
-              if (event.currentTarget.form?.reportValidity()) void sync()
-            }}
-          >
-            <Upload data-icon="inline-start" />
-            同步本地图片
-          </Button>
-          <Button
-            variant="outline"
-            type="button"
-            disabled={busy || !enabled || !ready}
-            onClick={(event) => {
-              if (event.currentTarget.form?.reportValidity()) void check()
-            }}
-          >
-            <ShieldCheck data-icon="inline-start" />
-            检查连接
-          </Button>
-          <Button type="submit" disabled={busy || !ready}>
-            <Save data-icon="inline-start" />
-            {busy ? '处理中…' : '保存配置'}
-          </Button>
+        <div className={styles.storageFooter}>
+          <p role="status">
+            {!ready ? '请先读取存储配置。' : dirty ? '有未保存的更改。' : '当前配置已读取。'}
+            {enabled
+              ? '检查连接不会启用配置；同步会复制本地图片到所填空间；保存后图片访问切换到当前配置。'
+              : '保存后使用本地存储。已填写的云端配置可在重新开启开关后继续编辑。'}
+          </p>
+          <div className="storage-config-actions">
+            <Button
+              variant="outline"
+              type="button"
+              disabled={busy || !enabled || !ready}
+              onClick={(event) => {
+                if (event.currentTarget.form?.reportValidity()) void sync()
+              }}
+            >
+              <Upload data-icon="inline-start" />
+              同步本地图片
+            </Button>
+            <Button
+              variant="outline"
+              type="button"
+              disabled={busy || !enabled || !ready}
+              onClick={(event) => {
+                if (event.currentTarget.form?.reportValidity()) void check()
+              }}
+            >
+              <ShieldCheck data-icon="inline-start" />
+              检查连接
+            </Button>
+            <Button type="submit" disabled={busy || !ready}>
+              <Save data-icon="inline-start" />
+              {busy ? '处理中…' : '保存配置'}
+            </Button>
+          </div>
         </div>
       </form>
-      <Alert>
-        <AlertDescription>
-          <p>
-            关闭 OSS 时，所有图片从本地 uploads 读取。启用后，新图片同时写入本地与
-            OSS，图片通过同一套 OSS / CDN 配置访问。
-          </p>
-          <p>
-            更换平台前，先将 uploads
-            中的业务文件按原目录结构上传到新空间，再修改此处配置。历史图片也会切换，保存配置不会自动搬迁已有文件。密钥与内部配置文件无需上传。
-          </p>
-        </AlertDescription>
-      </Alert>
+      <details className={styles.storageMigration}>
+        <summary>更换存储平台与历史图片迁移说明</summary>
+        <p>
+          关闭 OSS 时，所有图片从本地 uploads 读取。启用后，新图片同时写入本地与 OSS，图片通过同一套
+          OSS / CDN 配置访问。
+        </p>
+        <p>
+          更换平台前，先将 uploads
+          中的业务文件按原目录结构上传到新空间，再修改此处配置。历史图片也会切换，保存配置不会自动搬迁已有文件。密钥与内部配置文件无需上传。
+        </p>
+      </details>
     </main>
   )
 }

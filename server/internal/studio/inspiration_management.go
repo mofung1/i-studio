@@ -126,6 +126,23 @@ func (s *Service) inspirationPromptByID(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	switch r.Method {
+	case http.MethodGet:
+		if s.db == nil {
+			s.error(w, 503, "INSPIRATION_DATABASE_REQUIRED", "灵感模板暂时无法读取，请稍后重试")
+			return
+		}
+		// This is the public handoff route, even when an administrator is signed in.
+		// Never let a saved URL expose an unpublished or withdrawn template.
+		row, err := scanInspirationPrompt(s.db.QueryRowContext(r.Context(), "SELECT "+inspirationPromptColumns+" FROM inspiration_prompts WHERE id=$1 AND enabled=true", id))
+		if errors.Is(err, sql.ErrNoRows) {
+			s.error(w, 404, "INSPIRATION_NOT_FOUND", "提示词不存在或已下架，请重新选择")
+			return
+		}
+		if err != nil {
+			s.error(w, 500, "INSPIRATION_STORAGE_ERROR", "灵感模板读取失败，请重试")
+			return
+		}
+		s.json(w, 200, map[string]any{"prompt": row})
 	case http.MethodPut:
 		s.saveInspirationPrompt(w, r, id)
 	case http.MethodDelete:

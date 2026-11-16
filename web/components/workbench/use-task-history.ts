@@ -8,6 +8,7 @@ import { useAccount } from '@/components/account-provider'
 
 /** 历史任务的输入参数，字段与 /v1/generation/tasks 返回的 input 一致 */
 export interface HistoryTaskInput {
+  projectId?: string
   mode?: string
   taskType?: string
   prompt?: string

@@ -1,4 +1,5 @@
 'use client'
+import { useId } from 'react'
 import { Input } from './ui/input'
 import { Button } from '@/components/admin/ui/button'
 
@@ -24,8 +25,9 @@ export function AdminPagination({
   label?: string
   unit?: string
   onPageChange: (page: number) => void
-  onPageSizeChange: (size: number) => void
+  onPageSizeChange?: (size: number) => void
 }) {
+  const jumpId = useId()
   const first = total ? (page - 1) * pageSize + 1 : 0
   const last = Math.min(page * pageSize, total)
   const pages = [...new Set([1, page - 1, page, page + 1, totalPages])]
@@ -43,22 +45,30 @@ export function AdminPagination({
     <nav className="ops-pagination" aria-label={`${label}分页`}>
       <div className="ops-pagination-summary" aria-live="polite">
         <span>
-          第 {first}–{last} {unit}，共 {total} {unit}
-          {label}
+          {total ? (
+            <>
+              第 {first}–{last} {unit}，共 {total} {unit}
+              {label}
+            </>
+          ) : (
+            <>暂无{label}记录</>
+          )}
         </span>
         {loading && <span role="status">正在读取…</span>}
       </div>
-      <LibrarySelect
-        label={`每页${label}条数`}
-        value={String(pageSize)}
-        options={[
-          ['20', '20 条 / 页'],
-          ['50', '50 条 / 页'],
-          ['100', '100 条 / 页'],
-        ]}
-        disabled={loading}
-        onChange={(value) => onPageSizeChange(Number(value))}
-      />
+      {onPageSizeChange && (
+        <LibrarySelect
+          label={`每页${label}条数`}
+          value={String(pageSize)}
+          options={[
+            ['20', '20 条 / 页'],
+            ['50', '50 条 / 页'],
+            ['100', '100 条 / 页'],
+          ]}
+          disabled={loading}
+          onChange={(value) => onPageSizeChange(Number(value))}
+        />
+      )}
       <div className="admin-pagination-navigation">
         <span className="admin-page-position">
           第 {page} / {totalPages} 页
@@ -81,13 +91,14 @@ export function AdminPagination({
                 type="button"
                 aria-label={`第 ${step} 页${label}`}
                 aria-current={page === step ? 'page' : undefined}
+                className="admin-page-number"
                 disabled={loading}
                 onClick={() => onPageChange(step)}
               >
                 {step}
               </Button>
             ) : (
-              <span key={step} aria-hidden="true">
+              <span key={step} className="admin-page-gap" aria-hidden="true">
                 …
               </span>
             ),
@@ -119,10 +130,10 @@ export function AdminPagination({
             onPageChange(next)
         }}
       >
-        <label htmlFor={`page-jump-${label}`}>跳至</label>
+        <label htmlFor={jumpId}>跳至</label>
         <Input
           key={`${page}:${totalPages}`}
-          id={`page-jump-${label}`}
+          id={jumpId}
           aria-label={`跳转到第几页${label}`}
           name="page"
           type="number"

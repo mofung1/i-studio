@@ -1,0 +1,20 @@
+{
+  "executable": "/Users/mofung/.taptap-maker/runtime/runtime-fba9e476-373d-41fc-ac39-25ba01c0c0ff/UrhoXRuntime",
+  "args": [
+    "-game_url=http://127.0.0.1:62539/f90a6eaa15a68eb660e799b9f770cf1e3dfef69ee7d52bd7c20e3284c441674f/",
+    "-game_path=/Users/mofung/.taptap-maker/preview/57bf4b41d9398434f35b636c08718eace0cd18aa723a920b7956c4f73f7051e8/storage/runtime-cache",
+    "-skip_login",
+    "-p=Res",
+    "-log=info",
+    "-w",
+    "-width=1920",
+    "-height=1080",
+    "-validate",
+    "-validate-frames=260",
+    "-validate-timeout=100",
+    "-validate-output=/Users/mofung/.taptap-maker/preview/57bf4b41d9398434f35b636c08718eace0cd18aa723a920b7956c4f73f7051e8/validation/16dfc0f7-d872-4b79-bac7-862b75cf8a45/validate.json",
+    "-screenshot=/Users/mofung/.taptap-maker/preview/57bf4b41d9398434f35b636c08718eace0cd18aa723a920b7956c4f73f7051e8/validation/16dfc0f7-d872-4b79-bac7-862b75cf8a45/screenshot.png",
+    "-screenshot-frame=180"
+  ],
+  "cwd": "/Users/mofung/Documents/product/game/one-minute-wulin/.maker-preview/source"
+}

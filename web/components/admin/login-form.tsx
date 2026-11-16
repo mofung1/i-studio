@@ -64,7 +64,9 @@ export function LoginForm() {
         </div>
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-xl">登录管理后台</CardTitle>
+            <CardTitle className="text-xl">
+              <h1>登录管理后台</h1>
+            </CardTitle>
             <CardDescription>使用独立管理员账号管理 AI 服务、模型与平台运营。</CardDescription>
           </CardHeader>
           <CardContent>
@@ -103,7 +105,7 @@ export function LoginForm() {
                   />
                 </Field>
                 {error && (
-                  <Alert variant="destructive">
+                  <Alert variant="destructive" role="alert">
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
@@ -118,7 +120,7 @@ export function LoginForm() {
           </CardFooter>
         </Card>
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          仅向管理员开放 · 业务权限由 Go API 验证
+          使用管理员账号登录，管理网站内容、AI 服务与平台运营。
         </p>
       </div>
     </main>

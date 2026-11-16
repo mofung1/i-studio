@@ -38,6 +38,8 @@ const PAGE_SIZE = 24
 export function useInspirationPrompts() {
   const [prompts, setPrompts] = useState<InspirationPrompt[]>([])
   const [categories, setCategories] = useState<InspirationCategory[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const [categoriesError, setCategoriesError] = useState('')
   const [category, setCategory] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [query, setQuery] = useState('')
@@ -45,11 +47,11 @@ export function useInspirationPrompts() {
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [loadMoreError, setLoadMoreError] = useState('')
+  const [hasMore, setHasMore] = useState(false)
   const loadingRef = useRef(false)
   const requestRef = useRef<AbortController | null>(null)
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
-
-  const hasMore = prompts.length < total
+  const categoriesRequestRef = useRef<AbortController | null>(null)
 
   // 全库总数：各启用分类条数之和。切换分类时 total 会变成当前分类的条数，
   // 「全部」chip 与 hero 文案需要始终展示全库量级，故单独派生。
@@ -63,7 +65,8 @@ export function useInspirationPrompts() {
       requestRef.current = controller
       loadingRef.current = true
       setIsLoading(true)
-      setError('')
+      if (replace) setError('')
+      setLoadMoreError('')
       try {
         const params = new URLSearchParams({
           page: String(targetPage),
@@ -77,17 +80,31 @@ export function useInspirationPrompts() {
             signal: controller.signal,
           })
         } catch {
-          throw new Error('灵感库加载失败，请检查后端服务是否已启动')
+          throw new Error('灵感加载失败，请检查网络后重试')
         }
         if (!response.ok) throw new Error('灵感库加载失败')
         const data = (await response.json()) as InspirationResponse
-        if (controller.signal.aborted) return
-        setPrompts((prev) => (replace ? data.prompts : [...prev, ...data.prompts]))
+        if (controller.signal.aborted || requestRef.current !== controller) return
+        setPrompts((prev) => {
+          if (replace) return data.prompts
+          // A newly published item can shift a page boundary while the gallery is open.
+          return [...new Map([...prev, ...data.prompts].map((item) => [item.id, item])).values()]
+        })
         setTotal(data.total)
-        setPage(targetPage)
+        setPage(data.page)
+        // Pagination advances through server offsets, not the deduplicated card count.
+        // A live total can change between pages; an empty or repeated page always ends browsing.
+        setHasMore(
+          data.prompts.length > 0 &&
+            data.page >= targetPage &&
+            data.page * data.pageSize < data.total,
+        )
       } catch (reason) {
-        if (!controller.signal.aborted)
-          setError(reason instanceof Error ? reason.message : '灵感库加载失败')
+        if (!controller.signal.aborted && requestRef.current === controller) {
+          const message = reason instanceof Error ? reason.message : '灵感加载失败，请重试'
+          if (replace) setError(message)
+          else setLoadMoreError(message)
+        }
       } finally {
         if (requestRef.current === controller) {
           setIsLoading(false)
@@ -108,17 +125,32 @@ export function useInspirationPrompts() {
     void loadPage(page + 1, category, query, false)
   }, [category, hasMore, isLoading, loadPage, page, query])
 
-  // 首次加载：分类列表 + 第一页
-  useEffect(() => {
+  const reloadCategories = useCallback(async () => {
+    categoriesRequestRef.current?.abort()
     const controller = new AbortController()
-    fetch(`${apiBaseUrl}/v1/inspiration/categories`, { signal: controller.signal })
-      .then((response) =>
-        response.ok ? response.json() : Promise.reject(new Error('分类加载失败')),
-      )
-      .then((data: { categories: InspirationCategory[] }) => setCategories(data.categories ?? []))
-      .catch(() => undefined)
-    return () => controller.abort()
+    categoriesRequestRef.current = controller
+    setCategoriesLoading(true)
+    setCategoriesError('')
+    try {
+      const response = await fetch(`${apiBaseUrl}/v1/inspiration/categories`, {
+        signal: controller.signal,
+      })
+      if (!response.ok) throw new Error('分类暂时无法加载，请重试')
+      const data = (await response.json()) as { categories: InspirationCategory[] }
+      if (controller.signal.aborted || categoriesRequestRef.current !== controller) return
+      setCategories(data.categories ?? [])
+    } catch {
+      if (!controller.signal.aborted && categoriesRequestRef.current === controller)
+        setCategoriesError('分类暂时无法加载，请重试')
+    } finally {
+      if (categoriesRequestRef.current === controller) setCategoriesLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    void reloadCategories()
+    return () => categoriesRequestRef.current?.abort()
+  }, [reloadCategories])
 
   // 搜索防抖：输入即时回显，查询延迟 350ms 触发，避免逐键打接口
   useEffect(() => {
@@ -130,6 +162,8 @@ export function useInspirationPrompts() {
   useEffect(() => {
     setPrompts([])
     setTotal(0)
+    setPage(1)
+    setHasMore(false)
     void loadPage(1, category, query, true)
     return () => requestRef.current?.abort()
   }, [category, query, loadPage])
@@ -139,23 +173,18 @@ export function useInspirationPrompts() {
     setQuery('')
   }, [])
 
-  // 触底自动加载下一页
-  useEffect(() => {
-    const node = sentinelRef.current
-    if (!node || !hasMore) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) void loadMore()
-      },
-      { rootMargin: '400px' },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [hasMore, loadMore])
+  const resetFilters = useCallback(() => {
+    setCategory('')
+    setSearchInput('')
+    setQuery('')
+  }, [])
 
   return {
     prompts,
     categories,
+    categoriesLoading,
+    categoriesError,
+    reloadCategories,
     category,
     searchInput,
     query,
@@ -163,11 +192,12 @@ export function useInspirationPrompts() {
     allTotal,
     isLoading,
     error,
+    loadMoreError,
     hasMore,
-    sentinelRef,
     changeCategory,
     setSearchInput,
     clearSearch,
+    resetFilters,
     loadMore,
     reload: () => {
       void loadPage(1, category, query, true)

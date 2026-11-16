@@ -20,6 +20,23 @@ export function sameCreationImage(a: CreationImage, b: CreationImage) {
   return a === b || (isStoredImage(a) && isStoredImage(b) && a.assetId === b.assetId)
 }
 
+export interface CreationImageAddition {
+  status: 'added' | 'existing' | 'full'
+  images: CreationImage[]
+}
+
+/** Evaluate against the latest selection after loading an image; never discard an existing image. */
+export function addCreationImage(
+  images: CreationImage[],
+  image: CreationImage,
+  limit: number,
+): CreationImageAddition {
+  if (images.some((existing) => sameCreationImage(existing, image)))
+    return { status: 'existing', images }
+  if (images.length >= limit) return { status: 'full', images }
+  return { status: 'added', images: [...images, image] }
+}
+
 /** A restored reverse task contains a new File, even when its original is already selected. */
 export async function reuseExistingCreationImage(
   image: CreationImage,

@@ -9,7 +9,7 @@ import {
 import { loadProtectedImage } from '@/components/authenticated-image'
 
 import { RotateCcw, ScanText, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { CreatorPanel } from './creator-panel'
 import { usePromptReverse } from '@/components/prompt-reverse-provider'
 import { applyReverseText } from '@/lib/prompt-reverse'
@@ -42,9 +42,16 @@ import {
   type ConfigSide,
 } from './shared'
 import type { GenerationNotice } from './use-generation-task'
+import type { DraftStatus } from './use-creation-draft'
 
 interface CreatorSidebarProps {
   mode: WorkbenchMode
+  templateNotice?: ReactNode
+  templateBlockedReason?: string
+  referenceRequired?: boolean
+  draftStatus?: DraftStatus
+  draftError?: string
+  onRetryDraft?: () => Promise<void>
   configCollapsed?: boolean
   onToggleConfig?: () => void
   configSide?: ConfigSide
@@ -322,11 +329,15 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
             </button>
           </div>
 
+          {props.templateNotice}
           {isGeneral ? (
             <div className="composer-input-grid">
               <fieldset className="form-section config-card config-card-prompt">
-                <legend className="prompt-field-label">画面描述</legend>
+                <legend className="sr-only">画面描述</legend>
                 <PromptEditor
+                  draftStatus={props.draftStatus}
+                  draftError={props.draftError}
+                  onRetryDraft={props.onRetryDraft}
                   value={prompt}
                   onChange={onSetPrompt}
                   ariaLabel="画面描述"
@@ -430,7 +441,11 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 <div className="composer-media-heading">
                   <span>参考图片</span>
                   <small>
-                    {assetFiles.length ? `${assetFiles.length}/${maxFiles} 张` : '可选'}
+                    {assetFiles.length
+                      ? `${assetFiles.length}/${maxFiles} 张`
+                      : props.referenceRequired
+                        ? '模板必需'
+                        : '可选'}
                   </small>
                 </div>
                 <ReferenceUploader
@@ -504,10 +519,11 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
 
           {!isGeneral && (
             <fieldset className="form-section config-card config-card-prompt">
-              <div className="field-heading">
-                <legend>{requirementsLabel}</legend>
-              </div>
+              <legend className="sr-only">{requirementsLabel}</legend>
               <PromptEditor
+                draftStatus={props.draftStatus}
+                draftError={props.draftError}
+                onRetryDraft={props.onRetryDraft}
                 value={requirements}
                 onChange={onSetRequirements}
                 ariaLabel={requirementsLabel}
@@ -610,7 +626,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         isSubmitting={isSubmitting}
         isGenerating={isGenerating}
         aiEnabled={aiEnabled}
-        disabledReason={compatibilityIssue}
+        disabledReason={props.templateBlockedReason || compatibilityIssue}
         onSubmit={onSubmit}
       />
     </CreatorPanel>

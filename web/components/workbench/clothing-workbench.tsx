@@ -1,8 +1,20 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useAccount } from '@/components/account-provider'
+import {
+  creationDraftContext,
+  draftEntrySource,
+  prepareGuestDraftLogin,
+} from '@/lib/creation-drafts'
+import { clothingCreationDraftSchema } from '@/lib/creation-draft-schema'
+import { useCreationDraft } from './use-creation-draft'
+import { CreationDraftStatus } from './creation-draft-status'
+import { WorkbenchSkeleton } from './workbench-skeleton'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { loadStoredImage } from '@/lib/library'
+import { addCreationImage } from '@/lib/creation-images'
+import { preserveStudioProject, studioToolUrl } from '@/lib/studio-navigation'
 import { modelCompatibilityIssue, type PublicImageModel } from '@/lib/generation-models'
 import { ModelCompatibilityNotice } from './model-compatibility-notice'
 import { X } from 'lucide-react'
@@ -53,6 +65,7 @@ export function ClothingWorkbench({
   const router = useRouter()
   const pathname = usePathname()
   const search = useSearchParams()
+  const { account } = useAccount()
   const [settings, setSettings] = useState<ClothingSettingsValue>({
     mode: 'product',
     style: 'studio',
@@ -88,6 +101,18 @@ export function ClothingWorkbench({
   const [downloadBusy, setDownloadBusy] = useState(false)
   const [collectionUndo, setCollectionUndo] = useState<PersonalApplication | null>(null)
   const revision = useRef(0)
+  const referenceEpoch = useRef(0)
+  const mounted = useRef(true)
+  const latestSettings = useRef(settings)
+  latestSettings.current = settings
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      revision.current++
+      referenceEpoch.current++
+    }
+  }, [])
   const analysisRequest = useRef<AbortController | null>(null)
   const draftPlan = useRef<ClothingPlan | null>(null)
   const {
@@ -103,6 +128,36 @@ export function ClothingWorkbench({
     submit,
     removeResult,
   } = useGenerationTask('commerce:clothing-set')
+  const draft = useCreationDraft({
+    owner: account.user?.id ?? 'guest',
+    context: creationDraftContext('commerce:clothing-set', search.get('projectId') ?? ''),
+    source: draftEntrySource(search),
+    enabled: true,
+    value: settings,
+    defaultValue: {
+      mode: 'product',
+      style: 'studio',
+      counts: { ...defaultClothingCounts },
+      modelCount: 1,
+      garments: [],
+      models: [],
+      scenes: [],
+      requirements: '',
+      platform: 'smart',
+      outputLanguage: 'none',
+      endpointId: settings.endpointId,
+      model: settings.model,
+      aspectRatio: initialAspectRatio ?? '3:4',
+      resolution: initialResolution ?? '2K',
+    } as ClothingSettingsValue,
+    parse: (value) => clothingCreationDraftSchema.parse(value),
+    onRestore: (value) => {
+      setSettings(value)
+      draftPlan.current = null
+      setPlan(null)
+    },
+  })
+  const restoreHandoff = draft.ready && draft.restoredSource !== draftEntrySource(search)
   const counts: Record<string, number> =
     settings.mode === 'product' ? settings.counts : { 'clothing-model': settings.modelCount }
   const expectedCount = Object.values(counts).reduce((sum, count) => sum + count, 0)
@@ -115,7 +170,7 @@ export function ClothingWorkbench({
   }
   const compatibilityIssue = modelCompatibilityIssue(selectedModel, modelParameters)
   useWorkbenchHandoff({
-    ready: aiEnabled !== null,
+    ready: aiEnabled !== null && restoreHandoff,
     onHistory: loadHistory,
     onReference: useReference,
     onError: (message) => setNotice({ kind: 'error', message }),
@@ -167,6 +222,7 @@ export function ClothingWorkbench({
       else patch.counts = { ...config.moduleCounts }
     }
     change(patch)
+    draft.markEntryApplied()
     setCollapsed(false)
     setPanelOpen(true)
     setNotice({
@@ -175,18 +231,23 @@ export function ClothingWorkbench({
     })
   }
   usePersonalPromptHandoff({
-    ready: aiEnabled !== null && !planning && !isGenerating && !isSubmitting,
+    ready: aiEnabled !== null && restoreHandoff && !planning && !isGenerating && !isSubmitting,
     onApply: (application) => applyCollection(application),
     onError: (message) => setNotice({ kind: 'error', message }),
   })
 
   useEffect(() => {
+    if (!draft.ready) return
     const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 10000)
     fetch(`${apiBaseUrl}/v1/generation/capabilities`, {
       headers: { Authorization: `Bearer ${getAccessToken()}` },
       signal: controller.signal,
     })
-      .then((response) => response.json())
+      .then(async (response) => {
+        if (!response.ok) throw new Error(await readApiError(response, '模型列表读取失败'))
+        return response.json()
+      })
       .then((data) => {
         if (controller.signal.aborted) return
         setAiEnabled(!!data.aiEnabled)
@@ -197,10 +258,14 @@ export function ClothingWorkbench({
           creditName: data.creditName ?? '积分',
         }))
         setEndpoints(available)
-        const selected =
-          available.find((endpoint: { model: string }) => endpoint.model === initialModel) ??
-          available.find((endpoint: { isDefault: boolean }) => endpoint.isDefault) ??
-          available[0]
+        if (draft.restorationFailed) return
+        const selected = latestSettings.current.endpointId
+          ? available.find(
+              (endpoint: PublicImageModel) => endpoint.id === latestSettings.current.endpointId,
+            )
+          : (available.find((endpoint: { model: string }) => endpoint.model === initialModel) ??
+            available.find((endpoint: { isDefault: boolean }) => endpoint.isDefault) ??
+            available[0])
         if (selected)
           setSettings((previous) => ({
             ...previous,
@@ -209,14 +274,16 @@ export function ClothingWorkbench({
           }))
       })
       .catch(() => {
-        if (!controller.signal.aborted) setAiEnabled(false)
+        if (mounted.current) setAiEnabled(false)
       })
+      .finally(() => window.clearTimeout(timeout))
     return () => {
+      window.clearTimeout(timeout)
       controller.abort()
       analysisRequest.current?.abort()
       revision.current++
     }
-  }, [initialModel])
+  }, [initialModel, draft.ready, draft.restorationFailed])
   useEffect(() => {
     const query = window.matchMedia('(max-width: 780px)')
     const update = () => setMobile(query.matches)
@@ -273,12 +340,18 @@ export function ClothingWorkbench({
     setPlan(null)
     setPlanMessage('')
     setLoadingHistoryId(null)
-    setSettings((previous) => ({ ...previous, ...patch }))
+    latestSettings.current = { ...latestSettings.current, ...patch }
+    setSettings(latestSettings.current)
   }
-  function login() {
-    router.push(
-      `/login?next=${encodeURIComponent(`${pathname}${search.size ? `?${search}` : ''}`)}`,
-    )
+  async function login() {
+    const currentUrl = `${pathname}${search.size ? `?${search}` : ''}`
+    try {
+      await draft.flush()
+      await prepareGuestDraftLogin(currentUrl)
+      if (mounted.current) router.push(`/login?next=${encodeURIComponent(currentUrl)}`)
+    } catch {
+      if (mounted.current) setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再登录' })
+    }
   }
   function checkSource(): boolean {
     if (compatibilityIssue) {
@@ -443,12 +516,16 @@ export function ClothingWorkbench({
     return loadStoredImage(path)
   }
   async function loadHistory(record: HistoryTask, regenerate = false) {
+    referenceEpoch.current++
     if (regenerate && (isSubmitting || isGenerating)) {
       setNotice({ kind: 'error', message: '当前任务生成中，请完成后再重新生成' })
       return
     }
-    if (record.input.taskType !== 'clothing-set') {
-      router.replace(historyWorkbenchUrl(record, regenerate))
+    if (
+      record.input.taskType !== 'clothing-set' ||
+      (record.input.projectId && record.input.projectId !== search.get('projectId'))
+    ) {
+      await navigate(historyWorkbenchUrl(record, regenerate, search))
       return
     }
     const current = ++revision.current
@@ -510,6 +587,7 @@ export function ClothingWorkbench({
         summary: '已载入历史拍摄规划，确认后重新生成。',
         shots: input.clothingPlan ?? restored.shots,
       }
+      draft.markEntryApplied()
       if (regenerate) {
         setPlan(draftPlan.current)
         setPlanMessage('')
@@ -539,27 +617,55 @@ export function ClothingWorkbench({
     },
   ) {
     if (source.mode !== 'commerce' || source.taskType !== 'clothing-set') {
-      const target = referenceWorkbenchUrl(path, source.mode, source.taskType)
-      if (target) router.replace(target)
+      const target = referenceWorkbenchUrl(path, source.mode, source.taskType, search)
+      if (target) await navigate(target)
       return
     }
-    if (settings.garments.length >= 6) {
-      setNotice({ kind: 'error', message: '服装素材已达到 6 张，请先移除一张再添加参考图' })
-      setCollapsed(false)
-      setPanelOpen(true)
-      return
-    }
-    const current = revision.current
+    const current = referenceEpoch.current
     try {
       const file = await imageFile(path, '服装参考')
-      if (current !== revision.current) return
-      change({ garments: [...settings.garments, file].slice(0, 6) })
+      if (!mounted.current || current !== referenceEpoch.current) return
       setCollapsed(false)
       setPanelOpen(true)
-      setNotice({ kind: 'success', message: '已作为服装参考填入素材区' })
+      const addition = addCreationImage(latestSettings.current.garments, file, 6)
+      if (addition.status === 'full') {
+        setNotice({ kind: 'error', message: '服装素材已达到 6 张，请先移除一张再添加参考图' })
+        return
+      }
+      if (addition.status === 'added') change({ garments: addition.images })
+      draft.markEntryApplied()
+      setNotice({
+        kind: 'success',
+        message:
+          addition.status === 'existing'
+            ? '这张图片已在素材区，无需重复添加'
+            : '已作为服装参考填入素材区',
+      })
     } catch (error) {
+      if (!mounted.current || current !== referenceEpoch.current) return
       setNotice({ kind: 'error', message: error instanceof Error ? error.message : '图片读取失败' })
     }
+  }
+  async function navigate(target: string) {
+    revision.current++
+    referenceEpoch.current++
+    try {
+      await draft.flush()
+    } catch {
+      setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再切换工具' })
+      return
+    }
+    if (mounted.current) router.replace(target)
+  }
+  async function clearDraft() {
+    referenceEpoch.current++
+    cancelAnalysis(true)
+    setLoadingHistoryId(null)
+    setCollectionUndo(null)
+    draftPlan.current = null
+    await draft.clear()
+    if (mounted.current)
+      router.replace(studioToolUrl('commerce', 'clothing-set', search), { scroll: false })
   }
   async function downloadAll() {
     const id = historyTask?.id ?? activeResult?.id
@@ -582,6 +688,8 @@ export function ClothingWorkbench({
       setDownloadBusy(false)
     }
   }
+  if (!draft.ready) return <WorkbenchSkeleton mode="commerce" />
+
   return (
     <div className="workbench-page">
       <div
@@ -589,35 +697,50 @@ export function ClothingWorkbench({
       >
         <WorkbenchRail
           mode="commerce"
+          projectId={search.get('projectId')}
           task="clothing-set"
           onChangeMode={(mode) =>
-            router.replace(mode === 'general' ? '/studio?mode=general' : '/commerce')
+            void navigate(
+              mode === 'general'
+                ? studioToolUrl('general', undefined, search)
+                : preserveStudioProject('/commerce', search),
+            )
           }
-          onChangeTask={(task) => router.replace(`/studio?mode=commerce&task=${task}`)}
+          onChangeTask={(task) => void navigate(studioToolUrl('commerce', task, search))}
         />
         <WorkbenchHeader
+          projectId={search.get('projectId')}
           collectionTools={
-            <CreationLibraryTools
-              config={currentPreset()}
-              prompt={settings.requirements}
-              disabled={isGenerating || isSubmitting || planning}
-              onApply={(application) => applyCollection(application)}
-              onUndo={
-                collectionUndo
-                  ? () => {
-                      try {
-                        applyCollection(collectionUndo, true)
-                        setCollectionUndo(null)
-                      } catch (reason) {
-                        setNotice({
-                          kind: 'error',
-                          message: reason instanceof Error ? reason.message : '撤销失败',
-                        })
+            <>
+              <CreationDraftStatus
+                status={draft.status}
+                error={draft.error}
+                onRetry={draft.retry}
+                onClear={clearDraft}
+                disabled={planning || isGenerating || isSubmitting}
+              />
+              <CreationLibraryTools
+                config={currentPreset()}
+                prompt={settings.requirements}
+                disabled={isGenerating || isSubmitting || planning}
+                onApply={(application) => applyCollection(application)}
+                onUndo={
+                  collectionUndo
+                    ? () => {
+                        try {
+                          applyCollection(collectionUndo, true)
+                          setCollectionUndo(null)
+                        } catch (reason) {
+                          setNotice({
+                            kind: 'error',
+                            message: reason instanceof Error ? reason.message : '撤销失败',
+                          })
+                        }
                       }
-                    }
-                  : undefined
-              }
-            />
+                    : undefined
+                }
+              />
+            </>
           }
           mode="commerce"
           task="clothing-set"

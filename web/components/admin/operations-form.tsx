@@ -6,6 +6,15 @@ import { Button } from '@/components/admin/ui/button'
 import type { FormEvent } from 'react'
 import { Save } from 'lucide-react'
 import type { AdminOperations as Operations } from '@/lib/admin'
+import styles from './settings-forms.module.css'
+
+const operationSections = [
+  ['account', '账户与注册'],
+  ['checkin', '每日签到'],
+  ['announcement', '网站公告'],
+  ['limits', '单用户上限'],
+  ['budget', '平台额度'],
+] as const
 export function AdminOperationsForm({
   ops,
   gift,
@@ -38,9 +47,31 @@ export function AdminOperationsForm({
   onSubmit: (event: FormEvent) => void
 }) {
   return (
-    <form className="ops-card ops-form" onSubmit={(event) => void onSubmit(event)}>
-      <FieldSet disabled={busy}>
+    <form
+      className={`ops-card ops-form ${styles.operations}`}
+      onSubmit={(event) => void onSubmit(event)}
+    >
+      <div className={styles.formToolbar}>
+        <nav className={styles.sectionNav} aria-label="运营设置分组">
+          {operationSections.map(([id, title]) => (
+            <a key={id} href={`#operations-${id}`}>
+              {title}
+            </a>
+          ))}
+        </nav>
+        <Button type="submit" disabled={busy}>
+          <Save data-icon="inline-start" />
+          {busy ? '保存中…' : '保存设置'}
+        </Button>
+      </div>
+      <p className={styles.formScope}>
+        所有分组一起保存。先设置注册与奖励，再按平台容量调整使用上限。
+      </p>
+      <FieldSet id="operations-account" className={styles.formSection} disabled={busy}>
         <FieldLegend>账户与注册</FieldLegend>
+        <p className={styles.sectionHelp}>
+          决定谁能注册、注册时获得多少积分，以及前台显示的积分名称。
+        </p>
         <FieldGroup className="ops-form-grid">
           <Field>
             <FieldLabel className="settings-field">
@@ -109,8 +140,11 @@ export function AdminOperationsForm({
           </FieldLabel>
         </Field>
       </FieldSet>
-      <FieldSet disabled={busy}>
+      <FieldSet id="operations-checkin" className={styles.formSection} disabled={busy}>
         <FieldLegend>每日签到</FieldLegend>
+        <p className={styles.sectionHelp}>
+          单次奖励与全平台每日预算分别设置，关闭签到后保留已填写的参数。
+        </p>
         <label className="settings-switch">
           <input
             type="checkbox"
@@ -146,8 +180,9 @@ export function AdminOperationsForm({
           </Field>
         </FieldGroup>
       </FieldSet>
-      <FieldSet disabled={busy}>
+      <FieldSet id="operations-announcement" className={styles.formSection} disabled={busy}>
         <FieldLegend>网站公告</FieldLegend>
+        <p className={styles.sectionHelp}>编辑面向前台用户的消息，勾选“发布公告”并保存后展示。</p>
         <label className="settings-switch">
           <input
             type="checkbox"
@@ -183,8 +218,11 @@ export function AdminOperationsForm({
           </Field>
         </FieldGroup>
       </FieldSet>
-      <FieldSet disabled={busy}>
+      <FieldSet id="operations-limits" className={styles.formSection} disabled={busy}>
         <FieldLegend>单用户使用上限</FieldLegend>
+        <p className={styles.sectionHelp}>
+          限制每个账号的并发与请求频率；全平台共享额度在下一组设置。
+        </p>
         <FieldGroup className="ops-form-grid">
           {(
             [
@@ -210,8 +248,11 @@ export function AdminOperationsForm({
         </FieldGroup>
         <p>提示词优化、图片反推和服装分析共用辅助次数上限，首版不另扣积分。</p>
       </FieldSet>
-      <FieldSet disabled={busy}>
+      <FieldSet id="operations-budget" className={styles.formSection} disabled={busy}>
         <FieldLegend>平台额度与告警</FieldLegend>
+        <p className={styles.sectionHelp}>
+          区分平台请求上限、积分预算和告警阈值，避免将站内积分误认为供应商账单。
+        </p>
         <FieldGroup className="ops-form-grid">
           {(
             [
@@ -288,12 +329,7 @@ export function AdminOperationsForm({
           每日额度按北京时间自然日计算。辅助额度按实际开始的请求计数，失败也占用次数；已创建任务继续完成。这里的积分和次数不代表供应商真实账单。
         </p>
       </FieldSet>
-      <div className="settings-form-actions">
-        <Button disabled={busy}>
-          <Save data-icon="inline-start" />
-          {busy ? '保存中…' : '保存设置'}
-        </Button>
-      </div>
+      <p className={styles.formEnd}>修改完成后，使用上方“保存设置”统一生效。</p>
     </form>
   )
 }

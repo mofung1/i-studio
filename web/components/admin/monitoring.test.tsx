@@ -118,8 +118,12 @@ it('keeps the last snapshot with an explicit stale warning and recovers on refre
   await refresh()
   expect(container.textContent).toContain('上次成功快照')
   expect(container.textContent).toContain('快照时间')
+  expect(container.textContent).toContain('状态待确认')
+  expect(container.textContent).not.toContain('未见异常')
+  expect(container.textContent).not.toContain('未记录失败')
   await refresh()
   expect(container.querySelector('[role="alert"]')).toBeNull()
+  expect(container.textContent).not.toContain('状态待确认')
 })
 
 it('polls only while visible and resumes when returning to the page', async () => {

@@ -2,6 +2,7 @@
 import { useTransientMessage } from '@/hooks/use-transient-message'
 
 import { useEffect, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { useAdminAccount } from '@/components/account-provider'
 import { adminRequest, adminFetch } from '@/lib/admin'
 import { getAdminAccessToken } from '@/lib/api'
@@ -23,6 +24,10 @@ import { SubmissionHistory } from '@/components/inspiration-submission-history'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Field, FieldGroup, FieldLabel } from './ui/field'
+import { AdminPageHeader } from './page-header'
+import { AdminDataTable, type AdminColumn } from './data-table'
+import { AdminPagination } from './pagination'
+import { AdminStatusBadge } from './status-badge'
 
 async function loadAdminCover(path: string, signal: AbortSignal) {
   if (!path.startsWith('/v1/admin/inspiration-submissions/')) throw new Error('封面路径无效')
@@ -262,6 +267,10 @@ export function AdminInspirationSubmissions() {
 function AdminSubmissionContent({ creditName }: { creditName: string }) {
   const [data, setData] = useState<SubmissionPage | null>(null)
   const [settings, setSettings] = useState<SubmissionSettings | null>(null)
+  const savedSettings = useRef<SubmissionSettings | null>(null)
+  const rulesDirty = useRef(false)
+  rulesDirty.current =
+    settings !== null && JSON.stringify(settings) !== JSON.stringify(savedSettings.current)
   const [categories, setCategories] = useState<Array<{ id: string; category: string }>>([])
   const [status, setStatus] = useState('pending')
   const [page, setPage] = useState(1)
@@ -309,7 +318,10 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
       .then(([items, config, classification]) => {
         if (!controller.signal.aborted && token === getAdminAccessToken()) {
           setData(items)
-          setSettings(config.settings)
+          if (!rulesDirty.current) {
+            savedSettings.current = config.settings
+            setSettings(config.settings)
+          }
           setCategories(classification.categories)
         }
       })
@@ -363,6 +375,7 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
         settings,
       )
       if (alive.current && token === getAdminAccessToken()) {
+        savedSettings.current = result.settings
         setSettings(result.settings)
         setNotice('投稿设置已保存')
       }
@@ -373,49 +386,131 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
       if (alive.current) setBusy(false)
     }
   }
-  return (
-    <div className="submission-admin">
-      {settings && (
-        <form
-          className="ops-card submission-settings"
-          aria-label="投稿设置"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void saveSettings()
-          }}
+  const columns: AdminColumn<InspirationSubmission>[] = [
+    {
+      id: 'title',
+      header: '提示词',
+      size: 260,
+      pin: 'left',
+      cell: (item) => (
+        <div className="admin-cell-heading">
+          <strong>{item.title}</strong>
+          <span>
+            {item.category} · 版本 {item.version}
+          </span>
+        </div>
+      ),
+    },
+    { id: 'username', header: '投稿用户', size: 150, cell: (item) => item.username ?? '—' },
+    {
+      id: 'status',
+      header: '审核状态',
+      size: 160,
+      cell: (item) => (
+        <AdminStatusBadge
+          tone={
+            item.status === 'pending'
+              ? 'warning'
+              : item.status === 'approved' && item.published
+                ? 'success'
+                : 'neutral'
+          }
         >
-          <FieldGroup className="submission-settings-fields">
-            <Field className="submission-setting-toggle">
-              <label className="submission-check">
-                <input
-                  type="checkbox"
-                  checked={settings.enabled}
+          {submissionStatus(item)}
+        </AdminStatusBadge>
+      ),
+    },
+    {
+      id: 'reward',
+      header: '已发奖励',
+      size: 140,
+      align: 'right',
+      cell: (item) => (
+        <span className="admin-cell-number">
+          {formatCredits(item.rewardMinor)} {creditName}
+        </span>
+      ),
+    },
+    {
+      id: 'createdAt',
+      header: '提交时间',
+      size: 180,
+      cell: (item) => formatLibraryDate(item.createdAt),
+    },
+    {
+      id: 'actions',
+      header: '操作',
+      size: 110,
+      pin: 'right',
+      cell: (item) => (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy}
+          onClick={() => void inspect(item.id)}
+        >
+          {item.status === 'pending' ? '审核' : '查看记录'}
+        </Button>
+      ),
+    },
+  ]
+  return (
+    <main className="submission-admin admin-list-page">
+      <AdminPageHeader title="用户投稿审核" />
+      {settings && (
+        <details className="submission-rules">
+          <summary>
+            <strong>投稿开放规则</strong>
+            <span>
+              {savedSettings.current?.enabled ? '已开放投稿' : '已暂停投稿'} · 每人每天{' '}
+              {savedSettings.current?.dailyLimit} 次{rulesDirty.current && ' · 有未保存更改'}
+            </span>
+            <ChevronDown size={16} aria-hidden="true" />
+          </summary>
+          <form
+            className="ops-card submission-settings"
+            aria-label="投稿设置"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void saveSettings()
+            }}
+          >
+            <FieldGroup className="submission-settings-fields">
+              <Field className="submission-setting-toggle">
+                <label className="submission-check">
+                  <input
+                    type="checkbox"
+                    checked={settings.enabled}
+                    disabled={busy}
+                    onChange={(event) =>
+                      setSettings({ ...settings, enabled: event.target.checked })
+                    }
+                  />
+                  开放用户投稿
+                </label>
+              </Field>
+              <Field orientation="horizontal" className="submission-setting-limit">
+                <FieldLabel htmlFor="submission-daily-limit">每人每日提交上限</FieldLabel>
+                <Input
+                  id="submission-daily-limit"
+                  type="number"
+                  required
+                  min={1}
+                  max={100}
+                  value={settings.dailyLimit}
                   disabled={busy}
-                  onChange={(event) => setSettings({ ...settings, enabled: event.target.checked })}
+                  onChange={(event) =>
+                    setSettings({ ...settings, dailyLimit: Number(event.target.value) })
+                  }
                 />
-                开放用户投稿
-              </label>
-            </Field>
-            <Field orientation="horizontal" className="submission-setting-limit">
-              <FieldLabel htmlFor="submission-daily-limit">每人每日提交上限</FieldLabel>
-              <Input
-                id="submission-daily-limit"
-                type="number"
-                required
-                min={1}
-                max={100}
-                value={settings.dailyLimit}
-                disabled={busy}
-                onChange={(event) =>
-                  setSettings({ ...settings, dailyLimit: Number(event.target.value) })
-                }
-              />
-            </Field>
-          </FieldGroup>
-          <Button type="submit" disabled={busy}>
-            保存投稿设置
-          </Button>
-        </form>
+              </Field>
+            </FieldGroup>
+            <Button type="submit" disabled={busy}>
+              保存投稿设置
+            </Button>
+          </form>
+        </details>
       )}
       <form
         className="submission-toolbar"
@@ -463,79 +558,30 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
           {notice}
         </p>
       )}
-      <section className="ops-card" aria-label="用户投稿列表" aria-busy={loading}>
-        <div className="ops-table-wrap">
-          <table className="ops-table">
-            <thead>
-              <tr>
-                <th>提示词</th>
-                <th>投稿用户</th>
-                <th>状态</th>
-                <th>已发奖励</th>
-                <th>提交时间</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.submissions.map((item) => (
-                <tr key={item.id}>
-                  <td>
-                    <strong>{item.title}</strong>
-                    <small className="submission-meta">
-                      {item.category} · 版本 {item.version}
-                    </small>
-                  </td>
-                  <td>{item.username}</td>
-                  <td>{submissionStatus(item)}</td>
-                  <td>
-                    {formatCredits(item.rewardMinor)} {creditName}
-                  </td>
-                  <td>{formatLibraryDate(item.createdAt)}</td>
-                  <td>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={busy}
-                      onClick={() => void inspect(item.id)}
-                    >
-                      {item.status === 'pending' ? '审核' : '查看记录'}
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {!loading && !data?.submissions.length && (
-                <tr>
-                  <td colSpan={6}>没有匹配的投稿</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {loading && <p role="status">正在加载投稿…</p>}
-      </section>
+      <AdminDataTable
+        title="用户投稿列表"
+        columns={columns}
+        data={data?.submissions ?? []}
+        getRowId={(item) => item.id}
+        loading={loading}
+        emptyTitle={error ? '投稿读取失败' : '没有匹配的投稿'}
+        emptyDescription={
+          error
+            ? '请刷新后重试，当前筛选条件会保留。'
+            : status === 'pending'
+              ? '当前没有待审核投稿，可切换状态查看已有记录。'
+              : '尝试切换审核状态或搜索其他关键词。'
+        }
+        scrollKey={`${data?.page}:${status}:${query}`}
+      />
       {data && (
-        <nav className="submission-pagination" aria-label="审核列表分页">
-          <span>共 {data.total} 条</span>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={page <= 1 || loading}
-            onClick={() => setPage((value) => value - 1)}
-          >
-            上一页
-          </Button>
-          <span>
-            {data.page} / {data.totalPages}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={page >= data.totalPages || loading}
-            onClick={() => setPage((value) => value + 1)}
-          >
-            下一页
-          </Button>
-        </nav>
+        <AdminPagination
+          {...data}
+          pageSize={20}
+          label="投稿"
+          loading={loading || busy}
+          onPageChange={setPage}
+        />
       )}
       {detail && (
         <ReviewPanel
@@ -554,6 +600,6 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
           onMore={() => void inspect(detail.submission.id, true)}
         />
       )}
-    </div>
+    </main>
   )
 }

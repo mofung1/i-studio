@@ -1,6 +1,7 @@
 'use client'
 import './admin.css'
 import './data-table.css'
+import styles from '@/components/admin/admin-workspace.module.css'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
@@ -58,7 +59,7 @@ function AdminWorkspace({ children }: { children: ReactNode }) {
       </main>
     )
   return (
-    <OverlayRoot className="admin-shell">
+    <OverlayRoot className={`admin-shell ${styles.shell}`}>
       <a className="skip-link" href="#admin-main">
         跳至主要内容
       </a>

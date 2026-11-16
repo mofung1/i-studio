@@ -378,8 +378,9 @@ export function AdminDashboard({
           <>
             {view === 'overview' && (
               <>
-                <AdminMonitoring unit={unit} />
-                <AdminOverview overview={overview} unit={unit} />
+                <AdminOverview overview={overview} unit={unit}>
+                  <AdminMonitoring unit={unit} />
+                </AdminOverview>
               </>
             )}
             {view === 'models' && (

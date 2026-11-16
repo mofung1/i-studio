@@ -10,11 +10,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from './ui/dropdown-menu'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 import { Skeleton } from './ui/skeleton'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from './ui/empty'
 import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from './ui/empty'
+import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -37,9 +47,10 @@ import {
   ArrowUp,
   ArrowUpDown,
   Columns3,
-  ListFilter,
+  ChevronLeft,
+  ChevronRight,
+  MoveHorizontal,
   LoaderCircle,
-  Rows3,
   Table2,
 } from 'lucide-react'
 
@@ -77,6 +88,7 @@ export function AdminDataTable<T>({
   onSortingChange,
   emptyTitle = '暂无记录',
   emptyDescription = '当前没有可显示的内容。',
+  emptyAction,
   scrollKey,
 }: {
   title: string
@@ -86,10 +98,18 @@ export function AdminDataTable<T>({
   loading?: boolean
   emptyTitle?: string
   emptyDescription?: string
+  emptyAction?: ReactNode
   scrollKey?: string | number
 } & AdminSortProps) {
   const titleId = useId()
+  const scrollHelpId = useId()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [viewport, setViewport] = useState({
+    overflow: false,
+    narrow: false,
+    atStart: true,
+    atEnd: true,
+  })
   const [density, setDensity] = useState<'comfortable' | 'compact'>('compact')
   const [visibility, setVisibility] = useState<VisibilityState>({})
   const preferenceKey = `istudio-admin-table:${title}`
@@ -164,6 +184,46 @@ export function AdminDataTable<T>({
   }, [preferenceKey, table])
   const columnMap = new Map(columns.map((column) => [column.id, column]))
   const visible = table.getVisibleLeafColumns()
+  const totalWidth = table.getTotalSize()
+  const activeSort = sorting[0]
+  const sortLabel = activeSort ? columnMap.get(activeSort.id)?.header : undefined
+  const measureViewport = useCallback(() => {
+    const element = scrollRef.current
+    if (!element || !element.clientWidth) return
+    const next = {
+      overflow: element.scrollWidth > element.clientWidth + 1,
+      narrow: element.clientWidth < 640,
+      atStart: element.scrollLeft <= 1,
+      atEnd: element.scrollLeft + element.clientWidth >= element.scrollWidth - 1,
+    }
+    setViewport((previous) =>
+      Object.keys(next).every(
+        (key) => previous[key as keyof typeof next] === next[key as keyof typeof next],
+      )
+        ? previous
+        : next,
+    )
+  }, [])
+  useEffect(() => {
+    measureViewport()
+    const element = scrollRef.current
+    if (!element) return
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measureViewport)
+    observer?.observe(element)
+    const content = element.querySelector('table')
+    if (content) observer?.observe(content)
+    window.addEventListener('resize', measureViewport)
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('resize', measureViewport)
+    }
+  }, [measureViewport, totalWidth, data.length])
+  function scrollColumns(direction: -1 | 1) {
+    const element = scrollRef.current
+    if (!element) return
+    element.scrollBy({ left: direction * Math.max(160, element.clientWidth * 0.75) })
+  }
   return (
     <section
       className="admin-data-table"
@@ -172,59 +232,70 @@ export function AdminDataTable<T>({
       aria-busy={loading}
     >
       <div className="admin-data-toolbar">
-        <div className="admin-data-title">
-          <Table2 size={17} aria-hidden="true" />
-          <h2 id={titleId}>{title}</h2>
-          <span role={loading ? 'status' : undefined}>
-            {loading ? (
-              <>
-                <LoaderCircle size={13} className="settings-spinner" aria-hidden="true" />
-                正在读取
-              </>
-            ) : (
-              `本页 ${data.length} 条`
-            )}
-          </span>
+        <div className="admin-data-heading">
+          <div className="admin-data-title">
+            <Table2 size={17} aria-hidden="true" />
+            <h2 id={titleId}>{title}</h2>
+            <span role={loading ? 'status' : undefined}>
+              {loading ? (
+                <>
+                  <LoaderCircle size={13} className="settings-spinner" aria-hidden="true" />
+                  {data.length ? '正在更新' : '正在读取'}
+                </>
+              ) : (
+                `本页 ${data.length} 条`
+              )}
+            </span>
+          </div>
+          {sortLabel && (
+            <p className="admin-data-sort-summary">
+              按{sortLabel}
+              {activeSort?.desc ? '降序' : '升序'}排列
+            </p>
+          )}
         </div>
         <div className="admin-data-tools">
-          <div className="admin-data-density" role="group" aria-label={`${title}行密度`}>
-            <button
-              type="button"
-              aria-label="舒适行距"
-              title="舒适行距"
-              aria-pressed={density === 'comfortable'}
-              onClick={() => {
-                setDensity('comfortable')
-                remember('comfortable', visibility)
-              }}
+          {sortLabel && onSortingChange && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={loading}
+              onClick={() => onSortingChange?.([])}
             >
-              <Rows3 size={15} />
-            </button>
-            <button
-              type="button"
-              aria-label="紧凑行距"
-              title="紧凑行距"
-              aria-pressed={density === 'compact'}
-              onClick={() => {
-                setDensity('compact')
-                remember('compact', visibility)
-              }}
-            >
-              <ListFilter size={15} />
-            </button>
-          </div>
+              恢复默认排序
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" aria-label={`${title}列设置`}>
+              <Button variant="outline" size="sm" aria-label={`${title}显示设置`}>
                 <Columns3 data-icon="inline-start" />
-                列设置
-                <span className="admin-column-count">
-                  {visible.length}/{columns.length}
-                </span>
+                显示设置
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="admin-column-menu">
-              <DropdownMenuLabel>显示列</DropdownMenuLabel>
+              <DropdownMenuLabel>行距</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={density}
+                onValueChange={(value) => {
+                  const next = value === 'comfortable' ? 'comfortable' : 'compact'
+                  setDensity(next)
+                  remember(next, visibility)
+                }}
+              >
+                <DropdownMenuRadioItem value="comfortable" aria-label="舒适行距">
+                  舒适
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="compact" aria-label="紧凑行距">
+                  紧凑
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>
+                显示列{' '}
+                <span className="admin-column-count">
+                  {visible.length}/{columns.length}
+                </span>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 {table.getAllLeafColumns().map((column) => (
@@ -238,7 +309,7 @@ export function AdminDataTable<T>({
                   >
                     {columnMap.get(column.id)?.header}
                     {!column.getCanHide() && (
-                      <small className="ml-auto text-muted-foreground">固定</small>
+                      <small className="ml-auto text-muted-foreground">必显</small>
                     )}
                   </DropdownMenuCheckboxItem>
                 ))}
@@ -258,14 +329,45 @@ export function AdminDataTable<T>({
           </DropdownMenu>
         </div>
       </div>
+      {viewport.overflow && data.length > 0 && (
+        <div className="admin-data-scroll-help" id={scrollHelpId}>
+          <span>
+            <MoveHorizontal size={14} aria-hidden="true" />
+            左右滑动查看全部列
+          </span>
+          <div role="group" aria-label={`${title}横向浏览`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`向左滚动${title}`}
+              disabled={viewport.atStart}
+              onClick={() => scrollColumns(-1)}
+            >
+              <ChevronLeft size={15} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`向右滚动${title}`}
+              disabled={viewport.atEnd}
+              onClick={() => scrollColumns(1)}
+            >
+              <ChevronRight size={15} />
+            </Button>
+          </div>
+        </div>
+      )}
       <div
         className="admin-data-scroll"
         ref={scrollRef}
         tabIndex={0}
         role="region"
         aria-label={`${title}内容`}
+        aria-describedby={viewport.overflow && data.length > 0 ? scrollHelpId : undefined}
+        data-empty={!data.length && !loading ? 'true' : undefined}
+        onScroll={measureViewport}
       >
-        <Table aria-label={title} style={{ minWidth: table.getTotalSize() }}>
+        <Table aria-label={title} style={{ minWidth: totalWidth }}>
           <colgroup>
             {visible.map((column) => (
               <col key={column.id} style={{ width: column.getSize() }} />
@@ -277,7 +379,7 @@ export function AdminDataTable<T>({
                 {group.headers.map((header) => {
                   const column = header.column
                   const order = column.getIsSorted()
-                  const pinned = column.getIsPinned()
+                  const pinned = !viewport.narrow && column.getIsPinned()
                   return (
                     <TableHead
                       key={header.id}
@@ -285,7 +387,7 @@ export function AdminDataTable<T>({
                       scope="col"
                       data-align={columnMap.get(column.id)?.align}
                       data-pin={pinned || undefined}
-                      style={pinnedStyle(column)}
+                      style={pinned ? pinnedStyle(column) : undefined}
                       aria-sort={
                         order === 'asc'
                           ? 'ascending'
@@ -300,6 +402,7 @@ export function AdminDataTable<T>({
                         <button
                           type="button"
                           disabled={loading}
+                          title={`点击${column.getNextSortingOrder() === 'asc' ? '按升序排列' : column.getNextSortingOrder() === 'desc' ? '按降序排列' : '恢复默认排序'}`}
                           onClick={column.getToggleSortingHandler()}
                         >
                           <span className="admin-data-header-label">
@@ -326,13 +429,13 @@ export function AdminDataTable<T>({
             {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => {
-                  const pinned = cell.column.getIsPinned()
+                  const pinned = !viewport.narrow && cell.column.getIsPinned()
                   return (
                     <TableCell
                       key={cell.id}
                       data-align={columnMap.get(cell.column.id)?.align}
                       data-pin={pinned || undefined}
-                      style={pinnedStyle(cell.column)}
+                      style={pinned ? pinnedStyle(cell.column) : undefined}
                     >
                       {columnMap.get(cell.column.id)?.cell(row.original)}
                     </TableCell>
@@ -366,6 +469,7 @@ export function AdminDataTable<T>({
               <EmptyTitle>{emptyTitle}</EmptyTitle>
               <EmptyDescription>{emptyDescription}</EmptyDescription>
             </EmptyHeader>
+            {emptyAction && <EmptyContent>{emptyAction}</EmptyContent>}
           </Empty>
         )}
       </div>

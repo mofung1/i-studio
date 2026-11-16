@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
 import { taskMeta } from '@/components/workbench/shared'
 import type { CommerceTaskType } from '@/lib/contracts'
+import { studioToolUrl } from '@/lib/studio-navigation'
 import { CommerceComparison } from './comparison'
 import { ExampleFrame } from './example-frame'
 import styles from './commerce.module.css'
@@ -78,14 +79,21 @@ function ExampleFlow({ kind }: { kind: 'recreate' | 'clothing' | 'detail' }) {
   )
 }
 
-export default function CommercePage() {
+export default async function CommercePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ projectId?: string | string[] }>
+}) {
+  const { projectId: rawProjectId } = await searchParams
+  const projectId = typeof rawProjectId === 'string' ? rawProjectId.trim() : undefined
+  const project = projectId ? new URLSearchParams({ projectId }) : undefined
   return (
-    <StudioShell section="commerce" title="电商工具">
+    <StudioShell section="commerce" title="电商工具" projectId={projectId}>
       <main className={`commerce-page ${styles.page}`} aria-label="电商工具">
         <h1 className="sr-only">电商工具</h1>
         <div className={styles.grid}>
           {examples.map(({ id, layout, description, image }) => {
-            const href = `/studio?mode=commerce&task=${id}`
+            const href = studioToolUrl('commerce', id, project)
             const title = taskMeta[id].title
             return (
               <article className={`${styles.card} ${styles[layout]}`} key={id}>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTransientMessage } from '@/hooks/use-transient-message'
 import {
   ArrowUpRight,
@@ -64,6 +64,27 @@ export function PromptReverseSettingsPanel({
   const [notice, setNotice] = useTransientMessage()
   const [saving, setSaving] = useState(false)
   const [loadAttempt, setLoadAttempt] = useState(0)
+  const [checkingService, setCheckingService] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const readController = useRef<AbortController | null>(null)
+  // Compare effective service configuration, not the parent array identity.
+  const endpointRevision = JSON.stringify(
+    endpoints
+      .filter((item) => item.purpose === 'prompt')
+      .map((item) => [
+        item.id,
+        item.updatedAt,
+        item.name,
+        item.model,
+        item.protocol,
+        item.baseUrl,
+        item.enabled,
+        item.isDefault,
+        !!item.capabilities.vision,
+        item.apiKeyConfigured,
+      ])
+      .sort((left, right) => String(left[0]).localeCompare(String(right[0]))),
+  )
   const choices = endpoints.filter(
     (item) => item.purpose === 'prompt' && item.enabled && item.capabilities.vision,
   )
@@ -72,7 +93,9 @@ export function PromptReverseSettingsPanel({
     ? endpoints.find((item) => item.id === draft.endpointId && item.purpose === 'prompt')
     : endpoints.find((item) => item.purpose === 'prompt' && item.isDefault && item.enabled)
   const serviceReady = !!selectedService?.enabled && !!selectedService.capabilities.vision
+  const serviceStatusPending = checkingService || !!loadError
   const configurationReason =
+    !serviceStatusPending &&
     configuration &&
     !configuration.available &&
     draft?.endpointId === configuration.settings.endpointId
@@ -83,8 +106,8 @@ export function PromptReverseSettingsPanel({
     (selectedService && !selectedService.enabled
       ? '所选服务已停用，请选择其他识图服务。'
       : selectedService && !selectedService.capabilities.vision
-        ? '此服务尚未开启图片识别，可在 AI 服务中配置。'
-        : '还没有可用的识图服务，请先添加支持图片识别的 Prompt 服务。')
+        ? '此服务尚未开启图片识别，可在「提示词与识图」中配置。'
+        : '还没有可用的识图服务，请先添加支持图片识别的提示词服务。')
 
   useEffect(() => {
     onDirtyChange?.(dirty)
@@ -96,7 +119,9 @@ export function PromptReverseSettingsPanel({
   }, [saving, onSavingChange])
   useEffect(() => {
     const controller = new AbortController()
-    setError('')
+    readController.current = controller
+    setCheckingService(true)
+    setLoadError('')
     adminRequest<ReverseConfiguration>(
       'prompt-reverse-settings',
       'GET',
@@ -106,12 +131,12 @@ export function PromptReverseSettingsPanel({
       .then((data) => {
         if (controller.signal.aborted) return
         setConfiguration(data)
-        setDraft(toDraft(data.settings))
-        setOriginal(toDraft(data.settings))
+        setDraft((previous) => previous ?? toDraft(data.settings))
+        setOriginal((previous) => previous ?? toDraft(data.settings))
       })
       .catch((reason) => {
         if (!controller.signal.aborted)
-          setError(
+          setLoadError(
             reason instanceof TypeError
               ? '无法连接配置服务，请检查网络后重新读取'
               : reason instanceof Error
@@ -119,8 +144,11 @@ export function PromptReverseSettingsPanel({
                 : '配置读取失败',
           )
       })
+      .finally(() => {
+        if (!controller.signal.aborted) setCheckingService(false)
+      })
     return () => controller.abort()
-  }, [loadAttempt])
+  }, [loadAttempt, endpointRevision])
 
   function update(patch: Partial<SettingsDraft>) {
     setDraft((previous) => (previous ? { ...previous, ...patch } : previous))
@@ -145,6 +173,9 @@ export function PromptReverseSettingsPanel({
       setError('分析超时需为 15–600 秒，保留时间需为 1–168 小时。')
       return
     }
+    readController.current?.abort()
+    setCheckingService(false)
+    setLoadError('')
     setSaving(true)
     setError('')
     setNotice('')
@@ -154,6 +185,10 @@ export function PromptReverseSettingsPanel({
         'PUT',
         settings,
       )
+      // A service refresh started before this save must not replace its result.
+      readController.current?.abort()
+      setCheckingService(false)
+      setLoadError('')
       setConfiguration(data)
       setDraft(toDraft(data.settings))
       setOriginal(toDraft(data.settings))
@@ -172,41 +207,43 @@ export function PromptReverseSettingsPanel({
   }
 
   return (
-    <section
-      id="reverse-panel"
-      role="tabpanel"
-      aria-labelledby="reverse-tab"
-      className="reverse-settings"
-    >
+    <section id="reverse-panel" aria-label="图片反推配置" className="reverse-settings">
       <header className="reverse-settings-heading">
         <div>
           <h2>图片反推</h2>
-          <p>从参考图提取双语提示词，识图接口与密钥在 AI 服务中统一管理。</p>
+          <p>从参考图提取双语提示词，识图接口与密钥在「提示词与识图」中统一管理。</p>
         </div>
         {draft && (
           <AdminStatusBadge
             tone={
-              serviceReady && !configurationReason && draft.endpointId === original?.endpointId
+              !serviceStatusPending &&
+              serviceReady &&
+              !configurationReason &&
+              draft.endpointId === original?.endpointId
                 ? 'success'
                 : 'warning'
             }
           >
-            {serviceReady && !configurationReason
-              ? draft.endpointId !== original?.endpointId
-                ? '服务待保存'
-                : '服务已配置'
-              : '服务待配置'}
+            {serviceStatusPending
+              ? checkingService
+                ? '正在更新服务状态'
+                : '服务状态待确认'
+              : serviceReady && !configurationReason
+                ? draft.endpointId !== original?.endpointId
+                  ? '服务待保存'
+                  : '服务已配置'
+                : '服务待配置'}
           </AdminStatusBadge>
         )}
       </header>
       {!draft ? (
         <div className="reverse-settings-load" aria-live="polite">
-          {error ? (
+          {loadError ? (
             <>
               <CircleAlert size={22} aria-hidden="true" />
               <strong>暂时无法读取配置</strong>
               <p className="settings-error" role="alert">
-                {error}
+                {loadError}
               </p>
               <button
                 type="button"
@@ -251,7 +288,7 @@ export function PromptReverseSettingsPanel({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">跟随默认 Prompt 服务</SelectItem>
+                  <SelectItem value="default">跟随默认提示词服务</SelectItem>
                   {choices.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.name} · {item.model}
@@ -264,7 +301,28 @@ export function PromptReverseSettingsPanel({
                   )}
                 </SelectContent>
               </Select>
-              {serviceReady && !configurationReason ? (
+              {serviceStatusPending ? (
+                <div className="reverse-service-unavailable" role={loadError ? 'alert' : 'status'}>
+                  {checkingService ? (
+                    <>
+                      <LoaderCircle className="settings-spinner" size={18} aria-hidden="true" />
+                      <p>正在更新服务状态，当前修改会保留。</p>
+                    </>
+                  ) : (
+                    <div>
+                      <p>{loadError}；当前修改已保留。</p>
+                      <button
+                        type="button"
+                        className="reverse-settings-link"
+                        disabled={saving}
+                        onClick={() => setLoadAttempt((value) => value + 1)}
+                      >
+                        重新读取服务状态
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : serviceReady && !configurationReason ? (
                 <div className="reverse-service-summary">
                   <span className="reverse-service-mark">
                     <ScanText size={20} aria-hidden="true" />
@@ -290,8 +348,8 @@ export function PromptReverseSettingsPanel({
               <div className="reverse-service-help" id="reverse-service-help">
                 <span>
                   {draft.endpointId
-                    ? '固定使用所选服务，不受默认 Prompt 服务切换影响。'
-                    : '默认 Prompt 服务也必须支持识图；更换默认服务后这里会同步跟随。'}
+                    ? '固定使用所选服务，不受默认提示词服务切换影响。'
+                    : '默认提示词服务也必须支持识图；更换默认服务后这里会同步跟随。'}
                   列表仅显示已启用并勾选「支持图片识别」的服务。
                 </span>
                 <button
@@ -300,7 +358,7 @@ export function PromptReverseSettingsPanel({
                   disabled={saving}
                   onClick={onOpenServices}
                 >
-                  管理 AI 服务
+                  管理提示词与识图服务
                   <ArrowUpRight size={14} aria-hidden="true" />
                 </button>
               </div>
