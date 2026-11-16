@@ -1,0 +1,142 @@
+/* Map the migrated feature styles onto the standalone application's tokens. */
+:root {
+  color-scheme: light;
+  --surface: var(--card);
+  --surface-2: var(--secondary);
+  --surface-subtle: color-mix(in oklab, var(--background), var(--muted) 50%);
+  --foreground-2: var(--foreground);
+  --foreground-3: var(--muted-foreground);
+  --control-bg: var(--secondary);
+  --line-hover: var(--ring);
+  --line-strong: var(--ring);
+  --border-soft: var(--border);
+  --primary-hover: color-mix(in oklab, var(--primary), var(--background) 15%);
+  --danger: var(--destructive);
+  --danger-line: color-mix(in oklab, var(--destructive), var(--border) 70%);
+  --danger-soft: color-mix(in oklab, var(--destructive), var(--card) 90%);
+  --focus-soft: color-mix(in oklab, var(--ring), transparent 75%);
+  --shadow-sm: 0 1px 2px oklch(0.13 0.04 260 / 8%);
+  --shadow-md: 0 2px 8px oklch(0.13 0.04 260 / 12%);
+  --font-geist-mono: ui-monospace, monospace;
+}
+:root.dark {
+  color-scheme: dark;
+}
+body {
+  font-family: Inter, system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.admin-app .admin-frame {
+  min-height: 0;
+  height: 100%;
+}
+.admin-inset {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.admin-topbar {
+  flex: 0 0 auto;
+  height: 60px;
+  border-bottom: 1px solid var(--border);
+}
+.admin-topbar [data-slot='button'] {
+  flex-shrink: 0;
+}
+.admin-app .admin-content {
+  flex: 1 1 auto;
+  background: var(--surface-subtle);
+}
+.admin-app .admin-content > :is(main, section, .ops-page) {
+  min-width: 0;
+}
+:is(.admin-app, [data-mobile='true'][data-sidebar='sidebar'])
+  [data-sidebar='menu-button'][data-active='true'] {
+  background: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
+  font-weight: 600;
+}
+[data-mobile='true'][data-sidebar='sidebar'] [data-slot='sidebar-header'] {
+  padding-right: 48px;
+}
+[data-mobile='true'][data-sidebar='sidebar'] [data-sidebar='menu-button'] {
+  min-height: 40px;
+}
+.admin-app .admin-page-heading,
+.admin-app .admin-page-controls {
+  min-width: 0;
+}
+.admin-app :is(.admin-page-tools, .admin-page-actions) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.admin-app .admin-page-heading > p {
+  max-width: 72ch;
+}
+@media (max-width: 767px) {
+  .admin-topbar {
+    height: 56px;
+  }
+  .admin-app .admin-page-tools {
+    flex: 1 1 100%;
+  }
+  .admin-app .admin-page-tools > .ops-search {
+    width: 100%;
+  }
+}
+.admin-center {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.dialog-actions[data-dialog-actions] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+.dialog-actions-note {
+  margin-inline-end: auto;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.dialog-actions-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+.info-dialog-backdrop .confirm-dialog.info-dialog-with-footer,
+.admin-app .admin-editor-dialog.admin-editor-with-footer {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.info-dialog-with-footer > :is(.confirm-dialog-head, [data-dialog-actions]),
+.admin-editor-with-footer > :is([data-slot='dialog-header'], [data-slot='dialog-footer']) {
+  flex: 0 0 auto;
+}
+.info-dialog-with-footer > [data-dialog-actions],
+.admin-editor-with-footer > [data-slot='dialog-footer'] {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.info-dialog-with-footer > .dialog-scroll-body,
+.admin-editor-with-footer > .dialog-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  margin-inline: -4px;
+}

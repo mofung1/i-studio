@@ -5,6 +5,54 @@ import (
 	"net/http"
 )
 
+// Task results are grouped by the task's submission day. Credit consumption is
+// grouped by the settlement day and uses the net amount after refunds.
+const adminOverviewSQL = `
+WITH report_day AS (
+  SELECT (now() AT TIME ZONE 'Asia/Shanghai')::date AS today
+), task_days AS (
+  SELECT (created_at AT TIME ZONE 'Asia/Shanghai')::date AS day,
+         count(*) AS submitted,
+         count(*) FILTER (WHERE status = 'succeeded') AS completed,
+         count(*) FILTER (WHERE status = 'failed') AS failed
+  FROM generation_tasks CROSS JOIN report_day
+  WHERE created_at >= ((today - 6)::timestamp AT TIME ZONE 'Asia/Shanghai')
+    AND created_at < ((today + 1)::timestamp AT TIME ZONE 'Asia/Shanghai')
+  GROUP BY 1
+), credit_days AS (
+  SELECT (created_at AT TIME ZONE 'Asia/Shanghai')::date AS day,
+         sum(-available_delta - held_delta) AS charged
+  FROM credit_ledger CROSS JOIN report_day
+  WHERE kind = 'settlement'
+    AND created_at >= ((today - 6)::timestamp AT TIME ZONE 'Asia/Shanghai')
+    AND created_at < ((today + 1)::timestamp AT TIME ZONE 'Asia/Shanghai')
+  GROUP BY 1
+), calendar AS (
+  SELECT today - days_ago AS day FROM report_day CROSS JOIN generate_series(0, 6) AS days_ago
+), trend AS (
+  SELECT jsonb_agg(jsonb_build_object(
+    'date', to_char(calendar.day, 'YYYY-MM-DD'),
+    'submitted', COALESCE(tasks.submitted, 0),
+    'completed', COALESCE(tasks.completed, 0),
+    'failed', COALESCE(tasks.failed, 0),
+    'charged', COALESCE(credits.charged, 0)
+  ) ORDER BY calendar.day) AS days
+  FROM calendar
+  LEFT JOIN task_days AS tasks USING (day)
+  LEFT JOIN credit_days AS credits USING (day)
+)
+SELECT (SELECT count(*) FROM users),
+       (SELECT count(*) FROM generation_tasks WHERE status IN ('queued', 'processing', 'waiting_provider')),
+       (SELECT count(*) FROM generation_charges WHERE created_at >= ` + platformDaySQL + `),
+       COALESCE(tasks.failed, 0),
+       COALESCE((SELECT sum(available) FROM credit_accounts), 0),
+       COALESCE((SELECT sum(held) FROM credit_accounts), 0),
+       COALESCE(credits.charged, 0),
+       trend.days
+FROM report_day CROSS JOIN trend
+LEFT JOIN task_days AS tasks ON tasks.day = report_day.today
+LEFT JOIN credit_days AS credits ON credits.day = report_day.today`
+
 func (s *Service) adminOverview(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
@@ -12,7 +60,8 @@ func (s *Service) adminOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	var users, active, today, failed int64
 	var available, held, charged int64
-	err := s.db.QueryRow(`SELECT (SELECT count(*) FROM users),(SELECT count(*) FROM generation_tasks WHERE status IN ('queued','processing','waiting_provider')),(SELECT count(*) FROM generation_charges WHERE created_at>=`+platformDaySQL+`),(SELECT count(*) FROM generation_tasks WHERE created_at>=`+platformDaySQL+` AND status='failed'),COALESCE((SELECT sum(available) FROM credit_accounts),0),COALESCE((SELECT sum(held) FROM credit_accounts),0),COALESCE((SELECT sum(-available_delta-held_delta) FROM credit_ledger WHERE kind='settlement' AND created_at>=`+platformDaySQL+`),0)`).Scan(&users, &active, &today, &failed, &available, &held, &charged)
+	var taskTrend json.RawMessage
+	err := s.db.QueryRowContext(r.Context(), adminOverviewSQL).Scan(&users, &active, &today, &failed, &available, &held, &charged, &taskTrend)
 	if err != nil {
 		s.error(w, 500, "OVERVIEW_UNAVAILABLE", "概览读取失败")
 		return
@@ -23,12 +72,30 @@ func (s *Service) adminOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var auxToday, auxActive, gifts, storageBytes, storageFull int64
-	err = s.db.QueryRow(`SELECT (SELECT count(*) FROM auxiliary_runs WHERE started_at>=`+platformDaySQL+`),(SELECT count(*) FROM auxiliary_runs WHERE finished_at IS NULL AND lease_until>now()),COALESCE((SELECT sum(available_delta) FROM credit_ledger WHERE kind='signup' AND created_at>=`+platformDaySQL+`),0),(SELECT COALESCE(sum(size_bytes),0) FROM assets)+(SELECT COALESCE(sum(storage_bytes),0) FROM prompt_reverse_tasks),(SELECT count(*) FROM users WHERE account_storage_bytes(id)>=$1)`, c.AccountStorageLimitBytes).Scan(&auxToday, &auxActive, &gifts, &storageBytes, &storageFull)
+	err = s.db.QueryRowContext(r.Context(), `SELECT (SELECT count(*) FROM auxiliary_runs WHERE started_at>=`+platformDaySQL+`),(SELECT count(*) FROM auxiliary_runs WHERE finished_at IS NULL AND lease_until>now()),COALESCE((SELECT sum(available_delta) FROM credit_ledger WHERE kind='signup' AND created_at>=`+platformDaySQL+`),0),(SELECT COALESCE(sum(size_bytes),0) FROM assets)+(SELECT COALESCE(sum(storage_bytes),0) FROM prompt_reverse_tasks),(SELECT count(*) FROM users WHERE account_storage_bytes(id)>=$1)`, c.AccountStorageLimitBytes).Scan(&auxToday, &auxActive, &gifts, &storageBytes, &storageFull)
 	if err != nil {
 		s.error(w, 503, "OVERVIEW_UNAVAILABLE", "成本用量读取失败")
 		return
 	}
-	s.json(w, 200, map[string]int64{"auxiliaryToday": auxToday, "auxiliaryActive": auxActive, "auxiliaryDailyLimit": int64(c.PlatformAuxiliaryPerDay), "auxiliaryConcurrentLimit": int64(c.PlatformAuxiliaryConcurrent), "signupGiftToday": gifts, "signupGiftDailyBudgetMinor": c.SignupGiftDailyBudgetMinor, "dailyCreditAlertMinor": c.DailyCreditAlertMinor, "storageBytes": storageBytes, "storageFullAccounts": storageFull, "users": users, "activeTasks": active, "todayTasks": today, "todayFailed": failed, "available": available, "held": held, "todayCharged": charged})
+	s.json(w, 200, map[string]any{
+		"users":                      users,
+		"activeTasks":                active,
+		"todayTasks":                 today,
+		"todayFailed":                failed,
+		"available":                  available,
+		"held":                       held,
+		"todayCharged":               charged,
+		"taskTrend":                  taskTrend,
+		"auxiliaryToday":             auxToday,
+		"auxiliaryActive":            auxActive,
+		"auxiliaryDailyLimit":        c.PlatformAuxiliaryPerDay,
+		"auxiliaryConcurrentLimit":   c.PlatformAuxiliaryConcurrent,
+		"signupGiftToday":            gifts,
+		"signupGiftDailyBudgetMinor": c.SignupGiftDailyBudgetMinor,
+		"dailyCreditAlertMinor":      c.DailyCreditAlertMinor,
+		"storageBytes":               storageBytes,
+		"storageFullAccounts":        storageFull,
+	})
 }
 
 func (s *Service) adminTasks(w http.ResponseWriter, r *http.Request) {

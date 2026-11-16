@@ -2,6 +2,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { useInspirationLoadMore } from './use-inspiration-load-more'
 import { useInspirationPrompts, type InspirationPrompt } from './use-inspiration-prompts'
 
 let root: Root
@@ -36,7 +37,16 @@ function urlOf(input: RequestInfo | URL) {
 }
 function Harness() {
   gallery = useInspirationPrompts()
-  return <output>{gallery.prompts.map((item) => item.id).join(',')}</output>
+  const loadMoreRef = useInspirationLoadMore(
+    gallery.hasMore && !gallery.isLoading && !gallery.loadMoreError,
+    gallery.loadMore,
+  )
+  return (
+    <>
+      <output>{gallery.prompts.map((item) => item.id).join(',')}</output>
+      {gallery.hasMore && <div ref={loadMoreRef} />}
+    </>
+  )
 }
 async function render() {
   await act(async () => root.render(<Harness />))
@@ -233,6 +243,67 @@ it('does not start duplicate pagination requests when load-more is clicked twice
     nextPage.resolve(listResponse([prompt('prompt-25'), prompt('prompt-26')], 26, 2)),
   )
   expect(gallery.prompts).toHaveLength(26)
+})
+
+it('automatically appends intersecting pages once and pauses until a failed page is retried', async () => {
+  const observers: Observer[] = []
+  class Observer {
+    observe = vi.fn()
+    disconnect = vi.fn()
+
+    constructor(private callback: (entries: { isIntersecting: boolean }[]) => void) {
+      observers.push(this)
+    }
+
+    notify(isIntersecting: boolean) {
+      this.callback([{ isIntersecting }])
+    }
+  }
+
+  vi.stubGlobal('IntersectionObserver', Observer)
+  let pageTwoAttempts = 0
+  vi.mocked(fetch).mockImplementation(async (input) => {
+    const url = urlOf(input)
+    if (url.pathname.endsWith('/categories')) return categoryResponse()
+    const page = url.searchParams.get('page')
+    if (page === '2') {
+      pageTwoAttempts++
+      return pageTwoAttempts === 1
+        ? new Response('{}', { status: 503 })
+        : listResponse(
+            Array.from({ length: 24 }, (_, index) => prompt(`prompt-${index + 25}`)),
+            49,
+            2,
+          )
+    }
+    if (page === '3') return listResponse([prompt('prompt-49')], 49, 3)
+    return listResponse(firstPage, 49)
+  })
+
+  await render()
+  const initial = observers.at(-1)!
+  expect(initial.observe).toHaveBeenCalledTimes(1)
+  await act(async () => initial.notify(false))
+  expect(listRequests()).toHaveLength(1)
+  await act(async () => {
+    initial.notify(true)
+    initial.notify(true)
+  })
+  expect(initial.disconnect).toHaveBeenCalled()
+  expect(gallery.loadMoreError).toContain('加载失败')
+  expect(gallery.prompts).toHaveLength(24)
+
+  await act(async () => initial.notify(true))
+  expect(listRequests().map((url) => url.searchParams.get('page'))).toEqual(['1', '2'])
+
+  await act(async () => gallery.loadMore())
+  const next = observers.at(-1)!
+  expect(next).not.toBe(initial)
+  expect(gallery.prompts).toHaveLength(48)
+  await act(async () => next.notify(true))
+  expect(gallery.prompts).toHaveLength(49)
+  expect(gallery.hasMore).toBe(false)
+  expect(listRequests().map((url) => url.searchParams.get('page'))).toEqual(['1', '2', '2', '3'])
 })
 
 it('reports an initial list error independently and retries the selected filter', async () => {

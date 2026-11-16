@@ -54,6 +54,7 @@ function ProductWorkspaceContent({
   const [dirty, setDirty] = useState(false)
   const [editorBusy, setEditorBusy] = useState(false)
   const currentQuery = useRef(query)
+  const editorPane = useRef<HTMLElement>(null)
   currentQuery.current = query
 
   useEffect(() => {
@@ -142,6 +143,7 @@ function ProductWorkspaceContent({
     }
   }
   function choose(product: CommerceProduct | null) {
+    if (editorPane.current) editorPane.current.scrollTop = 0
     setSelected(product)
     setInitialized(true)
     setDirty(false)
@@ -182,66 +184,67 @@ function ProductWorkspaceContent({
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-          {error && (
-            <p role="alert" className={styles.error}>
-              {error}
-            </p>
-          )}
-          {loading && !products.length ? (
-            <p role="status" className={styles.muted}>
-              正在读取商品…
-            </p>
-          ) : !products.length ? (
-            <div className={styles.catalogEmpty}>
-              <Box size={24} />
-              <p>{query ? '没有找到商品' : '为每个商品建立一份可复用的档案。'}</p>
-            </div>
-          ) : (
-            <div className={styles.productList}>
-              {products.map((product) => (
-                <button
-                  key={product.id}
-                  type="button"
-                  disabled={editorBusy}
-                  className={styles.productItem}
-                  aria-current={selected?.id === product.id ? 'true' : undefined}
-                  onClick={() => choose(product)}
-                >
-                  <span className={styles.productThumb}>
-                    {product.productAssetIds[0] ? (
-                      <AuthenticatedImage
-                        path={`/v1/assets/${encodeURIComponent(product.productAssetIds[0])}/thumbnail`}
-                        alt=""
-                      />
-                    ) : (
-                      <Box size={21} />
-                    )}
-                  </span>
-                  <span>
-                    <strong>{product.name}</strong>
-                    <small>
-                      {product.productAssetIds.length} 张原图 ·{' '}
-                      {Object.keys(product.adoptedAssetIds ?? {}).length} 个用途已采用
-                    </small>
-                  </span>
-                  <ChevronRight size={15} />
-                </button>
-              ))}
-            </div>
-          )}
-          {nextCursor && (
-            <button className="studio-secondary" disabled={loadingMore} onClick={() => void more()}>
-              {loadingMore ? '正在读取…' : '更多商品'}
-            </button>
-          )}
+          <div className={styles.catalogResults}>
+            {error && (
+              <p role="alert" className={styles.error}>
+                {error}
+              </p>
+            )}
+            {loading && !products.length ? (
+              <p role="status" className={styles.muted}>
+                正在读取商品…
+              </p>
+            ) : !products.length ? (
+              <div className={styles.catalogEmpty}>
+                <Box size={24} />
+                <p>{query ? '没有找到商品' : '为每个商品建立一份可复用的档案。'}</p>
+              </div>
+            ) : (
+              <div className={styles.productList}>
+                {products.map((product) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    disabled={editorBusy}
+                    className={styles.productItem}
+                    aria-current={selected?.id === product.id ? 'true' : undefined}
+                    onClick={() => choose(product)}
+                  >
+                    <span className={styles.productThumb}>
+                      {product.productAssetIds[0] ? (
+                        <AuthenticatedImage
+                          path={`/v1/assets/${encodeURIComponent(product.productAssetIds[0])}/thumbnail`}
+                          alt=""
+                        />
+                      ) : (
+                        <Box size={21} />
+                      )}
+                    </span>
+                    <span>
+                      <strong>{product.name}</strong>
+                      <small>
+                        {product.productAssetIds.length} 张原图 ·{' '}
+                        {Object.keys(product.adoptedAssetIds ?? {}).length} 个用途已采用
+                      </small>
+                    </span>
+                    <ChevronRight size={15} />
+                  </button>
+                ))}
+              </div>
+            )}
+            {nextCursor && (
+              <button
+                className="studio-secondary"
+                disabled={loadingMore}
+                onClick={() => void more()}
+              >
+                {loadingMore ? '正在读取…' : '更多商品'}
+              </button>
+            )}
+          </div>
           <p className={styles.catalogHelp}>档案可反复使用，生成和修改后的图片都保留为独立版本。</p>
         </aside>
-        <main className={styles.main}>
-          <ol className={styles.steps} aria-label="商品创作流程">
-            <li data-current={!selected}>商品档案</li>
-            <li data-current={Boolean(selected)}>选择用途与生成</li>
-            <li>修改与采用</li>
-          </ol>
+        <main className={styles.main} ref={editorPane}>
           {modelsError && (
             <p role="alert" className={styles.error}>
               {modelsError}{' '}
@@ -261,12 +264,13 @@ function ProductWorkspaceContent({
               defaultProjectId={initialProjectId}
               product={selected ?? undefined}
               visionEnabled={visionEnabled}
+              workflowHeader={<ProductWorkflowHeader saved={Boolean(selected)} />}
               onSaved={saved}
               onDirty={setDirty}
               onBusy={setEditorBusy}
             />
           )}
-          {selected ? (
+          {selected && (
             <ProductCreation
               key={`creation:${owner}:${selected.id}`}
               product={selected}
@@ -275,14 +279,6 @@ function ProductWorkspaceContent({
               models={models}
               onProductUpdated={saved}
             />
-          ) : (
-            <div className={styles.startHint}>
-              <ImageStep />
-              <div>
-                <strong>保存档案后，开始制作商品图片</strong>
-                <p>选择主图、场景、细节或卖点配图，再从生成结果中选出采用版本。</p>
-              </div>
-            </div>
           )}
         </main>
       </div>
@@ -290,6 +286,28 @@ function ProductWorkspaceContent({
   )
 }
 
-function ImageStep() {
-  return <Box size={28} aria-hidden="true" />
+function ProductWorkflowHeader({ saved }: { saved: boolean }) {
+  return (
+    <header className={styles.workflowHeader}>
+      <ol className={styles.steps} aria-label="商品创作流程">
+        <li aria-current={saved ? undefined : 'step'}>
+          <span>商品档案</span>
+        </li>
+        <li aria-current={saved ? 'step' : undefined}>
+          <span>选择用途与生成</span>
+        </li>
+        <li>
+          <span>修改与采用</span>
+        </li>
+      </ol>
+      <div className={styles.workflowHint}>
+        <strong>{saved ? '选择图片用途，开始生成' : '保存档案后，开始制作商品图片'}</strong>
+        <p>
+          {saved
+            ? '生成后可局部修改，再选一张作为该用途的采用版本。'
+            : '选择主图、场景、细节或卖点配图，再从生成结果中选出采用版本。'}
+        </p>
+      </div>
+    </header>
+  )
 }

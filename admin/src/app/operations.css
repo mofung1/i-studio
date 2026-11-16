@@ -1,0 +1,596 @@
+/* Front account center and separate operator workspace share the studio tokens. */
+.admin-content {
+  min-width: 0;
+  padding: 28px;
+}
+.admin-content .ai-settings {
+  padding: 0;
+  max-width: none;
+}
+.admin-content .inspiration-manager,
+.admin-content .inspiration-category-manager {
+  padding: 0;
+}
+.ops-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 30px;
+  color: var(--foreground);
+}
+.admin-content > .ops-page {
+  padding: 0;
+}
+.ops-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.ops-heading h1 {
+  margin: 5px 0 9px;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.6px;
+}
+.ops-heading p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--foreground-3);
+  line-height: 1.7;
+}
+.ops-heading .ops-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--foreground-3);
+}
+.ops-heading-actions,
+.ops-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ops-heading-actions {
+  padding-top: 9px;
+}
+.ops-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.ops-stats article {
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ops-stats article > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--foreground-3);
+}
+.ops-stats strong {
+  font-size: 30px;
+  letter-spacing: -0.8px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ops-stats small {
+  font-size: 12px;
+  color: var(--foreground-3);
+  line-height: 1.6;
+}
+.ops-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-width: 0;
+  overflow: visible;
+  margin-bottom: 20px;
+}
+.ops-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.ops-card h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.ops-card-heading > span {
+  font-size: 12px;
+  color: var(--foreground-3);
+}
+.ops-table-scroll {
+  overflow-x: auto;
+  border-radius: 12px;
+}
+.ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.65;
+  text-align: left;
+  white-space: nowrap;
+}
+.ops-table th {
+  font-weight: 500;
+  color: var(--foreground-3);
+  padding: 13px 18px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+.ops-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.ops-table tr:last-child td {
+  border-bottom: 0;
+}
+.ops-table small {
+  display: block;
+  color: var(--foreground-3);
+  font-size: 11px;
+}
+.ops-table .ops-message-cell {
+  min-width: 160px;
+  max-width: 380px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.ops-badge {
+  display: inline-flex;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--foreground-2);
+  margin-left: 8px;
+}
+.ops-onboarding {
+  padding: 24px;
+}
+.ops-onboarding ol {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 32px;
+  margin: 22px 0 0;
+  padding-left: 20px;
+  font-size: 13px;
+}
+.ops-onboarding a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--foreground-2);
+}
+.ops-form,
+.ops-editor {
+  padding: 24px;
+  max-width: 960px;
+}
+.ops-form fieldset {
+  padding: 0;
+  margin: 0 0 28px;
+  border: 0;
+  min-width: 0;
+}
+.ops-form legend {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.ops-form p {
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 1.7;
+  margin-top: 16px;
+}
+.ops-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-bottom: 22px;
+}
+.ops-form-grid small {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--foreground-3);
+}
+.ops-form .settings-field input,
+.ops-editor .settings-field input {
+  width: 100%;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-height: 42px;
+  font: inherit;
+  font-size: 13px;
+}
+.ops-editor .ops-card-heading {
+  padding: 0 0 18px;
+  margin-bottom: 22px;
+}
+.ops-editor {
+  scroll-margin-top: 20px;
+}
+.ops-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+.ops-search input {
+  min-width: 0;
+  max-width: 380px;
+  width: 100%;
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  padding: 11px 14px;
+  border-radius: 8px;
+}
+.ops-empty {
+  padding: 36px 22px;
+  text-align: center;
+  color: var(--foreground-3);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.ops-empty a {
+  margin: 0 4px;
+  color: var(--foreground);
+}
+.ops-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--foreground-3);
+}
+.ops-pagination-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-right: auto;
+}
+.ops-pagination > .select-trigger {
+  width: 122px;
+  min-height: 36px;
+}
+.ops-pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.ops-pagination-buttons button {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--foreground-2);
+  font: inherit;
+  cursor: pointer;
+}
+.ops-pagination-buttons button:hover:not(:disabled) {
+  background: var(--control-bg);
+}
+.ops-pagination-buttons button[aria-current='page'] {
+  color: var(--background);
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+.ops-pagination-buttons button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.ops-pagination-buttons > span {
+  padding: 0 3px;
+}
+@media (max-width: 600px) {
+  .ops-pagination-summary {
+    flex: 1 1 calc(100% - 140px);
+  }
+  .ops-pagination-buttons {
+    justify-content: flex-end;
+    flex: 1 1 100%;
+  }
+}
+.ops-access {
+  min-height: 100dvh;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.ops-access h1 {
+  margin: 0;
+  font-size: 24px;
+}
+.ops-access p {
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: 13px;
+}
+.ops-access a {
+  font-size: 13px;
+}
+.creation-credit-estimate {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--foreground-3);
+  margin: 10px 0;
+  line-height: 1.6;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.credit-estimate-retry {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.creation-credit-estimate strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.creation-credit-estimate a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.account-credit-summary {
+  font-size: 11px;
+  padding: 4px 0 10px;
+  color: var(--foreground-3);
+}
+.account-page {
+  width: 100%;
+  min-width: 0;
+}
+.studio-content > .account-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.account-pagination {
+  margin-top: 0;
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+}
+.account-pagination .ops-pagination-buttons button {
+  min-width: 44px;
+  height: 44px;
+}
+.account-access {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: min(560px, 65dvh);
+  padding: 40px 24px;
+  color: var(--foreground);
+}
+.account-access.is-compact {
+  min-height: 220px;
+  padding: 28px 16px;
+}
+.account-access-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+.account-access-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--foreground-2);
+  background: var(--surface-subtle);
+}
+.account-access h2 {
+  margin: 4px 0 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: -0.3px;
+}
+.account-access p {
+  margin: 0;
+  color: var(--foreground-3);
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.account-access-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.account-access .studio-primary {
+  min-height: 40px;
+  padding: 0 20px;
+  color: var(--background);
+  background: var(--foreground);
+  text-decoration: none;
+}
+.account-menu-loading {
+  color: var(--foreground-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.generate-bar a.generate-button {
+  text-decoration: none;
+}
+.account-dropdown [role='menuitem'] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--foreground);
+  text-decoration: none;
+  border-radius: 5px;
+}
+.account-dropdown [role='menuitem']:hover {
+  background: var(--control-bg);
+}
+@media (min-width: 1280px) {
+  .admin-content {
+    padding: 32px 40px;
+  }
+}
+@media (max-width: 800px) {
+  .admin-content,
+  .ops-page {
+    padding: 20px 16px;
+  }
+  .ops-heading {
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .ops-heading h1 {
+    font-size: 23px;
+  }
+  .ops-heading-actions {
+    padding: 0;
+  }
+  .ops-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .ops-onboarding ol {
+    grid-template-columns: 1fr;
+  }
+  .ops-form,
+  .ops-editor {
+    padding: 20px;
+  }
+  .ops-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .ops-stats article {
+    padding: 18px 14px;
+  }
+  .ops-stats strong {
+    font-size: 25px;
+  }
+  .ops-row-actions .settings-command {
+    min-height: 40px;
+  }
+}
+@media (max-width: 600px) {
+  .ops-heading {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ops-heading-actions {
+    padding-top: 0;
+  }
+  .ops-search {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ops-search label {
+    flex-shrink: 0;
+  }
+}
+
+.account-page .account-summary {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+.account-summary > .credit-benefits {
+  margin-bottom: 0;
+  padding: 20px;
+}
+.account-summary .ops-card-heading {
+  padding: 0;
+  border-bottom: 0;
+  gap: 8px;
+}
+.account-summary .ops-card-heading > a {
+  color: var(--foreground-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.account-summary .credit-benefits-grid {
+  padding: 0;
+  margin-top: 16px;
+}
+.account-page .ops-stats article {
+  padding: 20px;
+  gap: 10px;
+}
+.account-page .ops-stats article > strong {
+  font-size: 28px;
+}
+.account-summary .credit-benefit-item strong {
+  font-size: inherit;
+  letter-spacing: normal;
+}
+.account-page .credit-benefits .ops-card-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-page .credit-benefit-item {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.account-page .credit-benefit-item > p[role='status'] {
+  flex-basis: 100%;
+}
+
+@media (max-width: 1000px) {
+  .account-page .account-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .account-summary > .credit-benefits {
+    grid-column: 1 / -1;
+  }
+}

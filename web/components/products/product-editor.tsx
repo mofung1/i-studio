@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { Check, ChevronDown, ImagePlus, LoaderCircle, Save, Sparkles, X } from 'lucide-react'
 import { AuthenticatedImage } from '@/components/authenticated-image'
 import { getAccessToken, uploadAsset } from '@/lib/api'
@@ -22,6 +22,7 @@ export function ProductEditor({
   product,
   defaultProjectId = '',
   visionEnabled,
+  workflowHeader,
   onSaved,
   onDirty,
   onBusy,
@@ -30,6 +31,7 @@ export function ProductEditor({
   product?: CommerceProduct
   defaultProjectId?: string
   visionEnabled: boolean
+  workflowHeader?: ReactNode
   onSaved: (product: CommerceProduct) => void
   onDirty: (dirty: boolean) => void
   onBusy: (busy: boolean) => void
@@ -182,6 +184,7 @@ export function ProductEditor({
   const totalImages = draft.productAssetIds.length + draft.referenceAssetIds.length
   return (
     <section className={styles.editor} aria-label="商品档案">
+      {workflowHeader}
       <div className={styles.sectionHead}>
         <div>
           <h2>{product ? product.name : '建立商品档案'}</h2>

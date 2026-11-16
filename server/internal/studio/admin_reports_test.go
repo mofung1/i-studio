@@ -6,9 +6,87 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/istudio/server/internal/domain"
 )
+
+func TestAdminOverviewTrendUsesShanghaiDays(t *testing.T) {
+	s := &Service{db: isolatedTestDatabase(t), secret: []byte("admin-overview-fixture")}
+	operator := s.testAdminToken(domain.User{ID: "operator"})
+	s.testToken(domain.User{ID: "member"})
+	var today time.Time
+	if err := s.db.QueryRow(`SELECT (now() AT TIME ZONE 'Asia/Shanghai')::date`).Scan(&today); err != nil {
+		t.Fatal(err)
+	}
+	fixture := []string{
+		`INSERT INTO generation_tasks(id,user_id,status,input,created_at)
+		 SELECT id,'member',status,'{}',($1::date + date_shift)::timestamp AT TIME ZONE 'Asia/Shanghai' + time_shift
+		 FROM (VALUES
+		   ('outside-window','succeeded',-6,interval '-1 microsecond'),
+		   ('oldest','succeeded',-6,interval '0'),
+		   ('yesterday','succeeded',0,interval '-1 microsecond'),
+		   ('today-failed','failed',0,interval '0'),
+		   ('today-queued','queued',0,interval '0'),
+		   ('tomorrow','failed',1,interval '0')
+		 ) AS task(id,status,date_shift,time_shift)`,
+		`INSERT INTO credit_ledger(user_id,kind,available_delta,held_delta,available_after,held_after,request_key,created_at)
+		 SELECT 'member',kind,available_delta,held_delta,0,0,request_key,
+		        $1::date::timestamp AT TIME ZONE 'Asia/Shanghai' + time_shift
+		 FROM (VALUES
+		   ('settlement',0,-200,'prior-settlement',interval '-1 microsecond'),
+		   ('settlement',125,-500,'current-settlement',interval '0'),
+		   ('adjust',-75,0,'manual-debit',interval '0'),
+		   ('settlement',0,-300,'future-settlement',interval '1 day')
+		 ) AS credit(kind,available_delta,held_delta,request_key,time_shift)`,
+		`INSERT INTO generation_charges(task_id,user_id,request_key,input_hash,model_id,model_name,unit_price,quantity,settled,provider_snapshot,prompts_snapshot,created_at)
+		 VALUES('deleted-task','member','deleted-charge','hash','model','测试模型',125,1,true,'{}','[]',$1::date::timestamp AT TIME ZONE 'Asia/Shanghai')`,
+	}
+	for _, query := range fixture {
+		if _, err := s.db.Exec(query, today); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	w := operationRequest(s, "GET", "/v1/admin/overview", "", operator, s.router().ServeHTTP)
+	if w.Code != http.StatusOK {
+		t.Fatalf("overview: %d %s", w.Code, w.Body.String())
+	}
+	type trendDay struct {
+		Date      string `json:"date"`
+		Submitted int    `json:"submitted"`
+		Completed int    `json:"completed"`
+		Failed    int    `json:"failed"`
+		Charged   int    `json:"charged"`
+	}
+	var overview struct {
+		TodayTasks   int        `json:"todayTasks"`
+		TodayFailed  int        `json:"todayFailed"`
+		TodayCharged int        `json:"todayCharged"`
+		TaskTrend    []trendDay `json:"taskTrend"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &overview); err != nil {
+		t.Fatal(err)
+	}
+	if overview.TodayTasks != 1 || overview.TodayFailed != 1 || overview.TodayCharged != 375 {
+		t.Fatalf("unexpected overview summary: %+v", overview)
+	}
+	want := [7]trendDay{
+		{Submitted: 1, Completed: 1},
+		{}, {}, {}, {},
+		{Submitted: 1, Completed: 1, Charged: 200},
+		{Submitted: 2, Failed: 1, Charged: 375},
+	}
+	if len(overview.TaskTrend) != len(want) {
+		t.Fatalf("unexpected day count: %v", overview.TaskTrend)
+	}
+	for i, expected := range want {
+		expected.Date = today.AddDate(0, 0, i-6).Format(time.DateOnly)
+		if got := overview.TaskTrend[i]; got != expected {
+			t.Errorf("trend day %d: got %+v, want %+v", i, got, expected)
+		}
+	}
+}
 
 type adminTaskPageFixture struct {
 	Tasks []struct {

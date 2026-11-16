@@ -95,9 +95,15 @@ it('keeps a single product editor and creation panel after creating, saving and 
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 20))
   })
+  const workflow = () => container.querySelector('[aria-label="商品档案"] > header')
+  const currentStep = () => workflow()?.querySelector('[aria-current="step"]')?.textContent
+  expect(workflow()?.textContent).toContain('保存档案后，开始制作商品图片')
+  expect(currentStep()).toBe('商品档案')
   await createProduct('第一件商品')
   expect(container.querySelectorAll('[aria-label="商品档案"]')).toHaveLength(1)
   expect(container.querySelectorAll('[aria-label="选择用途与生成"]')).toHaveLength(1)
+  expect(workflow()?.textContent).toContain('选择图片用途，开始生成')
+  expect(currentStep()).toBe('选择用途与生成')
   expect(
     Array.from(container.querySelectorAll('button')).filter(
       (element) => element.textContent?.trim() === '编辑档案',
@@ -105,6 +111,7 @@ it('keeps a single product editor and creation panel after creating, saving and 
   ).toHaveLength(1)
   await act(async () => button('建立商品档案').click())
   expect(container.querySelector('[aria-label="选择用途与生成"]')).toBeNull()
+  expect(currentStep()).toBe('商品档案')
   await createProduct('第二件商品')
   expect(container.querySelectorAll('[aria-label="商品档案"]')).toHaveLength(1)
   expect(container.querySelectorAll('[aria-label="选择用途与生成"]')).toHaveLength(1)

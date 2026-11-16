@@ -1,5 +1,6 @@
 .git
 .next
+admin/dist
 .pnpm-store
 node_modules
 **/node_modules

@@ -1,0 +1,496 @@
+.page {
+  width: 100%;
+  container-name: ai-services;
+  container-type: inline-size;
+}
+
+.intro {
+  margin: -8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.page .tabs {
+  gap: 24px;
+}
+
+.page.page .tabList {
+  align-self: flex-start;
+  max-width: 100%;
+  height: auto;
+  min-height: 44px;
+  padding: 4px;
+}
+
+.page.page .tabList > button {
+  min-height: 36px;
+  padding-inline: 18px;
+}
+
+.setupSteps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  list-style: none;
+}
+
+.setupSteps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.setupSteps li + li {
+  border-inline-start: 1px solid var(--border);
+}
+
+.setupSteps li > span {
+  display: grid;
+  flex: 0 0 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.setupSteps strong,
+.setupSteps a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.setupSteps a,
+.related a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.setupSteps p {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.promptSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.promptSummary > div {
+  min-width: 0;
+}
+
+.promptSummary > div > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.promptSummary strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.promptSummary p {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.promptSummary > p {
+  max-width: 340px;
+}
+
+.services {
+  min-width: 0;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.sectionHead h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sectionHead h2 span {
+  min-width: 24px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-align: center;
+}
+
+.sectionHead p {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.sectionHead > button {
+  flex-shrink: 0;
+}
+
+.serviceList {
+  display: grid;
+  gap: 12px;
+}
+
+.service {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background);
+}
+
+.serviceMain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 22px 16px;
+}
+
+.identity {
+  min-width: 0;
+}
+
+.serviceTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.serviceTitle h3 {
+  margin: 0 4px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.serviceMeta,
+.address {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.serviceMeta strong {
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.address {
+  margin-top: 4px;
+}
+
+.primaryActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.details {
+  border-top: 1px solid var(--border);
+}
+
+.details > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 10px 22px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.details > summary::-webkit-details-marker {
+  display: none;
+}
+.details[open] > summary svg {
+  transform: rotate(180deg);
+}
+.details > summary:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+.details > summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -3px;
+}
+
+.detailsBody {
+  padding: 4px 22px 20px;
+}
+
+.connectionFacts {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.connectionFacts dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.connectionFacts dd {
+  margin: 6px 0 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.testHelp,
+.generationTest p,
+.management p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.generationTest {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 6px;
+  background: var(--muted);
+}
+
+.generationTest strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.generationTest p {
+  margin-top: 5px;
+  max-width: 70ch;
+}
+.generationTest > button {
+  flex-shrink: 0;
+}
+
+.management {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.enableSwitch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  font-size: 13px;
+}
+
+.enableSwitch input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--foreground);
+}
+.deleteAction {
+  flex-shrink: 0;
+  color: var(--admin-danger-text);
+}
+
+.testResult {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0 22px 16px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: var(--admin-tone-soft);
+  color: var(--admin-tone-text);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.testResult strong {
+  font-weight: 600;
+}
+.testResult small {
+  font-size: 12px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 32px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--background);
+}
+
+.empty > svg {
+  color: var(--muted-foreground);
+}
+.empty h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.empty p {
+  margin: 0;
+  max-width: 65ch;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.related {
+  margin-top: 24px;
+  padding-left: 14px;
+  border-left: 2px solid var(--border);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.related strong {
+  font-weight: 600;
+}
+.related p {
+  margin: 4px 0;
+  color: var(--muted-foreground);
+  max-width: 90ch;
+}
+.related a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+@container ai-services (max-width: 620px) {
+  .serviceMain {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .setupSteps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .setupSteps li {
+    padding: 12px 14px;
+  }
+  .setupSteps li + li {
+    border-inline-start: 0;
+    border-top: 1px solid var(--border);
+  }
+  .promptSummary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .promptSummary > p {
+    max-width: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .page.page .tabList {
+    width: 100%;
+    display: flex;
+  }
+  .page.page .tabList > button {
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+  .page.page .tabList > button > svg {
+    display: none;
+  }
+  .setupSteps p {
+    margin-top: 1px;
+  }
+  .sectionHead {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .serviceMain {
+    padding: 16px;
+  }
+  .details > summary {
+    padding-inline: 16px;
+    min-height: 44px;
+  }
+  .detailsBody {
+    padding-inline: 16px;
+  }
+  .connectionFacts {
+    grid-template-columns: 1fr;
+  }
+  .generationTest,
+  .management {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .primaryActions > button {
+    min-height: 40px;
+  }
+  .testResult {
+    margin-inline: 16px;
+  }
+  .empty {
+    padding: 24px;
+  }
+}

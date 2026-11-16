@@ -19,7 +19,7 @@ export default function InspirePage() {
       section="inspire"
       title="灵感"
       actions={
-        <div className="inspiration-topbar-tools">
+        <div className={`inspiration-topbar-tools ${styles.topbarTools}`}>
           <Link className="studio-secondary" href="/inspire/submissions">
             我的投稿
           </Link>

@@ -1,0 +1,432 @@
+.admin-shell .admin-list-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  height: 100%;
+  padding: 0;
+}
+
+.admin-shell .admin-list-page > :not(.admin-list-region, .admin-data-table) {
+  flex-shrink: 0;
+}
+
+.admin-shell .admin-list-region {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 16rem;
+  gap: 12px;
+}
+
+.admin-data-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 16rem;
+  gap: 8px;
+}
+
+.admin-data-toolbar,
+.admin-data-heading,
+.admin-data-meta,
+.admin-data-scroll-help,
+.admin-data-scroll-help > :is(span, div) {
+  display: flex;
+  align-items: center;
+}
+
+.admin-data-toolbar {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.admin-data-heading {
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 4px 12px;
+}
+
+.admin-data-heading h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.admin-data-meta {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-data-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-data-meta > span + span {
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--border);
+}
+
+.admin-data-tools {
+  margin-inline-start: auto;
+}
+
+.admin-column-menu {
+  width: 13rem;
+}
+
+.admin-column-count {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-data-scroll-help {
+  flex: 0 0 auto;
+  justify-content: space-between;
+  min-height: 24px;
+  gap: 8px;
+  padding-inline: 2px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.admin-data-scroll-help > :is(span, div) {
+  gap: 4px;
+}
+
+.admin-data-scroll-help [data-slot='button'] {
+  color: var(--foreground);
+}
+
+.admin-data-scroll {
+  --admin-table-header: color-mix(in oklab, var(--background), var(--muted) 58%);
+  --admin-table-hover: color-mix(in oklab, var(--background), var(--accent) 75%);
+
+  flex: 1 1 auto;
+  min-height: 12rem;
+  overflow: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  isolation: isolate;
+}
+
+.admin-data-scroll [data-slot='table-container'] {
+  overflow: visible;
+}
+
+.admin-data-scroll:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.admin-data-scroll table {
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-data-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 44px;
+  padding: 5px 12px;
+  background: var(--admin-table-header);
+  box-shadow: inset 0 -1px 0 var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.admin-data-sort-trigger {
+  max-width: calc(100% + 12px);
+  margin-inline-start: -6px;
+  padding-inline: 6px;
+  font-size: inherit;
+}
+
+.admin-data-sort-trigger[data-state='open'] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.admin-data-scroll th[aria-sort]:not([aria-sort='none']) {
+  color: var(--foreground);
+}
+
+.admin-data-scroll td {
+  height: 64px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-data-scroll tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-data-scroll tbody tr:not(.admin-data-skeleton-row):is(:hover, :focus-within) td {
+  background: var(--admin-table-hover);
+}
+
+.admin-data-scroll [data-align='right'] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-data-scroll [data-align='right'] .admin-data-sort-trigger {
+  margin-inline: 0 -6px;
+}
+
+.admin-data-scroll td[data-pin] {
+  position: sticky;
+  z-index: 2;
+}
+
+.admin-data-scroll th[data-pin] {
+  z-index: 4;
+}
+
+.admin-data-scroll [data-pin='left'] {
+  left: var(--admin-column-left);
+  border-right: 1px solid var(--border);
+}
+
+.admin-data-scroll [data-pin='right'] {
+  right: var(--admin-column-right);
+  border-left: 1px solid var(--border);
+}
+
+.admin-data-scroll td :is(.settings-command, .settings-primary, button[data-slot='button']) {
+  min-height: 2rem;
+  padding-inline: 8px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.admin-data-scroll .ops-row-actions {
+  gap: 4px;
+}
+
+.admin-cell-stack {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-cell-heading,
+.admin-prompt-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-cell-heading > svg {
+  flex-shrink: 0;
+}
+
+.admin-data-scroll strong,
+.admin-cell-number {
+  color: var(--foreground);
+  font-weight: 550;
+}
+
+.admin-cell-secondary {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.admin-cell-number {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-cell-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.admin-prompt-title img {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+}
+
+.admin-prompt-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.admin-data-table[data-density='compact'] td {
+  height: 46px;
+  padding-block: 7px;
+  font-size: 0.8125rem;
+}
+
+.admin-data-table[data-density='compact'] .admin-prompt-title img {
+  flex-basis: 36px;
+  width: 36px;
+  height: 36px;
+}
+
+.admin-data-scroll[data-empty='true'] {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-data-scroll[data-empty='true'] [data-slot='table-container'] {
+  flex: 0 0 auto;
+}
+
+.admin-data-scroll .admin-data-empty {
+  position: sticky;
+  left: 0;
+  width: 100%;
+  flex: 0 0 auto;
+  min-height: 9rem;
+  padding: 16px;
+}
+
+.admin-pagination,
+.admin-pagination-actions,
+.admin-pagination-navigation,
+.admin-pagination-buttons,
+.admin-pagination-size,
+.admin-pagination-jump {
+  display: flex;
+  align-items: center;
+}
+
+.admin-pagination {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 12px;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-pagination-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.admin-pagination-actions {
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-inline-start: auto;
+}
+
+.admin-pagination-navigation,
+.admin-pagination-jump {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-pagination-size {
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-pagination-size .select-trigger {
+  width: 4.75rem;
+  min-height: 2rem;
+}
+
+.admin-pagination-buttons {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.admin-pagination-buttons [aria-current='page'] {
+  cursor: default;
+}
+
+.admin-page-position,
+.admin-pagination-jump label {
+  white-space: nowrap;
+}
+
+.admin-pagination-jump input {
+  width: 3.75rem;
+  height: 2rem;
+  padding: 4px 8px;
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 767px), (max-height: 650px) {
+  .admin-shell .admin-list-page {
+    height: auto;
+  }
+
+  .admin-shell .admin-list-region,
+  .admin-list-page .admin-data-table {
+    min-height: min-content;
+  }
+
+  .admin-list-page .admin-data-scroll {
+    contain: size;
+  }
+
+  .admin-data-scroll {
+    max-height: clamp(12rem, 56dvh, 34rem);
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-data-toolbar [data-slot='button'],
+  .admin-data-sort-trigger,
+  .admin-data-scroll td :is(.settings-command, .settings-primary, button[data-slot='button']) {
+    min-height: 2.25rem;
+  }
+
+  .admin-data-scroll-help [data-slot='button'] {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .admin-pagination-actions {
+    margin-inline-start: 0;
+  }
+
+  .admin-pagination-navigation {
+    order: -1;
+    flex: 1 0 100%;
+    justify-content: space-between;
+  }
+
+  .admin-pagination-buttons :is(.admin-page-number, .admin-page-gap) {
+    display: none;
+  }
+
+  .admin-pagination-buttons [data-slot='button'] {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}

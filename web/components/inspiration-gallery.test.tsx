@@ -2,7 +2,8 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { InspirationCard, InspirationGallery } from './inspiration-gallery'
+import { InspirationGallery } from './inspiration-gallery'
+import { copyText } from '@/lib/clipboard'
 import { inspirationTemplate } from '@/lib/inspiration-handoff'
 
 const fixture = vi.hoisted(() => ({
@@ -55,7 +56,15 @@ function initialState() {
   }
 }
 let state = initialState()
-vi.mock('./save-personal-prompt', () => ({ SavePersonalPrompt: () => null }))
+const savePrompt = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/clipboard', () => ({ copyText: vi.fn() }))
+vi.mock('./save-personal-prompt', () => ({
+  SavePersonalPrompt: ({ seed }: { seed: unknown }) => (
+    <button type="button" onClick={() => savePrompt(seed)}>
+      存为私有提示词
+    </button>
+  ),
+}))
 vi.mock('./workbench/use-inspiration-prompts', () => ({ useInspirationPrompts: () => state }))
 let root: Root
 let host: HTMLDivElement
@@ -86,6 +95,8 @@ async function input(node: HTMLInputElement, value: string) {
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   for (const callback of Object.values(callbacks)) callback.mockReset()
+  vi.mocked(copyText).mockReset()
+  savePrompt.mockReset()
   state = initialState()
   host = document.createElement('div')
   document.body.append(host)
@@ -97,34 +108,39 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('labels reference-dependent cards and uses the same compact handoff URL in card and detail', async () => {
+it('uses one card control and moves template information and actions into the detail', async () => {
   await render()
-  expect(host.textContent).toContain('需参考图')
-  const link = [...host.querySelectorAll('a')].find((item) => item.textContent?.includes('去生图'))!
-  expect(link.getAttribute('href')).toBe('/studio?mode=general&inspirationId=reference-template')
-  await act(async () => button(`查看${fixture.title}的提示词`).click())
+  const card = host.querySelector('article')!
+  const trigger = button(`查看${fixture.title}的提示词`, card)
+  expect(card.querySelectorAll('button, a')).toHaveLength(1)
+  expect(trigger.textContent).toBe(fixture.title)
+  trigger.focus()
+  await act(async () => trigger.click())
+  expect(detail().textContent).toContain(fixture.category)
+  expect(detail().textContent).toContain(fixture.source)
+  expect(detail().textContent).toContain('此模板需要参考图')
   expect(detail().textContent).toContain(fixture.instructions)
   expect(detail().querySelector('a.studio-primary')?.getAttribute('href')).toBe(
-    link.getAttribute('href'),
+    '/studio?mode=general&inspirationId=reference-template',
   )
+  await act(async () => button('关闭', detail()).click())
+  expect(document.activeElement).toBe(trigger)
 })
 
-it('passes the complete template to embedded card callbacks without a sample image asset', async () => {
-  const apply = vi.fn()
-  await act(async () =>
-    root.render(
-      <InspirationCard
-        item={fixture}
-        copied={false}
-        onInspect={vi.fn()}
-        onCopy={vi.fn()}
-        onUsePrompt={apply}
-      />,
-    ),
-  )
-  await act(async () => button('去生图').click())
-  expect(apply).toHaveBeenCalledWith(inspirationTemplate(fixture))
-  expect(apply.mock.calls[0]![0]).not.toHaveProperty('imageUrl')
+it('copies from the detail and keeps the personal prompt seed available there', async () => {
+  vi.mocked(copyText).mockResolvedValue(undefined)
+  await render()
+  await act(async () => button(`查看${fixture.title}的提示词`).click())
+  await act(async () => button('复制提示词', detail()).click())
+  expect(copyText).toHaveBeenCalledWith(fixture.prompt)
+  expect(detail().querySelector('[role="status"]')?.textContent).toBe('提示词已复制')
+  await act(async () => button('存为私有提示词', detail()).click())
+  expect(savePrompt).toHaveBeenCalledWith({
+    title: fixture.title,
+    prompt: fixture.prompt,
+    source: fixture.source,
+    favorite: true,
+  })
 })
 
 it('passes the same complete template from an embedded detail dialog', async () => {
@@ -133,22 +149,22 @@ it('passes the same complete template from an embedded detail dialog', async () 
   await act(async () => button(`查看${fixture.title}的提示词`).click())
   await act(async () => button('去生图', detail()).click())
   expect(apply).toHaveBeenCalledWith(inspirationTemplate(fixture))
+  expect(apply.mock.calls[0]![0]).not.toHaveProperty('imageUrl')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
-it('finds a less prominent category in the full picker and keeps the chosen category in the main filter row', async () => {
+it('shows every category inline and keeps the selected category in its original position', async () => {
   await render()
-  expect(categoryGroup().textContent).not.toContain('服装设计')
-  await act(async () => button('全部分类').click())
-  const search = detail().querySelector<HTMLInputElement>('[aria-label="搜索分类"]')!
-  await input(search, '服装')
-  expect(detail().textContent).toContain('服装设计')
-  expect(detail().textContent).not.toContain('包装设计')
-  await act(async () => button('服装设计', detail()).click())
+  const labels = () =>
+    Array.from(categoryGroup().querySelectorAll('button'), (item) => item.textContent)
+  const before = labels()
+  expect(before).toEqual(['全部', ...state.categories.map((item) => item.category)])
+  await act(async () => button('服装设计', categoryGroup()).click())
   expect(callbacks.changeCategory).toHaveBeenCalledWith('服装设计')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   state = { ...state, category: '服装设计', total: 3 }
   await render()
+  expect(labels()).toEqual(before)
   expect(button('服装设计', categoryGroup()).getAttribute('aria-pressed')).toBe('true')
 })
 

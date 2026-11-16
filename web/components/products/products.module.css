@@ -1,8 +1,8 @@
 .workspace {
+  --workspace-gap: var(--layout-gap);
   display: grid;
   grid-template-columns: 238px minmax(0, 1fr);
-  min-height: calc(100dvh - var(--studio-header, 64px));
-  background: var(--surface-subtle);
+  gap: var(--workspace-gap);
 }
 .workspace button,
 .maskDialog button {
@@ -45,10 +45,27 @@
   font-weight: 550;
 }
 .catalog {
-  padding: 24px 14px;
-  border-right: 1px solid var(--border);
-  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+.catalog > :not(.catalogResults) {
+  flex: none;
+}
+.catalogResults {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
 }
 .catalogTitle,
 .sectionHead {
@@ -57,9 +74,6 @@
   align-items: center;
   gap: 14px;
 }
-.catalogTitle {
-  padding: 0 5px 16px;
-}
 .catalogTitle h1 {
   font-size: 17px;
   font-weight: 650;
@@ -67,7 +81,6 @@
 }
 .search {
   position: relative;
-  margin-bottom: 16px;
 }
 .search svg {
   position: absolute;
@@ -135,31 +148,47 @@
   object-fit: cover;
 }
 .catalogEmpty {
-  padding: 26px 10px;
+  display: grid;
+  gap: 8px;
+  padding: 16px 4px;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
 }
 .catalogHelp {
-  margin-top: 24px;
-  padding: 16px 5px;
+  padding: 12px 0 0;
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-size: 12px;
   line-height: 1.8;
 }
 .main {
-  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--workspace-gap);
   min-width: 0;
-  max-width: 1500px;
-  padding: 28px 32px 60px;
+  min-height: 0;
+}
+.main > .error,
+.catalogResults > .error {
+  margin: 0;
+}
+.workflowHeader {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: var(--workspace-gap);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-subtle);
 }
 .steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
   padding: 0;
-  margin: 0 0 24px;
+  margin: 0;
   list-style: none;
   counter-reset: step;
   color: var(--muted);
@@ -167,12 +196,14 @@
 }
 .steps li {
   display: flex;
+  min-width: 0;
   gap: 8px;
   align-items: center;
   counter-increment: step;
 }
 .steps li::before {
   content: counter(step);
+  flex: 0 0 auto;
   width: 22px;
   height: 22px;
   border: 1px solid var(--border);
@@ -184,29 +215,45 @@
 }
 .steps li:not(:last-child)::after {
   content: '';
-  width: 24px;
+  flex: 1 1 auto;
+  min-width: 0;
   height: 1px;
   background: var(--border);
   margin-inline: 6px;
 }
-.steps li[data-current='true'] {
-  color: var(--foreground);
+.steps li > span {
+  overflow-wrap: anywhere;
 }
-.steps li[data-current='true']::before {
+.steps li[aria-current='step'] {
+  color: var(--foreground);
+  font-weight: 650;
+}
+.steps li[aria-current='step']::before {
   color: var(--primary-foreground);
   background: var(--primary);
   border-color: var(--primary);
+}
+.workflowHint strong {
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 650;
+}
+.workflowHint p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
 }
 .editor,
 .creation {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 22px;
+  border-radius: var(--radius-panel);
+  padding: 20px;
+  box-shadow: var(--shadow-panel);
 }
 .sectionHead {
-  margin-bottom: 22px;
+  margin-bottom: var(--workspace-gap);
 }
 .sectionHead h2 {
   margin: 0;
@@ -593,24 +640,6 @@
   justify-content: center;
   padding: 22px;
 }
-.startHint {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 24px;
-  color: var(--muted);
-}
-.startHint strong {
-  color: var(--foreground-2);
-  font-size: 14px;
-}
-.startHint p {
-  font-size: 13px;
-  line-height: 1.7;
-}
-.startHint svg {
-  flex-shrink: 0;
-}
 .backdrop {
   position: fixed;
   z-index: 110;
@@ -752,12 +781,8 @@
   .workspace {
     grid-template-columns: 205px minmax(0, 1fr);
   }
-  .main {
-    padding: 24px 20px 48px;
-  }
-  .versionGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .versionGrid,
+  .settings,
   .purposes {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -765,22 +790,32 @@
     display: none;
   }
 }
+@media (min-width: 851px) {
+  .workspace {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .workspace :is(.main, .catalogResults) {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--muted) transparent;
+  }
+  .catalogResults {
+    margin-inline: -4px;
+    padding: 4px;
+  }
+}
 @media (max-width: 850px) {
   .workspace {
-    grid-template-columns: 1fr;
-  }
-  .catalog {
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-    padding: 16px 20px;
-  }
-  .catalogTitle {
-    padding-bottom: 10px;
+    grid-template-columns: minmax(0, 1fr);
   }
   .productList {
     display: flex;
     overflow-x: auto;
-    padding-bottom: 4px;
+    scroll-padding-inline: 4px;
+    padding: 4px;
+    margin: -4px;
   }
   .productItem {
     min-width: 220px;
@@ -789,14 +824,10 @@
   .catalogHelp {
     display: none;
   }
-  .search {
-    margin-bottom: 12px;
-  }
   .catalogEmpty {
-    padding: 8px 0;
+    padding: 4px 0;
     display: flex;
     align-items: center;
-    gap: 10px;
   }
   .maskBody {
     grid-template-columns: minmax(0, 1fr) 250px;
@@ -805,16 +836,18 @@
     padding: 16px;
   }
 }
-@media (max-width: 620px) {
-  .main {
-    padding: 20px 14px 40px;
+@media (max-width: 780px) {
+  .workspace {
+    --workspace-gap: 10px;
   }
+}
+@media (max-width: 620px) {
   .catalog {
     padding: 14px;
   }
   .editor,
   .creation {
-    padding: 18px 15px;
+    padding: 16px;
   }
   .sectionHead {
     align-items: flex-start;
@@ -833,9 +866,6 @@
   .twoColumns {
     grid-template-columns: 1fr;
     gap: 16px;
-  }
-  .settings {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .versionGrid {
     gap: 10px;
@@ -875,18 +905,21 @@
     width: 100%;
   }
   .steps {
-    gap: 7px;
+    gap: 5px;
     font-size: 11px;
   }
   .steps li {
-    gap: 5px;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 6px;
+    text-align: center;
   }
   .steps li:not(:last-child)::after {
-    width: 10px;
-    margin-inline: 2px;
+    display: none;
   }
-  .startHint {
-    padding: 15px 8px;
+  .workflowHeader {
+    padding: 12px;
   }
   .backdrop {
     padding: 10px;
