@@ -6,6 +6,7 @@ import concurrent.futures
 import hashlib
 import json
 from pathlib import Path
+import re
 import secrets
 import subprocess
 import tempfile
@@ -63,9 +64,21 @@ def main():
                 with urllib.request.urlopen(req, timeout=20) as response:
                     return response.status, response.headers, response.read()
 
-            pages = ['/', '/studio', '/inspiration', '/admin/login', '/robots.txt', '/sitemap.xml']
+            pages = ['/', '/studio', '/inspiration', '/admin/login', '/admin/operations',
+                     '/robots.txt', '/sitemap.xml']
             for path in pages:
                 assert request(path)[0] == 200, path
+            _, admin_headers, admin_html = request('/admin/login')
+            assert b'id="root"' in admin_html, 'Standalone admin was not served'
+            assert admin_headers.get('Cache-Control') == 'no-cache'
+            assert request('/admin/operations')[2] == admin_html, 'Admin deep links must use the SPA'
+            admin_assets = re.findall(rb'(?:src|href)="(/admin/assets/[^"]+)"', admin_html)
+            assert any(asset.endswith(b'.js') for asset in admin_assets)
+            assert any(asset.endswith(b'.css') for asset in admin_assets)
+            for asset in admin_assets:
+                _, asset_headers, asset_content = request(asset.decode('ascii'))
+                assert 'immutable' in asset_headers.get('Cache-Control', '')
+                assert asset_content != admin_html, asset
             assert b'Disallow: /' in request('/robots.txt')[2]
             assert request('/v1/health')[0] == 200
             credentials = {'username': 'admin', 'password': admin_password}

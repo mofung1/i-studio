@@ -20,12 +20,20 @@ ENV NEXT_PUBLIC_API_BASE_URL="" NEXT_PUBLIC_SITE_URL="" SITE_ENV=preview \
     NEXT_STANDALONE=1 NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
 
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS admin-build
+WORKDIR /admin
+RUN corepack enable
+COPY admin/package.json admin/pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
+COPY admin ./
+RUN pnpm build
+
 FROM caddy:2-alpine AS gateway
 
 FROM node:22-bookworm-slim
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.title="iStudio" \
-      org.opencontainers.image.description="iStudio web, API and gateway with the public inspiration library" \
+      org.opencontainers.image.description="iStudio web, administration, API and gateway with the public inspiration library" \
       org.opencontainers.image.source="https://github.com/mofung1/i-studio" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.revision=$VCS_REF
@@ -38,12 +46,14 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 \
 COPY --from=web-build /app/.next/standalone ./
 COPY --from=web-build /app/.next/static ./.next/static
 COPY --from=web-build /app/public ./public
+COPY --from=admin-build /admin/dist /srv/admin
 COPY --from=api-build /out/istudio-server /usr/local/bin/istudio-server
 COPY --from=gateway /usr/bin/caddy /usr/local/bin/caddy
 COPY --from=gateway /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY server/seed/inspiration-catalog.json /opt/istudio/inspiration/catalog.json
 COPY server/storage/uploads/inspiration/ /opt/istudio/inspiration/images/
 COPY LICENSE /opt/istudio/licenses/istudio-LICENSE
+COPY admin/LICENSE.shadcn-admin /opt/istudio/licenses/shadcn-admin-LICENSE
 COPY server/seed/awesome-gpt-image-2/LICENSE /opt/istudio/licenses/awesome-gpt-image-2-LICENSE
 COPY server/seed/awesome-gpt-image-2/README.md /opt/istudio/licenses/awesome-gpt-image-2-README.md
 COPY server/seed/evolink/LICENSE /opt/istudio/licenses/evolink-LICENSE

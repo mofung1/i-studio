@@ -75,6 +75,34 @@
   overflow: auto;
   background: var(--app-background);
 }
+.studio-back-to-top {
+  position: fixed;
+  z-index: 20;
+  inset-inline-end: calc(24px + env(safe-area-inset-right));
+  inset-block-end: calc(24px + env(safe-area-inset-bottom));
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--foreground);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+.studio-back-to-top:hover {
+  border-color: var(--line-strong);
+  background: var(--control-hover);
+}
+.studio-back-to-top:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+.studio-shell:has(.asset-manager-results > .library-feedback[role='status']) .studio-back-to-top {
+  margin-block-end: 44px;
+}
 .studio-content > .content-page,
 .studio-content > .studio-inspiration,
 .studio-content > .commerce-page,

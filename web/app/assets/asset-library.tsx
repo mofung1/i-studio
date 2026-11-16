@@ -503,6 +503,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     <StudioShell
       section={view === 'tasks' ? 'history' : 'assets'}
       title="我的资产"
+      backToTop="asset-records"
       actions={
         <Link
           className="studio-secondary"
@@ -799,6 +800,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
             )}
             <div
               ref={recordsRef}
+              id="asset-records"
               className="asset-records"
               role="region"
               aria-label={view === 'tasks' ? '创作记录内容' : '资产内容'}

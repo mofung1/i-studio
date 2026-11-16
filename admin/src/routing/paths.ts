@@ -24,6 +24,8 @@ export function adminReturnPath(value: string | null) {
 }
 
 export function studioHref(path = "/") {
-  const front = import.meta.env.VITE_WEB_ORIGIN || "http://127.0.0.1:33000";
+  const front =
+    import.meta.env.VITE_WEB_ORIGIN ||
+    (import.meta.env.DEV ? "http://127.0.0.1:33000" : window.location.origin);
   return new URL(path, front).href;
 }

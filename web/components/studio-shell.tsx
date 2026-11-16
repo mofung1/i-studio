@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AccountMenu } from './account-menu'
+import { BackToTop } from './back-to-top'
 import { WorkbenchRail, type StudioSection } from './workbench/workbench-rail'
 import { studioToolUrl } from '@/lib/studio-navigation'
 
@@ -12,6 +13,7 @@ export function StudioShell({
   subtitle,
   actions,
   projectId,
+  backToTop,
   children,
 }: {
   section: StudioSection
@@ -19,6 +21,7 @@ export function StudioShell({
   subtitle?: string
   actions?: ReactNode
   projectId?: string | null
+  backToTop?: true | string
   children: ReactNode
 }) {
   return (
@@ -70,6 +73,7 @@ export function StudioShell({
       <div className="studio-content" id="studio-main" tabIndex={-1}>
         {children}
       </div>
+      {backToTop && <BackToTop targetId={backToTop === true ? 'studio-main' : backToTop} />}
     </div>
   )
 }

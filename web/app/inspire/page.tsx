@@ -18,6 +18,7 @@ export default function InspirePage() {
     <StudioShell
       section="inspire"
       title="灵感"
+      backToTop
       actions={
         <div className={`inspiration-topbar-tools ${styles.topbarTools}`}>
           <Link className="studio-secondary" href="/inspire/submissions">

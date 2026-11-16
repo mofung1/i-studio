@@ -155,6 +155,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
     <StudioShell
       section="prompts"
       title="我的提示词"
+      backToTop
       actions={
         kind === 'prompt' ? (
           <button
