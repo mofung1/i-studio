@@ -9,6 +9,7 @@ export interface PublicImageModel {
   /** Older API deployments may omit capabilities; server validation remains authoritative. */
   capabilities?: {
     referenceImages: boolean
+    maskEditing?: boolean
     aspectRatios: string[]
     resolutions: string[]
   }

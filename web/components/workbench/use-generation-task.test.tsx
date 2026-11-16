@@ -9,8 +9,8 @@ vi.mock('@/components/account-provider', () => ({
 }))
 let hook: ReturnType<typeof useGenerationTask>
 let root: Root
-function Harness() {
-  const value = useGenerationTask('general:submission-test')
+function Harness({ scope = 'general:submission-test' }: { scope?: string }) {
+  const value = useGenerationTask(scope)
   useEffect(() => {
     hook = value
   })
@@ -170,4 +170,35 @@ it('clears visible generated images when the account signs out', async () => {
   expect(hook.resultHistory).toHaveLength(0)
   expect(hook.activeResult).toBeNull()
   expect(hook.generationTask).toBeNull()
+})
+
+it('restores only the selected product task even if the server list contains other products', async () => {
+  const tasks = [
+    { id: 'other', status: 'queued', input: { mode: 'general', productId: 'product-b' } },
+    { id: 'mine', status: 'queued', input: { mode: 'general', productId: 'product-a' } },
+  ]
+  const fetcher = vi.fn(async (url: string) =>
+    Response.json(url.includes('/tasks/mine') ? { task: tasks[1] } : { tasks }),
+  )
+  vi.stubGlobal('fetch', fetcher)
+  await act(async () => root.render(<Harness scope="product:product-a" />))
+  expect(hook.generationTask?.id).toBe('mine')
+  expect(
+    fetcher.mock.calls.some(([url]) => new URL(url).searchParams.get('productId') === 'product-a'),
+  ).toBe(true)
+})
+
+it('never restores a product generation into the ordinary image workbench', async () => {
+  const tasks = [
+    { id: 'product', status: 'queued', input: { mode: 'general', productId: 'product-a' } },
+    { id: 'ordinary', status: 'queued', input: { mode: 'general' } },
+  ]
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) =>
+      Response.json(url.includes('/tasks/ordinary') ? { task: tasks[1] } : { tasks }),
+    ),
+  )
+  await act(async () => root.render(<Harness />))
+  expect(hook.generationTask?.id).toBe('ordinary')
 })

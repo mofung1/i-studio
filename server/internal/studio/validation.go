@@ -27,6 +27,9 @@ func validateGenerationInput(input map[string]any) error {
 	if input == nil {
 		return fmt.Errorf("generation input must be an object")
 	}
+	if err := validateProductGenerationFields(input); err != nil {
+		return err
+	}
 	if input["model"] != nil {
 		if err := requireText(input, "model", 1, 200); err != nil {
 			return err

@@ -142,8 +142,11 @@ export function useGenerationTask(scopeKey = 'default') {
     const restoreTask = async () => {
       if (!token) return
       const savedId = pendingTaskId(scopeKey)
-      const [mode = 'general', taskType] = scopeKey.split(':')
+      const productId = scopeKey.startsWith('product:') ? scopeKey.slice('product:'.length) : ''
+      const [scopeMode = 'general', taskType] = scopeKey.split(':')
+      const mode = productId ? 'general' : scopeMode
       const params = new URLSearchParams({ limit: '50', mode })
+      if (productId) params.set('productId', productId)
       if (mode === 'commerce' && taskType) params.set('taskType', taskType)
       try {
         const response = await fetch(
@@ -166,8 +169,16 @@ export function useGenerationTask(scopeKey = 'default') {
         if (controller.signal.aborted || requestId !== submissionId.current) return
         const restored = savedId
           ? data.task
-          : data.tasks?.find((item) => activeStatuses.has(item.status))
+          : data.tasks?.find(
+              (item) =>
+                activeStatuses.has(item.status) &&
+                (productId
+                  ? item.input?.productId === productId
+                  : mode !== 'general' || !item.input?.productId),
+            )
         if (!restored || restored.input?.mode !== mode) return
+        if (productId && restored.input.productId !== productId) return
+        if (!productId && mode === 'general' && restored.input.productId) return
         if (restored.input.mode === 'commerce' && restored.input.taskType !== taskType) return
         setGenerationTask(restored)
         if (terminalStatuses.has(restored.status)) {

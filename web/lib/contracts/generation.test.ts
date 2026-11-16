@@ -1,8 +1,34 @@
 import { describe, expect, it } from 'vitest'
 
-import { generalGenerationInputSchema, productMainInputSchema } from './generation'
+import {
+  generationInputSchema,
+  generalGenerationInputSchema,
+  productMainInputSchema,
+} from './generation'
 
 describe('generation input contracts', () => {
+  it('preserves the product version and edit lineage through submission validation', () => {
+    const input = {
+      mode: 'general',
+      prompt: '只修改背景',
+      productId: 'product-1',
+      productVersion: 2,
+      productPurpose: 'main',
+      productInstructions: '只修改背景',
+      parentAssetId: 'result-1',
+      maskAssetId: 'mask-1',
+      count: 1,
+    }
+    expect(generationInputSchema.parse(input)).toMatchObject(input)
+    expect(generationInputSchema.safeParse({ ...input, count: 2 }).success).toBe(false)
+    expect(generationInputSchema.safeParse({ ...input, maskAssetId: undefined }).success).toBe(
+      false,
+    )
+    expect(generationInputSchema.safeParse({ ...input, productId: undefined }).success).toBe(false)
+    expect(generationInputSchema.safeParse({ ...input, productVersion: undefined }).success).toBe(
+      false,
+    )
+  })
   it('accepts configured models and keeps the selected endpoint', () => {
     const result = generalGenerationInputSchema.parse({
       mode: 'general',

@@ -62,6 +62,20 @@ func (s Handlers) registerGenerationRoutes(api *gin.RouterGroup) {
 }
 
 func (s Handlers) registerLibraryRoutes(api *gin.RouterGroup) {
+	registerMethods(api, "/commerce/products", s.CommerceProducts, "GET", "POST")
+	api.POST("/commerce/products/analyze", gin.WrapF(s.CommerceProductAnalyze))
+	product := func(c *gin.Context) {
+		s.CommerceProductByID(c.Writer, c.Request, c.Param("id"), "")
+	}
+	api.GET("/commerce/products/:id", product)
+	api.PATCH("/commerce/products/:id", product)
+	api.DELETE("/commerce/products/:id", product)
+	api.GET("/commerce/products/:id/versions", func(c *gin.Context) {
+		s.CommerceProductByID(c.Writer, c.Request, c.Param("id"), "versions")
+	})
+	api.POST("/commerce/products/:id/adopt", func(c *gin.Context) {
+		s.CommerceProductByID(c.Writer, c.Request, c.Param("id"), "adopt")
+	})
 	registerMethods(api, "/projects", s.Projects, "GET", "POST")
 	registerMethods(api, "/projects/:id", s.ProjectByID, "PATCH", "DELETE")
 	registerMethods(api, "/library/assets", s.LibraryAssets, "GET", "PATCH")

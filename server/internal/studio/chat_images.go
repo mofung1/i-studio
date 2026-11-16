@@ -93,6 +93,9 @@ func parseChatImages(raw []byte, key string) (providerTask, error) {
 	return providerTask{Status: "success", Images: images}, nil
 }
 func validateImageProtocolParameters(protocol string, input map[string]any) error {
+	if (input["sourceMask"] != nil || stringValue(input["maskAssetId"], "") != "") && protocol != "openai_images" {
+		return fmt.Errorf("当前渠道协议不支持遮罩编辑")
+	}
 	switch protocol {
 	case "openai_images", "openai_chat", "gemini_native":
 	default:

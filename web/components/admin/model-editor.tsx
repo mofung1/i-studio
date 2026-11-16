@@ -87,6 +87,9 @@ export function AdminModelEditor({
   function changeChannel(index: number, patch: Partial<ModelChannel>) {
     onChange({
       ...editing,
+      capabilities: channels[index]?.isActive
+        ? { ...capabilities, maskEditing: false }
+        : capabilities,
       channels: channels.map((channel, i) => (i === index ? { ...channel, ...patch } : channel)),
     })
   }
@@ -363,6 +366,7 @@ export function AdminModelEditor({
                           onChange={() =>
                             onChange({
                               ...editing,
+                              capabilities: { ...capabilities, maskEditing: false },
                               channels: channels.map((item, i) => ({
                                 ...item,
                                 isActive: i === index,
@@ -412,7 +416,13 @@ export function AdminModelEditor({
                         className="settings-command model-channel-remove"
                         aria-label={`删除绑定 ${endpoint?.name ?? ''}`}
                         onClick={() =>
-                          onChange({ ...editing, channels: channels.filter((_, i) => i !== index) })
+                          onChange({
+                            ...editing,
+                            capabilities: channel.isActive
+                              ? { ...capabilities, maskEditing: false }
+                              : capabilities,
+                            channels: channels.filter((_, i) => i !== index),
+                          })
                         }
                       >
                         <Trash2 data-icon="inline-start" aria-hidden="true" />
@@ -513,12 +523,35 @@ export function AdminModelEditor({
               onChange={(event) =>
                 onChange({
                   ...editing,
-                  capabilities: { ...capabilities, referenceImages: event.target.checked },
+                  capabilities: {
+                    ...capabilities,
+                    referenceImages: event.target.checked,
+                    maskEditing: event.target.checked ? capabilities.maskEditing : false,
+                  },
                 })
               }
             />
             支持参考图
           </label>
+          <label className="model-reference-toggle">
+            <input
+              type="checkbox"
+              checked={capabilities.maskEditing ?? false}
+              disabled={
+                !capabilities.referenceImages || primaryEndpoint?.protocol !== 'openai_images'
+              }
+              onChange={(event) =>
+                onChange({
+                  ...editing,
+                  capabilities: { ...capabilities, maskEditing: event.target.checked },
+                })
+              }
+            />
+            支持局部修改（已验证遮罩编辑）
+          </label>
+          <p className="model-editor-hint">
+            验证当前主渠道的图片编辑与遮罩参数后再开启。更换渠道或上游模型时请重新验证。
+          </p>
           {(['aspectRatios', 'resolutions'] as const).map((field) => (
             <div key={field} className="model-capability-row">
               <span>{field === 'aspectRatios' ? '画面比例' : '分辨率'}</span>

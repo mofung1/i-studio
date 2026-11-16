@@ -104,6 +104,25 @@ async function save() {
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })),
   )
 }
+it('requires re-enabling mask editing after changing the active upstream model', async () => {
+  await act(async () => root.render(<Editor />))
+  const mask = Array.from(container.querySelectorAll<HTMLLabelElement>('label'))
+    .find((label) => label.textContent?.includes('支持局部修改'))!
+    .querySelector<HTMLInputElement>('input')!
+  await act(async () => mask.click())
+  await save()
+  expect(saved?.capabilities.maskEditing).toBe(true)
+  const upstream = container.querySelector<HTMLInputElement>('input[maxlength="200"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+      upstream,
+      'another-model',
+    )
+    upstream.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await save()
+  expect(saved?.capabilities.maskEditing).toBe(false)
+})
 it('saves and clears the optional public usage suggestion with the model', async () => {
   await act(async () => root.render(<Editor />))
   const input = container.querySelector<HTMLTextAreaElement>('textarea[maxlength="200"]')!

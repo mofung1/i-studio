@@ -10,7 +10,7 @@ import (
 // Only explicitly removed, hidden assets can be collected. Visible unused
 // materials belong to the user and must not be treated as temporary garbage.
 func (s *Service) cleanupHiddenAssets() error {
-	rows, err := s.db.Query(`SELECT a.id,a.user_id FROM assets a WHERE a.hidden_at<now()-interval '7 days' AND NOT EXISTS(SELECT 1 FROM generation_tasks WHERE user_id=a.user_id AND ` + repository.AssetReferencePredicate("a.id") + `) ORDER BY a.hidden_at LIMIT 100`)
+	rows, err := s.db.Query(`SELECT a.id,a.user_id FROM assets a WHERE a.hidden_at<now()-interval '7 days' AND NOT EXISTS(SELECT 1 FROM generation_tasks WHERE user_id=a.user_id AND ` + repository.AssetReferencePredicate("a.id") + `) AND NOT EXISTS(SELECT 1 FROM commerce_products WHERE user_id=a.user_id AND ` + repository.ProductAssetReferencePredicate("a.id") + `) ORDER BY a.hidden_at LIMIT 100`)
 	if err != nil {
 		return err
 	}

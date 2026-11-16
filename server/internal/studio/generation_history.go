@@ -12,7 +12,7 @@ import (
 func (s *Service) listGenerationTasks(w http.ResponseWriter, r *http.Request, uid string) {
 	q := libraryQuery{}
 	q.add("t.user_id=$%d", uid)
-	for _, item := range []struct{ key, condition string }{{"mode", "t.input->>'mode'=$%d"}, {"taskType", "t.input->>'taskType'=$%d"}, {"model", "t.input->>'model'=$%d"}, {"status", "t.status=$%d"}} {
+	for _, item := range []struct{ key, condition string }{{"mode", "t.input->>'mode'=$%d"}, {"productId", "t.input->>'productId'=$%d"}, {"taskType", "t.input->>'taskType'=$%d"}, {"model", "t.input->>'model'=$%d"}, {"status", "t.status=$%d"}} {
 		if value := r.URL.Query().Get(item.key); value != "" {
 			q.add(item.condition, value)
 		}

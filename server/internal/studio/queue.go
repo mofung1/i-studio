@@ -489,7 +489,7 @@ func (s *Service) attachSourceImages(input map[string]any) error {
 	if len(images) > 0 {
 		input["sourceImages"] = images
 	}
-	return nil
+	return s.attachSourceMask(input)
 }
 
 func (s *Service) taskInput(id string) (map[string]any, bool) {

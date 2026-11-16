@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -118,11 +119,40 @@ func (p *imageProtocolTransport) submitOpenAIEdit(ctx context.Context, model, pr
 			return providerTask{}, err
 		}
 	}
+	if mask, ok := input["sourceMask"].(map[string]string); ok {
+		data, err := base64.StdEncoding.DecodeString(mask["data"])
+		if err != nil || mask["mime"] != "image/png" || len(data) == 0 {
+			return providerTask{}, fmt.Errorf("局部修改选区格式不正确")
+		}
+		headers := make(textproto.MIMEHeader)
+		headers.Set("Content-Disposition", `form-data; name="mask"; filename="mask.png"`)
+		headers.Set("Content-Type", "image/png")
+		part, err := writer.CreatePart(headers)
+		if err != nil {
+			return providerTask{}, err
+		}
+		if _, err = part.Write(data); err != nil {
+			return providerTask{}, err
+		}
+	} else if stringValue(input["maskAssetId"], "") != "" {
+		return providerTask{}, fmt.Errorf("局部修改选区未加载")
+	}
 	fields := map[string]string{
 		"model":  model,
 		"prompt": prompt,
 		"n":      "1",
 		"size":   openAISize(stringValue(input["aspectRatio"], "1:1"), stringValue(input["resolution"], "1K")),
+	}
+	if input["sourceMask"] != nil {
+		data, err := base64.StdEncoding.DecodeString(images[0]["data"])
+		if err != nil {
+			return providerTask{}, fmt.Errorf("待修改图片无法读取")
+		}
+		config, _, err := image.DecodeConfig(bytes.NewReader(data))
+		if err != nil {
+			return providerTask{}, fmt.Errorf("待修改图片尺寸无法读取")
+		}
+		fields["size"] = fmt.Sprintf("%dx%d", config.Width, config.Height)
 	}
 	for name, value := range fields {
 		if err := writer.WriteField(name, value); err != nil {

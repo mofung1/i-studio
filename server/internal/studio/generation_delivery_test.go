@@ -271,7 +271,7 @@ func TestRecoveryAfterLastImageSettlesWithoutProviderOrNewSubmission(t *testing.
 
 func TestPublicCapabilitiesExposeOnlyModelParameterConstraints(t *testing.T) {
 	s, model, _ := operationTestServer(t)
-	caps := modelCapabilities{false, []string{"3:4"}, []string{"1K"}}
+	caps := modelCapabilities{ReferenceImages: false, AspectRatios: []string{"3:4"}, Resolutions: []string{"1K"}}
 	raw, _ := json.Marshal(caps)
 	if _, err := s.db.Exec("UPDATE public_models SET capabilities=$1::jsonb WHERE id=$2", raw, model); err != nil {
 		t.Fatal(err)

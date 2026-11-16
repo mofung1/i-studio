@@ -8,12 +8,13 @@ import (
 
 type modelCapabilities struct {
 	ReferenceImages bool     `json:"referenceImages"`
+	MaskEditing     bool     `json:"maskEditing"`
 	AspectRatios    []string `json:"aspectRatios"`
 	Resolutions     []string `json:"resolutions"`
 }
 
 func defaultModelCapabilities() modelCapabilities {
-	return modelCapabilities{true, []string{"1:1", "3:4", "4:3", "9:16", "16:9"}, []string{"1K", "2K", "4K"}}
+	return modelCapabilities{ReferenceImages: true, AspectRatios: []string{"1:1", "3:4", "4:3", "9:16", "16:9"}, Resolutions: []string{"1K", "2K", "4K"}}
 }
 
 type modelChannel struct {
@@ -111,6 +112,9 @@ func resolveChannel(tx *sql.Tx, modelID string) (endpointConfig, error) {
 	return e, err
 }
 func validateModelParameters(c modelCapabilities, input map[string]any) error {
+	if stringValue(input["maskAssetId"], "") != "" && !c.MaskEditing {
+		return fmt.Errorf("当前模型未启用局部修改，请选择已验证支持遮罩编辑的模型")
+	}
 	contains := func(values []string, value string) bool {
 		for _, v := range values {
 			if v == value {

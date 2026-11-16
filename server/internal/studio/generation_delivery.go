@@ -121,6 +121,10 @@ func (run *generationRun) save(ctx context.Context, position int, encrypted stri
 	if err != nil {
 		return "", fmt.Errorf("生成图片保存失败: %w", err)
 	}
+	data, mime, err = s.protectMaskedDelivery(ctx, run.id, data, mime)
+	if err != nil {
+		return "", fmt.Errorf("局部修改保存失败: %w", err)
+	}
 	ext := extensionForMime(mime)
 	assetID := idgen.New()
 	key := s.newStorageKey(generatedImageStorageKey(time.Now().In(generationStorageLocation), idgen.New(), ext))

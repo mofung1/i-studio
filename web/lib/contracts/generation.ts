@@ -46,6 +46,12 @@ const imageSettingsSchema = z.object({
   resolution: resolutionSchema.default('2K'),
   count: generationCountSchema,
   projectId: z.string().trim().min(1, '项目 ID 不能为空').optional(),
+  productId: z.string().trim().min(1).max(200).optional(),
+  productVersion: z.number().int().positive().optional(),
+  productPurpose: z.enum(['main', 'scene', 'detail', 'selling-point']).optional(),
+  productInstructions: z.string().trim().max(2000).optional(),
+  parentAssetId: z.string().trim().min(1).max(200).optional(),
+  maskAssetId: z.string().trim().min(1).max(200).optional(),
 })
 
 const productAssetsSchema = z
@@ -203,10 +209,32 @@ export const commerceGenerationInputSchema = z
     }
   })
 
-export const generationInputSchema = z.union([
-  generalGenerationInputSchema,
-  commerceGenerationInputSchema,
-])
+export const generationInputSchema = z
+  .union([generalGenerationInputSchema, commerceGenerationInputSchema])
+  .superRefine((input, ctx) => {
+    if (
+      input.productId &&
+      (input.mode !== 'general' || !input.productVersion || !input.productPurpose)
+    ) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: '请选择已保存的商品档案和图片用途' })
+    }
+    if (
+      !input.productId &&
+      (input.productVersion ||
+        input.productPurpose ||
+        input.productInstructions !== undefined ||
+        input.parentAssetId ||
+        input.maskAssetId)
+    ) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: '商品生成参数需要关联商品档案' })
+    }
+    if (
+      (input.maskAssetId || input.parentAssetId) &&
+      (!input.maskAssetId || !input.parentAssetId || input.count !== 1)
+    ) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: '局部修改需要原图和选区，每次修改一张' })
+    }
+  })
 
 export type GeneralGenerationInput = z.infer<typeof generalGenerationInputSchema>
 export type CommerceGenerationInput = z.infer<typeof commerceGenerationInputSchema>

@@ -83,3 +83,13 @@ func TestTaskListRequiresAuth(t *testing.T) {
 		t.Fatalf("expected 401 without a token, got %d", recorder.Code)
 	}
 }
+
+func TestTaskListFiltersOwnedProductTasks(t *testing.T) {
+	s, token := newTaskListServer(t)
+	s.tasks["product-task"] = domain.GenerationTask{ID: "product-task", UserID: "user-1", Status: "processing", Input: map[string]any{"mode": "general", "productId": "product-a"}}
+	s.tasks["foreign-task"] = domain.GenerationTask{ID: "foreign-task", UserID: "user-2", Status: "processing", Input: map[string]any{"mode": "general", "productId": "product-a"}}
+	items := listTasks(t, s, token, "?mode=general&productId=product-a")
+	if len(items) != 1 || items[0].ID != "product-task" {
+		t.Fatalf("product filter leaked or mixed tasks: %#v", items)
+	}
+}

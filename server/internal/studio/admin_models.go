@@ -131,9 +131,14 @@ func (s *Service) adminModels(w http.ResponseWriter, r *http.Request, suffix str
 	}
 	for _, c := range m.Channels {
 		var purpose string
+		var protocol string
 		var enabled bool
-		if err = tx.QueryRow("SELECT purpose,enabled FROM ai_endpoints WHERE id=$1", c.EndpointID).Scan(&purpose, &enabled); err != nil || purpose != "image" || (c.IsActive && !enabled) {
+		if err = tx.QueryRow("SELECT purpose,enabled,protocol FROM ai_endpoints WHERE id=$1", c.EndpointID).Scan(&purpose, &enabled, &protocol); err != nil || purpose != "image" || (c.IsActive && !enabled) {
 			s.error(w, 400, "MODEL_ENDPOINT_INVALID", "主渠道必须使用已启用的生图服务")
+			return
+		}
+		if c.IsActive && m.Capabilities.MaskEditing && protocol != "openai_images" {
+			s.error(w, 400, "MODEL_MASK_UNSUPPORTED", "局部修改需要支持遮罩编辑的 Images 渠道")
 			return
 		}
 	}
@@ -189,6 +194,9 @@ func (s *Service) adminModels(w http.ResponseWriter, r *http.Request, suffix str
 	s.json(w, 200, map[string]string{"id": id})
 }
 func validateModelConfiguration(m publicModel) error {
+	if m.Capabilities.MaskEditing && !m.Capabilities.ReferenceImages {
+		return fmt.Errorf("局部修改需要启用参考图能力")
+	}
 	if utf8.RuneCountInString(m.UsageHint) > 200 {
 		return fmt.Errorf("使用建议最多 200 个字符")
 	}

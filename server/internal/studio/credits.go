@@ -81,8 +81,22 @@ func (s *Service) generationQuote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) createChargedTask(w http.ResponseWriter, r *http.Request, uid string, input map[string]any) {
-	for _, key := range []string{"generationPrompts", "sourceImages", "protocolClient", "moduleHint", "taskId"} {
+	for _, key := range []string{"generationPrompts", "sourceImages", "sourceMask", "protocolClient", "moduleHint", "taskId", "productSnapshot"} {
 		delete(input, key)
+	}
+	if err := s.hydrateProductGeneration(uid, input); err != nil {
+		s.operationFailure(w, err)
+		return
+	}
+	if input["productId"] != nil {
+		if err := validateGenerationInput(input); err != nil {
+			s.error(w, 400, "PRODUCT_INPUT_INVALID", err.Error())
+			return
+		}
+	}
+	if err := s.validateProductMask(uid, input); err != nil {
+		s.error(w, 400, "EDIT_MASK_INVALID", err.Error())
+		return
 	}
 
 	expected, err := strconv.ParseInt(r.Header.Get("X-Expected-Unit-Price"), 10, 64)
@@ -173,6 +187,9 @@ func (s *Service) reserveGeneration(uid, key string, expected int64, input map[s
 	}
 	if err := validateInputOwnershipTx(tx, uid, input); err != nil {
 		return domain.GenerationTask{}, false, &operationError{400, "GENERATION_ASSET_INVALID", err.Error()}
+	}
+	if err := validateProductOwnershipTx(tx, uid, input); err != nil {
+		return domain.GenerationTask{}, false, err
 	}
 	if _, err = tx.Exec("SELECT pg_advisory_xact_lock(79140001)"); err != nil {
 		return domain.GenerationTask{}, false, err

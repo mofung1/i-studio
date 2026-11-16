@@ -10,11 +10,13 @@ export interface ModelChannel {
 }
 export interface ModelCapabilities {
   referenceImages: boolean
+  maskEditing?: boolean
   aspectRatios: string[]
   resolutions: string[]
 }
 export const defaultModelCapabilities: ModelCapabilities = {
   referenceImages: true,
+  maskEditing: false,
   aspectRatios: ['1:1', '3:4', '4:3', '9:16', '16:9'],
   resolutions: ['1K', '2K', '4K'],
 }

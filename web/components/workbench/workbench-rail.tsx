@@ -35,6 +35,7 @@ export type StudioSection =
   | 'assets'
   | 'settings'
   | 'prompts'
+  | 'products'
 
 interface WorkbenchRailProps {
   mode?: WorkbenchMode
@@ -191,6 +192,16 @@ export function WorkbenchRail({
             <span>AI 生图</span>
           </Link>
         )}
+        <Link
+          href={preserveStudioProject('/products', project)}
+          className={section === 'products' ? 'active' : ''}
+          aria-label="商品工作室"
+          title="商品工作室"
+          aria-current={section === 'products' ? 'page' : undefined}
+        >
+          <Box size={18} />
+          <span>商品工作室</span>
+        </Link>
         <Link
           href={preserveStudioProject('/commerce', project)}
           className={section === 'commerce' ? 'active' : ''}

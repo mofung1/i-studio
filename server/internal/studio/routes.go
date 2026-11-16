@@ -10,6 +10,9 @@ import (
 
 func (s *Service) router() *gin.Engine {
 	return httpapi.NewRouter(httpapi.Handlers{
+		CommerceProducts:               s.commerceProducts,
+		CommerceProductByID:            s.commerceProductByID,
+		CommerceProductAnalyze:         s.commerceProductAnalyze,
 		FeedbackCreate:                 s.feedbackCreate,
 		FeedbackImage:                  s.feedbackImage,
 		AdminFeedback:                  s.adminFeedback,

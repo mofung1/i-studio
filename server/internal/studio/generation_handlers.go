@@ -64,6 +64,7 @@ func (s *Service) tasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodGet {
 		projectID := strings.TrimSpace(r.URL.Query().Get("projectId"))
+		productID := strings.TrimSpace(r.URL.Query().Get("productId"))
 		mode := strings.TrimSpace(r.URL.Query().Get("mode"))
 		taskType := strings.TrimSpace(r.URL.Query().Get("taskType"))
 		limit := clampInt(parseQueryInt(r.URL.Query().Get("limit"), 50), 1, 200)
@@ -71,6 +72,9 @@ func (s *Service) tasksHandler(w http.ResponseWriter, r *http.Request) {
 		list := make([]domain.GenerationTask, 0, len(s.tasks))
 		for _, item := range s.tasks {
 			if item.UserID != userID {
+				continue
+			}
+			if productID != "" && domain.TaskInputField(item.Input, "productId") != productID {
 				continue
 			}
 			if projectID != "" && item.ProjectID != projectID {

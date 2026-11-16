@@ -10,16 +10,22 @@ import (
 	"github.com/istudio/server/internal/domain"
 )
 
-const assetReferenceSQL = `(COALESCE(input->'productAssetIds','[]'::jsonb) ? $2 OR COALESCE(input->'referenceAssetIds','[]'::jsonb) ? $2 OR input->>'modelAssetId'=$2 OR input->>'sceneAssetId'=$2)`
+const assetReferenceSQL = `(COALESCE(input->'productAssetIds','[]'::jsonb) ? $2 OR COALESCE(input->'referenceAssetIds','[]'::jsonb) ? $2 OR input->>'modelAssetId'=$2 OR input->>'sceneAssetId'=$2 OR input->>'parentAssetId'=$2 OR input->>'maskAssetId'=$2)`
+
+const productAssetReferenceSQL = `(product_asset_ids ? $2 OR reference_asset_ids ? $2)`
 
 func AssetReferences(q Queryer, uid, id, exceptTask string) (int, int, error) {
 	var count, active int
-	err := q.QueryRow(`SELECT count(*),count(*) FILTER (WHERE status IN ('queued','processing','waiting_provider')) FROM generation_tasks WHERE user_id=$1 AND `+assetReferenceSQL+` AND id<>$3`, uid, id, exceptTask).Scan(&count, &active)
+	err := q.QueryRow(`SELECT count(*)+(SELECT count(*) FROM commerce_products WHERE user_id=$1 AND `+productAssetReferenceSQL+`),count(*) FILTER (WHERE status IN ('queued','processing','waiting_provider')) FROM generation_tasks WHERE user_id=$1 AND `+assetReferenceSQL+` AND id<>$3`, uid, id, exceptTask).Scan(&count, &active)
 	return count, active, err
 }
 
 func AssetReferencePredicate(idColumn string) string {
 	return strings.ReplaceAll(assetReferenceSQL, "$2", idColumn)
+}
+
+func ProductAssetReferencePredicate(idColumn string) string {
+	return strings.ReplaceAll(productAssetReferenceSQL, "$2", idColumn)
 }
 
 func UserByUsername(db *sql.DB, username string) (domain.User, bool, error) {

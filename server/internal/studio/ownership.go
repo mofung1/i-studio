@@ -54,7 +54,7 @@ func validateOwnedInput(userID string, input map[string]any, ownsProject, ownsAs
 			}
 		}
 	}
-	for _, key := range []string{"modelAssetId", "sceneAssetId"} {
+	for _, key := range []string{"modelAssetId", "sceneAssetId", "parentAssetId", "maskAssetId"} {
 		if id, _ := input[key].(string); id != "" && !ownsAsset(userID, id) {
 			return fmt.Errorf("素材不存在或无权访问")
 		}

@@ -5,6 +5,9 @@ import "net/http"
 // Handlers supplies application operations to the transport without coupling
 // routing or middleware to database, AI, storage, or billing implementations.
 type Handlers struct {
+	CommerceProducts               func(http.ResponseWriter, *http.Request)
+	CommerceProductByID            func(http.ResponseWriter, *http.Request, string, string)
+	CommerceProductAnalyze         func(http.ResponseWriter, *http.Request)
 	FeedbackCreate                 func(http.ResponseWriter, *http.Request)
 	FeedbackImage                  func(http.ResponseWriter, *http.Request, string, string, bool)
 	AdminFeedback                  func(http.ResponseWriter, *http.Request)
