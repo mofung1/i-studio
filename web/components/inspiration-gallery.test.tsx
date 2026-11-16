@@ -59,9 +59,9 @@ let state = initialState()
 const savePrompt = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/clipboard', () => ({ copyText: vi.fn() }))
 vi.mock('./save-personal-prompt', () => ({
-  SavePersonalPrompt: ({ seed }: { seed: unknown }) => (
-    <button type="button" onClick={() => savePrompt(seed)}>
-      存为私有提示词
+  SavePersonalPrompt: ({ seed, iconOnly }: { seed: unknown; iconOnly?: boolean }) => (
+    <button type="button" aria-label="保存到我的提示词" onClick={() => savePrompt(seed)}>
+      {!iconOnly && '存为私有提示词'}
     </button>
   ),
 }))
@@ -108,11 +108,10 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('uses one card control and moves template information and actions into the detail', async () => {
+it('opens the detail from the card artwork or title and restores focus on close', async () => {
   await render()
   const card = host.querySelector('article')!
   const trigger = button(`查看${fixture.title}的提示词`, card)
-  expect(card.querySelectorAll('button, a')).toHaveLength(1)
   expect(trigger.textContent).toBe(fixture.title)
   trigger.focus()
   await act(async () => trigger.click())
@@ -125,6 +124,22 @@ it('uses one card control and moves template information and actions into the de
   )
   await act(async () => button('关闭', detail()).click())
   expect(document.activeElement).toBe(trigger)
+})
+
+it('copies from a quick action without opening the detail and falls back to it if copying fails', async () => {
+  vi.mocked(copyText).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('denied'))
+  await render()
+  const quickActions = host.querySelector('article [role="group"]')!
+  expect(quickActions.querySelector('a')?.getAttribute('href')).toBe(
+    '/studio?mode=general&inspirationId=reference-template',
+  )
+  await act(async () => button('复制提示词', quickActions).click())
+  expect(copyText).toHaveBeenCalledWith(fixture.prompt)
+  expect(host.querySelector('[role="status"]')?.textContent).toBe('提示词已复制')
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  await act(async () => button('已复制', quickActions).click())
+  expect(detail().querySelector('[role="alert"]')?.textContent).toContain('手动复制')
+  expect(detail().textContent).toContain(fixture.prompt)
 })
 
 it('copies from the detail and keeps the personal prompt seed available there', async () => {
@@ -150,6 +165,15 @@ it('passes the same complete template from an embedded detail dialog', async () 
   await act(async () => button('去生图', detail()).click())
   expect(apply).toHaveBeenCalledWith(inspirationTemplate(fixture))
   expect(apply.mock.calls[0]![0]).not.toHaveProperty('imageUrl')
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+})
+
+it('uses the complete template from the quick handoff without opening the detail', async () => {
+  const apply = vi.fn()
+  await render(apply)
+  const quickActions = host.querySelector('article [role="group"]')!
+  await act(async () => button('去生图', quickActions).click())
+  expect(apply).toHaveBeenCalledExactlyOnceWith(inspirationTemplate(fixture))
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 

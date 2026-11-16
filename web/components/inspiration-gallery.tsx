@@ -31,9 +31,11 @@ import styles from './inspiration-gallery.module.css'
 interface InspirationGalleryProps {
   onUsePrompt?: (template: InspirationTemplate) => void
 }
-interface InspirationCardProps {
+interface InspirationCardProps extends InspirationGalleryProps {
   item: InspirationPrompt
+  copied: boolean
   onInspect: (item: InspirationPrompt) => void
+  onCopy: (item: InspirationPrompt) => void
 }
 
 function InspirationImage({ item, className }: { item: InspirationPrompt; className?: string }) {
@@ -63,29 +65,45 @@ function UseTemplate({
   item,
   onUsePrompt,
   className,
-}: InspirationGalleryProps & { item: InspirationPrompt; className?: string }) {
+  compact = false,
+}: InspirationGalleryProps & { item: InspirationPrompt; className?: string; compact?: boolean }) {
+  const label = '去生图'
+  const actionProps = {
+    className,
+    'aria-label': label,
+    title: compact ? label : undefined,
+  }
   const content = (
     <>
-      去生图
+      <span className={compact ? styles.quickUseLabel : undefined}>{label}</span>
       <ArrowUpRight size={15} aria-hidden="true" />
     </>
   )
   return onUsePrompt ? (
-    <button
-      type="button"
-      className={className}
-      onClick={() => onUsePrompt(inspirationTemplate(item))}
-    >
+    <button type="button" {...actionProps} onClick={() => onUsePrompt(inspirationTemplate(item))}>
       {content}
     </button>
   ) : (
-    <Link className={className} href={inspirationWorkbenchUrl(item.id)}>
+    <Link
+      {...actionProps}
+      href={inspirationWorkbenchUrl(item.id)}
+      prefetch={compact ? false : undefined}
+    >
       {content}
     </Link>
   )
 }
 
-function InspirationCard({ item, onInspect }: InspirationCardProps) {
+function promptSeed(item: InspirationPrompt) {
+  return {
+    title: item.title,
+    prompt: item.prompt,
+    source: item.source || '发现灵感',
+    favorite: true,
+  }
+}
+
+function InspirationCard({ item, copied, onInspect, onCopy, onUsePrompt }: InspirationCardProps) {
   return (
     <article className={styles.card}>
       <button
@@ -105,6 +123,19 @@ function InspirationCard({ item, onInspect }: InspirationCardProps) {
           <ChevronRight size={14} aria-hidden="true" />
         </span>
       </button>
+      <div className={styles.cardActions} role="group" aria-label={`${item.title}的快捷操作`}>
+        <UseTemplate item={item} onUsePrompt={onUsePrompt} className={styles.quickUse} compact />
+        <button
+          type="button"
+          className={styles.quickIcon}
+          aria-label={copied ? '已复制' : '复制提示词'}
+          title={copied ? '已复制' : '复制提示词'}
+          onClick={() => onCopy(item)}
+        >
+          {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+        </button>
+        <SavePersonalPrompt seed={promptSeed(item)} className={styles.quickIcon} iconOnly />
+      </div>
     </article>
   )
 }
@@ -196,7 +227,7 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
     loadMore,
   )
 
-  async function copyPrompt(item: InspirationPrompt) {
+  async function copyPrompt(item: InspirationPrompt, showDetailsOnFailure = false) {
     setCopyError('')
     try {
       await copyText(item.prompt)
@@ -207,6 +238,7 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
     } catch {
       if (!active.current) return
       setCopyError('浏览器未允许复制，可选中下方提示词后手动复制。')
+      if (showDetailsOnFailure) setSelectedPrompt((current) => current ?? item)
     }
   }
   function inspect(item: InspirationPrompt) {
@@ -214,11 +246,23 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
     setSelectedPrompt(item)
   }
   function renderCard(item: InspirationPrompt) {
-    return <InspirationCard key={item.id} item={item} onInspect={inspect} />
+    return (
+      <InspirationCard
+        key={item.id}
+        item={item}
+        copied={copiedId === item.id}
+        onInspect={inspect}
+        onCopy={(prompt) => void copyPrompt(prompt, true)}
+        onUsePrompt={onUsePrompt}
+      />
+    )
   }
 
   return (
     <div className={styles.gallery}>
+      <span className="sr-only" role="status">
+        {!selectedPrompt && copiedId ? '提示词已复制' : ''}
+      </span>
       <header className={styles.intro}>
         {onUsePrompt && <h2 className={styles.title}>选择灵感模板</h2>}
         <div className={styles.search} role="search">
@@ -405,14 +449,7 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
                 )}
                 {copiedId === selectedPrompt.id ? '已复制' : '复制提示词'}
               </button>
-              <SavePersonalPrompt
-                seed={{
-                  title: selectedPrompt.title,
-                  prompt: selectedPrompt.prompt,
-                  source: selectedPrompt.source || '发现灵感',
-                  favorite: true,
-                }}
-              />
+              <SavePersonalPrompt seed={promptSeed(selectedPrompt)} />
               <UseTemplate
                 item={selectedPrompt}
                 className="studio-primary"
@@ -432,7 +469,13 @@ export function InspirationGallery({ onUsePrompt }: InspirationGalleryProps) {
             <div className={styles.detailArtwork}>
               <InspirationImage item={selectedPrompt} className={styles.detailImage} />
             </div>
-            <div className={styles.detailText}>
+            <div
+              className={styles.detailText}
+              role="region"
+              aria-label="提示词详情"
+              tabIndex={0}
+              data-gallery-scroll
+            >
               <span className="sr-only" role="status">
                 {copiedId === selectedPrompt.id ? '提示词已复制' : ''}
               </span>

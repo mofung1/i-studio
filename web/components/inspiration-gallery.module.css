@@ -230,6 +230,7 @@
 
 .card {
   container: inspiration-card / inline-size;
+  position: relative;
   min-width: 0;
 }
 
@@ -269,6 +270,98 @@
   height: 100%;
   object-fit: cover;
   object-position: center 34%;
+}
+
+.cardActions {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-end: 6px;
+  display: none;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 9px;
+  background: rgb(16 18 23 / 90%);
+}
+
+@media (any-hover: hover) and (any-pointer: fine) {
+  .cardActions {
+    display: grid;
+    grid-auto-flow: column;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .card:is(:hover, :has(:focus-visible)) .cardActions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.quickUse,
+.quickIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.quickUse {
+  padding-inline: 7px;
+  color: #17191d;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.quickUse:hover {
+  background: #e9ebef;
+}
+
+.quickIcon {
+  color: #fff;
+  background: transparent;
+}
+
+.quickIcon:hover:not(:disabled) {
+  background: rgb(255 255 255 / 18%);
+}
+
+.quickIcon:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@container inspiration-card (width < 158px) {
+  .quickUseLabel {
+    display: none;
+  }
+}
+
+@container inspiration-card (width < 112px) {
+  .cardActions {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    inline-size: min(71px, calc(100% - 12px));
+  }
+
+  .quickUse {
+    grid-column: 1 / -1;
+  }
+
+  .quickIcon {
+    min-width: 0;
+  }
 }
 
 .imageFallback {
@@ -481,6 +574,39 @@
   min-width: 0;
 }
 
+.detailText:focus-visible {
+  outline: 2px solid var(--line-strong);
+  outline-offset: -2px;
+  border-radius: 7px;
+}
+
+@media (width > 780px) {
+  :global(.info-dialog-with-footer) > .detailContent:global(.dialog-scroll-body) {
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .detailArtwork {
+    grid-template-rows: minmax(0, 1fr);
+    min-height: min(140px, 100%);
+    max-height: 100%;
+  }
+
+  .detailImage {
+    max-height: min(100%, 55dvh, 520px);
+  }
+
+  .detailText {
+    align-content: start;
+    min-height: 0;
+    max-height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-inline-end: 6px;
+  }
+}
+
 .detailText .referenceTag {
   align-items: flex-start;
   margin: 0;
@@ -539,6 +665,16 @@
 .gallery :is(button, a):focus-visible {
   outline: 2px solid var(--line-strong);
   outline-offset: 2px;
+}
+
+.gallery .quickIcon:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+}
+
+.gallery .quickUse:focus-visible {
+  outline: 2px solid #17191d;
+  outline-offset: -3px;
 }
 
 .categoryRail button:focus-visible {
