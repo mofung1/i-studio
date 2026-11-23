@@ -125,6 +125,7 @@ export function HistoryDrawer({
         className={`history-drawer ${open ? 'is-open' : ''}`}
         aria-label="历史记录"
         aria-hidden={!open}
+        inert={!open}
       >
         <header className="history-drawer-head">
           <h2>

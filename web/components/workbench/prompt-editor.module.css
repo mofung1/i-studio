@@ -5,8 +5,8 @@
   border-radius: 12px;
   background: var(--surface);
   transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+    border-color var(--motion-feedback) var(--motion-ease-out),
+    box-shadow var(--motion-feedback) var(--motion-ease-out);
 }
 
 .editor:focus-within {
@@ -248,7 +248,15 @@
   display: grid;
   place-items: center;
   padding: 24px;
+}
+
+.backdrop::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
   background: rgb(17 17 17 / 40%);
+  pointer-events: none;
 }
 
 .dialog {
@@ -266,6 +274,29 @@
   color: var(--foreground);
   background: var(--surface);
   box-shadow: var(--shadow-lg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .backdrop::before {
+    animation: prompt-backdrop-in var(--motion-content) var(--motion-ease-out);
+  }
+
+  .dialog {
+    animation: prompt-dialog-in var(--motion-panel) var(--motion-ease-out);
+  }
+}
+
+@keyframes prompt-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes prompt-dialog-in {
+  from {
+    opacity: 0.9;
+    transform: translateY(var(--motion-panel-offset)) scale(var(--motion-panel-scale));
+  }
 }
 
 .dialogHeader {

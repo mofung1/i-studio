@@ -323,6 +323,7 @@ export function BasicSettings(props: BasicSettingsProps) {
           role="dialog"
           aria-label="图片参数"
           className="basic-settings-popover general-parameter-popover"
+          data-positioned={position ? '' : undefined}
           style={{
             top: position?.top ?? 0,
             left: position?.left ?? 0,

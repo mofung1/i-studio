@@ -173,16 +173,20 @@
     touch-action: none;
     user-select: none;
     transition:
-      background-color 150ms ease,
-      color 150ms ease,
-      transform 150ms ease;
+      background-color var(--motion-feedback) var(--motion-ease-out),
+      color var(--motion-feedback) var(--motion-ease-out),
+      transform var(--motion-feedback) var(--motion-ease-out);
   }
   .creator-config-collapsed .creator-panel-head .creator-panel-toggle:hover {
     color: var(--primary-foreground);
     background: var(--primary-hover);
   }
+  @media (prefers-reduced-motion: no-preference) {
+    .creator-config-collapsed .creator-panel-head .creator-panel-toggle:active {
+      transform: scale(var(--motion-press-scale));
+    }
+  }
   .creator-config-collapsed .creator-panel-head .creator-panel-toggle:active {
-    transform: scale(0.94);
     cursor: grabbing;
   }
   .creator-config-collapsed [data-orb-dragging] .creator-panel-toggle {
@@ -223,7 +227,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   min-height: 0;
-  padding: 0 20px 20px;
+  padding: 0 var(--creator-panel-inset, 20px) var(--creator-panel-inset, 20px);
   pointer-events: auto;
 }
 .workbench-shell.floating-workbench .configuration-scroll[hidden] {
@@ -405,6 +409,9 @@
     gap: 4px 12px;
     padding-block: 8px;
   }
+  .mode-general[aria-busy='true'] .workbench-nav {
+    min-height: 80px;
+  }
   .mode-general .workbench-nav .studio-breadcrumb {
     flex-basis: 100%;
     gap: 8px;
@@ -456,6 +463,9 @@
   .workbench-shell.floating-workbench .configuration-scroll,
   .workbench-shell.floating-workbench.config-right .configuration-scroll {
     padding: 0 14px 14px;
+  }
+  .workbench-shell.floating-workbench.mode-general .configuration-scroll {
+    padding: 0 var(--creator-panel-inset) var(--creator-panel-inset);
   }
   .floating-workbench .creator-panel-head {
     padding: 10px 16px;
@@ -898,6 +908,17 @@
   box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.14),
     0 2px 8px rgba(0, 0, 0, 0.05);
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Keep the Popper containing block stable while the native popover appears. */
+  .mode-general .general-parameter-popover:popover-open[data-positioned] {
+    animation: general-parameter-in var(--motion-feedback) var(--motion-ease-out);
+  }
+}
+@keyframes general-parameter-in {
+  from {
+    opacity: 0;
+  }
 }
 .mode-general .general-parameter-popover .general-parameter-head {
   display: flex;

@@ -534,6 +534,16 @@
 .generate-button:hover:not(:disabled) {
   background: #333;
 }
+@media (prefers-reduced-motion: no-preference) {
+  .floating-workbench .generate-button {
+    transition:
+      scale var(--motion-feedback) var(--motion-ease-out),
+      background-color var(--motion-feedback) var(--motion-ease-out);
+  }
+  .floating-workbench .generate-button:active:not(:disabled) {
+    scale: var(--motion-press-scale);
+  }
+}
 .generate-button:disabled {
   color: #667085;
   background: #e2e5eb;

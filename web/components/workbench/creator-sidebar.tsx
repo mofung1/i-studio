@@ -9,7 +9,7 @@ import {
 import { loadProtectedImage } from '@/components/authenticated-image'
 
 import { RotateCcw, ScanText, X } from 'lucide-react'
-import { Fragment, useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useState, type ReactNode, type Ref } from 'react'
 import { CreatorPanel } from './creator-panel'
 import { usePromptReverse } from '@/components/prompt-reverse-provider'
 import { applyReverseText } from '@/lib/prompt-reverse'
@@ -50,6 +50,7 @@ import noticeStyles from '../inspiration-template.module.css'
 
 interface CreatorSidebarProps {
   mode: WorkbenchMode
+  settingsRef?: Ref<HTMLDivElement>
   recipeTitle?: string
   templateNotice?: ReactNode
   templateBlockedReason?: string
@@ -325,6 +326,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
       taskStatus={props.generationStatus}
     >
       <div
+        ref={props.settingsRef}
         id="creation-settings-body"
         className="configuration-scroll"
         hidden={Boolean(props.configCollapsed)}

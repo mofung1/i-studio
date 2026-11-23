@@ -280,6 +280,11 @@
   padding: 3px 4px;
   font-size: 9px;
 }
+@media (min-width: 781px) {
+  .grid {
+    gap: 12px;
+  }
+}
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

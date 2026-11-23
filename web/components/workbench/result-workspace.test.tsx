@@ -221,6 +221,7 @@ it('locks single-image actions until the selected image is displayed', async () 
   await loadResultImage()
   const previousImage = displayedImage()!
   expect(previousImage.getAttribute('src')).toBe(first)
+  expect(previousImage.hasAttribute('data-loaded')).toBe(true)
   expect(button('只重做这张').disabled).toBe(false)
 
   await act(async () =>
@@ -235,6 +236,7 @@ it('locks single-image actions until the selected image is displayed', async () 
   await render()
   expectImageActionsLocked()
   expect(displayedImage()).toBeNull()
+  expect(previousImage.hasAttribute('data-loaded')).toBe(true)
   await act(async () =>
     container.querySelector<HTMLButtonElement>('button[aria-label="重新加载结果图"]')!.click(),
   )
@@ -242,16 +244,16 @@ it('locks single-image actions until the selected image is displayed', async () 
 
   secondImageState = 'loaded'
   await render()
-  expect(
-    container
-      .querySelector<HTMLImageElement>('.result-hero-image.is-preloading')
-      ?.getAttribute('src'),
-  ).toBe(second)
+  const nextImage = container.querySelector<HTMLImageElement>('.result-hero-image.is-preloading')!
+  expect(nextImage.getAttribute('src')).toBe(second)
+  expect(nextImage.hasAttribute('data-loaded')).toBe(false)
   expectImageActionsLocked()
   await loadResultImage(previousImage)
   expectImageActionsLocked()
   await loadResultImage()
+  expect(displayedImage()).toBe(nextImage)
   expect(displayedImage()?.getAttribute('src')).toBe(second)
+  expect(nextImage.hasAttribute('data-loaded')).toBe(true)
   for (const label of imageActions) expect(button(label).disabled, label).toBe(false)
   await act(async () => button('下载图片').click())
   expect(download).toHaveBeenLastCalledWith(second, 'istudio-current-2.png')

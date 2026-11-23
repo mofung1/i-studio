@@ -750,14 +750,11 @@
 }
 
 /* General generation: a calm vertical inspector beside the image canvas. */
-.workbench-shell.mode-general .configuration-scroll {
-  padding: 0 20px 20px;
-}
 .mode-general .configuration-scroll .composer-input-grid {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 14px;
+  gap: 12px;
   min-height: 0;
 }
 .mode-general .composer-input-grid .config-card-prompt {
@@ -913,7 +910,7 @@
 }
 .mode-general .composer-control-row {
   display: block;
-  padding-top: 14px;
+  padding-top: 12px;
   background: transparent;
 }
 .mode-general .compact-settings-row {
@@ -996,8 +993,7 @@
   border-radius: 10px;
 }
 .floating-workbench.mode-general .configuration-footer {
-  gap: 10px;
-  padding-block: 10px 12px;
+  padding: 12px var(--creator-panel-inset) var(--creator-panel-inset);
 }
 .mode-general .configuration-footer .creation-credit-estimate {
   gap: 4px;
@@ -1028,11 +1024,23 @@
   background: var(--primary-hover);
 }
 @media (min-width: 781px) and (max-height: 760px) {
-  .mode-general .configuration-scroll .composer-input-grid {
-    gap: 12px;
-  }
   .mode-general .composer-control-row {
     padding-top: 10px;
+  }
+}
+@media (max-width: 780px) {
+  .mode-general .configuration-scroll .composer-input-grid {
+    gap: 14px;
+  }
+  .mode-general .composer-control-row {
+    padding-top: 14px;
+  }
+  .floating-workbench .configuration-footer {
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+  }
+  .floating-workbench.mode-general .configuration-footer {
+    gap: 10px;
+    padding: 10px var(--creator-panel-inset) calc(12px + env(safe-area-inset-bottom));
   }
 }
 .result-workspace .result-body {
@@ -1099,6 +1107,16 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .result-hero-image[data-loaded] {
+    animation: result-image-arrive var(--motion-content) var(--motion-ease-out);
+  }
+}
+@keyframes result-image-arrive {
+  from {
+    opacity: 0.84;
+  }
 }
 .result-workspace .result-image-toolbar {
   display: flex;
@@ -1269,6 +1287,16 @@
 }
 .filmstrip-list[hidden] {
   display: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .filmstrip-list:not([hidden]) {
+    animation: filmstrip-reveal var(--motion-feedback) var(--motion-ease-out);
+  }
+}
+@keyframes filmstrip-reveal {
+  from {
+    opacity: 0.68;
+  }
 }
 .filmstrip-version {
   display: flex;
@@ -1584,12 +1612,6 @@
   }
   .inspiration-editor-dialog .endpoint-form-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 780px) {
-  .floating-workbench .configuration-footer {
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 }
 

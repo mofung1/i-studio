@@ -319,6 +319,42 @@ it('preserves the project when switching modes and commerce tools without replay
   expect(mocks.flushDraft).toHaveBeenCalledTimes(2)
 })
 
+it('animates ready settings once per tool and cancels the previous entrance', async () => {
+  let reduced = false
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query.includes('prefers-reduced-motion') && reduced,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }))
+  const previous = { cancel: vi.fn() }
+  const current = { cancel: vi.fn() }
+  const node = document.createElement('div')
+  node.style.setProperty('--motion-content', '220ms')
+  node.style.setProperty('--motion-ease-out', 'cubic-bezier(0.16, 1, 0.3, 1)')
+  node.animate = vi.fn().mockReturnValueOnce(previous).mockReturnValueOnce(current)
+  const attachSettings = () => {
+    if (typeof sidebar.settingsRef !== 'function') throw new Error('Missing workbench settings ref')
+    sidebar.settingsRef(node)
+  }
+
+  await render()
+  attachSettings()
+  await act(async () => sidebar.onSetPrompt('同一工具内继续编辑'))
+  attachSettings()
+  expect(node.animate).toHaveBeenCalledTimes(1)
+
+  await render('commerce')
+  attachSettings()
+  expect(previous.cancel).toHaveBeenCalledOnce()
+  expect(node.animate).toHaveBeenCalledTimes(2)
+
+  reduced = true
+  await render()
+  attachSettings()
+  expect(current.cancel).toHaveBeenCalledOnce()
+  expect(node.animate).toHaveBeenCalledTimes(2)
+})
+
 it('ignores a late image when the user switches tools before loading completes', async () => {
   const pending = deferred<StoredImage>()
   mocks.readImage.mockReturnValue(pending.promise)

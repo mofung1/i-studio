@@ -27,7 +27,7 @@ import { AccountAccess } from './account-access'
 import { modelCompatibilityIssue, type PublicImageModel } from '@/lib/generation-models'
 import { loadStoredImage } from '@/lib/library'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type Ref } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 import type { CommerceTaskType, GenerationModel } from '@/lib/contracts'
@@ -90,9 +90,54 @@ interface WorkbenchProps {
   initialCount?: string
 }
 
+const reducedMotionPreference = '(prefers-reduced-motion: reduce)'
+
 export function Workbench(props: WorkbenchProps) {
   const { account, loading, error } = useAccount()
   const search = useSearchParams()
+  const tool = props.initialMode === 'general' ? 'general' : `commerce:${props.initialTask}`
+  // The visible tool is tracked above the existing, independently restored draft scopes.
+  const visibleTool = useRef<string | null>(null)
+  const settingsEntrance = useRef<Animation | null>(null)
+  const settingsRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node || visibleTool.current === tool) return
+      visibleTool.current = tool
+      settingsEntrance.current?.cancel()
+      settingsEntrance.current = null
+      if (node.hidden || !node.animate || window.matchMedia(reducedMotionPreference).matches) return
+
+      const style = getComputedStyle(node)
+      const time = style.getPropertyValue('--motion-content').trim()
+      const duration = Number.parseFloat(time) * (time.endsWith('ms') ? 1 : 1000)
+      if (!Number.isFinite(duration)) return
+
+      const animation = node.animate([{ opacity: 0.82 }, { opacity: 1 }], {
+        duration,
+        easing: style.getPropertyValue('--motion-ease-out').trim(),
+      })
+      animation.id = 'workbench-settings-entrance'
+      settingsEntrance.current = animation
+      animation.onfinish = () => {
+        if (settingsEntrance.current === animation) settingsEntrance.current = null
+      }
+    },
+    [tool],
+  )
+  useEffect(() => {
+    const preference = window.matchMedia(reducedMotionPreference)
+    const cancelEntrance = () => {
+      settingsEntrance.current?.cancel()
+      settingsEntrance.current = null
+    }
+    preference.addEventListener('change', cancelEntrance)
+    return () => {
+      preference.removeEventListener('change', cancelEntrance)
+      cancelEntrance()
+      visibleTool.current = null
+    }
+  }, [])
+
   if (loading) return <WorkbenchSkeleton mode={props.initialMode} />
   if (error && !account.authenticated)
     return <AccountAccess title="恢复创作草稿" description="确认账号后即可恢复草稿。" />
@@ -102,18 +147,18 @@ export function Workbench(props: WorkbenchProps) {
     props.initialMode === 'commerce' && selectedRecipe?.task === props.initialTask
       ? selectedRecipe
       : undefined
-  const tool = props.initialMode === 'general' ? 'general' : `commerce:${props.initialTask}`
   const key = `${owner}:${creationDraftContext(tool, search.get('projectId') ?? '', recipe?.id)}`
   return props.initialMode === 'commerce' && props.initialTask === 'clothing-set' ? (
     <ClothingWorkbench
       key={key}
+      settingsRef={settingsRef}
       recipe={recipe?.task === 'clothing-set' ? recipe : undefined}
       initialModel={props.initialModel}
       initialAspectRatio={props.initialAspectRatio}
       initialResolution={props.initialResolution}
     />
   ) : (
-    <StandardWorkbench key={key} {...props} recipe={recipe} />
+    <StandardWorkbench key={key} {...props} recipe={recipe} settingsRef={settingsRef} />
   )
 }
 
@@ -126,7 +171,8 @@ function StandardWorkbench({
   initialResolution,
   initialCount,
   recipe,
-}: WorkbenchProps & { recipe?: CommerceRecipe }) {
+  settingsRef,
+}: WorkbenchProps & { recipe?: CommerceRecipe; settingsRef: Ref<HTMLDivElement> }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -1097,6 +1143,7 @@ function StandardWorkbench({
           onTogglePanel={() => setConfigCollapsed((collapsed) => !collapsed)}
         />
         <CreatorSidebar
+          settingsRef={settingsRef}
           recipeTitle={recipe?.title}
           templateBlockedReason={templateBlockedReason}
           referenceRequired={inspirationTemplate?.requiresReference}

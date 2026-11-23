@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type Ref } from 'react'
 import { useAccount } from '@/components/account-provider'
 import {
   creationDraftContext,
@@ -61,11 +61,13 @@ export function ClothingWorkbench({
   initialAspectRatio,
   initialResolution,
   recipe,
+  settingsRef,
 }: {
   initialModel?: string
   initialAspectRatio?: string
   initialResolution?: string
   recipe?: typeof clothingModelRecipe
+  settingsRef?: Ref<HTMLDivElement>
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -798,7 +800,12 @@ export function ClothingWorkbench({
           taskStatus={generationTask?.status}
           dialog={!recipe && mobile && panelOpen}
         >
-          <div id="creation-settings-body" className="configuration-scroll" hidden={collapsed}>
+          <div
+            ref={settingsRef}
+            id="creation-settings-body"
+            className="configuration-scroll"
+            hidden={collapsed}
+          >
             <div className="creator-sheet-head">
               <span>服装组图设置</span>
               <button type="button" aria-label="收起服装设置" onClick={() => setPanelOpen(false)}>

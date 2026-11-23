@@ -837,7 +837,8 @@ export function ResultWorkspace({
                         onClick={() => setLightboxOpen(true)}
                       >
                         {previews.map((preview) => {
-                          const show = preview === visiblePreview && !heroFailed
+                          const loaded = preview === visiblePreview
+                          const show = loaded && !heroFailed
                           const selected =
                             preview.path === selectedPreview?.path &&
                             preview.source === selectedPreview.source
@@ -845,6 +846,7 @@ export function ResultWorkspace({
                             <img
                               key={JSON.stringify([preview.path, preview.source])}
                               className={`result-hero-image${show ? '' : ' is-preloading'}`}
+                              data-loaded={loaded || undefined}
                               src={preview.source}
                               alt={show ? `AI 生成结果 ${visibleIndex + 1}` : ''}
                               onLoad={({ currentTarget: image }) => {
