@@ -7,6 +7,7 @@ import { MyInspirationSubmissions } from './inspiration-submissions'
 import { libraryRequest } from '@/lib/library'
 import type { PersonalPrompt } from '@/lib/personal-prompts'
 import type { InspirationSubmission } from '@/lib/inspiration-submissions'
+import { reverseStorageKey } from '@/lib/prompt-reverse'
 
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }))
 vi.mock('next/navigation', () => ({
@@ -149,6 +150,7 @@ afterEach(async () => {
   await act(async () => root.unmount())
   host.remove()
   localStorage.clear()
+  sessionStorage.clear()
   vi.unstubAllGlobals()
 })
 async function click(label: string) {
@@ -162,6 +164,62 @@ async function open() {
   await act(async () => root.render(<PersonalPromptLibrary kind="prompt" />))
   await click('提交分享 商品摄影模板')
 }
+function expectWorkbenchHandoff(text: string) {
+  expect(router.push).toHaveBeenCalledTimes(1)
+  const url = new URL(router.push.mock.calls[0]![0], location.origin)
+  expect(url.pathname).toBe('/studio')
+  expect(url.searchParams.get('mode')).toBe('general')
+  expect(url.searchParams.get('collectionId')).toBe(source.id)
+  const nonce = url.searchParams.get('collectionHandoff')
+  expect(nonce).toBeTruthy()
+  expect(
+    JSON.parse(sessionStorage.getItem(reverseStorageKey(`creation-handoff:${nonce}`))!),
+  ).toMatchObject({ id: source.id, version: source.version, text })
+}
+it('brings a prompt without variables to the workbench directly and only once on repeated clicks', async () => {
+  source.prompt = '拍摄商品，保留柔和光线。'
+  await act(async () => root.render(<PersonalPromptLibrary kind="prompt" />))
+  const apply = [...host.querySelectorAll<HTMLButtonElement>('button')].find(
+    (button) => button.textContent === '带入工作台',
+  )!
+  await act(async () => {
+    apply.click()
+    apply.click()
+  })
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expectWorkbenchHandoff(source.prompt)
+})
+it('asks for template variables before creating a workbench handoff', async () => {
+  await act(async () => root.render(<PersonalPromptLibrary kind="prompt" />))
+  await click('填写变量')
+  expect(router.push).not.toHaveBeenCalled()
+  const input = document.querySelector<HTMLInputElement>('input[aria-label="变量 产品名称"]')!
+  expect(input.required).toBe(true)
+  const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+  async function enterValue(value: string) {
+    await act(async () => {
+      setValue.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+  await enterValue(' ')
+  await click('应用到工作台')
+  expect(document.querySelector('[role="dialog"] [role="alert"]')?.textContent).toContain(
+    '请填写全部变量',
+  )
+  expect(router.push).not.toHaveBeenCalled()
+  await enterValue('玻璃水瓶')
+  await click('应用到工作台')
+  expectWorkbenchHandoff(source.prompt.replace('{{产品名称}}', '玻璃水瓶'))
+})
+it('keeps an error on the selected card if the account changes before bringing it to the workbench', async () => {
+  source.prompt = '拍摄商品'
+  await act(async () => root.render(<PersonalPromptLibrary kind="prompt" />))
+  localStorage.setItem('istudio-access-token', 'different-session')
+  await click('带入工作台')
+  expect(host.querySelector('article [role="alert"]')?.textContent).toContain('登录状态已变化')
+  expect(router.push).not.toHaveBeenCalled()
+})
 it('opens on the current page with the complete selected title, prompt and matching category', async () => {
   await open()
   expect(document.querySelector<HTMLInputElement>('#submission-title')?.value).toBe(source.title)

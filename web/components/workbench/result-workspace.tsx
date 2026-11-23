@@ -728,7 +728,7 @@ export function ResultWorkspace({
                   )}
                   <button
                     type="button"
-                    className="studio-secondary"
+                    className="studio-secondary result-fullscreen-command"
                     disabled={!heroReady}
                     onClick={() => setLightboxOpen(true)}
                   >
@@ -743,7 +743,7 @@ export function ResultWorkspace({
                     onClick={() => onUseImageAsReference(heroImage, imageSource)}
                   >
                     <ImageIcon size={15} aria-hidden="true" />
-                    继续创作
+                    用作参考图
                   </button>
                   <ImageComparisonButton
                     candidates={comparisonImages}
@@ -822,6 +822,11 @@ export function ResultWorkspace({
                             />
                           )
                         })}
+                        {heroReady && (
+                          <span className="result-hero-zoom" aria-hidden="true">
+                            <Maximize2 size={17} />
+                          </span>
+                        )}
                       </button>
                     )}
                     {!heroReady && (

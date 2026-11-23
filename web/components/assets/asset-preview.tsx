@@ -22,7 +22,6 @@ export function AssetPreview({
   onZoom,
   onReverse,
   onCompare,
-  onCompareOriginal,
 }: {
   asset: LibraryAsset
   onClose: () => void
@@ -30,7 +29,6 @@ export function AssetPreview({
   onZoom: () => void
   onReverse: () => void
   onCompare: () => void
-  onCompareOriginal?: () => void
 }) {
   const panel = useRef<HTMLDivElement>(null)
   useDialogFocus(panel, onClose)
@@ -102,12 +100,6 @@ export function AssetPreview({
               ))}
             </div>
             <DialogActions className="asset-preview-actions">
-              {onCompareOriginal && (
-                <button type="button" className="studio-secondary" onClick={onCompareOriginal}>
-                  <Columns2 size={15} aria-hidden="true" />
-                  与原图对比
-                </button>
-              )}
               {asset.task && (
                 <SavePersonalPrompt
                   seed={{

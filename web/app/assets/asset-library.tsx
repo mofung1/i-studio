@@ -401,7 +401,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       await downloadProtectedAsset(asset.contentPath, assetFilename(asset))
     } else await downloadLibraryAssets(selected)
   }
-  function compareAsset(asset: LibraryAsset, original = false) {
+  function compareAsset(asset: LibraryAsset) {
     const current = {
       path: asset.contentPath,
       label: assetTitle(asset),
@@ -411,6 +411,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     const references = comparisonReferences(asset.task?.input).filter(
       (item) => item.path !== asset.contentPath,
     )
+    const original = references[0]
     const candidates = comparisonCandidates([
       current,
       ...references,
@@ -441,15 +442,14 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     setNotice('')
     setComparison({
       candidates,
-      initialLeft: original && references[0] ? references[0].path : current.path,
-      ...(original && references.length ? { initialRight: current.path } : {}),
-      originalFallbackPaths:
-        original && references[0]?.isProductOriginal
-          ? references
-              .slice(1)
-              .filter((item) => item.isProductOriginal)
-              .map((item) => item.path)
-          : undefined,
+      initialLeft: original?.path ?? current.path,
+      initialRight: original ? current.path : undefined,
+      originalFallbackPaths: original?.isProductOriginal
+        ? references
+            .slice(1)
+            .filter((item) => item.isProductOriginal)
+            .map((item) => item.path)
+        : undefined,
       projectId: asset.projectId || undefined,
     })
   }
@@ -950,13 +950,6 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
         <AssetPreview
           asset={preview}
           onCompare={() => compareAsset(preview)}
-          onCompareOriginal={
-            comparisonReferences(preview.task?.input).some(
-              (item) => item.path !== preview.contentPath,
-            )
-              ? () => compareAsset(preview, true)
-              : undefined
-          }
           onClose={() => setPreview(null)}
           onEdit={() => openEdit(preview)}
           onZoom={() => {

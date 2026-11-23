@@ -21,22 +21,6 @@ vi.mock('@/components/studio-shell', () => ({
 vi.mock('@/components/prompt-reverse-provider', () => ({
   usePromptReverse: () => ({ openReverse: vi.fn() }),
 }))
-vi.mock('@/components/assets/asset-preview', () => ({
-  AssetPreview: ({
-    asset,
-    onCompare,
-    onCompareOriginal,
-  }: {
-    asset: LibraryAsset
-    onCompare: () => void
-    onCompareOriginal?: () => void
-  }) => (
-    <div role="dialog" data-preview={asset.id}>
-      <button onClick={onCompare}>对比</button>
-      {onCompareOriginal && <button onClick={onCompareOriginal}>与原图对比</button>}
-    </div>
-  ),
-}))
 vi.mock('@/components/image-comparison-button', async () => ({
   LazyImageComparison: (await import('@/components/image-comparison-dialog')).ImageComparisonDialog,
 }))
@@ -72,6 +56,7 @@ const button = (label: string, host: ParentNode = container) =>
 const select = (index: number) =>
   container.querySelector<HTMLInputElement>(`input[aria-label="选择 作品 ${index}"]`)!
 const group = () => container.querySelector('[aria-label="图片批量操作"]')!
+const preview = () => document.querySelector('[role="dialog"][aria-label="作品预览"]')
 const escape = async (target: EventTarget = document) =>
   act(async () => {
     target.dispatchEvent(
@@ -377,7 +362,7 @@ it('keeps normal browsing free of checkboxes and only enters selection on reques
   expect(select(1)).toBeNull()
   expect(group()).toBeNull()
   await act(async () => button('查看 作品 1').click())
-  expect(document.querySelector('[data-preview]')?.getAttribute('data-preview')).toBe('asset-1')
+  expect(preview()?.querySelector('header strong')?.textContent).toBe('作品 1')
 })
 
 it('enters an empty batch mode, closes its menu before exiting, and clears without leaving', async () => {
@@ -400,9 +385,9 @@ it('enters an empty batch mode, closes its menu before exiting, and clears witho
 it('starts comparison from one image, chooses B visually, and supports comparison controls', async () => {
   await render()
   await act(async () => button('查看 作品 2').click())
-  await act(async () => button('对比').click())
+  await act(async () => button('对比', preview()!).click())
   expect(document.querySelector('.comparison-choose-layout')).not.toBeNull()
-  expect(document.querySelector('[data-preview]')).toBeNull()
+  expect(preview()).toBeNull()
   expect(button('选择对比图片 作品 2', document)).toBeUndefined()
   await act(async () => button('选择对比图片 作品 1', document).click())
   const images = Array.from(document.querySelectorAll<HTMLImageElement>('.comparison-image'))
@@ -479,9 +464,9 @@ it('uses cover clicks to continue selecting and keeps a separate preview control
       .click(),
   )
   expect(select(2).checked).toBe(true)
-  expect(document.querySelector('[data-preview]')).toBeNull()
+  expect(preview()).toBeNull()
   await act(async () => button('查看 作品 2').click())
-  expect(document.querySelector('[data-preview]')?.getAttribute('data-preview')).toBe('asset-2')
+  expect(preview()?.querySelector('header strong')?.textContent).toBe('作品 2')
   expect(select(2).checked).toBe(true)
 })
 
@@ -503,22 +488,29 @@ it('limits select-loaded to 100 and supports keyboard navigation in its menu', a
   expect(group().textContent).toContain('已选 100 张')
 })
 
-it('provides an original-image shortcut when the generation has reference images', async () => {
+it('pairs the preview with the original from its single comparison button and can try another original', async () => {
   assets[0]!.task = {
     id: 'task',
     status: 'succeeded',
     createdAt: assets[0]!.createdAt,
-    input: { productAssetIds: ['original'] },
+    input: { productAssetIds: ['original', 'second-original'] },
   }
   await render()
   await act(async () => button('查看 作品 1').click())
-  await act(async () => button('与原图对比').click())
+  const compare = button('对比', preview()!)
+  expect(preview()?.querySelector('header .asset-preview-compare')).toBe(compare)
+  expect(button('与原图对比', preview()!)).toBeUndefined()
+  await act(async () => compare.click())
   expect(document.querySelector('.comparison-choose-layout')).toBeNull()
-  expect(
-    Array.from(document.querySelectorAll<HTMLImageElement>('.comparison-image')).map((image) =>
+  const imagePaths = () =>
+    Array.from(document.querySelectorAll<HTMLImageElement>('.comparison-image'), (image) =>
       image.getAttribute('src'),
-    ),
-  ).toEqual(['/v1/assets/original/content', '/v1/assets/asset-1/content'])
+    )
+  expect(imagePaths()).toEqual(['/v1/assets/original/content', '/v1/assets/asset-1/content'])
+  await act(async () =>
+    document.querySelector('.comparison-image')!.dispatchEvent(new Event('error')),
+  )
+  expect(imagePaths()).toEqual(['/v1/assets/second-original/content', '/v1/assets/asset-1/content'])
 })
 
 it('moves one image from its card and prevents submitting its current project', async () => {

@@ -134,17 +134,24 @@ it.each(['general', 'commerce'] as const)(
         'data:second',
         expect.stringContaining(historyTask ? 'history-2' : 'current-2'),
       )
-      await act(async () => button('继续创作').click())
+      await act(async () => button('用作参考图').click())
       expect(reference).toHaveBeenLastCalledWith('data:second', {
         mode: historyTask ? 'commerce' : mode,
         taskType: historyTask ? 'detail-page' : 'product-main',
       })
-      await act(async () => button('全屏查看').click())
+      const imageTrigger = area.querySelector<HTMLButtonElement>('[aria-label="放大查看第 2 张"]')!
+      expect(imageTrigger.querySelector('.result-hero-zoom')).not.toBeNull()
+      const fullscreenTrigger = historyTask ? imageTrigger : button('全屏查看')
+      await act(async () => {
+        fullscreenTrigger.focus()
+        fullscreenTrigger.click()
+      })
       const viewer = document.querySelector('.image-lightbox.is-fullscreen')!
       expect(viewer).not.toBeNull()
       expect(viewer.querySelector('.lightbox-stage [aria-label="下一张"]')).not.toBeNull()
       expect(viewer.querySelector('.lightbox-bar [aria-label="下载原图"]')).not.toBeNull()
       await act(async () => viewer.querySelector<HTMLButtonElement>('[aria-label="关闭"]')!.click())
+      expect(document.activeElement).toBe(fullscreenTrigger)
     }
   },
 )
@@ -183,12 +190,14 @@ it('locks single-image actions until the selected image is displayed', async () 
     [...container.querySelectorAll<HTMLButtonElement>('.result-image-commands button')].find(
       (candidate) => candidate.textContent === label,
     )!
-  const imageActions = ['下载图片', '只重做这张', '全屏查看', '继续创作', '图片对比']
+  const imageActions = ['下载图片', '只重做这张', '全屏查看', '用作参考图', '图片对比']
   const displayedImage = () =>
     container.querySelector<HTMLImageElement>('.result-hero-image:not(.is-preloading)')
   const expectImageActionsLocked = () => {
     for (const label of imageActions) expect(button(label).disabled, label).toBe(true)
     expect(button('下载整套').disabled).toBe(false)
+    expect(container.querySelector('.result-hero-zoom')).toBeNull()
+    expect(container.querySelector<HTMLButtonElement>('.result-hero-open')?.disabled).toBe(true)
   }
 
   await render()
@@ -229,7 +238,7 @@ it('locks single-image actions until the selected image is displayed', async () 
   for (const label of imageActions) expect(button(label).disabled, label).toBe(false)
   await act(async () => button('下载图片').click())
   expect(download).toHaveBeenLastCalledWith(second, 'istudio-current-2.png')
-  await act(async () => button('继续创作').click())
+  await act(async () => button('用作参考图').click())
   expect(reference).toHaveBeenLastCalledWith(second, { mode: 'commerce', taskType: 'product-main' })
   expect(compare.mock.lastCall?.[0]).toMatchObject({
     initialLeft: '/v1/assets/product-original/content',

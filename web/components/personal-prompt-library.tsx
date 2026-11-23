@@ -13,7 +13,7 @@ import {
   SlidersHorizontal,
   Trash2,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { StudioShell } from './studio-shell'
 import { LibrarySelect } from './library-controls'
 import { ConfirmDialog } from './confirm-dialog'
@@ -24,13 +24,16 @@ import { libraryRequest, mergeLibraryPage } from '@/lib/library'
 import { copyText } from '@/lib/clipboard'
 import { getAccessToken } from '@/lib/api'
 import { AccountBoundary } from './account-access'
+import { useAccount } from './account-provider'
 import {
   personalWorkbenchURL,
   presetDescription,
+  promptVariables,
   type PersonalPrompt,
 } from '@/lib/personal-prompts'
 
 export function PersonalPromptLibrary({ kind }: { kind: 'prompt' | 'preset' }) {
+  const { account } = useAccount()
   return (
     <AccountBoundary
       section="prompts"
@@ -38,7 +41,7 @@ export function PersonalPromptLibrary({ kind }: { kind: 'prompt' | 'preset' }) {
       description="保存常用提示词与创作配置，建立只属于自己的创作库。"
       returnTo={`/prompts?kind=${kind}`}
     >
-      <PersonalPromptLibraryContent kind={kind} />
+      <PersonalPromptLibraryContent key={account.user?.id} kind={kind} />
     </AccountBoundary>
   )
 }
@@ -60,10 +63,15 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
   const [notice, setNotice] = useState('')
   const [editing, setEditing] = useState<PersonalPrompt | 'new' | null>(null)
   const [applying, setApplying] = useState<PersonalPrompt | null>(null)
+  const [applyError, setApplyError] = useState<{ id: string; message: string } | null>(null)
+  const [navigationTarget, setNavigationTarget] = useState('')
+  const [navigating, startNavigation] = useTransition()
   const [deleting, setDeleting] = useState<PersonalPrompt | null>(null)
   const [sharing, setSharing] = useState<PersonalPrompt | null>(null)
   const [busy, setBusy] = useState('')
   const epoch = useRef(0)
+  const listToken = useRef('')
+  const navigationLock = useRef(false)
   const params = new URLSearchParams({ kind, limit: '40' })
   if (query) params.set('q', query)
   if (category !== 'all') params.set('category', category.slice(2))
@@ -77,9 +85,20 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
     const timer = window.setTimeout(() => setQuery(search.trim()), 250)
     return () => window.clearTimeout(timer)
   }, [search])
+  useEffect(() => {
+    if (navigating || !navigationTarget) return
+    navigationLock.current = false
+    setNavigationTarget('')
+  }, [navigating, navigationTarget])
   const load = useCallback(
     async (next = '', signal?: AbortSignal) => {
       const id = epoch.current
+      const token = getAccessToken()
+      const isCurrent = () =>
+        !signal?.aborted &&
+        id === epoch.current &&
+        key === filterRef.current &&
+        token === getAccessToken()
       const queryParams = new URLSearchParams(key)
       if (next) queryParams.set('cursor', next)
       try {
@@ -89,17 +108,17 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
           total: number
           nextCursor: string
         }>(`personal/prompts?${queryParams}`, { signal })
-        if (signal?.aborted || id !== epoch.current || key !== filterRef.current) return
+        if (!isCurrent()) return
+        listToken.current = token
         setItems((previous) => (next ? mergeLibraryPage(previous, data.items) : data.items))
         setCategories(data.categories)
         setTotal(data.total)
         setCursor(data.nextCursor)
         setError('')
       } catch (reason) {
-        if (!signal?.aborted && id === epoch.current && key === filterRef.current)
-          setError(reason instanceof Error ? reason.message : '读取失败')
+        if (isCurrent()) setError(reason instanceof Error ? reason.message : '读取失败')
       } finally {
-        if (!signal?.aborted && id === epoch.current && key === filterRef.current) {
+        if (isCurrent()) {
           setLoading(false)
           setMoreBusy(false)
         }
@@ -120,6 +139,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
     setItems([])
     setCursor('')
     setMoreBusy(false)
+    setApplyError(null)
     void load('', controller.signal)
     return () => controller.abort()
   }, [load, router, kind])
@@ -143,6 +163,26 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
       body: JSON.stringify({ favorite: !item.favorite }),
     })
     await reloadRef.current()
+  }
+  function bringToWorkbench(item: PersonalPrompt, values?: Record<string, string>) {
+    if (navigationLock.current) return
+    const token = getAccessToken()
+    if (!token || token !== listToken.current) throw new Error('登录状态已变化，请刷新列表后重试。')
+    if (!items.some((current) => current.id === item.id && current.version === item.version))
+      throw new Error('提示词列表已更新，请重新选择。')
+    const destination = personalWorkbenchURL(item, values)
+    navigationLock.current = true
+    setNavigationTarget(item.id)
+    startNavigation(() => {
+      try {
+        router.push(destination)
+      } catch (reason) {
+        setApplyError({
+          id: item.id,
+          message: reason instanceof Error ? reason.message : '带入失败，请重试。',
+        })
+      }
+    })
   }
   function resetFilters() {
     setSearch('')
@@ -299,6 +339,11 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
                     <span key={tag}>{tag}</span>
                   ))}
                 </div>
+                {applyError?.id === item.id && (
+                  <p className="library-feedback is-error" role="alert">
+                    {applyError.message}
+                  </p>
+                )}
                 <footer>
                   {trash ? (
                     <button
@@ -365,8 +410,34 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
                             提交分享
                           </button>
                         )}
-                        <button className="studio-primary" onClick={() => setApplying(item)}>
-                          应用
+                        <button
+                          type="button"
+                          className="studio-primary"
+                          disabled={!!busy || !!navigationTarget}
+                          onClick={() => {
+                            setApplyError(null)
+                            if (item.kind === 'preset' || promptVariables(item.prompt).length) {
+                              setApplying(item)
+                              return
+                            }
+                            try {
+                              bringToWorkbench(item)
+                            } catch (reason) {
+                              setApplyError({
+                                id: item.id,
+                                message:
+                                  reason instanceof Error ? reason.message : '带入失败，请重试。',
+                              })
+                            }
+                          }}
+                        >
+                          {navigationTarget === item.id
+                            ? '正在带入…'
+                            : item.kind === 'preset'
+                              ? '应用'
+                              : promptVariables(item.prompt).length
+                                ? '填写变量'
+                                : '带入工作台'}
                         </button>
                       </div>
                     </>
@@ -444,7 +515,7 @@ function PersonalPromptLibraryContent({ kind }: { kind: 'prompt' | 'preset' }) {
           item={applying}
           onClose={() => setApplying(null)}
           onApply={(_application, values) => {
-            router.push(personalWorkbenchURL(applying, values))
+            bringToWorkbench(applying, values)
             setApplying(null)
           }}
         />

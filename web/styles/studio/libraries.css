@@ -1028,6 +1028,12 @@
   width: 100%;
   height: 100%;
 }
+.result-hero-open:focus-visible {
+  outline-offset: -3px;
+}
+.result-hero-zoom {
+  display: none;
+}
 .result-workspace .result-image-viewport .result-hero-image {
   display: block;
   width: 100%;
@@ -1306,6 +1312,24 @@
   .result-workspace .result-image-commands button {
     min-height: 44px;
     padding: 0 8px;
+  }
+  .result-workspace .result-image-commands .result-fullscreen-command {
+    display: none;
+  }
+  .result-hero-zoom {
+    position: absolute;
+    inset-block-start: 10px;
+    inset-inline-end: 10px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--foreground);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    pointer-events: none;
   }
   .result-image-area.has-navigation {
     padding-inline: 36px;

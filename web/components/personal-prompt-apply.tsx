@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { DialogActions } from './dialog-actions'
 import { LibraryDialog } from './library-controls'
 import {
@@ -27,12 +27,13 @@ export function PersonalPromptApply({
   const [values, setValues] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const submitting = useRef(false)
   const variables = promptVariables(item.prompt)
   return (
     <LibraryDialog
       title={`应用 ${item.title}`}
       onClose={() => {
-        if (!busy) onClose()
+        if (!submitting.current) onClose()
       }}
       footer={
         <DialogActions>
@@ -49,13 +50,17 @@ export function PersonalPromptApply({
         id={formId}
         onSubmit={(event) => {
           event.preventDefault()
-          if (busy) return
+          if (submitting.current) return
+          submitting.current = true
           setError('')
           setBusy(true)
           void Promise.resolve()
             .then(() => onApply(applicationFor(item, values), values))
             .catch((reason) => setError(reason instanceof Error ? reason.message : '应用失败'))
-            .finally(() => setBusy(false))
+            .finally(() => {
+              submitting.current = false
+              setBusy(false)
+            })
         }}
       >
         <p className="personal-apply-preview">{item.prompt || '只应用创作参数'}</p>
