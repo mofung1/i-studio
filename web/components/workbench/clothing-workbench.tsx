@@ -107,7 +107,6 @@ export function ClothingWorkbench({
   const [historyTask, setHistoryTask] = useState<HistoryTask | null>(null)
   const [loadingHistoryId, setLoadingHistoryId] = useState<string | null>(null)
   const [submittedCount, setSubmittedCount] = useState<number | null>(null)
-  const [downloadBusy, setDownloadBusy] = useState(false)
   const [collectionUndo, setCollectionUndo] = useState<PersonalApplication | null>(null)
   const revision = useRef(0)
   const referenceEpoch = useRef(0)
@@ -704,27 +703,6 @@ export function ClothingWorkbench({
         { scroll: false },
       )
   }
-  async function downloadAll() {
-    const id = historyTask?.id ?? activeResult?.id
-    if (!id || downloadBusy) return
-    setDownloadBusy(true)
-    try {
-      const response = await fetch(`${apiBaseUrl}/v1/generation/tasks/${id}/download`, {
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
-      })
-      if (!response.ok) throw new Error(await readApiError(response, '图组下载失败'))
-      const url = URL.createObjectURL(await response.blob())
-      const link = document.createElement('a')
-      link.href = url
-      link.download = '服装组图.zip'
-      link.click()
-      window.setTimeout(() => URL.revokeObjectURL(url), 30000)
-    } catch (error) {
-      setNotice({ kind: 'error', message: error instanceof Error ? error.message : '图组下载失败' })
-    } finally {
-      setDownloadBusy(false)
-    }
-  }
   if (!draft.ready) return <WorkbenchSkeleton mode="commerce" />
 
   return (
@@ -920,8 +898,7 @@ export function ClothingWorkbench({
               document.querySelector<HTMLElement>('.generate-button')?.focus(),
             )
           }}
-          onDownloadAll={() => void downloadAll()}
-          downloadAllBusy={downloadBusy}
+          isRecipe={Boolean(recipe)}
           onConfigure={
             recipe
               ? undefined

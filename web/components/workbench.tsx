@@ -1255,6 +1255,7 @@ function StandardWorkbench({
           isRegeneratingHistory={loadingConfigId !== null}
           onSetActiveResultIndex={setActiveResultIndex}
           onRegenerate={requestRegenerate}
+          isRecipe={Boolean(recipe)}
         />
       </section>
 

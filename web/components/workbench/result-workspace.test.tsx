@@ -176,3 +176,45 @@ it('shows only saved images from the running task and keeps them downloadable be
   expect(container.querySelector('.result-hero-image')).toBeNull()
   expect(container.querySelector('.result-generating')).not.toBeNull()
 })
+
+it('downloads the displayed task group from the workbench and distinguishes partial archives', async () => {
+  const downloadButton = (text: string) =>
+    [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent === text,
+    )
+  const fetchArchive = vi
+    .fn<typeof fetch>()
+    .mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ message: '部分图片文件已不可用' }), { status: 404 }),
+    )
+  vi.stubGlobal('fetch', fetchArchive)
+
+  await act(async () =>
+    root.render(<ResultWorkspace {...props} mode="commerce" historyTask={history} />),
+  )
+  await act(async () => downloadButton('下载整套')!.click())
+  expect(fetchArchive.mock.calls[0]?.[0]).toMatch(/\/v1\/generation\/tasks\/history\/download$/)
+  expect(container.querySelector('[role="alert"]')?.textContent).toBe('部分图片文件已不可用')
+
+  await act(async () =>
+    root.render(
+      <ResultWorkspace
+        {...props}
+        mode="commerce"
+        isGenerating
+        generationTask={{ id: 'new-running', status: 'processing', resultImages: ['data:saved'] }}
+      />,
+    ),
+  )
+  expect(container.querySelector('[role="alert"]')).toBeNull()
+  await act(async () => downloadButton('下载已完成图片')!.click())
+  expect(fetchArchive.mock.calls[1]?.[0]).toMatch(/\/v1\/generation\/tasks\/new-running\/download$/)
+
+  const singleImage = { ...result, resultImages: ['data:single'] }
+  await act(async () =>
+    root.render(<ResultWorkspace {...props} mode="commerce" activeResult={singleImage} />),
+  )
+  expect(downloadButton('下载整套')).toBeUndefined()
+  expect(downloadButton('下载已完成图片')).toBeUndefined()
+})

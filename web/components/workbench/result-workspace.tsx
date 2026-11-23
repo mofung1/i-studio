@@ -20,6 +20,8 @@ import {
   useProtectedImageUrl,
 } from '@/components/authenticated-image'
 import { ImageComparisonButton } from '@/components/image-comparison-button'
+import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
+import { clothingModelRecipe, detailPageRecipe, productMainRecipe } from '@/lib/commerce-recipe'
 import { comparisonCandidates, comparisonReferences } from '@/lib/image-comparison'
 
 import type { CommerceTaskType } from '@/lib/contracts'
@@ -70,13 +72,17 @@ interface ResultWorkspaceProps {
   onSetActiveResultIndex: (updater: (index: number) => number) => void
   /** 重新生成（是否二次确认由父级决定） */
   onRegenerate: () => void
-  onDownloadAll?: () => void
-  downloadAllBusy?: boolean
+  isRecipe?: boolean
   onConfigure?: () => void
   starter?: ReactNode
 }
 
 const MAX_SKELETONS = 8
+const groupTitles: Partial<Record<CommerceTaskType, string>> = {
+  'product-main': productMainRecipe.title,
+  'detail-page': detailPageRecipe.title,
+  'clothing-set': '服装组图',
+}
 
 /** 右侧结果工作区：当前任务结果 + 历史记录抽屉 + 图片查看/裁剪。 */
 export function ResultWorkspace({
@@ -105,8 +111,7 @@ export function ResultWorkspace({
   onUseImageAsReference,
   onSetActiveResultIndex,
   onRegenerate,
-  onDownloadAll,
-  downloadAllBusy,
+  isRecipe,
   onConfigure,
   starter,
 }: ResultWorkspaceProps) {
@@ -118,7 +123,10 @@ export function ResultWorkspace({
   const pendingImageRef = useRef<number | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [downloadError, setDownloadError] = useState('')
+  const [downloadError, setDownloadError] = useState<{ taskId?: string; message: string } | null>(
+    null,
+  )
+  const [downloadGroupBusy, setDownloadGroupBusy] = useState(false)
   const [naturalImage, setNaturalImage] = useState<{
     path: string
     width: number
@@ -126,33 +134,17 @@ export function ResultWorkspace({
   } | null>(null)
 
   const isHistoryView = Boolean(historyTask)
-  const images = isHistoryView
-    ? (historyTask?.resultImages ?? [])
-    : isGenerating
-      ? (generationTask?.resultImages ?? [])
-      : (activeResult?.resultImages ?? [])
-  const displayTaskId = isHistoryView
-    ? historyTask?.id
-    : isGenerating
-      ? generationTask?.id
-      : activeResult?.id
-  const displayModules = isHistoryView
-    ? historyTask?.resultModules
-    : isGenerating
-      ? generationTask?.resultModules
-      : activeResult?.resultModules
-  const imageDetails = (isHistoryView ? historyTask : isGenerating ? generationTask : activeResult)
-    ?.resultDetails
+  const displayTask = historyTask ?? (isGenerating ? generationTask : activeResult)
+  const displayTaskId = displayTask?.id
+  const images = displayTask?.resultImages ?? []
+  const displayModules = displayTask?.resultModules
+  const imageDetails = displayTask?.resultDetails
   const generationTotal = generationTask?.input?.count ?? generatingCount ?? expectedCount
   const safeIndex = Math.min(activeImageIndex, Math.max(images.length - 1, 0))
   const heroImage = images[safeIndex] ?? ''
   const actualDetail = imageDetails?.find((item) => item.contentPath === heroImage)
   const hasResults = images.length > 0
-  const displayInput = isHistoryView
-    ? historyTask?.input
-    : isGenerating
-      ? generationTask?.input
-      : activeResult?.input
+  const displayInput = displayTask?.input
   const comparisonImages = comparisonCandidates([
     ...images.map((path, index) => ({ path, label: `当前结果 · 第 ${index + 1} 张` })),
     ...comparisonReferences(displayInput),
@@ -199,13 +191,29 @@ export function ResultWorkspace({
       ? '通用生图'
       : (taskMeta[imageSource.taskType]?.title ?? '电商设计')
   const referenceTitle = `用作「${referenceTarget}」的参考图`
+  const isGeneratedClothing =
+    displayInput &&
+    'clothingModelSource' in displayInput &&
+    displayInput.clothingModelSource === 'generated'
+  const plannedCount = displayInput?.count ?? (isGenerating && !isHistoryView ? generationTotal : 0)
+  const viewingRecipe = !isHistoryView && isRecipe
+  const isClothing = imageSource.taskType === 'clothing-set'
+  const useClothingRecipeTitle =
+    isClothing && (isGeneratedClothing || (!displayInput && viewingRecipe))
+  const archiveTitle = useClothingRecipeTitle
+    ? clothingModelRecipe.title
+    : groupTitles[imageSource.taskType]
+  const groupTitle =
+    imageSource.mode === 'commerce' &&
+    (!historyTask || historyTask.input.taskType) &&
+    (viewingRecipe || isClothing || plannedCount > 1 || images.length > 1)
+      ? archiveTitle
+      : undefined
+  const partialGroup = displayTask?.status !== 'succeeded' || plannedCount > images.length
   const currentModule = displayModules?.[safeIndex] ?? ''
   // 删除或缺失一张结果后，图片下标可能已经与原拍摄顺序不同。
   const shot =
-    displayInput &&
-    'clothingModelSource' in displayInput &&
-    displayInput.clothingModelSource === 'generated' &&
-    displayInput.clothingPlan?.length === images.length
+    isGeneratedClothing && displayInput.clothingPlan?.length === images.length
       ? displayInput.clothingPlan[safeIndex]
       : undefined
   const imageLabel =
@@ -231,10 +239,38 @@ export function ResultWorkspace({
   }
 
   function downloadImage(path: string, filename: string) {
-    setDownloadError('')
+    setDownloadError(null)
     void downloadProtectedAsset(path, filename).catch(() =>
-      setDownloadError('下载失败，请检查连接后重试'),
+      setDownloadError({ taskId: displayTaskId, message: '下载失败，请检查连接后重试' }),
     )
+  }
+
+  async function downloadGroup(id: string, filename: string) {
+    setDownloadError(null)
+    setDownloadGroupBusy(true)
+    try {
+      const token = getAccessToken()
+      const response = await fetch(
+        `${apiBaseUrl}/v1/generation/tasks/${encodeURIComponent(id)}/download`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      if (!response.ok) throw new Error(await readApiError(response, '图组下载失败'))
+      const archive = await response.blob()
+      if (getAccessToken() !== token) throw new Error('账号已切换，请重新下载')
+      const url = URL.createObjectURL(archive)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = filename
+      anchor.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 30000)
+    } catch (error) {
+      setDownloadError({
+        taskId: id,
+        message: error instanceof Error ? error.message : '图组下载失败',
+      })
+    } finally {
+      setDownloadGroupBusy(false)
+    }
   }
 
   function step(direction: -1 | 1) {
@@ -334,9 +370,9 @@ export function ResultWorkspace({
         </div>
       </header>
 
-      {downloadError && (
+      {downloadError && downloadError.taskId === displayTaskId && (
         <p className="form-notice error" role="alert">
-          {downloadError}
+          {downloadError.message}
         </p>
       )}
 
@@ -443,15 +479,20 @@ export function ResultWorkspace({
                     <Download size={15} aria-hidden="true" />
                     下载图片
                   </button>
-                  {onDownloadAll && (!isGenerating || isHistoryView) && (
+                  {groupTitle && displayTaskId && (
                     <button
                       type="button"
                       className="studio-secondary"
-                      disabled={downloadAllBusy}
-                      onClick={onDownloadAll}
+                      disabled={downloadGroupBusy}
+                      onClick={() =>
+                        void downloadGroup(
+                          displayTaskId,
+                          `${groupTitle}${partialGroup ? '-已完成图片' : ''}.zip`,
+                        )
+                      }
                     >
                       <Download size={15} aria-hidden="true" />
-                      {downloadAllBusy ? '打包中…' : '下载图组'}
+                      {downloadGroupBusy ? '打包中…' : partialGroup ? '下载已完成图片' : '下载整套'}
                     </button>
                   )}
                   <button
