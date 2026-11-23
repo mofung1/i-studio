@@ -1,6 +1,8 @@
 'use client'
 
 import { addCreationImage, type CreationImage } from '@/lib/creation-images'
+import { getCommerceRecipe, productMainRecipeUrl } from '@/lib/commerce-recipe'
+import type { GenerationQuote } from '@/lib/credits'
 import { studioToolUrl } from '@/lib/studio-navigation'
 import {
   creationDraftContext,
@@ -94,7 +96,13 @@ export function Workbench(props: WorkbenchProps) {
   if (error && !account.authenticated)
     return <AccountAccess title="恢复创作草稿" description="确认账号后即可恢复草稿。" />
   const owner = account.user?.id ?? 'guest'
-  const key = `${owner}:${props.initialMode === 'general' ? 'general' : props.initialTask}:${search.get('projectId') ?? ''}`
+  const selectedRecipe = getCommerceRecipe(search.get('recipe'))
+  const recipe =
+    props.initialMode === 'commerce' && selectedRecipe?.task === props.initialTask
+      ? selectedRecipe
+      : undefined
+  const tool = props.initialMode === 'general' ? 'general' : `commerce:${props.initialTask}`
+  const key = `${owner}:${creationDraftContext(tool, search.get('projectId') ?? '', recipe?.id)}`
   return props.initialMode === 'commerce' && props.initialTask === 'clothing-set' ? (
     <ClothingWorkbench
       key={key}
@@ -103,7 +111,7 @@ export function Workbench(props: WorkbenchProps) {
       initialResolution={props.initialResolution}
     />
   ) : (
-    <StandardWorkbench key={key} {...props} />
+    <StandardWorkbench key={key} {...props} recipe={recipe} />
   )
 }
 
@@ -115,7 +123,8 @@ function StandardWorkbench({
   initialAspectRatio,
   initialResolution,
   initialCount,
-}: WorkbenchProps) {
+  recipe,
+}: WorkbenchProps & { recipe?: ReturnType<typeof getCommerceRecipe> }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -123,9 +132,12 @@ function StandardWorkbench({
 
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
+  const currentToolUrl = recipe
+    ? productMainRecipeUrl(searchParams)
+    : studioToolUrl(mode, task, searchParams)
   const [prompt, setPrompt] = useState(initialPrompt ?? '')
   const [inspirationTemplate, setInspirationTemplate] = useState<InspirationTemplate | null>(null)
-  const [requirements, setRequirements] = useState('')
+  const [requirements, setRequirements] = useState<string>(recipe?.requirements ?? '')
   const [productFiles, setProductFiles] = useState<CreationImage[]>([])
   const [referenceFiles, setReferenceFiles] = useState<CreationImage[]>([])
   const [count, setCount] = useState(() =>
@@ -134,14 +146,17 @@ function StandardWorkbench({
   const [model, setModel] = useState<GenerationModel>(
     (initialModel as GenerationModel) ?? 'gpt-image-2',
   )
-  const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? '1:1')
+  const [aspectRatio, setAspectRatio] = useState(initialAspectRatio ?? recipe?.aspectRatio ?? '1:1')
   const [resolution, setResolution] = useState(initialResolution ?? '2K')
   const [style, setStyle] = useState<GeneralStyle>('unspecified')
   const [referenceStrength, setReferenceStrength] = useState<ReferenceStrength>('medium')
   const [platform, setPlatform] = useState('smart')
   const [outputLanguage, setOutputLanguage] = useState('none')
-  const [moduleMode, setModuleMode] = useState<ModuleMode>('smart')
-  const [moduleCounts, setModuleCounts] = useState<Record<string, number>>({})
+  const initialModuleMode = recipe ? 'custom' : 'smart'
+  const [moduleMode, setModuleMode] = useState<ModuleMode>(initialModuleMode)
+  const [moduleCounts, setModuleCounts] = useState<Record<string, number>>(
+    recipe?.moduleCounts ?? {},
+  )
   const [recreateStrength, setRecreateStrength] = useState<'style' | 'high'>('style')
   const [enhancements, setEnhancements] = useState<string[]>([])
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
@@ -154,11 +169,14 @@ function StandardWorkbench({
   const [modelsRevision, setModelsRevision] = useState(0)
   const selectedEndpointRef = useRef(endpointId)
   selectedEndpointRef.current = endpointId
-  const [panelOpen, setPanelOpen] = useState(false)
+  const [panelOpen, setPanelOpen] = useState(Boolean(recipe))
   const generalLayout = useCreatorPreferences()
   const commerceLayout = useCreatorPreferences('commerce')
   const creatorLayout = mode === 'general' ? generalLayout : commerceLayout
   const { collapsed: configCollapsed, setCollapsed: setConfigCollapsed } = creatorLayout
+  useEffect(() => {
+    if (recipe) setConfigCollapsed(false)
+  }, [recipe, setConfigCollapsed])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyTask, setHistoryTask] = useState<HistoryTask | null>(null)
   const [loadingConfigId, setLoadingConfigId] = useState<string | null>(null)
@@ -195,7 +213,12 @@ function StandardWorkbench({
     setActiveResultIndex,
     submit,
     removeResult,
-  } = useGenerationTask(`${mode}:${task}`)
+  } = useGenerationTask(
+    recipe
+      ? `${mode}:${task}:${recipe.id}:${searchParams.get('projectId') ?? ''}`
+      : `${mode}:${task}`,
+    { restoreLatest: !recipe },
+  )
 
   const draftSnapshot = useMemo<StandardCreationDraft>(
     () => ({
@@ -241,20 +264,20 @@ function StandardWorkbench({
   )
   const defaultDraft: StandardCreationDraft = {
     prompt: initialPrompt ?? '',
-    requirements: '',
+    requirements: recipe?.requirements ?? '',
     productFiles: [],
     referenceFiles: [],
     count: Math.min(generalMaxCount, Math.max(1, Number(initialCount) || 1)),
     model,
     endpointId,
-    aspectRatio: initialAspectRatio ?? '1:1',
+    aspectRatio: initialAspectRatio ?? recipe?.aspectRatio ?? '1:1',
     resolution: initialResolution ?? '2K',
     style: 'unspecified',
     referenceStrength: 'medium',
     platform: 'smart',
     outputLanguage: 'none',
-    moduleMode: 'smart',
-    moduleCounts: {},
+    moduleMode: initialModuleMode,
+    moduleCounts: recipe?.moduleCounts ?? {},
     recreateStrength: 'style',
     enhancements: [],
     inspirationTemplate: null,
@@ -264,6 +287,7 @@ function StandardWorkbench({
     context: creationDraftContext(
       mode === 'general' ? 'general' : `commerce:${task}`,
       searchParams.get('projectId') ?? '',
+      recipe?.id,
     ),
     source: draftEntrySource(searchParams),
     enabled: true,
@@ -292,7 +316,8 @@ function StandardWorkbench({
       setInspirationTemplate(value.inspirationTemplate)
     },
   })
-  const restoreHandoff = draft.ready && draft.restoredSource !== draftEntrySource(searchParams)
+  const restoreHandoff =
+    !recipe && draft.ready && draft.restoredSource !== draftEntrySource(searchParams)
   const inspiration = useInspirationHandoff({
     ready: draft.ready && mode === 'general',
     onApply: async (template) => {
@@ -763,7 +788,7 @@ function StandardWorkbench({
       draft.markEntryApplied()
       setHistoryTask(null)
       setHistoryOpen(false)
-      router.replace(studioToolUrl(nextMode, nextTask, searchParams))
+      router.replace(currentToolUrl)
       const message = '已载入历史记录的配置，可继续调整后生成'
       if (nextMode === mode && (nextMode === 'general' || nextTask === task))
         setNotice({ kind: 'success', message })
@@ -806,6 +831,10 @@ function StandardWorkbench({
     }
     const loaded = await loadHistoryConfig(historyTaskToLoad)
     if (!loaded) return
+    if (recipe) {
+      reviewRecipeCost()
+      return
+    }
     if (shouldSkipRegenerateConfirm()) {
       setAutoRegeneratePending(true)
       return
@@ -836,6 +865,10 @@ function StandardWorkbench({
 
   /** 重新生成前先确认：每次生成都会调用 AI 服务并产生费用 */
   function requestRegenerate() {
+    if (recipe) {
+      reviewRecipeCost()
+      return
+    }
     setConfigCollapsed(false)
     if (shouldSkipRegenerateConfirm()) {
       createGenerationTask()
@@ -893,7 +926,14 @@ function StandardWorkbench({
     return { ...common, enhancements, requirements }
   }
 
-  function createGenerationTask() {
+  function reviewRecipeCost() {
+    setConfigCollapsed(false)
+    setPanelOpen(true)
+    setNotice({ kind: 'success', message: '请核对当前商品图与积分，再确认生成。' })
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('.generate-button')?.focus())
+  }
+
+  function createGenerationTask(confirmedQuote?: GenerationQuote) {
     if (isSubmitting || isGenerating) return
     if (!draft.ready || templateBlockedReason) {
       setNotice({ kind: 'error', message: templateBlockedReason || '正在恢复草稿，请稍候' })
@@ -910,6 +950,16 @@ function StandardWorkbench({
     }
     if (mode === 'commerce' && !hasProductImage) {
       setNotice({ kind: 'error', message: '请先上传商品原图' })
+      return
+    }
+    if (
+      recipe &&
+      (!confirmedQuote ||
+        !confirmedQuote.canAfford ||
+        confirmedQuote.modelId !== endpointId ||
+        confirmedQuote.quantity !== expectedCount)
+    ) {
+      reviewRecipeCost()
       return
     }
     if (compatibilityIssue) {
@@ -949,8 +999,14 @@ function StandardWorkbench({
     void submit({
       productFiles,
       referenceFiles,
+      confirmedQuote,
       buildPayload,
       onAuthRequired: () => void login(),
+      onSubmitted: () => {
+        if (recipe && window.matchMedia('(max-width: 780px)').matches) {
+          document.querySelector('.result-workspace')?.scrollIntoView({ block: 'start' })
+        }
+      },
     })
   }
 
@@ -973,7 +1029,7 @@ function StandardWorkbench({
     setConfirmOpen(false)
     inspiration.dismiss()
     await draft.clear()
-    if (mounted.current) router.replace(studioToolUrl(mode, task, searchParams), { scroll: false })
+    if (mounted.current) router.replace(currentToolUrl, { scroll: false })
   }
 
   if (!draft.ready) return <WorkbenchSkeleton mode={mode} />
@@ -981,6 +1037,7 @@ function StandardWorkbench({
   return (
     <main className="workbench-page">
       <section
+        data-commerce-recipe={recipe?.id}
         className={`workbench-shell floating-workbench mode-${mode} config-${creatorLayout.side} ${panelOpen ? 'panel-open' : ''} ${configCollapsed ? 'creator-config-collapsed' : ''}`}
       >
         <WorkbenchRail
@@ -1042,6 +1099,7 @@ function StandardWorkbench({
           }}
         />
         <CreatorSidebar
+          recipeTitle={recipe?.title}
           templateBlockedReason={templateBlockedReason}
           referenceRequired={inspirationTemplate?.requiresReference}
           draftStatus={draft.status}
@@ -1137,7 +1195,8 @@ function StandardWorkbench({
           onSetAspectRatio={setAspectRatio}
           onSetResolution={setResolution}
           onCloseSheet={() => setPanelOpen(false)}
-          onSubmit={createGenerationTask}
+          onSubmit={() => createGenerationTask()}
+          onConfirmCost={recipe ? createGenerationTask : undefined}
         />
         <ResultWorkspace
           starter={

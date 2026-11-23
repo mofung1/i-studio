@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { generationInputSchema, type GenerationInput } from '@/lib/contracts'
 
 import { displayedUnitPrice, fetchGenerationQuote } from '../generation-cost'
-import { refreshAccount } from '@/lib/credits'
+import { refreshAccount, type GenerationQuote } from '@/lib/credits'
 import { apiBaseUrl, getAccessToken, readApiError, uploadAsset } from '@/lib/api'
 import { useAccount } from '@/components/account-provider'
 
@@ -53,6 +53,7 @@ export type GenerationNotice = { kind: 'success' | 'error'; message: string }
 export type SubmitParams = {
   productFiles: CreationImage[]
   referenceFiles: CreationImage[]
+  confirmedQuote?: GenerationQuote
   modelFile?: CreationImage
   sceneFile?: CreationImage
   /** 用已上传资产 ID 构建待提交的 payload；返回 null 表示前置校验未过 */
@@ -67,7 +68,7 @@ export type SubmitParams = {
   onSubmitted?: () => void
 }
 
-export function useGenerationTask(scopeKey = 'default') {
+export function useGenerationTask(scopeKey = 'default', { restoreLatest = true } = {}) {
   const { account } = useAccount()
   const owner = account.user?.id ?? ''
   const [resultOwner, setResultOwner] = useState(owner)
@@ -142,6 +143,7 @@ export function useGenerationTask(scopeKey = 'default') {
     const restoreTask = async () => {
       if (!token) return
       const savedId = pendingTaskId(scopeKey)
+      if (!savedId && !restoreLatest) return
       const productId = scopeKey.startsWith('product:') ? scopeKey.slice('product:'.length) : ''
       const [scopeMode = 'general', taskType] = scopeKey.split(':')
       const mode = productId ? 'general' : scopeMode
@@ -194,7 +196,7 @@ export function useGenerationTask(scopeKey = 'default') {
       controller.abort()
       submissionId.current += 1
     }
-  }, [scopeKey, owner])
+  }, [scopeKey, owner, restoreLatest])
 
   useEffect(() => {
     if (notice?.kind !== 'success') return
@@ -327,6 +329,7 @@ export function useGenerationTask(scopeKey = 'default') {
     async ({
       productFiles,
       referenceFiles,
+      confirmedQuote,
       modelFile,
       sceneFile,
       buildPayload,
@@ -378,9 +381,16 @@ export function useGenerationTask(scopeKey = 'default') {
           }
           const modelId = draftResult.data.endpointId ?? ''
           if (!modelId) throw new Error('请选择可用的生图模型')
-          const quotedPrice = displayedUnitPrice(modelId)
+          const quotedPrice = confirmedQuote?.unitPriceMinor ?? displayedUnitPrice(modelId)
           const quote = await fetchGenerationQuote(modelId, draftResult.data.count ?? 1)
-          if (quotedPrice !== undefined && quote.unitPriceMinor !== quotedPrice) {
+          if (
+            (quotedPrice !== undefined && quote.unitPriceMinor !== quotedPrice) ||
+            (confirmedQuote &&
+              (quote.totalMinor !== confirmedQuote.totalMinor ||
+                quote.quantity !== confirmedQuote.quantity ||
+                quote.modelId !== confirmedQuote.modelId ||
+                quote.creditName !== confirmedQuote.creditName))
+          ) {
             refreshAccount()
             throw new Error('模型价格已变更，请确认最新费用后重新提交')
           }

@@ -313,6 +313,15 @@
   background: transparent;
   box-shadow: none;
 }
+.recipe-settings-summary {
+  display: list-item;
+  min-height: 44px;
+  padding: 12px 0;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  font-weight: 500;
+  cursor: pointer;
+}
 .mode-general .basic-settings-popover {
   position: static;
   width: 100%;
@@ -396,8 +405,23 @@
   .mode-general .configuration-panel {
     order: 2;
   }
-  .mode-general .creation-canvas {
+  .mode-general .creation-canvas,
+  .workbench-shell[data-commerce-recipe] .creation-canvas {
     order: 3;
+  }
+  .workbench-shell[data-commerce-recipe] .workbench-nav {
+    flex-wrap: wrap;
+  }
+  .workbench-shell[data-commerce-recipe] .workbench-nav-actions {
+    flex: 1 1 auto;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .workbench-shell[data-commerce-recipe] .workbench-nav-actions > .studio-secondary:not(:has(svg)) {
+    width: auto;
+    padding-inline: 8px;
+    font-size: var(--text-small);
   }
   .workbench-shell.floating-workbench .configuration-panel,
   .workbench-shell.floating-workbench.config-right .configuration-panel {

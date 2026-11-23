@@ -9,12 +9,13 @@ import {
 import { loadProtectedImage } from '@/components/authenticated-image'
 
 import { RotateCcw, ScanText, X } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { CreatorPanel } from './creator-panel'
 import { usePromptReverse } from '@/components/prompt-reverse-provider'
 import { applyReverseText } from '@/lib/prompt-reverse'
 
 import type { GenerationModel } from '@/lib/contracts'
+import type { GenerationQuote } from '@/lib/credits'
 import { modelCompatibilityIssue, type PublicImageModel } from '@/lib/generation-models'
 import { ModelCompatibilityNotice } from './model-compatibility-notice'
 
@@ -43,9 +44,11 @@ import {
 } from './shared'
 import type { GenerationNotice } from './use-generation-task'
 import type { DraftStatus } from './use-creation-draft'
+import noticeStyles from '../inspiration-template.module.css'
 
 interface CreatorSidebarProps {
   mode: WorkbenchMode
+  recipeTitle?: string
   templateNotice?: ReactNode
   templateBlockedReason?: string
   referenceRequired?: boolean
@@ -109,6 +112,7 @@ interface CreatorSidebarProps {
   onSetResolution: (resolution: string) => void
   onCloseSheet: () => void
   onSubmit: () => void
+  onConfirmCost?: (quote: GenerationQuote) => void
 }
 
 const ASSET_LABELS: Record<CommerceTaskType, string> = {
@@ -186,6 +190,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
       : undefined
 
   const isGeneral = mode === 'general'
+  const SettingsGroup = props.recipeTitle ? 'details' : Fragment
   const { openReverse } = usePromptReverse()
   const [reverseUndo, setReverseUndo] = useState<{
     before: string
@@ -330,6 +335,17 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           </div>
 
           {props.templateNotice}
+          {props.recipeTitle && (
+            <section className={noticeStyles.notice} aria-label="同款套图配置">
+              <strong>{props.recipeTitle}</strong>
+              <p>
+                {moduleMode === 'custom'
+                  ? selectedModules.map(({ label, count }) => `${label} × ${count}`).join(' · ') ||
+                    '请选择图片模块'
+                  : '智能生成'}
+              </p>
+            </section>
+          )}
           {isGeneral ? (
             <div className="composer-input-grid">
               <fieldset className="form-section config-card config-card-prompt">
@@ -466,7 +482,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           {!isGeneral && (
             <fieldset className="form-section config-card config-card-assets composer-media">
               <div className="field-heading">
-                <legend>{assetLabel}</legend>
+                <legend>{props.recipeTitle ? '我的商品原图' : assetLabel}</legend>
                 <span>{maxFiles === 1 ? '必须 1 张' : `1–${maxFiles} 张`}</span>
               </div>
               <ReferenceUploader
@@ -508,99 +524,108 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
             </fieldset>
           )}
 
-          {!isGeneral && (
-            <fieldset className="form-section config-card">
-              <div className="field-heading">
-                <legend>目标平台</legend>
-              </div>
-              <ProductPlatformSelector value={platform} onChange={onSetPlatform} />
-            </fieldset>
-          )}
-
-          {!isGeneral && (
-            <fieldset className="form-section config-card config-card-prompt">
-              <legend className="sr-only">{requirementsLabel}</legend>
-              <PromptEditor
-                draftStatus={props.draftStatus}
-                draftError={props.draftError}
-                onRetryDraft={props.onRetryDraft}
-                value={requirements}
-                onChange={onSetRequirements}
-                ariaLabel={requirementsLabel}
-                maxLength={task === 'product-main' || task === 'detail-page' ? 2000 : 1000}
-                placeholder={requirementsPlaceholder}
-                enhance={async (value) =>
-                  promptEnhanceEnabled
-                    ? runEnhance('requirements', value)
-                    : (await formatPrompt(value, style)).text
-                }
-                enhanceLabel={promptEnhanceEnabled ? 'AI 帮写' : '整理描述'}
-                enhanceDisabledReason={
-                  !requirements.trim() && (!promptEnhanceEnabled || enhanceImages.length === 0)
-                    ? promptEnhanceEnabled
-                      ? enhanceBlockedReason
-                      : '请先输入补充需求'
-                    : undefined
-                }
-                helper={enhanceHelper}
-              />
-            </fieldset>
-          )}
-
-          <div className="composer-control-row">
-            <BasicSettings
-              mode={mode}
-              task={task}
-              resolution={resolution}
-              count={count}
-              imageEndpoints={props.imageEndpoints}
-              modelsLoading={props.modelsLoading}
-              modelsError={props.modelsError}
-              onReloadModels={props.onReloadModels}
-              endpointId={props.endpointId}
-              onSetEndpoint={props.onSetEndpoint}
-              onSetResolution={onSetResolution}
-              onSetCount={onSetCount}
-              aspectRatio={aspectRatio}
-              outputSummary={outputSummary}
-              outputLanguage={outputLanguage}
-              onSetOutputLanguage={onSetOutputLanguage}
-              onSetAspectRatio={onSetAspectRatio}
-              style={style}
-              referenceStrength={referenceStrength}
-              onSetStyle={onSetStyle}
-              onSetReferenceStrength={onSetReferenceStrength}
-            />
+          <SettingsGroup>
+            {props.recipeTitle && (
+              <summary className="recipe-settings-summary">
+                调整套图设置
+                {(compatibilityIssue || props.modelsError || aiEnabled === false) &&
+                  '（查看模型设置）'}
+              </summary>
+            )}
+            {!isGeneral && (
+              <fieldset className="form-section config-card">
+                <div className="field-heading">
+                  <legend>目标平台</legend>
+                </div>
+                <ProductPlatformSelector value={platform} onChange={onSetPlatform} />
+              </fieldset>
+            )}
 
             {!isGeneral && (
-              <AdvancedSettings
-                style={style}
-                onSetStyle={onSetStyle}
-                imageEndpoints={props.imageEndpoints}
-                endpointId={props.endpointId}
-                onSetEndpoint={props.onSetEndpoint}
+              <fieldset className="form-section config-card config-card-prompt">
+                <legend className="sr-only">{requirementsLabel}</legend>
+                <PromptEditor
+                  draftStatus={props.draftStatus}
+                  draftError={props.draftError}
+                  onRetryDraft={props.onRetryDraft}
+                  value={requirements}
+                  onChange={onSetRequirements}
+                  ariaLabel={requirementsLabel}
+                  maxLength={task === 'product-main' || task === 'detail-page' ? 2000 : 1000}
+                  placeholder={requirementsPlaceholder}
+                  enhance={async (value) =>
+                    promptEnhanceEnabled
+                      ? runEnhance('requirements', value)
+                      : (await formatPrompt(value, style)).text
+                  }
+                  enhanceLabel={promptEnhanceEnabled ? 'AI 帮写' : '整理描述'}
+                  enhanceDisabledReason={
+                    !requirements.trim() && (!promptEnhanceEnabled || enhanceImages.length === 0)
+                      ? promptEnhanceEnabled
+                        ? enhanceBlockedReason
+                        : '请先输入补充需求'
+                      : undefined
+                  }
+                  helper={enhanceHelper}
+                />
+              </fieldset>
+            )}
+
+            <div className="composer-control-row">
+              <BasicSettings
                 mode={mode}
                 task={task}
-                referenceStrength={referenceStrength}
                 resolution={resolution}
                 count={count}
-                model={model}
-                moduleMode={moduleMode}
-                moduleCounts={moduleCounts}
-                recreateStrength={recreateStrength}
-                enhancements={enhancements}
-                summary={advancedSummary}
-                onSetReferenceStrength={onSetReferenceStrength}
+                imageEndpoints={props.imageEndpoints}
+                modelsLoading={props.modelsLoading}
+                modelsError={props.modelsError}
+                onReloadModels={props.onReloadModels}
+                endpointId={props.endpointId}
+                onSetEndpoint={props.onSetEndpoint}
                 onSetResolution={onSetResolution}
                 onSetCount={onSetCount}
-                onSetModel={onSetModel}
-                onSetModuleMode={onSetModuleMode}
-                onSetModuleCounts={onSetModuleCounts}
-                onSetRecreateStrength={onSetRecreateStrength}
-                onSetEnhancements={onSetEnhancements}
+                aspectRatio={aspectRatio}
+                outputSummary={outputSummary}
+                outputLanguage={outputLanguage}
+                onSetOutputLanguage={onSetOutputLanguage}
+                onSetAspectRatio={onSetAspectRatio}
+                style={style}
+                referenceStrength={referenceStrength}
+                onSetStyle={onSetStyle}
+                onSetReferenceStrength={onSetReferenceStrength}
               />
-            )}
-          </div>
+
+              {!isGeneral && (
+                <AdvancedSettings
+                  style={style}
+                  onSetStyle={onSetStyle}
+                  imageEndpoints={props.imageEndpoints}
+                  endpointId={props.endpointId}
+                  onSetEndpoint={props.onSetEndpoint}
+                  mode={mode}
+                  task={task}
+                  referenceStrength={referenceStrength}
+                  resolution={resolution}
+                  count={count}
+                  model={model}
+                  moduleMode={moduleMode}
+                  moduleCounts={moduleCounts}
+                  recreateStrength={recreateStrength}
+                  enhancements={enhancements}
+                  summary={advancedSummary}
+                  onSetReferenceStrength={onSetReferenceStrength}
+                  onSetResolution={onSetResolution}
+                  onSetCount={onSetCount}
+                  onSetModel={onSetModel}
+                  onSetModuleMode={onSetModuleMode}
+                  onSetModuleCounts={onSetModuleCounts}
+                  onSetRecreateStrength={onSetRecreateStrength}
+                  onSetEnhancements={onSetEnhancements}
+                />
+              )}
+            </div>
+          </SettingsGroup>
           {isGeneral && notice && (
             <p className={`form-notice ${notice.kind}`} role="status">
               {notice.message}
@@ -626,7 +651,12 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         isSubmitting={isSubmitting}
         isGenerating={isGenerating}
         aiEnabled={aiEnabled}
-        disabledReason={props.templateBlockedReason || compatibilityIssue}
+        onConfirmCost={props.onConfirmCost}
+        disabledReason={
+          props.templateBlockedReason ||
+          compatibilityIssue ||
+          (props.recipeTitle && productFiles.length === 0 ? '请先添加自己的商品图' : undefined)
+        }
         onSubmit={onSubmit}
       />
     </CreatorPanel>

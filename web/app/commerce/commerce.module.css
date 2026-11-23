@@ -85,16 +85,6 @@
 .hero .heading p {
   font-size: 14px;
 }
-.badge {
-  display: inline-block;
-  margin-bottom: 10px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--control-bg);
-  color: var(--foreground-2);
-  font-size: 11px;
-  line-height: 1.5;
-}
 .retouch {
   grid-column: span 2;
 }
@@ -227,12 +217,30 @@
 .footer {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px 16px;
+  gap: 12px 16px;
 }
-.footer > span {
+.recipeInfo h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.recipeInfo h3 span {
+  margin-left: 4px;
   color: var(--foreground-3);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 400;
+}
+.recipeInfo ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--foreground-3);
+  font-size: 12px;
   line-height: 1.5;
 }
 .primary {

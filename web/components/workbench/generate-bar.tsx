@@ -3,6 +3,7 @@
 import { Check, Loader2, Sparkles } from 'lucide-react'
 import { useId } from 'react'
 
+import { formatCredits, type GenerationQuote } from '@/lib/credits'
 import { GenerationCost, useGenerationCost } from '../generation-cost'
 import type { GenerationNotice } from './use-generation-task'
 import { useAccount } from '../account-provider'
@@ -20,6 +21,7 @@ interface GenerateBarProps {
   isGenerating: boolean
   aiEnabled: boolean | null
   onSubmit: () => void
+  onConfirmCost?: (quote: GenerationQuote) => void
   buttonLabel?: string
   busyLabel?: string
   disabledReason?: string
@@ -37,6 +39,7 @@ export function GenerateBar({
   isGenerating,
   aiEnabled,
   onSubmit,
+  onConfirmCost,
   buttonLabel,
   busyLabel,
   disabledReason,
@@ -48,6 +51,11 @@ export function GenerateBar({
     : notice
   const cost = useGenerationCost(modelId, expectedCount)
   const costBlocked = cost.authenticated && (!cost.quote || !cost.quote.canAfford)
+  const submitLabel = onConfirmCost
+    ? cost.quote
+      ? `确认 ${formatCredits(cost.quote.totalMinor)} ${cost.quote.creditName} 并生成 ${cost.quote.quantity} 张`
+      : '确认积分并生成套图'
+    : (buttonLabel ?? `生成${title}`)
   const label = isSubmitting
     ? (busyLabel ?? '正在提交…')
     : isGenerating
@@ -56,7 +64,7 @@ export function GenerateBar({
         ? '检查 AI 服务…'
         : aiEnabled === false
           ? '暂无可用模型'
-          : (buttonLabel ?? `生成${title}`)
+          : submitLabel
 
   const hint = isGenerating
     ? '当前任务生成中，完成后可以继续提交新任务'
@@ -112,7 +120,10 @@ export function GenerateBar({
           }
           title={hint}
           aria-describedby={visibleNotice ? noticeId : undefined}
-          onClick={onSubmit}
+          onClick={() => {
+            if (!onConfirmCost) onSubmit()
+            else if (cost.quote) onConfirmCost(cost.quote)
+          }}
         >
           {isSubmitting || isGenerating ? (
             <Loader2 size={17} className="animate-spin" aria-hidden="true" />

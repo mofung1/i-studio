@@ -2,9 +2,19 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import CommercePage from '@/app/commerce/page'
+import StudioPage from '@/app/studio/page'
+import {
+  creationDraftKey,
+  readCreationDraft,
+  writeCreationDraft,
+  type CreationDraftRecord,
+} from '@/lib/creation-drafts'
 import { Workbench } from './workbench'
+import type { SubmitParams } from './workbench/use-generation-task'
 
 const generation = vi.hoisted(() => ({ submit: vi.fn() }))
+const navigation = vi.hoisted(() => ({ query: '' }))
 
 // Model behavior assumes local storage is available; draft failures have separate coverage.
 vi.mock('@/lib/creation-drafts', async (original) => ({
@@ -16,8 +26,12 @@ vi.mock('@/lib/creation-drafts', async (original) => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => '/workbench',
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(navigation.query),
 }))
+vi.mock('./studio-shell', () => ({
+  StudioShell: ({ children }: { children: ReactNode }) => children,
+}))
+vi.mock('./workbench/studio-tool-launcher', () => ({ StudioToolLauncher: () => null }))
 vi.mock('./account-provider', () => ({
   useAccount: () => ({
     account: {
@@ -72,6 +86,13 @@ beforeEach(() => {
   }))
   vi.stubGlobal('fetch', fetcher)
   vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static createObjectURL = () => 'blob:product-preview'
+      static revokeObjectURL = () => {}
+    },
+  )
+  vi.stubGlobal(
     'ResizeObserver',
     class {
       observe() {}
@@ -84,6 +105,9 @@ beforeEach(() => {
     value: vi.fn(),
   })
   localStorage.setItem('istudio-access-token', 'member-token')
+  navigation.query = ''
+  vi.mocked(readCreationDraft).mockReset()
+  vi.mocked(writeCreationDraft).mockReset()
   fetcher.mockReset()
   generation.submit.mockReset()
   container = document.createElement('div')
@@ -184,6 +208,158 @@ function quoteResponse() {
     }),
   )
 }
+
+async function openStudio(url: URL) {
+  navigation.query = url.search
+  const page = await StudioPage({
+    searchParams: Promise.resolve(Object.fromEntries(url.searchParams)),
+  })
+  await act(async () => root.render(page))
+}
+
+function mockCommercePricing(getAvailable = () => 5000) {
+  fetcher.mockImplementation(async (url) => {
+    const { pathname, searchParams } = new URL(String(url))
+    if (pathname.endsWith('/capabilities'))
+      return Response.json({
+        aiEnabled: true,
+        imageEndpoints: [{ id: 'a', name: '模型 A', model: 'A', isDefault: true }],
+      })
+    if (!pathname.endsWith('/quote')) throw new Error(`Unexpected request: ${url}`)
+    const quantity = Number(searchParams.get('count'))
+    const availableMinor = getAvailable()
+    const totalMinor = 125 * quantity
+    return Response.json({
+      modelId: searchParams.get('modelId'),
+      unitPriceMinor: 125,
+      totalMinor,
+      quantity,
+      availableMinor,
+      heldMinor: 0,
+      canAfford: totalMinor <= availableMinor,
+      creditName: '创作点',
+      creditScale: 100,
+    })
+  })
+}
+
+async function dropProduct(name: string) {
+  const product = new File(['product image'], name, { type: 'image/png' })
+  const drop = new Event('drop', { bubbles: true, cancelable: true })
+  Object.defineProperty(drop, 'dataTransfer', { value: { types: ['Files'], files: [product] } })
+  await act(async () => container.querySelector('.reference-dropzone')!.dispatchEvent(drop))
+  return product
+}
+
+it('opens the commerce example, quotes the trio and submits the user’s product only after confirmation', async () => {
+  let balance = 5000
+  mockCommercePricing(() => balance)
+  const page = await CommercePage({ searchParams: Promise.resolve({ projectId: 'my-project' }) })
+  await act(async () => root.render(page))
+  const cta = [...container.querySelectorAll('a')].find((a) =>
+    a.textContent?.includes('用我的商品做同款'),
+  )
+  expect(cta).toBeDefined()
+  const target = new URL(cta!.href)
+  expect(target.pathname).toBe('/studio')
+  expect(Object.fromEntries(target.searchParams)).toMatchObject({
+    mode: 'commerce',
+    task: 'product-main',
+    recipe: 'product-main-trio',
+    projectId: 'my-project',
+  })
+  await openStudio(target)
+  await waitForQuote()
+  const submitButton = () => container.querySelector<HTMLButtonElement>('button.generate-button')!
+  expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 3 张')
+  expect(container.textContent).toContain('3.75 创作点')
+  expect(submitButton().disabled).toBe(true)
+  balance = 200
+  await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
+  const product = await dropProduct('my-product.png')
+  expect(submitButton().disabled).toBe(true)
+  await waitForQuote()
+  expect(container.textContent).toContain('余额不足')
+  expect(submitButton().disabled).toBe(true)
+  balance = 5000
+  await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
+  await waitForQuote()
+  expect(submitButton().textContent).toMatch(/确认.*3\.75\s*创作点.*生成.*3\s*张/)
+  expect(submitButton().disabled).toBe(false)
+  expect(generation.submit).not.toHaveBeenCalled()
+  await act(async () => submitButton().click())
+  expect(generation.submit).toHaveBeenCalledTimes(1)
+  const submission = generation.submit.mock.calls[0]![0] as SubmitParams
+  expect(submission.productFiles).toEqual([product])
+  expect(submission.referenceFiles).toEqual([])
+  expect(submission).toMatchObject({
+    confirmedQuote: { modelId: 'a', quantity: 3, totalMinor: 375, creditName: '创作点' },
+  })
+  expect(submission.buildPayload(['my-product-asset'], [])).toMatchObject({
+    projectId: 'my-project',
+    mode: 'commerce',
+    taskType: 'product-main',
+    productAssetIds: ['my-product-asset'],
+    moduleMode: 'custom',
+    moduleCounts: { white: 1, scene: 1, detail: 1 },
+    count: 3,
+  })
+})
+
+it('keeps the ordinary product-main draft and the edited trio draft when switching between them', async () => {
+  mockCommercePricing()
+  const drafts = new Map<string, CreationDraftRecord<unknown>>()
+  vi.mocked(writeCreationDraft).mockImplementation(async (owner, context, value, source = '') => {
+    drafts.set(creationDraftKey(owner, context), { version: 1, source, savedAt: Date.now(), value })
+  })
+  vi.mocked(readCreationDraft).mockImplementation(async (owner, context, parse) => {
+    const draft = drafts.get(creationDraftKey(owner, context))
+    return draft ? { ...draft, value: parse(draft.value) } : null
+  })
+  const ordinary = new URL('/studio?mode=commerce&task=product-main', 'http://localhost')
+  const trio = new URL(ordinary)
+  trio.searchParams.set('recipe', 'product-main-trio')
+  const requirements = () => container.querySelector<HTMLTextAreaElement>('.prompt-input')!
+  async function saveRequirements(text: string) {
+    await act(async () => {
+      const input = requirements()
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(
+        input,
+        text,
+      )
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(350)
+    })
+  }
+  await openStudio(ordinary)
+  expect(container.querySelector('.recipe-settings-summary')).toBeNull()
+  expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 1 张')
+  await dropProduct('ordinary-product.png')
+  await saveRequirements('普通主图草稿有独立的拍摄要求')
+  await openStudio(trio)
+  expect(requirements().value).not.toBe('普通主图草稿有独立的拍摄要求')
+  expect(container.querySelector('.uploaded-thumb')).toBeNull()
+  expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 3 张')
+  await dropProduct('trio-product.png')
+  const settings = requirements().closest('details')!
+  const summary = settings.querySelector('summary')!
+  expect(settings.open).toBe(false)
+  expect(summary.textContent).toContain('调整套图设置')
+  await act(async () => summary.click())
+  expect(settings.open).toBe(true)
+  await saveRequirements('同款套图保留瓶身图案')
+  await openStudio(ordinary)
+  expect(requirements().value).toBe('普通主图草稿有独立的拍摄要求')
+  expect(container.querySelector('img[alt*="ordinary-product.png"]')).not.toBeNull()
+  expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 1 张')
+  await openStudio(trio)
+  expect(requirements().value).toBe('同款套图保留瓶身图案')
+  expect(container.querySelector('img[alt*="trio-product.png"]')).not.toBeNull()
+  expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 3 张')
+  expect(generation.submit).not.toHaveBeenCalled()
+})
 
 it.each([
   ['general', 'product-main'],

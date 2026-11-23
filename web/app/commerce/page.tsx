@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
-import { taskMeta } from '@/components/workbench/shared'
+import { moduleLabel, taskMeta } from '@/components/workbench/shared'
+import { productMainRecipe, productMainRecipeUrl } from '@/lib/commerce-recipe'
 import type { CommerceTaskType } from '@/lib/contracts'
 import { studioToolUrl } from '@/lib/studio-navigation'
 import { CommerceComparison } from './comparison'
@@ -9,7 +10,7 @@ import { ExampleFrame } from './example-frame'
 import styles from './commerce.module.css'
 
 const examples = [
-  { id: 'product-main', layout: 'hero', description: '普通实拍，变成专业商品主图', image: 'main' },
+  { id: 'product-main', layout: 'hero', description: '面霜场景主图的 AI 概念示例', image: 'main' },
   {
     id: 'product-retouch',
     layout: 'retouch',
@@ -99,7 +100,6 @@ export default async function CommercePage({
               <article className={`${styles.card} ${styles[layout]}`} key={id}>
                 <Link href={href} className={styles.heading} aria-label={`进入${title}`}>
                   <div>
-                    {layout === 'hero' && <span className={styles.badge}>核心工具</span>}
                     <h2>{title}</h2>
                     <p>{description}</p>
                   </div>
@@ -109,11 +109,13 @@ export default async function CommercePage({
                   <CommerceComparison
                     src={`/images/commerce/${image}.webp`}
                     title={title}
-                    beforeAlt={id === 'product-main' ? '面霜罐普通实拍示例' : '金属杯精修前示例'}
+                    beforeAlt={
+                      id === 'product-main' ? '灰色背景上的面霜罐示例' : '金属杯精修前示例'
+                    }
                     afterAlt={
                       id === 'product-main' ? '同款面霜的暖光场景主图示例' : '同款金属杯精修后示例'
                     }
-                    afterLabel={id === 'product-main' ? 'AI 生成示例' : '精修示例'}
+                    afterLabel={id === 'product-main' ? '场景主图示例' : '精修示例'}
                     mode={id === 'product-retouch' ? 'side' : 'overlay'}
                     frameRatio={id === 'product-main' ? 900 / 607 : 1.5}
                     priority={id === 'product-main'}
@@ -123,10 +125,21 @@ export default async function CommercePage({
                 )}
                 {layout === 'hero' && (
                   <div className={styles.footer}>
-                    <Link href={href} className={styles.primary}>
-                      开始创作 <ArrowRight size={17} aria-hidden="true" />
+                    <div className={styles.recipeInfo}>
+                      <h3>
+                        {productMainRecipe.title} <span>{productMainRecipe.aspectRatio}</span>
+                      </h3>
+                      <ul aria-label="套图内容">
+                        {Object.entries(productMainRecipe.moduleCounts).map(([key, count]) => (
+                          <li key={key}>
+                            {moduleLabel('product-main', key)} {count} 张
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <Link href={productMainRecipeUrl(project)} className={styles.primary}>
+                      用我的商品做同款 <ArrowRight size={17} aria-hidden="true" />
                     </Link>
-                    <span>保留商品主体，重构场景与光影</span>
                   </div>
                 )}
               </article>

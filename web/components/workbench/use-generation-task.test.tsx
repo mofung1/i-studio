@@ -111,6 +111,47 @@ it('blocks a new generation before uploading or submitting when balance is insuf
   expect(fetch.mock.calls.some(([url]) => url.endsWith('/generation/tasks'))).toBe(false)
 })
 
+it('requires a new confirmation when the trio total changes before any product upload', async () => {
+  const confirmedQuote = {
+    modelId: 'public-model',
+    unitPriceMinor: 125,
+    totalMinor: 375,
+    quantity: 3,
+    availableMinor: 5000,
+    heldMinor: 0,
+    canAfford: true,
+    creditName: '创作点',
+    creditScale: 100,
+  }
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'POST') throw new Error('Unexpected upload or generation')
+    return Response.json(
+      url.includes('/quote') ? { ...confirmedQuote, totalMinor: 400 } : { tasks: [] },
+    )
+  })
+  vi.stubGlobal('fetch', fetcher)
+  await act(async () => root.render(<Harness scope="commerce:product-main:product-main-trio" />))
+  await act(async () =>
+    hook.submit({
+      productFiles: [new File(['product'], 'product.png', { type: 'image/png' })],
+      referenceFiles: [],
+      confirmedQuote,
+      buildPayload: (productAssetIds) => ({
+        mode: 'commerce',
+        taskType: 'product-main',
+        endpointId: 'public-model',
+        productAssetIds,
+        count: 3,
+        moduleMode: 'custom',
+        moduleCounts: { white: 1, scene: 1, detail: 1 },
+      }),
+      onAuthRequired: vi.fn(),
+    }),
+  )
+  expect(hook.notice?.message).toContain('请确认最新费用')
+  expect(fetcher.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
+})
+
 it('keeps completed results when a lost submission response is recovered after delivery', async () => {
   let submissions = 0
   vi.stubGlobal(

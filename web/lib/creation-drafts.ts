@@ -1,4 +1,5 @@
 import { isStoredImage, type CreationImage } from './creation-images'
+import { getCommerceRecipe } from './commerce-recipe'
 
 const databaseName = 'istudio-creation-drafts'
 const storeName = 'drafts'
@@ -37,8 +38,11 @@ export interface CreationDraftRecord<T> {
   value: T
 }
 
-export function creationDraftContext(tool: string, projectId = '') {
-  return JSON.stringify([tool, projectId])
+export function creationDraftContext(tool: string, projectId = '', recipeId?: string | null) {
+  const recipe = getCommerceRecipe(recipeId)
+  return recipe && tool === `commerce:${recipe.task}`
+    ? JSON.stringify([tool, projectId, recipe.id])
+    : JSON.stringify([tool, projectId])
 }
 
 export function creationDraftKey(owner: string, context: string) {
@@ -248,7 +252,7 @@ export async function prepareGuestDraftLogin(returnTo: string) {
   const query = target.searchParams
   const tool =
     query.get('mode') === 'commerce' ? `commerce:${query.get('task') || 'product-main'}` : 'general'
-  const context = creationDraftContext(tool, query.get('projectId') ?? '')
+  const context = creationDraftContext(tool, query.get('projectId') ?? '', query.get('recipe'))
   const flush = guestEditors.get(context)
   if (!flush) return
   await flush()
