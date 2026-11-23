@@ -157,6 +157,18 @@ describe('task progress in the asset library', () => {
   const showTasks = () => act(async () => root.render(<AssetLibrary view="tasks" />))
   const advance = (ms = 5000) => act(async () => vi.advanceTimersByTimeAsync(ms))
 
+  function mockVisibility(initial: DocumentVisibilityState = 'visible') {
+    let state = initial
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => state)
+    vi.spyOn(document, 'hidden', 'get').mockImplementation(() => state === 'hidden')
+    return (next: DocumentVisibilityState) =>
+      act(async () => {
+        state = next
+        document.dispatchEvent(new Event('visibilitychange'))
+        await vi.advanceTimersByTimeAsync(0)
+      })
+  }
+
   function serveTasks(tasks: HistoryTask[]) {
     const originalFetch = fetch
     const batch =
@@ -249,6 +261,73 @@ describe('task progress in the asset library', () => {
     await advance()
     expect(batch).toHaveBeenCalledTimes(2)
     expect(container.querySelector('.asset-card')?.textContent).toContain('生成完成')
+  })
+
+  it('pauses polling in a hidden tab and immediately checks active tasks on each return', async () => {
+    const changeVisibility = mockVisibility('hidden')
+    const { batch } = serveTasks([task('pending', 'queued'), task('old', 'succeeded')])
+    batch
+      .mockReturnValueOnce(Response.json({ tasks: [task('pending', 'processing')] }))
+      .mockReturnValueOnce(Response.json({ tasks: [task('pending', 'succeeded')] }))
+    await showTasks()
+    await advance(20000)
+    expect(batch).not.toHaveBeenCalled()
+
+    await changeVisibility('visible')
+    expect(batch.mock.calls.map(([ids]) => ids)).toEqual([['pending']])
+    expect(container.textContent).toContain('正在生成')
+    await advance(4000)
+    await changeVisibility('hidden')
+    await advance(20000)
+    expect(batch).toHaveBeenCalledTimes(1)
+
+    await changeVisibility('visible')
+    expect(batch.mock.calls.map(([ids]) => ids)).toEqual([['pending'], ['pending']])
+    expect(container.textContent).not.toContain('正在生成')
+    await changeVisibility('hidden')
+    await changeVisibility('visible')
+    await advance(10000)
+    expect(batch).toHaveBeenCalledTimes(2)
+  })
+
+  it('cancels a pending poll on hide and ignores its late result after resuming', async () => {
+    const changeVisibility = mockVisibility()
+    const { batch } = serveTasks([task('slow', 'processing')])
+    let finishOld!: (response: Response) => void
+    let finishNew!: (response: Response) => void
+    batch
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finishOld = resolve
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finishNew = resolve
+          }),
+      )
+      .mockReturnValueOnce(Response.json({ tasks: [task('slow', 'succeeded')] }))
+    await showTasks()
+    await advance()
+    const firstSignal = batch.mock.calls[0]?.[1]
+    await changeVisibility('hidden')
+    expect(firstSignal?.aborted).toBe(true)
+    await changeVisibility('visible')
+    expect(batch).toHaveBeenCalledTimes(2)
+    await act(async () => finishOld(Response.json({ tasks: [] })))
+    expect(container.textContent).toContain('正在生成')
+    await advance(10000)
+    expect(batch).toHaveBeenCalledTimes(2)
+    await act(async () => finishNew(Response.json({ tasks: [task('slow', 'waiting_provider')] })))
+    expect(container.textContent).toContain('等待 AI 服务')
+
+    await advance(4999)
+    expect(batch).toHaveBeenCalledTimes(2)
+    await advance(1)
+    expect(batch).toHaveBeenCalledTimes(3)
+    expect(container.textContent).toContain('生成完成')
   })
 
   it('discards late responses after leaving and returning to task history', async () => {

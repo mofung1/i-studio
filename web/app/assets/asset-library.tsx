@@ -240,10 +240,15 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     if (view !== 'tasks' || loading) return
     const ids = tasks.filter((task) => activeTaskStatuses.has(task.status)).map((task) => task.id)
     if (!ids.length) return
-    const controller = new AbortController()
-    let timer = window.setTimeout(refresh, taskPollInterval)
+    let controller: AbortController | undefined
+    let timer: number | undefined
 
-    async function refresh() {
+    function schedule(signal: AbortSignal) {
+      timer = window.setTimeout(() => void refresh(signal), taskPollInterval)
+    }
+
+    async function refresh(signal: AbortSignal) {
+      if (signal.aborted || document.visibilityState === 'hidden') return
       const requestEpoch = epoch.current
       const updates = new Map<string, HistoryTask>()
       const missing = new Set<string>()
@@ -253,14 +258,14 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
           const data = await libraryRequest<{ tasks: HistoryTask[] }>('generation/tasks/batch', {
             method: 'POST',
             body: JSON.stringify({ ids: batch }),
-            signal: controller.signal,
+            signal,
           })
           for (const task of data.tasks) updates.set(task.id, task)
           for (const id of batch) if (!updates.has(id)) missing.add(id)
         } catch {
           // Keep this batch on screen and retry it on the next poll.
         }
-        if (controller.signal.aborted || currentFilter.current !== filterKey) return
+        if (signal.aborted || currentFilter.current !== filterKey) return
         if (requestEpoch !== epoch.current) break
       }
       if (requestEpoch === epoch.current && (updates.size || missing.size)) {
@@ -271,11 +276,32 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
         )
         if (missing.size) setTotal((current) => Math.max(0, current - missing.size))
       }
-      timer = window.setTimeout(refresh, taskPollInterval)
+      schedule(signal)
     }
-    return () => {
-      controller.abort()
+
+    function pause() {
       window.clearTimeout(timer)
+      controller?.abort()
+      controller = undefined
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        pause()
+      } else if (!controller) {
+        controller = new AbortController()
+        void refresh(controller.signal)
+      }
+    }
+
+    if (document.visibilityState !== 'hidden') {
+      controller = new AbortController()
+      schedule(controller.signal)
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      pause()
     }
   }, [tasks, filterKey, loading, view])
 
