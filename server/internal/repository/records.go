@@ -10,7 +10,9 @@ import (
 	"github.com/istudio/server/internal/domain"
 )
 
-const assetReferenceSQL = `(COALESCE(input->'productAssetIds','[]'::jsonb) ? $2 OR COALESCE(input->'referenceAssetIds','[]'::jsonb) ? $2 OR input->>'modelAssetId'=$2 OR input->>'sceneAssetId'=$2 OR input->>'parentAssetId'=$2 OR input->>'maskAssetId'=$2)`
+const assetReferenceSQL = `(COALESCE(input->'productAssetIds','[]'::jsonb) ? $2 OR COALESCE(input->'referenceAssetIds','[]'::jsonb) ? $2
+	OR input->>'modelAssetId'=$2 OR input->>'sceneAssetId'=$2 OR input->>'parentAssetId'=$2 OR input->>'maskAssetId'=$2
+	OR input->>'redoSourceAssetId'=$2 OR input->>'redoModelAssetId'=$2)`
 
 const productAssetReferenceSQL = `(product_asset_ids ? $2 OR reference_asset_ids ? $2)`
 

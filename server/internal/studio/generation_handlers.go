@@ -45,7 +45,7 @@ func (s *Service) validate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input map[string]any
-	if !decode(r, &input) || validateGenerationInput(input) != nil {
+	if !decode(r, &input) || hasImageRedoMetadata(input) || validateGenerationInput(input) != nil {
 		s.error(w, 400, "GENERATION_INPUT_INVALID", "生成参数不完整或格式不正确")
 		return
 	}
@@ -106,7 +106,7 @@ func (s *Service) tasksHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input map[string]any
-	if !decode(r, &input) || validateGenerationInput(input) != nil {
+	if !decode(r, &input) || hasImageRedoMetadata(input) || validateGenerationInput(input) != nil {
 		s.error(w, 400, "GENERATION_INPUT_INVALID", "生成参数不完整或格式不正确")
 		return
 	}
@@ -121,6 +121,10 @@ func (s *Service) taskByID(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasSuffix(path, "/retry") {
 		s.retryTask(w, r, strings.TrimSuffix(path, "/retry"))
+		return
+	}
+	if strings.HasSuffix(path, "/redo-image") {
+		s.redoTaskImage(w, r, strings.TrimSuffix(path, "/redo-image"))
 		return
 	}
 	if r.Method == http.MethodDelete {

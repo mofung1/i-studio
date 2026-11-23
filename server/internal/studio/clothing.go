@@ -2,14 +2,10 @@ package studio
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
-
-	"github.com/istudio/server/internal/domain"
 )
 
 type clothingShot struct {
@@ -301,24 +297,12 @@ func clothingModelReference(ctx context.Context, run *generationRun, firstImage 
 		if err != nil {
 			return nil, err
 		}
-		f, err := run.server.storage.Open(key)
+		raw, err = run.server.readGeneratedAssetBytes(key)
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
-		raw, err = io.ReadAll(io.LimitReader(f, domain.MaxGeneratedImageBytes+1))
-		if err != nil {
-			return nil, err
-		}
-		if len(raw) > domain.MaxGeneratedImageBytes {
-			return nil, fmt.Errorf("首张上身图过大")
-		}
 	}
-	preview, err := generateAssetPreview(ctx, raw, 768)
-	if err != nil {
-		return nil, err
-	}
-	return map[string]string{"role": "generated-model", "mime": "image/jpeg", "data": base64.StdEncoding.EncodeToString(preview)}, nil
+	return generationReferencePreview(ctx, raw, generatedModelRole)
 }
 
 func clothingPromptForInput(input map[string]any) string {
@@ -336,10 +320,11 @@ func clothingPromptForInput(input map[string]any) string {
 		parts = append(parts, configuredModuleHint(input, "clothing-set", key))
 	}
 	labels := map[string]string{
-		"garment":         "服装原图",
-		"model":           "模特参考，只用于人物身份",
-		"scene":           "场景参考，只用于背景",
-		"generated-model": "首张上身成片，沿用同一人物、穿搭和布景，姿势按本张规划调整",
+		"garment":          "服装原图",
+		"model":            "模特参考，只用于人物身份",
+		"scene":            "场景参考，只用于背景",
+		generatedModelRole: "首张上身成片，沿用同一人物、穿搭和布景，姿势按本张规划调整",
+		redoResultRole:     "本次重做的上身成片，参考原有取景、人物和穿搭，按重做要求调整，服装细节以服装原图为准",
 	}
 	for index, image := range sourceImages(input) {
 		parts = append(parts, fmt.Sprintf("参考图片 %d：%s", index+1, labels[image["role"]]))
@@ -349,6 +334,9 @@ func clothingPromptForInput(input map[string]any) string {
 	parts = append(parts, "本张拍摄规划："+stringValue(input["moduleHint"], ""))
 	if text := stringValue(input["requirements"], ""); text != "" {
 		parts = append(parts, "补充要求："+text)
+	}
+	if text := stringValue(input["redoInstructions"], ""); text != "" {
+		parts = append(parts, "本次仅重做这一张，按本次调整要求修改指定细节："+text)
 	}
 	appendCommerceTextPolicy(&parts, input)
 	return joinPromptParts(parts, "。")

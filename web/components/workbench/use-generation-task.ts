@@ -15,7 +15,7 @@ import { useAccount } from '@/components/account-provider'
 export type InlineGenerationTask = {
   id: string
   status: string
-  input?: GenerationInput
+  input?: GenerationInput & ImageRedoMetadata
   resultImages?: string[]
   resultDetails?: Array<{
     contentPath: string
@@ -27,6 +27,73 @@ export type InlineGenerationTask = {
   /** 与 resultImages 逐项对应的模块 key（custom 模块化生成时才有） */
   resultModules?: string[]
   errorMessage?: string
+}
+
+export interface ImageRedoMetadata {
+  redoSourceTaskId?: string
+  redoSourceAssetId?: string
+  redoModelAssetId?: string
+  redoInstructions?: string
+}
+
+interface RedoImageInput {
+  assetId: string
+  requirements: string
+}
+
+export type SubmitImageRedo = (
+  sourceTaskId: string,
+  input: RedoImageInput,
+  confirmedQuote: GenerationQuote,
+) => Promise<void>
+
+type GenerationSubmission = {
+  key: string
+  expected: number
+} & (
+  | { input: GenerationInput; sourceTaskId?: undefined }
+  | {
+      input: RedoImageInput
+      sourceTaskId: string
+    }
+)
+
+function sendSubmission(submission: GenerationSubmission, token: string, signal?: AbortSignal) {
+  const taskPath = submission.sourceTaskId
+    ? `/${encodeURIComponent(submission.sourceTaskId)}/redo-image`
+    : ''
+  return fetch(`${apiBaseUrl}/v1/generation/tasks${taskPath}`, {
+    method: 'POST',
+    signal,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Idempotency-Key': submission.key,
+      'X-Expected-Unit-Price': String(submission.expected),
+    },
+    body: JSON.stringify(submission.input),
+  })
+}
+
+function pendingSubmissionKey(token: string, scope: string) {
+  return `istudio-pending-submit:${token.slice(-16)}:${scope}`
+}
+
+function readPendingSubmission(storageKey: string): GenerationSubmission | null {
+  try {
+    return JSON.parse(sessionStorage.getItem(storageKey) ?? 'null')
+  } catch {
+    return null
+  }
+}
+
+function persistSubmission(storageKey: string, submission: GenerationSubmission | null) {
+  try {
+    if (submission) sessionStorage.setItem(storageKey, JSON.stringify(submission))
+    else sessionStorage.removeItem(storageKey)
+  } catch {
+    // In-memory recovery is still available when browser storage is disabled.
+  }
 }
 
 const terminalStatuses = new Set(['succeeded', 'failed', 'cancelled', 'expired'])
@@ -81,11 +148,7 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [recoveryRevision, setRecoveryRevision] = useState(0)
   const [notice, setNotice] = useState<GenerationNotice | null>(null)
-  const preparedSubmission = useRef<{
-    key: string
-    input: GenerationInput
-    expected: number
-  } | null>(null)
+  const preparedSubmission = useRef<GenerationSubmission | null>(null)
   const submissionId = useRef(0)
   const submittingRef = useRef(false)
 
@@ -184,7 +247,7 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
         if (savedId) {
           restored = (await load(`/${encodeURIComponent(savedId)}`))?.task
           if (!isCurrent()) return
-          if (!restored || !matchesScope(restored)) {
+          if (!restored || (!restored.input?.redoSourceTaskId && !matchesScope(restored))) {
             pendingTaskId(scopeKey, null)
             restored = undefined
           }
@@ -226,19 +289,12 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
   useEffect(() => {
     const token = getAccessToken()
     if (!token) return
-    const key = `istudio-pending-submit:${token.slice(-16)}:${scopeKey}`
+    const key = pendingSubmissionKey(token, scopeKey)
     let cancelled = false
     let timer = 0
     const controller = new AbortController()
     async function recover() {
-      let pending = preparedSubmission.current
-      if (!pending) {
-        try {
-          pending = JSON.parse(sessionStorage.getItem(key) ?? 'null')
-        } catch {
-          return
-        }
-      }
+      const pending = preparedSubmission.current ?? readPendingSubmission(key)
       if (!pending || cancelled) return
       if (submittingRef.current) {
         timer = window.setTimeout(recover, 3000)
@@ -246,22 +302,12 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
       }
       setIsSubmitting(true)
       try {
-        const response = await fetch(`${apiBaseUrl}/v1/generation/tasks`, {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Idempotency-Key': pending.key,
-            'X-Expected-Unit-Price': String(pending.expected),
-          },
-          body: JSON.stringify(pending.input),
-        })
+        const response = await sendSubmission(pending, token, controller.signal)
         if (cancelled) return
         if (!response.ok && response.status >= 500) throw new Error('正在核对上次提交，请稍候')
         if (!response.ok) {
           preparedSubmission.current = null
-          sessionStorage.removeItem(key)
+          persistSubmission(key, null)
           setNotice({ kind: 'error', message: await readApiError(response, '请重新提交创作') })
           setIsSubmitting(false)
           refreshAccount()
@@ -270,7 +316,7 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
         const data = (await response.json()) as { task: InlineGenerationTask }
         if (!data.task?.id) throw new Error('任务响应不完整，正在重试查询')
         preparedSubmission.current = null
-        sessionStorage.removeItem(key)
+        persistSubmission(key, null)
         pendingTaskId(scopeKey, data.task.id)
         setGenerationTask(data.task)
         setGenerationTaskScope(scopeKey)
@@ -366,15 +412,13 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
       setGenerationTaskScope(scopeKey)
       try {
         // Reconcile an uncertain accepted request before creating another intent.
-        const storageKey = `istudio-pending-submit:${token.slice(-16)}:${scopeKey}`
-        if (!preparedSubmission.current) {
-          try {
-            preparedSubmission.current = JSON.parse(sessionStorage.getItem(storageKey) ?? 'null')
-          } catch {
-            /* Ignore invalid session data. */
-          }
-        }
+        const storageKey = pendingSubmissionKey(token, scopeKey)
+        preparedSubmission.current ??= readPendingSubmission(storageKey)
         const prepared = preparedSubmission.current
+        if (prepared?.sourceTaskId !== undefined) {
+          setRecoveryRevision((value) => value + 1)
+          return
+        }
         let validatedInput: GenerationInput
         if (prepared) {
           validatedInput = prepared.input
@@ -435,24 +479,11 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
             input: validatedInput,
             expected: quote.unitPriceMinor,
           }
-          try {
-            sessionStorage.setItem(storageKey, JSON.stringify(preparedSubmission.current))
-          } catch {
-            /* The in-memory intent still prevents duplicate submissions. */
-          }
+          persistSubmission(storageKey, preparedSubmission.current)
         }
         const intent = preparedSubmission.current!
 
-        const response = await fetch(`${apiBaseUrl}/v1/generation/tasks`, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            'Idempotency-Key': intent.key,
-            'X-Expected-Unit-Price': String(intent.expected),
-          },
-          body: JSON.stringify(validatedInput),
-        })
+        const response = await sendSubmission(intent, token)
         if (!isCurrent() && !response.ok) return
         if (response.status === 401) {
           onAuthRequired()
@@ -461,7 +492,7 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
         if (!response.ok) {
           if (response.status < 500) {
             preparedSubmission.current = null
-            sessionStorage.removeItem(storageKey)
+            persistSubmission(storageKey, null)
           }
           refreshAccount()
           throw new Error(
@@ -470,7 +501,7 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
         }
         const data = (await response.json()) as { task: InlineGenerationTask; message: string }
         preparedSubmission.current = null
-        sessionStorage.removeItem(storageKey)
+        persistSubmission(storageKey, null)
         refreshAccount()
         if (isCurrent() || !pendingTaskId(scopeKey)) pendingTaskId(scopeKey, data.task.id)
         if (!isCurrent()) return
@@ -495,6 +526,75 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
     [scopeKey, rememberCompletedTask],
   )
 
+  const submitImageRedo: SubmitImageRedo = useCallback(
+    async (sourceTaskId, input, confirmedQuote) => {
+      if (submittingRef.current || isGenerating) throw new Error('请等待当前任务提交或生成完成')
+      const token = getAccessToken()
+      if (!token) throw new Error('请重新登录后重做图片')
+      const storageKey = pendingSubmissionKey(token, scopeKey)
+      if (preparedSubmission.current || readPendingSubmission(storageKey)) {
+        setRecoveryRevision((value) => value + 1)
+        throw new Error('正在核对上次提交，请稍候')
+      }
+
+      const requestId = ++submissionId.current
+      const isCurrent = () => requestId === submissionId.current && token === getAccessToken()
+      submittingRef.current = true
+      setIsSubmitting(true)
+      setNotice(null)
+      let intent: GenerationSubmission | null = null
+      try {
+        const quote = await fetchGenerationQuote(confirmedQuote.modelId, 1)
+        if (!isCurrent()) return
+        if (
+          quote.modelId !== confirmedQuote.modelId ||
+          quote.unitPriceMinor !== confirmedQuote.unitPriceMinor ||
+          quote.totalMinor !== confirmedQuote.totalMinor ||
+          quote.creditName !== confirmedQuote.creditName ||
+          quote.quantity !== 1
+        ) {
+          throw new Error('单张费用已变更，请确认最新费用后重新提交')
+        }
+        if (!quote.canAfford) throw new Error(`${quote.creditName}不足，请前往个人中心查看余额`)
+        intent = { key: crypto.randomUUID(), sourceTaskId, input, expected: quote.unitPriceMinor }
+        preparedSubmission.current = intent
+        persistSubmission(storageKey, intent)
+        const response = await sendSubmission(intent, token)
+        if (!response.ok && response.status < 500) {
+          if (isCurrent()) preparedSubmission.current = null
+          persistSubmission(storageKey, null)
+          intent = null
+          throw new Error(await readApiError(response, '任务创建失败，请重试'))
+        }
+        if (!response.ok) throw new Error('任务提交结果待核对')
+        const data = (await response.json()) as { task: InlineGenerationTask }
+        if (!data.task?.id || !data.task.status) throw new Error('任务响应不完整')
+        if (isCurrent() || !pendingTaskId(scopeKey)) pendingTaskId(scopeKey, data.task.id)
+        persistSubmission(storageKey, null)
+        if (!isCurrent()) return
+        preparedSubmission.current = null
+        setGenerationTaskScope(scopeKey)
+        setGenerationTask(data.task)
+        rememberCompletedTask(data.task)
+        refreshAccount()
+      } catch (error) {
+        if (!isCurrent()) return
+        if (!intent) {
+          refreshAccount()
+          throw error
+        }
+        setNotice({ kind: 'error', message: '连接中断，正在核对上次提交；恢复连接后会自动继续。' })
+        setRecoveryRevision((value) => value + 1)
+      } finally {
+        if (isCurrent()) {
+          submittingRef.current = false
+          setIsSubmitting(false)
+        }
+      }
+    },
+    [isGenerating, rememberCompletedTask, scopeKey],
+  )
+
   return {
     generationTask: resultOwner === owner ? generationTask : null,
     resultHistory: resultOwner === owner ? resultHistory : [],
@@ -506,6 +606,7 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
     setNotice,
     setActiveResultIndex,
     submit,
+    submitImageRedo,
     reset,
     removeResult,
   }

@@ -5,9 +5,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 import type { ClothingMode, ClothingShot, ClothingStyle } from '@/lib/contracts'
 import { useAccount } from '@/components/account-provider'
+import type { ImageRedoMetadata } from './use-generation-task'
 
 /** 历史任务的输入参数，字段与 /v1/generation/tasks 返回的 input 一致 */
-export interface HistoryTaskInput {
+export interface HistoryTaskInput extends ImageRedoMetadata {
   projectId?: string
   mode?: string
   taskType?: string

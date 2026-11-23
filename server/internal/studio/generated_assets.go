@@ -19,6 +19,35 @@ import (
 
 var generatedImageClient = newPublicImageClient()
 
+const (
+	generatedModelRole = "generated-model"
+	redoResultRole     = "redo-result"
+)
+
+func (s *Service) readGeneratedAssetBytes(key string) ([]byte, error) {
+	file, err := s.storage.Open(key)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	raw, err := io.ReadAll(io.LimitReader(file, domain.MaxGeneratedImageBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) == 0 || len(raw) > domain.MaxGeneratedImageBytes {
+		return nil, fmt.Errorf("成片文件大小不符合要求")
+	}
+	return raw, nil
+}
+
+func generationReferencePreview(ctx context.Context, raw []byte, role string) (map[string]string, error) {
+	preview, err := generateAssetPreview(ctx, raw, 768)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"role": role, "mime": "image/jpeg", "data": base64.StdEncoding.EncodeToString(preview)}, nil
+}
+
 func (s *Service) persistGeneratedImages(taskID string, urls []string) ([]string, error) {
 	if s.db == nil {
 		return urls, nil

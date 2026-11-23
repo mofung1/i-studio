@@ -217,4 +217,21 @@ it('downloads the displayed task group from the workbench and distinguishes part
   )
   expect(downloadButton('下载整套')).toBeUndefined()
   expect(downloadButton('下载已完成图片')).toBeUndefined()
+
+  const redoHistory = {
+    ...history,
+    resultImages: ['data:redo'],
+    input: {
+      ...history.input,
+      count: 1,
+      redoSourceTaskId: 'original',
+      redoSourceAssetId: 'original-image',
+    },
+  }
+  await act(async () =>
+    root.render(<ResultWorkspace {...props} mode="commerce" isRecipe historyTask={redoHistory} />),
+  )
+  expect(downloadButton('下载图片')).toBeDefined()
+  expect(downloadButton('查看原版')).toBeDefined()
+  expect(downloadButton('下载整套')).toBeUndefined()
 })

@@ -188,6 +188,10 @@ func (q *taskQueue) processTask(id string) {
 		finish("failed", nil, nil, "参考图片无法读取，请重新选择素材。")
 		return
 	}
+	if err := q.server.attachRedoReferences(ctx, id, input); err != nil {
+		finish("failed", nil, nil, "重做参考图无法读取，未交付图片的预留积分已退回。")
+		return
+	}
 	images, modules, err := q.generateBatchesContext(ctx, id, input, run)
 	if errors.Is(err, errGenerationLeaseLost) || ctx.Err() != nil {
 		return
@@ -498,6 +502,43 @@ func (s *Service) attachSourceImages(input map[string]any) error {
 		input["sourceImages"] = images
 	}
 	return s.attachSourceMask(input)
+}
+
+func (s *Service) attachRedoReferences(ctx context.Context, taskID string, input map[string]any) error {
+	if stringValue(input["redoSourceTaskId"], "") == "" || stringValue(input["redoSourceAssetId"], "") == "" {
+		return nil
+	}
+	if s.db == nil {
+		return fmt.Errorf("重做参考图暂不可用")
+	}
+	images := sourceImages(input)
+	for _, reference := range []struct{ field, role string }{
+		{"redoModelAssetId", generatedModelRole},
+		{"redoSourceAssetId", redoResultRole},
+	} {
+		id := stringValue(input[reference.field], "")
+		if id == "" {
+			continue
+		}
+		var key string
+		err := s.db.QueryRowContext(ctx, `
+			SELECT a.storage_key FROM assets a JOIN generation_tasks t ON t.user_id=a.user_id
+			WHERE a.id=$1 AND t.id=$2`, id, taskID).Scan(&key)
+		if err != nil {
+			return err
+		}
+		raw, err := s.readGeneratedAssetBytes(key)
+		if err != nil {
+			return err
+		}
+		image, err := generationReferencePreview(ctx, raw, reference.role)
+		if err != nil {
+			return err
+		}
+		images = append(images, image)
+	}
+	input["sourceImages"] = images
+	return nil
 }
 
 func (s *Service) taskInput(id string) (map[string]any, bool) {

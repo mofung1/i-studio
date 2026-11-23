@@ -213,6 +213,7 @@ function StandardWorkbench({
     setNotice,
     setActiveResultIndex,
     submit,
+    submitImageRedo,
     removeResult,
   } = useGenerationTask(
     recipe
@@ -1255,6 +1256,7 @@ function StandardWorkbench({
           isRegeneratingHistory={loadingConfigId !== null}
           onSetActiveResultIndex={setActiveResultIndex}
           onRegenerate={requestRegenerate}
+          onRedoImage={submitImageRedo}
           isRecipe={Boolean(recipe)}
         />
       </section>

@@ -33,9 +33,12 @@ func commercePromptForInput(input map[string]any) string {
 				role = "reference"
 			}
 		}
-		if role == "reference" {
+		switch role {
+		case "reference":
 			parts = append(parts, fmt.Sprintf("参考图片 %d：爆款视觉参考，只用于构图、背景、布光和视觉层次，不能提供商品外观、品牌或营销文案", index+1))
-		} else {
+		case redoResultRole:
+			parts = append(parts, fmt.Sprintf("参考图片 %d：本次重做的成片，参考原有取景和布光，按重做要求调整，商品外观和包装以商品原图为准", index+1))
+		default:
 			parts = append(parts, fmt.Sprintf("参考图片 %d：商品原图，以这张图里的商品外观和包装为准；多张商品图是同一商品的不同视角，不是需要同时摆放的多个商品", index+1))
 		}
 	}
@@ -86,6 +89,9 @@ func commercePromptForInput(input map[string]any) string {
 		parts = append(parts, scene)
 	}
 	parts = append(parts, stringsFromArray(input["sellingPoints"])...)
+	if text := stringValue(input["redoInstructions"], ""); text != "" {
+		parts = append(parts, "本次仅重做这一张，按本次调整要求修改指定细节："+text)
+	}
 	appendCommerceTextPolicy(&parts, input)
 	return joinPromptParts(parts, "。")
 }

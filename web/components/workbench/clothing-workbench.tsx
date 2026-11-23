@@ -134,6 +134,7 @@ export function ClothingWorkbench({
     setNotice,
     setActiveResultIndex,
     submit,
+    submitImageRedo,
     removeResult,
   } = useGenerationTask(
     recipe
@@ -890,6 +891,7 @@ export function ClothingWorkbench({
           onDeleteHistoryTask={deleteRecord}
           onUseImageAsReference={(path, source) => void useReference(path, source)}
           onSetActiveResultIndex={setActiveResultIndex}
+          onRedoImage={submitImageRedo}
           onRegenerate={() => {
             if (!recipe) return void prepare()
             setCollapsed(false)

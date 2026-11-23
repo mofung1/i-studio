@@ -158,6 +158,60 @@ it('requires a new confirmation when the trio total changes before any product u
   expect(fetcher.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
 })
 
+it('locks a redo to one quoted image and recovers a lost response with the same request', async () => {
+  const confirmedQuote = {
+    modelId: 'public-model',
+    unitPriceMinor: 125,
+    totalMinor: 125,
+    quantity: 1,
+    availableMinor: 125,
+    heldMinor: 0,
+    canAfford: true,
+    creditName: '创作点',
+    creditScale: 100,
+  }
+  let quotes = 0
+  const requests: Array<{ url: string; init: RequestInit }> = []
+  const resultTask = {
+    id: 'redone',
+    status: 'succeeded',
+    input: { mode: 'commerce', taskType: 'detail-page', redoSourceTaskId: 'original' },
+    resultImages: ['/v1/assets/redone-asset/content'],
+  }
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes('/quote')) {
+      expect(new URL(url).searchParams.get('count')).toBe('1')
+      quotes++
+      return Response.json(
+        quotes === 1 ? { ...confirmedQuote, unitPriceMinor: 130, totalMinor: 130 } : confirmedQuote,
+      )
+    }
+    if (init?.method === 'POST') {
+      requests.push({ url, init })
+      if (requests.length === 1) throw new TypeError('creation response lost')
+      return Response.json({ task: resultTask }, { status: 202 })
+    }
+    return Response.json({ tasks: [] })
+  })
+  vi.stubGlobal('fetch', fetcher)
+  await act(async () => root.render(<Harness scope="commerce:product-main" />))
+  const input = { assetId: 'original-photo', requirements: '更柔和的光线' }
+  await act(async () =>
+    expect(hook.submitImageRedo('original', input, confirmedQuote)).rejects.toThrow('费用已变更'),
+  )
+  expect(requests).toEqual([])
+
+  await act(async () => hook.submitImageRedo('original', input, confirmedQuote))
+  expect(requests).toHaveLength(2)
+  expect(requests[0]?.url).toMatch(/\/generation\/tasks\/original\/redo-image$/)
+  expect(requests[0]?.init.body).toBe(JSON.stringify(input))
+  expect(new Headers(requests[0]?.init.headers).get('X-Expected-Unit-Price')).toBe('125')
+  expect(requests[0]?.init.headers).toEqual(requests[1]?.init.headers)
+  expect(requests[0]?.init.body).toBe(requests[1]?.init.body)
+  expect(quotes).toBe(2)
+  expect(hook.activeResult?.id).toBe('redone')
+})
+
 it('keeps completed results when a lost submission response is recovered after delivery', async () => {
   let submissions = 0
   vi.stubGlobal(

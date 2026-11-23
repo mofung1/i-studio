@@ -22,6 +22,7 @@ import {
 import { ImageComparisonButton } from '@/components/image-comparison-button'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 import { clothingModelRecipe, detailPageRecipe, productMainRecipe } from '@/lib/commerce-recipe'
+import { frontendRequest } from '@/lib/frontend-request'
 import { comparisonCandidates, comparisonReferences } from '@/lib/image-comparison'
 
 import type { CommerceTaskType } from '@/lib/contracts'
@@ -32,9 +33,14 @@ import { FailureNotice } from './failure-notice'
 import { HistoryDrawer } from './history-drawer'
 import { ImageLightbox } from './image-lightbox'
 import { ImageViewport } from './image-viewport'
+import { RedoImageDialog } from './redo-image-dialog'
 import { moduleLabel, taskMeta, type WorkbenchMode } from './shared'
-import { taskModeLabel, type HistoryTask } from './use-task-history'
-import { generationStatusLabels, type InlineGenerationTask } from './use-generation-task'
+import { activeTaskStatuses, taskModeLabel, type HistoryTask } from './use-task-history'
+import {
+  generationStatusLabels,
+  type InlineGenerationTask,
+  type SubmitImageRedo,
+} from './use-generation-task'
 
 /** 图片来源：决定「用作参考图」跳到哪个生图配置页 */
 export interface ImageSource {
@@ -72,6 +78,7 @@ interface ResultWorkspaceProps {
   onSetActiveResultIndex: (updater: (index: number) => number) => void
   /** 重新生成（是否二次确认由父级决定） */
   onRegenerate: () => void
+  onRedoImage?: SubmitImageRedo
   isRecipe?: boolean
   onConfigure?: () => void
   starter?: ReactNode
@@ -82,6 +89,13 @@ const groupTitles: Partial<Record<CommerceTaskType, string>> = {
   'product-main': productMainRecipe.title,
   'detail-page': detailPageRecipe.title,
   'clothing-set': '服装组图',
+}
+
+interface RedoSelection {
+  taskId: string
+  assetId: string
+  modelId: string
+  label: string
 }
 
 /** 右侧结果工作区：当前任务结果 + 历史记录抽屉 + 图片查看/裁剪。 */
@@ -111,6 +125,7 @@ export function ResultWorkspace({
   onUseImageAsReference,
   onSetActiveResultIndex,
   onRegenerate,
+  onRedoImage,
   isRecipe,
   onConfigure,
   starter,
@@ -127,6 +142,11 @@ export function ResultWorkspace({
     null,
   )
   const [downloadGroupBusy, setDownloadGroupBusy] = useState(false)
+  const [redoSelection, setRedoSelection] = useState<RedoSelection | null>(null)
+  const [redoOriginBusy, setRedoOriginBusy] = useState(false)
+  const [redoOriginError, setRedoOriginError] = useState('')
+  const redoOriginRequest = useRef<AbortController | null>(null)
+  const resultHeader = useRef<HTMLElement>(null)
   const [naturalImage, setNaturalImage] = useState<{
     path: string
     width: number
@@ -172,18 +192,21 @@ export function ResultWorkspace({
   const heroRatio = ratioWidth && ratioHeight ? ratioWidth / ratioHeight : 1
   const currentImageSize = naturalImage?.path === heroImage ? naturalImage : null
   const imageRatio = currentImageSize ? currentImageSize.width / currentImageSize.height : heroRatio
-  const generatingImages = Math.min(Math.max(generatingCount ?? expectedCount, 1), MAX_SKELETONS)
+  const generatingImages = Math.min(Math.max(generationTotal, 1), MAX_SKELETONS)
   const failureMessage =
     generationTask && !isGenerating && generationTask.status !== 'succeeded'
       ? generationTask.errorMessage || '供应商未返回错误详情，请重试。'
       : ''
 
-  // 结果图所属的生图类型：当前任务就是当前工具，历史记录取记录自己的类型
+  // 跨工具历史重做生成的任务仍归属于原电商工具。
   const imageSource: ImageSource =
-    isHistoryView && historyTask
+    isHistoryView || displayInput?.redoSourceTaskId
       ? {
-          mode: historyTask.input.mode === 'commerce' ? 'commerce' : 'general',
-          taskType: (historyTask.input.taskType as CommerceTaskType) ?? 'product-main',
+          mode: displayInput?.mode === 'commerce' ? 'commerce' : 'general',
+          taskType:
+            (displayInput && 'taskType' in displayInput
+              ? (displayInput.taskType as CommerceTaskType)
+              : undefined) ?? 'product-main',
         }
       : { mode, taskType: task }
   const referenceTarget =
@@ -205,6 +228,7 @@ export function ResultWorkspace({
     : groupTitles[imageSource.taskType]
   const groupTitle =
     imageSource.mode === 'commerce' &&
+    !displayInput?.redoSourceTaskId &&
     (!historyTask || historyTask.input.taskType) &&
     (viewingRecipe || isClothing || plannedCount > 1 || images.length > 1)
       ? archiveTitle
@@ -220,11 +244,37 @@ export function ResultWorkspace({
     shot?.moduleKey === currentModule
       ? shot.label
       : moduleLabel(imageSource.taskType, currentModule)
+  const redoAssetId = /^\/v1\/assets\/([\w-]+)\/content$/.exec(heroImage)?.[1]
+  const redoModelId = displayInput?.endpointId
+  const redoCandidate: RedoSelection | null =
+    onRedoImage &&
+    displayTaskId &&
+    redoAssetId &&
+    redoModelId &&
+    !activeTaskStatuses.has(displayTask?.status ?? '') &&
+    imageSource.mode === 'commerce' &&
+    imageLabel &&
+    (imageSource.taskType === 'product-main' ||
+      imageSource.taskType === 'detail-page' ||
+      isGeneratedClothing)
+      ? { taskId: displayTaskId, assetId: redoAssetId, modelId: redoModelId, label: imageLabel }
+      : null
+  const failedRedoInput =
+    !isHistoryView && failureMessage && !generationTask?.resultImages?.length
+      ? generationTask?.input
+      : undefined
+  const redoInput = failedRedoInput?.redoSourceTaskId ? failedRedoInput : displayInput
 
   useEffect(() => {
     setActiveImageIndex(pendingImageRef.current ?? 0)
     pendingImageRef.current = null
     setLightboxOpen(false)
+  }, [displayTaskId])
+
+  useEffect(() => {
+    setRedoOriginBusy(false)
+    setRedoOriginError('')
+    return () => redoOriginRequest.current?.abort()
   }, [displayTaskId])
 
   // 生成完成后刷新历史抽屉，新结果会立刻出现在记录里
@@ -273,6 +323,38 @@ export function ResultWorkspace({
     }
   }
 
+  async function openRedoOrigin() {
+    const id = redoInput?.redoSourceTaskId
+    if (!id || redoOriginBusy) return
+    redoOriginRequest.current?.abort()
+    const controller = new AbortController()
+    redoOriginRequest.current = controller
+    setRedoOriginBusy(true)
+    setRedoOriginError('')
+    try {
+      const { task: origin } = await frontendRequest<{ task: HistoryTask }>(
+        `generation/tasks/${encodeURIComponent(id)}`,
+        { signal: controller.signal },
+        '原版读取失败，请重试',
+      )
+      if (controller.signal.aborted) return
+      const originalIndex = Math.max(
+        0,
+        origin.resultImages?.findIndex(
+          (path) => path === `/v1/assets/${redoInput.redoSourceAssetId}/content`,
+        ) ?? 0,
+      )
+      if (origin.id === displayTaskId) setActiveImageIndex(originalIndex)
+      else pendingImageRef.current = originalIndex
+      onSelectHistory(origin)
+    } catch (reason) {
+      if (!controller.signal.aborted)
+        setRedoOriginError(reason instanceof Error ? reason.message : '原版读取失败，请重试')
+    } finally {
+      if (!controller.signal.aborted) setRedoOriginBusy(false)
+    }
+  }
+
   function step(direction: -1 | 1) {
     const next = safeIndex + direction
     if (next < 0 || next >= images.length) return
@@ -308,7 +390,7 @@ export function ResultWorkspace({
 
   return (
     <section className="creation-canvas result-workspace">
-      <header className="result-head">
+      <header className="result-head" ref={resultHeader} tabIndex={-1}>
         <div className="result-meta">
           {isHistoryView && historyTask ? (
             <>
@@ -367,12 +449,27 @@ export function ResultWorkspace({
               )}
             </>
           )}
+          {redoInput?.redoSourceTaskId && (
+            <button
+              type="button"
+              className="meta-action"
+              onClick={() => void openRedoOrigin()}
+              disabled={redoOriginBusy}
+            >
+              {redoOriginBusy ? '正在查看原版…' : '查看原版'}
+            </button>
+          )}
         </div>
       </header>
 
       {downloadError && downloadError.taskId === displayTaskId && (
         <p className="form-notice error" role="alert">
           {downloadError.message}
+        </p>
+      )}
+      {redoOriginError && (
+        <p className="form-notice error" role="alert">
+          {redoOriginError}
         </p>
       )}
 
@@ -493,6 +590,17 @@ export function ResultWorkspace({
                     >
                       <Download size={15} aria-hidden="true" />
                       {downloadGroupBusy ? '打包中…' : partialGroup ? '下载已完成图片' : '下载整套'}
+                    </button>
+                  )}
+                  {redoCandidate && (
+                    <button
+                      type="button"
+                      className="studio-secondary"
+                      disabled={isGenerating || isSubmitting}
+                      onClick={() => setRedoSelection(redoCandidate)}
+                    >
+                      <RotateCcw size={15} aria-hidden="true" />
+                      只重做这张
                     </button>
                   )}
                   <button
@@ -638,6 +746,25 @@ export function ResultWorkspace({
         onRegenerate={onRegenerateFromHistory}
         onDelete={onDeleteHistoryTask}
       />
+
+      {redoSelection && onRedoImage && (
+        <RedoImageDialog
+          modelId={redoSelection.modelId}
+          imageLabel={redoSelection.label}
+          busy={isGenerating || isSubmitting}
+          onCancel={() => setRedoSelection(null)}
+          onSubmit={async (requirements, quote) => {
+            await onRedoImage(
+              redoSelection.taskId,
+              { assetId: redoSelection.assetId, requirements },
+              quote,
+            )
+            setRedoSelection(null)
+            onExitHistoryView()
+            requestAnimationFrame(() => resultHeader.current?.focus())
+          }}
+        />
+      )}
 
       {lightboxOpen && heroImage && (
         <ImageLightbox

@@ -150,6 +150,72 @@ func TestClothingGeneratedModelUsesFirstDeliveryForNextAngle(t *testing.T) {
 	}
 }
 
+func TestClothingRedoSideUsesSavedFrontModelAndChargesOneImage(t *testing.T) {
+	s, model, _ := operationTestServer(t)
+	s.storage = objectstore.NewLocal(s.storageRoot)
+	garment := materialPNG(t, 50)
+	front := materialPNG(t, 155)
+	side := materialPNG(t, 240)
+	garmentID := uploadMaterial(t, s, "member", garment)
+	frontID := uploadMaterial(t, s, "member", front)
+	sideID := uploadMaterial(t, s, "member", side)
+	input := clothingFixture("model", map[string]int{"clothing-model": 1})
+	delete(input, "modelAssetId")
+	delete(input, "sceneAssetId")
+	input["productAssetIds"] = []any{garmentID}
+	input["clothingModelSource"] = "generated"
+	input["endpointId"], input["aspectRatio"] = model, "3:4"
+	input["redoSourceTaskId"] = "previous-suite"
+	input["redoSourceAssetId"], input["redoModelAssetId"] = sideID, frontID
+	input["redoInstructions"] = "让手臂稍向后"
+	input["clothingPlan"].([]any)[0].(map[string]any)["description"] = "从侧面拍摄"
+	job, _, err := s.reserveGeneration("member", "redo-side-worker", 125, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{frontID, sideID} {
+		w := libraryHTTP(t, s, http.MethodDelete, "/v1/assets/"+id, "member", "")
+		if w.Code != http.StatusConflict {
+			t.Fatalf("active redo reference was not protected: %d", w.Code)
+		}
+	}
+
+	wantFront, err := generationReferencePreview(context.Background(), front, generatedModelRole)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantSide, err := generationReferencePreview(context.Background(), side, redoResultRole)
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	s.provider = &deliveryTestProvider{submit: func(_ context.Context, request map[string]any) (providerTask, error) {
+		calls++
+		wantSources := []map[string]string{
+			{"role": "garment", "mime": "image/png", "data": base64.StdEncoding.EncodeToString(garment)},
+			wantFront,
+			wantSide,
+		}
+		if !reflect.DeepEqual(sourceImages(request), wantSources) {
+			t.Fatal("redo must use garment original, saved front model and selected side image")
+		}
+		prompt := promptForInput(request)
+		for _, direction := range []string{"从侧面拍摄", "让手臂稍向后", "首张上身成片", "本次重做的上身成片"} {
+			if !strings.Contains(prompt, direction) {
+				t.Fatalf("redo prompt lost %q", direction)
+			}
+		}
+		return providerTask{Images: []string{"data:image/png;base64," + base64.StdEncoding.EncodeToString(side)}}, nil
+	}}
+	q := &taskQueue{server: s}
+	q.processTask(job.ID)
+	q.processTask(job.ID)
+	assertDeliverySettlement(t, s, job.ID, "succeeded", 1, 1)
+	if calls != 1 {
+		t.Fatalf("expected one provider request, got %d", calls)
+	}
+}
+
 type clothingBatchProvider struct {
 	batchProvider
 	ids []string
