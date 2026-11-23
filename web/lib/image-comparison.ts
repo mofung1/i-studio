@@ -3,6 +3,7 @@ export interface ComparisonImage {
   label: string
   width?: number
   height?: number
+  isProductOriginal?: boolean
 }
 export interface ComparisonPan {
   x: number
@@ -24,16 +25,22 @@ export function comparisonDivider(clientX: number, left: number, width: number) 
     return 50
   return Math.min(100, Math.max(0, ((clientX - left) / width) * 100))
 }
-export function comparisonReferences(input?: {
-  productAssetIds?: string[]
-  referenceAssetIds?: string[]
-  modelAssetId?: string
-  sceneAssetId?: string
-}): ComparisonImage[] {
+export function comparisonReferences(
+  input?: {
+    productAssetIds?: string[]
+    referenceAssetIds?: string[]
+    modelAssetId?: string
+    sceneAssetId?: string
+  },
+  productLabel = '商品原图',
+): ComparisonImage[] {
   if (!input) return []
   const asset = (id: string, label: string) => ({ path: `/v1/assets/${id}/content`, label })
   return comparisonCandidates([
-    ...(input.productAssetIds ?? []).map((id, index) => asset(id, `商品原图 ${index + 1}`)),
+    ...(input.productAssetIds ?? []).map((id, index) => ({
+      ...asset(id, `${productLabel} ${index + 1}`),
+      isProductOriginal: true,
+    })),
     ...(input.referenceAssetIds ?? []).map((id, index) => asset(id, `参考原图 ${index + 1}`)),
     ...(input.modelAssetId ? [asset(input.modelAssetId, '模特参考图')] : []),
     ...(input.sceneAssetId ? [asset(input.sceneAssetId, '场景参考图')] : []),

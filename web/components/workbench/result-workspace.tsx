@@ -165,16 +165,6 @@ export function ResultWorkspace({
   const actualDetail = imageDetails?.find((item) => item.contentPath === heroImage)
   const hasResults = images.length > 0
   const displayInput = displayTask?.input
-  const comparisonImages = comparisonCandidates([
-    ...images.map((path, index) => ({ path, label: `当前结果 · 第 ${index + 1} 张` })),
-    ...comparisonReferences(displayInput),
-    ...resultHistory.flatMap((item, index) =>
-      (item.resultImages ?? []).map((path, imageIndex) => ({
-        path,
-        label: `版本 ${index + 1} · 第 ${imageIndex + 1} 张`,
-      })),
-    ),
-  ])
   const displayRatio = displayInput?.aspectRatio ?? aspectRatio
   const displayResolution = displayInput?.resolution ?? resolution
   // 主图走缓存：同一组结果内左右切换时保留上一张直到新图就绪，不会闪白；
@@ -209,6 +199,26 @@ export function ResultWorkspace({
               : undefined) ?? 'product-main',
         }
       : { mode, taskType: task }
+  const comparisonSources = comparisonReferences(
+    displayInput,
+    imageSource.taskType === 'clothing-set' ? '服装原图' : '商品原图',
+  )
+  const comparisonImages = comparisonCandidates([
+    ...images.map((path, index) => ({ path, label: `当前结果 · 第 ${index + 1} 张` })),
+    ...comparisonSources,
+    ...resultHistory.flatMap((item, index) =>
+      (item.resultImages ?? []).map((path, imageIndex) => ({
+        path,
+        label: `版本 ${index + 1} · 第 ${imageIndex + 1} 张`,
+      })),
+    ),
+  ])
+  const productOriginal =
+    imageSource.mode === 'commerce' && comparisonImages.some(({ path }) => path === heroImage)
+      ? comparisonSources.find(
+          ({ path, isProductOriginal }) => isProductOriginal && path !== heroImage,
+        )
+      : undefined
   const referenceTarget =
     imageSource.mode === 'general'
       ? '通用生图'
@@ -622,7 +632,11 @@ export function ResultWorkspace({
                     <ImageIcon size={15} aria-hidden="true" />
                     继续创作
                   </button>
-                  <ImageComparisonButton candidates={comparisonImages} initialLeft={heroImage} />
+                  <ImageComparisonButton
+                    candidates={comparisonImages}
+                    initialLeft={productOriginal?.path ?? heroImage}
+                    initialRight={productOriginal ? heroImage : undefined}
+                  />
                 </div>
               </div>
               <div className={`result-stage${images.length > 1 ? ' has-strip' : ''}`}>

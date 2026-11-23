@@ -3,10 +3,12 @@ import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { clothingModelRecipe } from '@/lib/commerce-recipe'
+import { generationInputSchema } from '@/lib/contracts'
 import { ResultWorkspace } from './result-workspace'
 
 const reference = vi.hoisted(() => vi.fn())
 const download = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
+const compare = vi.hoisted(() => vi.fn())
 vi.mock('@/components/authenticated-image', () => ({
   useProtectedImageUrl: (path: string) => ({ source: path, state: 'loaded', retry: vi.fn() }),
   AuthenticatedImage: ({ path, alt }: { path: string; alt: string }) => (
@@ -15,7 +17,10 @@ vi.mock('@/components/authenticated-image', () => ({
   downloadProtectedAsset: download,
 }))
 vi.mock('@/components/image-comparison-button', () => ({
-  ImageComparisonButton: () => <button>图片对比</button>,
+  ImageComparisonButton: (options: { initialLeft?: string; initialRight?: string }) => {
+    compare(options)
+    return <button>图片对比</button>
+  },
 }))
 vi.mock('./history-drawer', () => ({ HistoryDrawer: () => null }))
 vi.mock('./generation-history', () => ({ GenerationHistory: () => <div aria-label="最近生成" /> }))
@@ -74,6 +79,7 @@ beforeEach(() => {
   root = createRoot(container)
   download.mockClear()
   reference.mockClear()
+  compare.mockClear()
 })
 afterEach(async () => {
   await act(async () => root.unmount())
@@ -118,6 +124,76 @@ it.each(['general', 'commerce'] as const)(
     }
   },
 )
+
+it('pairs the original product with the selected result and uses the displayed history inputs', async () => {
+  const currentTask = {
+    ...result,
+    input: generationInputSchema.parse({
+      mode: 'commerce',
+      taskType: 'product-main',
+      productAssetIds: ['invalid/path', 'current-product', 'later-product'],
+    }),
+    resultImages: ['/v1/assets/first/content', '/v1/assets/second/content'],
+  }
+  await act(async () =>
+    root.render(<ResultWorkspace {...props} mode="commerce" activeResult={currentTask} />),
+  )
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('.result-image-area [aria-label="下一张"]')!.click(),
+  )
+  expect(compare.mock.lastCall?.[0]).toMatchObject({
+    initialLeft: '/v1/assets/current-product/content',
+    initialRight: '/v1/assets/second/content',
+  })
+
+  const outfit = {
+    ...history,
+    input: {
+      mode: 'commerce',
+      taskType: 'clothing-set',
+      productAssetIds: ['history-garment'],
+      modelAssetId: 'history-model',
+      sceneAssetId: 'history-scene',
+    },
+    resultImages: ['/v1/assets/historic-outfit/content'],
+  }
+  await act(async () =>
+    root.render(
+      <ResultWorkspace
+        {...props}
+        mode="commerce"
+        activeResult={currentTask}
+        historyTask={outfit}
+      />,
+    ),
+  )
+  expect(compare.mock.lastCall?.[0]).toMatchObject({
+    initialLeft: '/v1/assets/history-garment/content',
+    initialRight: '/v1/assets/historic-outfit/content',
+    candidates: expect.arrayContaining([
+      expect.objectContaining({
+        path: '/v1/assets/history-garment/content',
+        label: '服装原图 1',
+      }),
+    ]),
+  })
+})
+
+it('keeps the result first when the task has no usable original', async () => {
+  const outfit = {
+    ...history,
+    input: {
+      mode: 'commerce',
+      taskType: 'clothing-set',
+      modelAssetId: 'history-model',
+      sceneAssetId: 'history-scene',
+    },
+    resultImages: ['/v1/assets/historic-outfit/content'],
+  }
+  await act(async () => root.render(<ResultWorkspace {...props} historyTask={outfit} />))
+  expect(compare.mock.lastCall?.[0].initialLeft).toBe('/v1/assets/historic-outfit/content')
+  expect(compare.mock.lastCall?.[0].initialRight).toBeUndefined()
+})
 
 it('labels completed outfit views by the planned angle and keeps partial history unambiguous', async () => {
   const outfit = {

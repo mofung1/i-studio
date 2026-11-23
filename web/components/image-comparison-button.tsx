@@ -12,9 +12,11 @@ export const LazyImageComparison = dynamic(
 export function ImageComparisonButton({
   candidates,
   initialLeft,
+  initialRight,
 }: {
   candidates: ComparisonImage[]
   initialLeft?: string
+  initialRight?: string
 }) {
   const [open, setOpen] = useState(false)
   const items = comparisonCandidates(candidates)
@@ -35,6 +37,7 @@ export function ImageComparisonButton({
         <LazyImageComparison
           candidates={items}
           initialLeft={initialLeft}
+          initialRight={initialRight}
           onClose={() => setOpen(false)}
         />
       )}
