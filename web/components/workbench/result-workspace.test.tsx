@@ -21,6 +21,7 @@ vi.mock('@/components/image-comparison-button', () => ({
   ImageComparisonButton: (options: {
     initialLeft?: string
     initialRight?: string
+    originalFallbackPaths?: string[]
     disabled?: boolean
   }) => {
     compare(options)
@@ -243,6 +244,7 @@ it('pairs the original product with the selected result and uses the displayed h
       mode: 'commerce',
       taskType: 'product-main',
       productAssetIds: ['invalid/path', 'current-product', 'later-product'],
+      referenceAssetIds: ['other-reference'],
     }),
     resultImages: ['/v1/assets/first/content', '/v1/assets/second/content'],
   }
@@ -255,6 +257,7 @@ it('pairs the original product with the selected result and uses the displayed h
   expect(compare.mock.lastCall?.[0]).toMatchObject({
     initialLeft: '/v1/assets/current-product/content',
     initialRight: '/v1/assets/second/content',
+    originalFallbackPaths: ['/v1/assets/later-product/content'],
   })
 
   const outfit = {
@@ -262,7 +265,7 @@ it('pairs the original product with the selected result and uses the displayed h
     input: {
       mode: 'commerce',
       taskType: 'clothing-set',
-      productAssetIds: ['history-garment'],
+      productAssetIds: ['history-garment', 'history-garment-alternate'],
       modelAssetId: 'history-model',
       sceneAssetId: 'history-scene',
     },
@@ -281,6 +284,7 @@ it('pairs the original product with the selected result and uses the displayed h
   expect(compare.mock.lastCall?.[0]).toMatchObject({
     initialLeft: '/v1/assets/history-garment/content',
     initialRight: '/v1/assets/historic-outfit/content',
+    originalFallbackPaths: ['/v1/assets/history-garment-alternate/content'],
     candidates: expect.arrayContaining([
       expect.objectContaining({
         path: '/v1/assets/history-garment/content',

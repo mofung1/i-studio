@@ -263,12 +263,13 @@ export function ResultWorkspace({
       })),
     ),
   ])
-  const productOriginal =
+  const productOriginals =
     imageSource.mode === 'commerce' && comparisonImages.some(({ path }) => path === heroImage)
-      ? comparisonSources.find(
+      ? comparisonSources.filter(
           ({ path, isProductOriginal }) => isProductOriginal && path !== heroImage,
         )
-      : undefined
+      : []
+  const [productOriginal, ...fallbackOriginals] = productOriginals
   const referenceTarget =
     imageSource.mode === 'general'
       ? '通用生图'
@@ -748,6 +749,7 @@ export function ResultWorkspace({
                     candidates={comparisonImages}
                     initialLeft={productOriginal?.path ?? heroImage}
                     initialRight={productOriginal ? heroImage : undefined}
+                    originalFallbackPaths={fallbackOriginals.map(({ path }) => path)}
                     disabled={!heroReady}
                   />
                 </div>

@@ -115,6 +115,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     candidates: ComparisonImage[]
     initialLeft: string
     initialRight?: string
+    originalFallbackPaths?: string[]
     projectId?: string
   } | null>(null)
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
@@ -442,6 +443,13 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       candidates,
       initialLeft: original && references[0] ? references[0].path : current.path,
       ...(original && references.length ? { initialRight: current.path } : {}),
+      originalFallbackPaths:
+        original && references[0]?.isProductOriginal
+          ? references
+              .slice(1)
+              .filter((item) => item.isProductOriginal)
+              .map((item) => item.path)
+          : undefined,
       projectId: asset.projectId || undefined,
     })
   }
@@ -1153,6 +1161,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
           candidates={comparison.candidates}
           initialLeft={comparison.initialLeft}
           initialRight={comparison.initialRight}
+          originalFallbackPaths={comparison.originalFallbackPaths}
           browseLibrary={{ projectId: comparison.projectId }}
           onClose={() => setComparison(null)}
         />

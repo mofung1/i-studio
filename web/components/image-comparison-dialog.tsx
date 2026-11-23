@@ -17,6 +17,7 @@ import {
   ZoomOut,
 } from 'lucide-react'
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -43,12 +44,15 @@ export function ImageComparisonDialog({
   candidates,
   initialLeft,
   initialRight,
+  originalFallbackPaths,
   browseLibrary,
   onClose,
 }: {
   candidates: ComparisonImage[]
   initialLeft?: string
   initialRight?: string
+  /** 默认 A 图失败后按顺序尝试的其他商品或服装原图。 */
+  originalFallbackPaths?: string[]
   browseLibrary?: { projectId?: string }
   onClose: () => void
 }) {
@@ -68,6 +72,11 @@ export function ImageComparisonDialog({
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState<ComparisonPan>({ x: 0, y: 0 })
   const [divider, setDivider] = useState(50)
+  const originalSearch = useRef(
+    initialLeft && initialRight && originalFallbackPaths?.length
+      ? { path: initialLeft, remaining: originalFallbackPaths }
+      : null,
+  )
   const panel = useRef<HTMLDivElement>(null)
   const libraryEnabled = !!browseLibrary
   useEffect(() => {
@@ -97,10 +106,30 @@ export function ImageComparisonDialog({
     ? (images.find((item) => item.path === rightPath && item.path !== left?.path) ??
       images.find((item) => item.path !== left?.path))
     : undefined
-  function reset() {
+  const reset = useCallback(() => {
     setZoom(1)
     setPan({ x: 0, y: 0 })
     drag.current = null
+  }, [])
+  const settleDefaultOriginal = useCallback(
+    (path: string, state: 'loaded' | 'failed') => {
+      const search = originalSearch.current
+      if (search?.path !== path) return
+      const [next, ...remaining] = search.remaining
+      if (state === 'loaded' || !next) {
+        originalSearch.current = null
+        return
+      }
+      originalSearch.current = { path: next, remaining }
+      setLeftPath(next)
+      setDivider(50)
+      reset()
+    },
+    [reset],
+  )
+  function chooseImage(side: 'a' | 'b') {
+    originalSearch.current = null
+    setChoosing(side)
   }
   function changeZoom(direction: -1 | 1) {
     const next =
@@ -255,7 +284,7 @@ export function ImageComparisonDialog({
                   <ComparisonChoice
                     image={left}
                     label="更换图片 A"
-                    onClick={() => setChoosing('a')}
+                    onClick={() => chooseImage('a')}
                   />
                 ) : (
                   <LibrarySelect
@@ -263,6 +292,7 @@ export function ImageComparisonDialog({
                     value={left.path}
                     title={left.label}
                     onChange={(value) => {
+                      originalSearch.current = null
                       reset()
                       setDivider(50)
                       setLeftPath(value)
@@ -278,6 +308,7 @@ export function ImageComparisonDialog({
                 aria-label="交换两张图片"
                 title="交换 A / B"
                 onClick={() => {
+                  originalSearch.current = null
                   setLeftPath(right.path)
                   setRightPath(left.path)
                   setDivider(50)
@@ -292,7 +323,7 @@ export function ImageComparisonDialog({
                   <ComparisonChoice
                     image={right}
                     label="更换图片 B"
-                    onClick={() => setChoosing('b')}
+                    onClick={() => chooseImage('b')}
                   />
                 ) : (
                   <LibrarySelect
@@ -300,6 +331,7 @@ export function ImageComparisonDialog({
                     value={right.path}
                     title={right.label}
                     onChange={(value) => {
+                      originalSearch.current = null
                       reset()
                       setDivider(50)
                       setRightPath(value)
@@ -358,6 +390,7 @@ export function ImageComparisonDialog({
               pan={pan}
               divider={divider}
               onDivider={setDivider}
+              onLeftLoad={settleDefaultOriginal}
               handlers={handlers}
             />
             {mode === 'slider' && (
@@ -428,6 +461,7 @@ function ComparisonImages({
   pan,
   divider,
   onDivider,
+  onLeftLoad,
   handlers,
 }: {
   left: ComparisonImage
@@ -437,6 +471,7 @@ function ComparisonImages({
   pan: ComparisonPan
   divider: number
   onDivider: (value: number) => void
+  onLeftLoad: (path: string, state: 'loaded' | 'failed') => void
   handlers: {
     onPointerDown: (event: PointerEvent<HTMLDivElement>) => void
     onPointerMove: (event: PointerEvent<HTMLDivElement>) => void
@@ -471,13 +506,12 @@ function ComparisonImages({
   }
   const failedA = a.state === 'failed' || imageErrors.a
   const failedB = b.state === 'failed' || imageErrors.b
-  const ready =
-    a.state === 'loaded' &&
-    b.state === 'loaded' &&
-    dimensions.a &&
-    dimensions.b &&
-    !failedA &&
-    !failedB
+  const loadedA = a.state === 'loaded' && Boolean(dimensions.a)
+  useEffect(() => {
+    if (failedA) onLeftLoad(left.path, 'failed')
+    else if (loadedA) onLeftLoad(left.path, 'loaded')
+  }, [failedA, left.path, loadedA, onLeftLoad])
+  const ready = loadedA && b.state === 'loaded' && dimensions.b && !failedA && !failedB
   const imageA = (
     <img
       key={imageRetry.a}
