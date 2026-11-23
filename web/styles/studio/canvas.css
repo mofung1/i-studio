@@ -409,14 +409,18 @@
   .workbench-shell[data-commerce-recipe] .creation-canvas {
     order: 3;
   }
-  .workbench-shell[data-commerce-recipe] .workbench-nav {
+  .mode-commerce:not(.clothing-workbench) .workbench-nav {
     flex-wrap: wrap;
   }
-  .workbench-shell[data-commerce-recipe] .workbench-nav-actions {
+  .mode-commerce:not(.clothing-workbench) .workbench-nav-actions {
     flex: 1 1 auto;
     max-width: 100%;
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+  .mode-commerce:not(.clothing-workbench) .configuration-panel:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
   }
   .workbench-shell[data-commerce-recipe] .workbench-nav-actions > .studio-secondary:not(:has(svg)) {
     width: auto;

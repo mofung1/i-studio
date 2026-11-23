@@ -334,7 +334,7 @@
 
 /* Keep the commerce toolbar inside the smallest phone viewport. */
 @media (max-width: 380px) {
-  .mode-commerce .workbench-nav-actions .panel-toggle {
+  .mode-commerce .workbench-nav-actions button.panel-toggle {
     width: 36px;
     min-width: 36px;
     padding: 0;

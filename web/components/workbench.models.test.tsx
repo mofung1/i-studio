@@ -271,12 +271,18 @@ it('opens the commerce example, quotes the trio and submits the user’s product
   await openStudio(target)
   await waitForQuote()
   const submitButton = () => container.querySelector<HTMLButtonElement>('button.generate-button')!
+  const productHint = () =>
+    container.querySelector('.config-card-assets .field-helper')?.textContent
   expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 3 张')
   expect(container.textContent).toContain('3.75 创作点')
+  expect(productHint()).toMatch(/上传.*素材库/)
+  expect(container.querySelector('.generate-bar [role="alert"]')).toBeNull()
+  expect(container.querySelector('.creation-starter')?.textContent).not.toContain('再填写展示需求')
   expect(submitButton().disabled).toBe(true)
   balance = 200
   await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
   const product = await dropProduct('my-product.png')
+  expect(productHint()).toMatch(/核对.*积分/)
   expect(submitButton().disabled).toBe(true)
   await waitForQuote()
   expect(container.textContent).toContain('余额不足')
@@ -304,6 +310,11 @@ it('opens the commerce example, quotes the trio and submits the user’s product
     moduleCounts: { white: 1, scene: 1, detail: 1 },
     count: 3,
   })
+  const removeProduct = container.querySelector<HTMLButtonElement>('button[aria-label="删除主图"]')!
+  await act(async () => removeProduct.click())
+  expect(productHint()).toMatch(/上传.*素材库/)
+  expect(submitButton().disabled).toBe(true)
+  expect(container.querySelector('.generate-bar [role="alert"]')).toBeNull()
 })
 
 it('keeps the ordinary product-main draft and the edited trio draft when switching between them', async () => {

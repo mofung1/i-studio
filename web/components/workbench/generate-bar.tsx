@@ -25,6 +25,7 @@ interface GenerateBarProps {
   buttonLabel?: string
   busyLabel?: string
   disabledReason?: string
+  needsProductImage?: boolean
 }
 
 /** 固定在创作区底部的生成区，不随参数滚动消失。 */
@@ -43,6 +44,7 @@ export function GenerateBar({
   buttonLabel,
   busyLabel,
   disabledReason,
+  needsProductImage,
 }: GenerateBarProps) {
   const { account, loading } = useAccount()
   const noticeId = useId()
@@ -70,7 +72,7 @@ export function GenerateBar({
     ? '当前任务生成中，完成后可以继续提交新任务'
     : aiEnabled === null
       ? '正在检查 AI 服务可用性，请稍候'
-      : disabledReason || undefined
+      : disabledReason || (needsProductImage ? '请先选择商品原图' : undefined)
 
   return (
     <footer className="configuration-footer generate-bar">
@@ -116,6 +118,7 @@ export function GenerateBar({
             aiEnabled === null ||
             aiEnabled === false ||
             costBlocked ||
+            needsProductImage ||
             Boolean(disabledReason)
           }
           title={hint}

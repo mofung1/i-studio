@@ -102,6 +102,7 @@ export function CreatorPanel({
     <aside
       ref={dock.panelRef}
       id="creation-settings"
+      tabIndex={-1}
       className={`configuration-panel creator-sidebar ${className} ${dock.preview ? 'is-panel-dragging' : ''}`}
       aria-label="创作设置"
       role={dialog ? 'dialog' : undefined}

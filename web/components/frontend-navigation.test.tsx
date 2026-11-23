@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { WorkbenchRail } from './workbench/workbench-rail'
 import { AccountMenu } from './account-menu'
 import { WorkbenchHeader } from './workbench/workbench-header'
+import { CreatorPanel } from './workbench/creator-panel'
 import CommercePage from '@/app/commerce/page'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
@@ -83,6 +84,49 @@ it('does not introduce a project into ordinary commerce browsing', async () => {
   for (const tool of host.querySelectorAll<HTMLAnchorElement>('main a[href^="/studio?"]'))
     expect(new URL(tool.href).searchParams.has('projectId')).toBe(false)
   expect(host.querySelector('[aria-label="查看当前项目的素材与作品"]')).toBeNull()
+})
+it('links to the focusable settings region on mobile and keeps the desktop disclosure', async () => {
+  const toggle = vi.fn()
+  const render = (jumpToSettings: boolean) => (
+    <>
+      <WorkbenchHeader
+        mode="commerce"
+        task="product-main"
+        panelOpen
+        jumpToSettings={jumpToSettings}
+        historyOpen={false}
+        onShowDetails={() => {}}
+        onToggleHistory={() => {}}
+        onTogglePanel={toggle}
+      />
+      <CreatorPanel
+        className="commerce-settings"
+        side="left"
+        collapsed={false}
+        notice={null}
+        isSubmitting={false}
+        isGenerating={false}
+      >
+        <button>上传商品原图</button>
+      </CreatorPanel>
+    </>
+  )
+  await act(async () => root.render(render(true)))
+  const jump = host.querySelector<HTMLAnchorElement>('a[href="#creation-settings"]')!
+  expect(jump.textContent).toBe('跳到创作设置')
+  expect(jump.hasAttribute('aria-expanded')).toBe(false)
+  const settings = host.querySelector<HTMLElement>(jump.hash)!
+  expect(settings.getAttribute('aria-label')).toBe('创作设置')
+  expect(settings.getAttribute('tabindex')).toBe('-1')
+
+  await act(async () => root.render(render(false)))
+  expect(host.querySelector('a[href="#creation-settings"]')).toBeNull()
+  const disclosure = host.querySelector<HTMLButtonElement>(
+    'button[aria-controls="creation-settings"]',
+  )!
+  expect(disclosure.getAttribute('aria-expanded')).toBe('true')
+  await act(async () => disclosure.click())
+  expect(toggle).toHaveBeenCalledTimes(1)
 })
 it('links the recipe title, output descriptions and action to the same project recipe', async () => {
   const projectId = '项目 A'

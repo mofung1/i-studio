@@ -18,6 +18,7 @@ interface WorkbenchHeaderProps {
   task: CommerceTaskType
   projectId?: string | null
   panelOpen: boolean
+  jumpToSettings?: boolean
   onShowDetails: () => void
   historyOpen: boolean
   onToggleHistory: () => void
@@ -31,6 +32,7 @@ export function WorkbenchHeader({
   task,
   projectId,
   panelOpen,
+  jumpToSettings = false,
   historyOpen,
   onShowDetails,
   onToggleHistory,
@@ -92,18 +94,25 @@ export function WorkbenchHeader({
           <History size={16} />
           历史记录
         </button>
-        <button
-          type="button"
-          className="panel-toggle"
-          aria-label="创作设置"
-          title={panelOpen ? '收起创作设置' : '展开创作设置'}
-          aria-controls="creation-settings"
-          aria-expanded={panelOpen}
-          onClick={onTogglePanel}
-        >
-          <SlidersHorizontal size={16} aria-hidden="true" />
-          创作设置
-        </button>
+        {jumpToSettings ? (
+          <a className="panel-toggle" href="#creation-settings">
+            <SlidersHorizontal size={16} aria-hidden="true" />
+            跳到创作设置
+          </a>
+        ) : (
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-label="创作设置"
+            title={panelOpen ? '收起创作设置' : '展开创作设置'}
+            aria-controls="creation-settings"
+            aria-expanded={panelOpen}
+            onClick={onTogglePanel}
+          >
+            <SlidersHorizontal size={16} aria-hidden="true" />
+            创作设置
+          </button>
+        )}
         <ThemeToggle />
         <AccountMenu />
       </div>

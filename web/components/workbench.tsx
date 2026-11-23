@@ -1083,20 +1083,12 @@ function StandardWorkbench({
           }
           mode={mode}
           task={task}
-          panelOpen={mode === 'general' || creatorLayout.desktop ? !configCollapsed : panelOpen}
+          panelOpen={!configCollapsed}
+          jumpToSettings={mode === 'commerce' && !creatorLayout.desktop}
           historyOpen={historyOpen}
           onShowDetails={() => setDetailsOpen(true)}
           onToggleHistory={() => setHistoryOpen((open) => !open)}
-          onTogglePanel={() => {
-            if (mode === 'general' || creatorLayout.desktop) {
-              setConfigCollapsed((collapsed) => !collapsed)
-              return
-            }
-            setPanelOpen((open) => !open)
-            document
-              .querySelector('.configuration-panel')
-              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }}
+          onTogglePanel={() => setConfigCollapsed((collapsed) => !collapsed)}
         />
         <CreatorSidebar
           recipeTitle={recipe?.title}
@@ -1203,6 +1195,7 @@ function StandardWorkbench({
             <CreationStarter
               mode={mode}
               task={task}
+              recipeHasProduct={recipe ? hasProductImage : undefined}
               canApply={!(mode === 'general' ? prompt : requirements).trim()}
               disabled={isGenerating || isSubmitting}
               onApply={(example) => {

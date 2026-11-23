@@ -49,3 +49,33 @@ it('blocks generation for incompatible parameters even with sufficient credits',
     vi.unstubAllGlobals()
   }
 })
+
+it('keeps the empty product selection disabled without masking submission errors', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  const props = {
+    title: '商品主图',
+    expectedCount: 3,
+    aspectRatio: '1:1',
+    resolution: '2K',
+    isSubmitting: false,
+    isGenerating: false,
+    aiEnabled: true,
+    onSubmit: vi.fn(),
+    needsProductImage: true,
+  }
+  try {
+    await act(async () => root.render(<GenerateBar {...props} notice={null} />))
+    expect(container.querySelector<HTMLButtonElement>('.generate-button')?.disabled).toBe(true)
+    expect(container.querySelector('[role="alert"]')).toBeNull()
+    const message = '模型价格已变更，请确认最新费用后重新提交'
+    await act(async () =>
+      root.render(<GenerateBar {...props} notice={{ kind: 'error', message }} />),
+    )
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(message)
+  } finally {
+    await act(async () => root.unmount())
+    vi.unstubAllGlobals()
+  }
+})
