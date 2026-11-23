@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import styles from './commerce.module.css'
+import styles from './commerce-example-frame.module.css'
 
 /** Crop a generated photo strip in CSS so each example keeps its own full frame. */
 export function ExampleFrame({
@@ -8,19 +8,23 @@ export function ExampleFrame({
   frames,
   alt,
   label,
+  labelSide,
   ratio = 1.5,
   priority = false,
+  contain = false,
 }: {
   src: string
   index: number
   frames: number
   alt: string
   label?: string
+  labelSide?: 'start' | 'end'
   ratio?: number
   priority?: boolean
+  contain?: boolean
 }) {
   return (
-    <div className={styles.frame}>
+    <div className={contain ? `${styles.frame} ${styles.contain}` : styles.frame}>
       <div
         className={styles.photoStrip}
         style={
@@ -40,7 +44,11 @@ export function ExampleFrame({
           draggable={false}
         />
       </div>
-      {label && <span className={styles.imageLabel}>{label}</span>}
+      {label && (
+        <span className={styles.imageLabel} data-side={labelSide}>
+          {label}
+        </span>
+      )}
     </div>
   )
 }

@@ -666,7 +666,7 @@ function StandardWorkbench({
           },
         ]
 
-  async function changeMode(nextMode: WorkbenchMode) {
+  async function navigateTool(nextMode: WorkbenchMode, target: string) {
     configurationRequestRef.current += 1
     try {
       await draft.flush()
@@ -680,23 +680,15 @@ function StandardWorkbench({
     targetLayout.setCollapsed(false)
     setPanelOpen(false)
     setNotice(null)
-    router.replace(studioToolUrl(nextMode, task, searchParams))
+    router.replace(target)
   }
 
-  async function changeTask(nextTask: CommerceTaskType) {
-    configurationRequestRef.current += 1
-    try {
-      await draft.flush()
-    } catch {
-      setNotice({ kind: 'error', message: '草稿尚未保存，请重试保存后再切换工具' })
-      return
-    }
-    if (!mounted.current) return
-    setLoadingConfigId(null)
-    commerceLayout.setCollapsed(false)
-    setPanelOpen(false)
-    setNotice(null)
-    router.replace(studioToolUrl('commerce', nextTask, searchParams))
+  function changeMode(nextMode: WorkbenchMode) {
+    return navigateTool(nextMode, studioToolUrl(nextMode, task, searchParams))
+  }
+
+  function changeTask(nextTask: CommerceTaskType) {
+    return navigateTool('commerce', studioToolUrl('commerce', nextTask, searchParams))
   }
 
   /** 把一张结果图取回成可以直接放进素材区的文件 */
@@ -1253,9 +1245,11 @@ function StandardWorkbench({
             <CreationStarter
               mode={mode}
               task={task}
+              projectId={searchParams.get('projectId')}
               recipePreview={recipe}
               canApply={!(mode === 'general' ? prompt : requirements).trim()}
               disabled={isGenerating || isSubmitting}
+              onOpenRecipe={(href) => void navigateTool('commerce', href)}
               onApply={(example) => {
                 if (
                   isGenerating ||

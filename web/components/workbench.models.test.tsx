@@ -2,7 +2,6 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import CommercePage from '@/app/commerce/page'
 import StudioPage from '@/app/studio/page'
 import {
   creationDraftKey,
@@ -12,7 +11,7 @@ import {
 } from '@/lib/creation-drafts'
 import { Workbench } from './workbench'
 import type { SubmitParams } from './workbench/use-generation-task'
-import { generationInputSchema, type ClothingShot } from '@/lib/contracts'
+import { generationInputSchema, type ClothingShot, type CommerceTaskType } from '@/lib/contracts'
 import { clothingModelRecipe } from '@/lib/commerce-recipe'
 import { historyWorkbenchUrl } from './workbench/use-workbench-handoff'
 
@@ -253,17 +252,12 @@ async function dropProduct(name: string) {
   return product
 }
 
-async function commerceCaseUrl(title: string) {
-  const page = await CommercePage({ searchParams: Promise.resolve({ projectId: 'my-project' }) })
-  await act(async () => root.render(page))
-  const card = [...container.querySelectorAll('article')].find((entry) =>
-    entry.querySelector('h3')?.textContent?.includes(title),
+async function commerceCaseUrl(task: CommerceTaskType) {
+  await openStudio(
+    new URL(`/studio?mode=commerce&task=${task}&projectId=my-project`, 'http://localhost'),
   )
-  expect(card).toBeDefined()
-  const cta = [...card!.querySelectorAll('a')].find((link) =>
-    link.textContent?.includes('用我的商品做同款'),
-  )
-  expect(cta).toBeDefined()
+  const cta = container.querySelector<HTMLAnchorElement>('.commerce-starter-actions a')
+  expect(cta?.textContent).toBe('用我的商品做同款')
   return new URL(cta!.href)
 }
 
@@ -314,7 +308,7 @@ it.each(commerceTrioCases)(
   async ({ task, recipe, title, aspectRatio, moduleCounts, labels }) => {
     let balance = 5000
     mockCommercePricing(() => balance)
-    const target = await commerceCaseUrl(title)
+    const target = await commerceCaseUrl(task)
     expect(target.pathname).toBe('/studio')
     expect(Object.fromEntries(target.searchParams)).toMatchObject({
       mode: 'commerce',
@@ -409,7 +403,7 @@ it('uses only the selected garment for two modeled views after confirming their 
     () => available,
     () => unitPrice,
   )
-  const target = await commerceCaseUrl('模特上身套图')
+  const target = await commerceCaseUrl('clothing-set')
   expect(Object.fromEntries(target.searchParams)).toMatchObject({
     mode: 'commerce',
     task: 'clothing-set',
@@ -661,11 +655,29 @@ it.each([
       task === 'clothing-set' ? '#clothing-requirements' : '.prompt-input',
     )!
     expect(target.value).toBe('')
-    const example = container.querySelector<HTMLButtonElement>('.creation-example-list button')!
+    if (mode === 'commerce') {
+      const menuTrigger = container.querySelector<HTMLButtonElement>(
+        '.commerce-description-trigger',
+      )!
+      expect(menuTrigger.getAttribute('aria-expanded')).toBe('false')
+      await act(async () =>
+        menuTrigger.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+        ),
+      )
+      expect(menuTrigger.getAttribute('aria-expanded')).toBe('true')
+      expect(container.querySelector('.commerce-description-menu')).toBeNull()
+    }
+    const example =
+      mode === 'commerce'
+        ? document.querySelector<HTMLElement>('.commerce-description-menu [role="menuitem"]')!
+        : container.querySelector<HTMLButtonElement>('.creation-example-list button')!
     expect(example).not.toBeNull()
     await act(async () => example.click())
     expect(target.value.length).toBeGreaterThan(20)
     expect(container.querySelector('.creation-example-list')).toBeNull()
+    expect(container.querySelector('.commerce-description-trigger')).toBeNull()
+    expect(document.querySelector('.commerce-description-menu')).toBeNull()
     expect(container.textContent).toContain('以后更换的模型')
     expect(container.textContent).toContain('可配置的使用建议')
     expect(

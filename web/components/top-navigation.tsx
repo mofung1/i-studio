@@ -4,6 +4,7 @@ import { Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
+import { studioToolUrl } from '@/lib/studio-navigation'
 import { AccountMenu } from './account-menu'
 
 import { Brand } from './brand'
@@ -28,7 +29,7 @@ export function TopNavigation() {
         <Link href="/studio?mode=general" onClick={() => setNavOpen(false)}>
           AI 生图
         </Link>
-        <Link href="/commerce" onClick={() => setNavOpen(false)}>
+        <Link href={studioToolUrl('commerce')} onClick={() => setNavOpen(false)}>
           电商工具
         </Link>
         <Link href="/inspire" onClick={() => setNavOpen(false)}>

@@ -17,7 +17,7 @@ import { WorkbenchSkeleton } from './workbench-skeleton'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { loadStoredImage } from '@/lib/library'
 import { addCreationImage } from '@/lib/creation-images'
-import { preserveStudioProject, studioToolUrl } from '@/lib/studio-navigation'
+import { studioToolUrl } from '@/lib/studio-navigation'
 import { modelCompatibilityIssue, type PublicImageModel } from '@/lib/generation-models'
 import { ModelCompatibilityNotice } from './model-compatibility-notice'
 import { X } from 'lucide-react'
@@ -720,13 +720,7 @@ export function ClothingWorkbench({
           mode="commerce"
           projectId={search.get('projectId')}
           task="clothing-set"
-          onChangeMode={(mode) =>
-            void navigate(
-              mode === 'general'
-                ? studioToolUrl('general', undefined, search)
-                : preserveStudioProject('/commerce', search),
-            )
-          }
+          onChangeMode={() => void navigate(studioToolUrl('general', undefined, search))}
           onChangeTask={(task) => void navigate(studioToolUrl('commerce', task, search))}
         />
         <WorkbenchHeader
@@ -865,9 +859,11 @@ export function ClothingWorkbench({
             <CreationStarter
               mode="commerce"
               task="clothing-set"
+              projectId={search.get('projectId')}
               recipePreview={recipe}
               canApply={!settings.requirements.trim()}
               disabled={planning || isGenerating || isSubmitting}
+              onOpenRecipe={(href) => void navigate(href)}
               onApply={(example) => {
                 if (planning || isGenerating || isSubmitting || settings.requirements.trim()) return
                 change({ requirements: example.prompt })

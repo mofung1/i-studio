@@ -1,0 +1,77 @@
+.comparison {
+  --commerce-example-frame-radius: 0px;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+}
+
+.comparison:focus-within {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+
+.before,
+.after {
+  position: absolute;
+  inset: 0;
+}
+
+.before {
+  clip-path: inset(0 calc(100% - var(--split)) 0 0);
+}
+
+.after {
+  clip-path: inset(0 0 0 var(--split));
+}
+
+.divider {
+  position: absolute;
+  inset: 0 auto 0 var(--split);
+  width: 2px;
+  transform: translateX(-50%);
+  background: rgb(255 255 255 / 0.9);
+  pointer-events: none;
+}
+
+.divider > span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  color: #171717;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+  transform: translate(-50%, -50%);
+}
+
+.dragHint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgb(20 20 20 / 0.5);
+  color: #fff;
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: ew-resize;
+  touch-action: pan-y;
+}

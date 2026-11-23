@@ -1,0 +1,53 @@
+.frame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--commerce-example-frame-radius, 9px);
+  background: var(--surface-2);
+  container-type: size;
+}
+
+.photoStrip {
+  position: absolute;
+  overflow: hidden;
+  top: 50%;
+  left: 50%;
+  width: max(100cqw, calc(100cqh * var(--frame-ratio)));
+  height: max(100cqh, calc(100cqw / var(--frame-ratio)));
+  transform: translate(-50%, -50%);
+}
+
+.contain .photoStrip {
+  width: min(100cqw, calc(100cqh * var(--frame-ratio)));
+  height: min(100cqh, calc(100cqw / var(--frame-ratio)));
+}
+
+.photoStrip img {
+  display: block;
+  width: calc(100% * var(--frames));
+  max-width: none;
+  height: 100%;
+  transform: translateX(var(--frame-offset));
+  user-select: none;
+}
+
+.imageLabel {
+  position: absolute;
+  top: var(--commerce-example-label-top, 8px);
+  left: var(--commerce-example-label-left, 8px);
+  padding: var(--commerce-example-label-padding, 3px 6px);
+  border-radius: 5px;
+  background: rgb(20 20 20 / 0.54);
+  color: #fff;
+  font-size: var(--commerce-example-label-size, 10px);
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.imageLabel[data-side='end'] {
+  right: 8px;
+  left: auto;
+}

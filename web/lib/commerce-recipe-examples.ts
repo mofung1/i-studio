@@ -58,3 +58,18 @@ export const commerceRecipeExamples = {
   CommerceRecipe['id'],
   { source: ExampleImage; outputs: [ExampleImage, ...ExampleImage[]] }
 >
+
+export const commerceComparisonExamples = {
+  'product-retouch': {
+    src: '/images/commerce/retouch.webp',
+    ratio: 3 / 2,
+    before: { alt: '金属杯精修前示例', label: '精修前' },
+    after: { alt: '同款金属杯精修后示例', label: '精修后' },
+  },
+  'viral-recreate': {
+    src: '/images/commerce/recreate.webp',
+    ratio: 2 / 3,
+    before: { alt: '蓝色商品的参考构图示例', label: '参考版式' },
+    after: { alt: '将参考构图应用到橙色商品的示例', label: '套用商品' },
+  },
+} as const

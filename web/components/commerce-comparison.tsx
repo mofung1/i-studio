@@ -2,32 +2,34 @@
 
 import { useState, type CSSProperties } from 'react'
 import { ChevronsLeftRight } from 'lucide-react'
-import { ExampleFrame } from './example-frame'
-import styles from './commerce.module.css'
+import { ExampleFrame } from '@/components/commerce-example-frame'
+import styles from './commerce-comparison.module.css'
 
 export function CommerceComparison({
   src,
   title,
   beforeAlt,
   afterAlt,
+  beforeLabel = '原图示例',
   afterLabel,
-  mode = 'overlay',
   frameRatio = 1.5,
   priority = false,
+  className = '',
 }: {
   src: string
   title: string
   beforeAlt: string
   afterAlt: string
+  beforeLabel?: string
   afterLabel: string
-  mode?: 'overlay' | 'side'
   frameRatio?: number
   priority?: boolean
+  className?: string
 }) {
   const [split, setSplit] = useState(50)
   return (
     <div
-      className={`${styles.comparison} ${mode === 'side' ? styles.sideComparison : ''}`}
+      className={`${styles.comparison} ${className}`}
       style={{ '--split': `${split}%` } as CSSProperties}
       role="group"
       aria-label={`${title}前后效果示例`}
@@ -39,8 +41,9 @@ export function CommerceComparison({
           frames={2}
           ratio={frameRatio}
           alt={beforeAlt}
-          label="原图示例"
+          label={beforeLabel}
           priority={priority}
+          contain
         />
       </div>
       <div className={styles.after}>
@@ -50,9 +53,11 @@ export function CommerceComparison({
           frames={2}
           ratio={frameRatio}
           alt={afterAlt}
+          label={afterLabel}
+          labelSide="end"
           priority={priority}
+          contain
         />
-        <span className={`${styles.imageLabel} ${styles.afterLabel}`}>{afterLabel}</span>
       </div>
       <span className={styles.divider} aria-hidden="true">
         <span>

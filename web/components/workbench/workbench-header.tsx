@@ -8,7 +8,6 @@ import Link from 'next/link'
 
 import { AccountMenu } from '@/components/account-menu'
 import type { CommerceTaskType } from '@/lib/contracts'
-import { preserveStudioProject } from '@/lib/studio-navigation'
 
 import { taskMeta, type WorkbenchMode } from './shared'
 
@@ -38,12 +37,6 @@ export function WorkbenchHeader({
   onToggleHistory,
   onTogglePanel,
 }: WorkbenchHeaderProps) {
-  const inCommerce = mode === 'commerce'
-  const commerceUrl = preserveStudioProject(
-    '/commerce',
-    projectId ? new URLSearchParams({ projectId }) : undefined,
-  )
-
   return (
     <header className="workbench-nav">
       <div className="studio-breadcrumb">
@@ -58,10 +51,12 @@ export function WorkbenchHeader({
             <span>/</span>
           </>
         )}
-        {inCommerce ? (
+        {mode === 'commerce' ? (
           <>
-            <Link href={commerceUrl}>电商工具</Link>
-            <span>/</span>
+            <span className="studio-commerce-crumb">电商工具</span>
+            <span className="studio-commerce-crumb" aria-hidden="true">
+              /
+            </span>
             <strong>{taskMeta[task].title}</strong>
           </>
         ) : (

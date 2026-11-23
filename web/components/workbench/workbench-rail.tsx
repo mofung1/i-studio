@@ -3,14 +3,15 @@
 import {
   BookMarked,
   Box,
-  ChevronLeft,
-  ChevronRight,
+  ChevronDown,
   Copy,
   Folder,
   Image as ImageIcon,
   Images,
   LayoutGrid,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Settings,
   Shirt,
@@ -63,7 +64,9 @@ export function WorkbenchRail({
   onChangeTask,
 }: WorkbenchRailProps) {
   const project = projectId ? new URLSearchParams({ projectId }) : undefined
+  const inCommerce = section === 'commerce'
   const [collapsed, setCollapsed] = useState(false)
+  const [commerceExpanded, setCommerceExpanded] = useState(true)
   const [navigationOpen, setNavigationOpen] = useState(false)
   const navigationToggle = useRef<HTMLButtonElement>(null)
   const rail = useRef<HTMLElement>(null)
@@ -140,9 +143,9 @@ export function WorkbenchRail({
         onClick={toggleRail}
       >
         {collapsed ? (
-          <ChevronRight size={16} aria-hidden="true" />
+          <PanelLeftOpen size={17} strokeWidth={1.75} aria-hidden="true" />
         ) : (
-          <ChevronLeft size={16} aria-hidden="true" />
+          <PanelLeftClose size={17} strokeWidth={1.75} aria-hidden="true" />
         )}
         <span className="studio-rail-toggle-label" aria-hidden="true">
           {collapsed ? '展开侧边栏' : '收起侧边栏'}
@@ -162,7 +165,8 @@ export function WorkbenchRail({
         className="workbench-rail-nav"
         aria-label="主导航"
         onClick={(event) => {
-          if ((event.target as Element).closest('a, button') && navigationOpen) {
+          const action = (event.target as Element).closest('a, button')
+          if (navigationOpen && action && !action.classList.contains('studio-commerce-toggle')) {
             setNavigationOpen(false)
             navigationToggle.current?.focus()
           }
@@ -202,18 +206,51 @@ export function WorkbenchRail({
           <Box size={18} />
           <span>商品管理</span>
         </Link>
-        <Link
-          href={preserveStudioProject('/commerce', project)}
-          className={section === 'commerce' ? 'active' : ''}
-          aria-label="电商工具"
-          title="电商工具"
-          aria-current={section === 'commerce' && !task ? 'page' : undefined}
-        >
-          <LayoutGrid size={18} />
-          <span>电商工具</span>
-        </Link>
-        {section === 'commerce' && task && (
-          <div className="studio-task-nav" role="group" aria-label="电商任务">
+        {inCommerce ? (
+          <button
+            type="button"
+            className={`studio-commerce-toggle${commerceExpanded ? '' : ' active'}`}
+            aria-label="电商工具"
+            aria-expanded={commerceExpanded}
+            aria-controls="studio-commerce-tools"
+            title={commerceExpanded ? '收起电商工具子菜单' : '展开电商工具子菜单'}
+            onClick={() => setCommerceExpanded((expanded) => !expanded)}
+          >
+            <LayoutGrid size={18} aria-hidden="true" />
+            <span>电商工具</span>
+            <ChevronDown className="studio-commerce-chevron" size={14} aria-hidden="true" />
+          </button>
+        ) : onChangeTask ? (
+          <button
+            type="button"
+            aria-label="电商工具"
+            title="电商工具"
+            onClick={() => {
+              setCommerceExpanded(true)
+              onChangeTask('product-main')
+            }}
+          >
+            <LayoutGrid size={18} aria-hidden="true" />
+            <span>电商工具</span>
+          </button>
+        ) : (
+          <Link
+            href={studioToolUrl('commerce', 'product-main', project)}
+            aria-label="电商工具"
+            title="电商工具"
+          >
+            <LayoutGrid size={18} aria-hidden="true" />
+            <span>电商工具</span>
+          </Link>
+        )}
+        {inCommerce && (
+          <div
+            id="studio-commerce-tools"
+            className="studio-task-nav"
+            role="group"
+            aria-label="电商任务"
+            hidden={!commerceExpanded}
+          >
             {commerceTasks.map(([id, meta]) => {
               const Icon = taskIcons[id]
               const content = (

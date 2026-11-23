@@ -1,23 +1,90 @@
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
+import { DropdownMenu } from 'radix-ui'
+import { useRef } from 'react'
 import { CommerceExampleGallery } from '@/components/commerce-example-gallery'
-import type { CommerceRecipe } from '@/lib/commerce-recipe'
+import {
+  commerceRecipeUrl,
+  getCommerceRecipeForTask,
+  type CommerceRecipe,
+} from '@/lib/commerce-recipe'
 import type { CommerceTaskType } from '@/lib/contracts'
 import { creationExamples, type CreationExample } from '@/lib/creation-examples'
+import { CommerceCasePreview } from './commerce-case-preview'
+import { taskMeta } from './shared'
+
+function DescriptionExamplesMenu({
+  examples,
+  disabled,
+  onApply,
+}: {
+  examples: CreationExample[]
+  disabled?: boolean
+  onApply: (example: CreationExample) => void
+}) {
+  const applied = useRef(false)
+
+  return (
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className="studio-secondary commerce-description-trigger"
+          disabled={disabled}
+        >
+          填入描述示例
+          <ChevronDown size={14} aria-hidden="true" />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          className="commerce-description-menu"
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          onCloseAutoFocus={(event) => {
+            // The workbench moves focus to the editor after an example is applied.
+            if (applied.current) event.preventDefault()
+            applied.current = false
+          }}
+        >
+          {examples.map((example) => (
+            <DropdownMenu.Item
+              key={example.title}
+              className="commerce-description-option"
+              disabled={disabled}
+              onSelect={() => {
+                applied.current = true
+                onApply(example)
+              }}
+            >
+              {example.title}
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  )
+}
 
 export function CreationStarter({
   mode,
   task,
   canApply,
+  projectId,
   recipePreview,
   disabled,
   onApply,
+  onOpenRecipe,
 }: {
   mode: 'general' | 'commerce'
   task: CommerceTaskType
   canApply: boolean
+  projectId?: string | null
   recipePreview?: CommerceRecipe
   disabled?: boolean
   onApply: (example: CreationExample) => void
+  onOpenRecipe: (href: string) => void
 }) {
   if (recipePreview) {
     const title = `${recipePreview.title}案例效果`
@@ -31,25 +98,56 @@ export function CreationStarter({
       </section>
     )
   }
-  const general = mode === 'general'
-  const clothing = !general && task === 'clothing-set'
+
+  const examples = creationExamples(mode, task)
+
+  if (mode === 'commerce') {
+    const recipe = getCommerceRecipeForTask(task)
+    const project = projectId ? new URLSearchParams({ projectId }) : undefined
+    const recipeHref = recipe ? commerceRecipeUrl(recipe, project) : undefined
+    return (
+      <section
+        className="creation-starter creation-starter-commerce"
+        aria-label={`${taskMeta[task].title}效果示例`}
+      >
+        <h2>效果示例</h2>
+        <CommerceCasePreview task={task} />
+        {(recipeHref || canApply) && (
+          <div className="commerce-starter-actions">
+            {recipeHref && (
+              <Link
+                className="studio-secondary"
+                href={recipeHref}
+                aria-disabled={disabled || undefined}
+                onNavigate={(event) => {
+                  event.preventDefault()
+                  if (!disabled) onOpenRecipe(recipeHref)
+                }}
+              >
+                用我的商品做同款
+                <ArrowUpRight size={15} aria-hidden="true" />
+              </Link>
+            )}
+            {canApply && (
+              <DescriptionExamplesMenu examples={examples} disabled={disabled} onApply={onApply} />
+            )}
+          </div>
+        )}
+      </section>
+    )
+  }
+
   return (
     <section className="creation-starter" aria-label="创作入门">
       <h2>{canApply ? '从一个想法开始' : '继续完善这次创作'}</h2>
       <p className="creation-starter-lead">
-        {general
-          ? canApply
-            ? '写下主体、场景和风格，也可以从下面的描述示例开始。'
-            : '描述可继续编辑，也可以按需添加参考图；准备好后再确认参数与积分。'
-          : clothing
-            ? '先上传服装原图，选择图种或模特上身，再查看并编辑逐张生成规划。'
-            : task === 'viral-recreate'
-              ? '先上传商品原图与构图参考，再描述希望借鉴的布局或光影。'
-              : '先上传清晰的商品原图，再填写展示需求，核对想要保留的商品细节。'}
+        {canApply
+          ? '写下主体、场景和风格，也可以从下面的描述示例开始。'
+          : '描述可继续编辑，也可以按需添加参考图片；准备好后再确认参数与积分。'}
       </p>
       {canApply && (
         <div className="creation-example-list" aria-label="描述示例">
-          {creationExamples(mode, task).map((example) => (
+          {examples.map((example) => (
             <button
               key={example.title}
               type="button"

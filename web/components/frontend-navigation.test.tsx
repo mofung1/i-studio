@@ -6,9 +6,19 @@ import { WorkbenchRail } from './workbench/workbench-rail'
 import { AccountMenu } from './account-menu'
 import { WorkbenchHeader } from './workbench/workbench-header'
 import { CreatorPanel } from './workbench/creator-panel'
+import { CreationStarter } from './workbench/creation-starter'
 import CommercePage from '@/app/commerce/page'
+import { getCommerceRecipeForTask } from '@/lib/commerce-recipe'
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }) }))
+const { redirect } = vi.hoisted(() => ({
+  redirect: vi.fn((location: string) => {
+    throw new Error(location)
+  }),
+}))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  redirect,
+}))
 vi.mock('./theme-toggle', () => ({ ThemeToggle: () => <button>主题</button> }))
 vi.mock('./account-provider', () => ({
   useAccount: () => ({
@@ -35,22 +45,27 @@ afterEach(async () => {
   host.remove()
   vi.unstubAllGlobals()
 })
-it('retains the project through the commerce overview, clothing entry and workbench breadcrumb', async () => {
+it('retains the project in the default product tool, other tools and workbench header', async () => {
   const projectId = '商品项目 & 01'
   await act(async () => root.render(<WorkbenchRail section="general" projectId={projectId} />))
-  const overview = new URL(host.querySelector<HTMLAnchorElement>('[aria-label="电商工具"]')!.href)
-  expect(overview.pathname).toBe('/commerce')
-  expect(overview.searchParams.get('projectId')).toBe(projectId)
-
-  const page = await CommercePage({
-    searchParams: Promise.resolve({ projectId: overview.searchParams.get('projectId')! }),
+  const entry = new URL(host.querySelector<HTMLAnchorElement>('[aria-label="电商工具"]')!.href)
+  expect(entry.pathname).toBe('/studio')
+  expect(Object.fromEntries(entry.searchParams)).toEqual({
+    mode: 'commerce',
+    task: 'product-main',
+    projectId,
   })
-  await act(async () => root.render(page))
-  const tools = [...host.querySelectorAll<HTMLAnchorElement>('main a[href^="/studio?"]')]
-  expect(tools.length).toBeGreaterThanOrEqual(5)
+
+  await act(async () =>
+    root.render(<WorkbenchRail section="commerce" task="product-main" projectId={projectId} />),
+  )
+  const subnav = host.querySelector('[aria-label="电商任务"]')!
+  const tools = [...subnav.querySelectorAll<HTMLAnchorElement>('a')]
+  expect(tools).toHaveLength(5)
+  expect(subnav.querySelector('[aria-current="page"]')?.getAttribute('aria-label')).toBe('商品主图')
   for (const tool of tools) expect(new URL(tool.href).searchParams.get('projectId')).toBe(projectId)
   const clothing = new URL(
-    host.querySelector<HTMLAnchorElement>('main a[aria-label="进入服装组图"]')!.href,
+    subnav.querySelector<HTMLAnchorElement>('a[aria-label="服装组图"]')!.href,
   )
   expect(clothing.searchParams.get('task')).toBe('clothing-set')
 
@@ -68,10 +83,9 @@ it('retains the project through the commerce overview, clothing entry and workbe
       />,
     ),
   )
-  const breadcrumb = host.querySelector<HTMLAnchorElement>(
-    '.studio-breadcrumb a[href^="/commerce"]',
-  )!
-  expect(new URL(breadcrumb.href).searchParams.get('projectId')).toBe(projectId)
+  const breadcrumb = host.querySelector('.studio-breadcrumb')!
+  expect(breadcrumb.textContent).toBe('当前项目/电商工具/服装组图')
+  expect(breadcrumb.querySelector('a[href^="/commerce"]')).toBeNull()
   const projectLink = host.querySelector<HTMLAnchorElement>(
     '[aria-label="查看当前项目的素材与作品"]',
   )!
@@ -79,11 +93,46 @@ it('retains the project through the commerce overview, clothing entry and workbe
   expect(projectLink.textContent).toBe('当前项目')
 })
 
-it('does not introduce a project into ordinary commerce browsing', async () => {
-  await act(async () => root.render(await CommercePage({ searchParams: Promise.resolve({}) })))
-  for (const tool of host.querySelectorAll<HTMLAnchorElement>('main a[href^="/studio?"]'))
-    expect(new URL(tool.href).searchParams.has('projectId')).toBe(false)
-  expect(host.querySelector('[aria-label="查看当前项目的素材与作品"]')).toBeNull()
+it('opens product main and toggles the children without changing the current tool or closing mobile navigation', async () => {
+  const changeTask = vi.fn()
+  const parentButton = () => host.querySelector<HTMLButtonElement>('button[aria-label="电商工具"]')!
+  await act(async () => root.render(<WorkbenchRail section="general" onChangeTask={changeTask} />))
+  await act(async () => parentButton().click())
+  expect(changeTask).toHaveBeenCalledExactlyOnceWith('product-main')
+
+  await act(async () =>
+    root.render(<WorkbenchRail section="commerce" task="detail-page" onChangeTask={changeTask} />),
+  )
+  const toggle = host.querySelector<HTMLButtonElement>('.studio-mobile-navigation-toggle')!
+  const parent = parentButton()
+  const subnav = document.getElementById(parent.getAttribute('aria-controls')!)!
+  expect(parent.getAttribute('aria-expanded')).toBe('true')
+  expect(subnav.hidden).toBe(false)
+  await act(async () => toggle.click())
+  await act(async () => {
+    parent.focus()
+    parent.click()
+  })
+  expect(changeTask).toHaveBeenCalledTimes(1)
+  expect(toggle.getAttribute('aria-expanded')).toBe('true')
+  expect(parent.getAttribute('aria-expanded')).toBe('false')
+  expect(document.activeElement).toBe(parent)
+  expect(subnav.hidden).toBe(true)
+  await act(async () => parent.click())
+  expect(parent.getAttribute('aria-expanded')).toBe('true')
+  expect(subnav.hidden).toBe(false)
+  expect(subnav.querySelectorAll('button')).toHaveLength(5)
+  expect(subnav.querySelector('[aria-pressed="true"]')?.getAttribute('aria-label')).toBe('商品详情')
+})
+
+it('redirects the retired commerce page to product main with its existing project context', async () => {
+  const destination = '/studio?mode=commerce&task=product-main'
+  await expect(CommercePage({ searchParams: Promise.resolve({}) })).rejects.toThrow(destination)
+  expect(redirect).toHaveBeenLastCalledWith(destination)
+  await expect(
+    CommercePage({ searchParams: Promise.resolve({ projectId: ' Demo & 01 ' }) }),
+  ).rejects.toThrow(destination)
+  expect(redirect).toHaveBeenLastCalledWith(`${destination}&projectId=Demo+%26+01`)
 })
 it.each(['assets', 'history'] as const)(
   'offers a new creation from the %s sidebar',
@@ -145,48 +194,51 @@ it.each([
     title: '商品上架套图',
     task: 'product-main',
     id: 'product-main-trio',
-    ratio: '1:1',
     outputs: ['白底主图', '场景主图', '细节主图'],
-    action: '用我的商品做同款',
   },
   {
     tool: '商品详情',
     title: '商品详情套图',
     task: 'detail-page',
     id: 'detail-page-trio',
-    ratio: '3:4',
     outputs: ['首屏主视觉', '材质纹理图', '场景应用图'],
-    action: '用我的商品做同款（商品详情套图）',
   },
   {
     tool: '服装组图',
     title: '模特上身套图',
     task: 'clothing-set',
     id: 'clothing-model-duo',
-    ratio: '3:4',
     outputs: ['正面上身图', '侧面上身图'],
-    action: '用我的商品做同款（模特上身套图）',
   },
-])(
-  'links the $tool case photos, description and action to the same project recipe',
+] as const)(
+  'keeps the $tool case photos and same-project recipe available in the tool',
   async (example) => {
     const projectId = '项目 A'
-    await act(async () =>
-      root.render(await CommercePage({ searchParams: Promise.resolve({ projectId }) })),
+    const recipe = getCommerceRecipeForTask(example.task)!
+    const render = (showRecipe: boolean) => (
+      <CreationStarter
+        mode="commerce"
+        task={example.task}
+        projectId={projectId}
+        recipePreview={showRecipe ? recipe : undefined}
+        canApply
+        onApply={() => {}}
+        onOpenRecipe={() => {}}
+      />
     )
-    const ordinary = host.querySelector<HTMLAnchorElement>(`a[aria-label="进入${example.tool}"]`)!
-    const card = ordinary.closest('article')!
-    const title = card.querySelector('h3')!
-    expect(title.textContent).toContain(example.title)
-    expect(title.textContent).toContain(example.ratio)
-    const recipe = title.closest('a')!
-    expect(Object.fromEntries(new URL(recipe.href).searchParams)).toEqual({
+    await act(async () => root.render(render(false)))
+    const sample = host.querySelector(`[aria-label="${example.tool}效果示例"]`)!
+    const action = sample.querySelector<HTMLAnchorElement>('a')!
+    expect(action.textContent).toBe('用我的商品做同款')
+    expect(Object.fromEntries(new URL(action.href).searchParams)).toEqual({
       mode: 'commerce',
       task: example.task,
       recipe: example.id,
       projectId,
     })
-    const gallery = card.querySelector('[aria-label="案例原图与生成效果"]')!
+    await act(async () => root.render(render(true)))
+    expect(host.querySelector('h2')?.textContent).toBe(`${example.title}案例效果`)
+    const gallery = host.querySelector('[aria-label="案例原图与生成效果"]')!
     const captions = [...gallery.querySelectorAll('figcaption')]
     expect(captions.map((caption) => caption.textContent)).toEqual([
       example.task === 'clothing-set' ? '服装原图' : '商品原图',
@@ -199,13 +251,7 @@ it.each([
       expect(url.searchParams.get('url') ?? url.pathname).toMatch(
         `/images/commerce/recipes/${example.task}-`,
       )
-      expect(image.closest('a')).toBe(recipe)
     }
-    expect(card.querySelector(`#${example.task}-recipe-description`)?.closest('a')).toBe(recipe)
-    const action = document.getElementById(recipe.getAttribute('aria-labelledby')!)
-    expect(action?.textContent?.trim()).toBe(example.action)
-    expect(action?.closest('a')).toBe(recipe)
-    expect(new URL(ordinary.href).searchParams.has('recipe')).toBe(false)
   },
 )
 it('closes mobile navigation after switching a task or pressing Escape and returns focus to the toggle', async () => {

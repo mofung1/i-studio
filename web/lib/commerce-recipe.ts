@@ -1,3 +1,4 @@
+import type { CommerceTaskType } from './contracts'
 import { studioToolUrl, type StudioQuery } from './studio-navigation'
 
 export const productMainRecipe = {
@@ -51,6 +52,10 @@ export type CommerceRecipe = (typeof commerceRecipes)[number]
 
 export function getCommerceRecipe(id: string | null | undefined) {
   return commerceRecipes.find((recipe) => recipe.id === id)
+}
+
+export function getCommerceRecipeForTask(task: CommerceTaskType) {
+  return commerceRecipes.find((recipe) => recipe.task === task)
 }
 
 export function commerceRecipeUrl(recipe: CommerceRecipe, source?: StudioQuery | null) {
