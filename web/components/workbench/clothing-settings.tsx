@@ -86,9 +86,12 @@ export function ClothingSettings({
       <fieldset className="form-section config-card config-card-assets composer-media">
         <div className="field-heading">
           <legend>服装原图</legend>
-          <span>1–6 张</span>
+          <span aria-live={recipeTitle ? 'polite' : undefined}>
+            {recipeTitle && value.garments.length ? `已选 ${value.garments.length} 张` : '1–6 张'}
+          </span>
         </div>
         <ReferenceUploader
+          directLocalSelection={Boolean(recipeTitle)}
           disabledReason={referenceDisabledReason}
           collapseAt={2}
           files={value.garments}
@@ -99,15 +102,13 @@ export function ClothingSettings({
           emptyHint="拖入图片，或打开素材选择器"
           acceptedHint="JPG / PNG / WebP · 单张最多 10 MB"
         />
-        <p className="clothing-field-help" aria-live={recipeTitle ? 'polite' : undefined}>
-          {recipeTitle
-            ? value.garments.length
-              ? `已选 ${value.garments.length} 张服装原图，请核对出图张数和积分后确认生成。`
-              : '上传服装原图或从素材库选择。工作台会生成穿着这件服装的模特。'
-            : value.mode === 'product'
+        {!recipeTitle && (
+          <p className="clothing-field-help">
+            {value.mode === 'product'
               ? '上传同一件服装的不同角度，建议包含正面、背面与细节。'
               : '上传同套搭配中的服装，模特将穿着这套搭配。'}
-        </p>
+          </p>
+        )}
       </fieldset>
       <SettingsGroup>
         {recipeTitle && <summary className="recipe-settings-summary">调整套图设置</summary>}

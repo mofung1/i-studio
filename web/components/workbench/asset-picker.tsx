@@ -9,7 +9,13 @@ import { useAccount } from '@/components/account-provider'
 import { AuthenticatedImage } from '@/components/authenticated-image'
 import { LibraryDialog, LibrarySelect } from '@/components/library-controls'
 import { getAccessToken } from '@/lib/api'
-import { isStoredImage, storedImage, type CreationImage } from '@/lib/creation-images'
+import {
+  creationImageTypes,
+  isStoredImage,
+  maxCreationImageSize,
+  storedImage,
+  type CreationImage,
+} from '@/lib/creation-images'
 import {
   assetTitle,
   libraryRequest,
@@ -19,7 +25,6 @@ import {
 } from '@/lib/library'
 import { ImageLightbox } from './image-lightbox'
 
-const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp']
 const sourceOptions = [
   ['uploads', '我的素材'],
   ['generated', '生成作品'],
@@ -253,7 +258,7 @@ export function AssetPicker({
 
   function addLocal(files: File[]) {
     const valid = files.filter(
-      (file) => acceptedTypes.includes(file.type) && file.size <= 10 * 1024 * 1024,
+      (file) => creationImageTypes.includes(file.type) && file.size <= maxCreationImageSize,
     )
     const room = Math.max(0, limit - selected.length)
     const added = valid.slice(0, room)
@@ -412,7 +417,7 @@ export function AssetPicker({
           type="file"
           hidden
           multiple={limit > 1}
-          accept="image/jpeg,image/png,image/webp"
+          accept={creationImageTypes.join(',')}
           aria-label="选择本地图片"
           onChange={(event) => {
             addLocal(Array.from(event.target.files ?? []))
@@ -496,7 +501,8 @@ export function AssetPicker({
                   )
                   const excluded = excludedIds.includes(asset.id)
                   const unsupported =
-                    !acceptedTypes.includes(asset.mime) || asset.sizeBytes > 10 * 1024 * 1024
+                    !creationImageTypes.includes(asset.mime) ||
+                    asset.sizeBytes > maxCreationImageSize
                   const disabled = excluded || (!checked && selected.length >= limit) || unsupported
                   return (
                     <div key={asset.id} className="asset-picker-item">

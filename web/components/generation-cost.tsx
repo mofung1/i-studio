@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { getAccessToken } from '@/lib/api'
 import { frontendRequest } from '@/lib/frontend-request'
 import { accountRevisionKey, formatCredits, type GenerationQuote } from '@/lib/credits'
@@ -119,6 +120,57 @@ export function useGenerationCost(modelId: string | undefined, count: number) {
     loading,
   }
 }
+export interface CreditHelpNavigation {
+  href: string
+  saveDraft: () => Promise<void>
+}
+
+function DraftCreditLink({ href, saveDraft }: CreditHelpNavigation) {
+  const router = useRouter()
+  const link = useRef<HTMLAnchorElement>(null)
+  const pending = useRef(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function openCredits() {
+    if (pending.current) return
+    pending.current = true
+    setSaving(true)
+    setError('')
+    try {
+      await saveDraft()
+      if (link.current?.isConnected) router.push(href)
+    } catch {
+      setError('草稿尚未保存，请重试后再获取积分。')
+    } finally {
+      pending.current = false
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <Link
+        ref={link}
+        href={href}
+        aria-label={saving ? '保存草稿中' : '余额不足，获取积分'}
+        aria-disabled={saving}
+        onNavigate={(event) => {
+          event.preventDefault()
+          void openCredits()
+        }}
+      >
+        {saving ? '保存草稿中…' : '余额不足 · 获取积分'}
+      </Link>
+      {error && (
+        <span className="credit-estimate-draft-error" role="alert">
+          {error}
+        </span>
+      )}
+    </>
+  )
+}
+
 export function GenerationCost({
   quote,
   error,
@@ -127,7 +179,14 @@ export function GenerationCost({
   pending,
   unavailableReason,
   retry,
-}: ReturnType<typeof useGenerationCost>) {
+  compact = false,
+  totalInButton = false,
+  creditHelp,
+}: ReturnType<typeof useGenerationCost> & {
+  compact?: boolean
+  totalInButton?: boolean
+  creditHelp?: CreditHelpNavigation
+}) {
   if (loading)
     return (
       <div className="creation-credit-estimate" role="status">
@@ -149,16 +208,21 @@ export function GenerationCost({
         </button>
       </div>
     )
+  const unitPrice = quote
+    ? `单价 ${formatCredits(quote.unitPriceMinor)} ${quote.creditName}/张 × ${quote.quantity} 张`
+    : ''
   return (
     <div className="creation-credit-estimate" aria-live="polite">
       {quote ? (
         <>
-          <span>
-            预计预留{' '}
-            <strong>
-              {formatCredits(quote.totalMinor)} {quote.creditName}
-            </strong>
-          </span>
+          {!totalInButton && (
+            <span>
+              预计预留{' '}
+              <strong>
+                {formatCredits(quote.totalMinor)} {quote.creditName}
+              </strong>
+            </span>
+          )}
           <span>
             可用余额{' '}
             <strong>
@@ -168,20 +232,29 @@ export function GenerationCost({
               <>
                 {' '}
                 ·{' '}
-                <Link
-                  href="/account#credits"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="余额不足，获取积分（在新窗口打开）"
-                >
-                  余额不足 · 获取积分
-                </Link>
+                {creditHelp ? (
+                  <DraftCreditLink {...creditHelp} />
+                ) : (
+                  <Link
+                    href="/account#credits"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="余额不足，获取积分（在新窗口打开）"
+                  >
+                    余额不足 · 获取积分
+                  </Link>
+                )}
               </>
             )}
           </span>
-          <span className="credit-unit-price">
-            单价 {formatCredits(quote.unitPriceMinor)} {quote.creditName}/张 × {quote.quantity} 张
-          </span>
+          {compact ? (
+            <details className="credit-estimate-details">
+              <summary>费用明细</summary>
+              <span className="credit-unit-price">{unitPrice}</span>
+            </details>
+          ) : (
+            <span className="credit-unit-price">{unitPrice}</span>
+          )}
         </>
       ) : (
         <span>{pending ? '正在计算费用…' : unavailableReason || '费用暂不可用'}</span>

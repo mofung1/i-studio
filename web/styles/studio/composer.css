@@ -419,6 +419,28 @@
   color: var(--foreground);
   background: var(--surface-2);
 }
+.reference-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.reference-source-actions > button {
+  min-height: 44px;
+}
+.reference-source-actions > .studio-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.reference-uploader:has(.upload-list) .reference-source-actions {
+  margin-top: 8px;
+}
+.floating-workbench .composer-media .reference-uploader.is-direct-selection.is-stackable {
+  width: 100%;
+  padding-top: calc(var(--reference-size) + 14px);
+}
+.floating-workbench .composer-media .is-direct-selection .reference-stack-toggle {
+  width: calc(var(--reference-size) + var(--reference-stack-offset));
+}
 .floating-workbench .composer-media .uploaded-thumb:is(:hover, :focus-within) .thumb-label {
   visibility: hidden;
 }

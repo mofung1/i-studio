@@ -1,5 +1,8 @@
 import type { LibraryAsset } from './library'
 
+export const creationImageTypes = ['image/jpeg', 'image/png', 'image/webp']
+export const maxCreationImageSize = 10 * 1024 * 1024
+
 /** Existing assets remain references; only new local files need uploading. */
 export interface StoredImage {
   kind: 'asset'

@@ -10,6 +10,7 @@ import {
 import { clothingCreationDraftSchema } from '@/lib/creation-draft-schema'
 import { commerceRecipeUrl, type clothingModelRecipe } from '@/lib/commerce-recipe'
 import type { GenerationQuote } from '@/lib/credits'
+import { creditHelpHref } from '@/lib/credit-navigation'
 import { useCreationDraft } from './use-creation-draft'
 import { CreationDraftStatus } from './creation-draft-status'
 import { WorkbenchSkeleton } from './workbench-skeleton'
@@ -834,6 +835,7 @@ export function ClothingWorkbench({
             isGenerating={isGenerating}
             aiEnabled={aiEnabled}
             needsProductImage={!!recipe && !settings.garments.length}
+            productImageLabel="服装原图"
             disabledReason={
               compatibilityIssue ||
               (recipe && !settings.shots?.every((shot) => shot.description.trim())
@@ -841,6 +843,11 @@ export function ClothingWorkbench({
                 : undefined)
             }
             onConfirmCost={recipe ? (quote) => confirm(settings.shots ?? [], quote) : undefined}
+            creditHelp={
+              recipe
+                ? { href: creditHelpHref(pathname, search), saveDraft: draft.flush }
+                : undefined
+            }
             onSubmit={() => void prepare()}
           />
         </CreatorPanel>

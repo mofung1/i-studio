@@ -188,7 +188,6 @@ export default function AccountPage() {
           <AccountAccess
             title="登录后查看个人中心"
             description="查看账户余额、生成消费和每一笔余额变动。"
-            returnTo="/account"
           />
         ) : (
           <>

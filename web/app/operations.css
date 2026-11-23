@@ -373,6 +373,18 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.credit-estimate-details summary {
+  width: fit-content;
+  cursor: pointer;
+}
+.credit-estimate-details .credit-unit-price {
+  display: block;
+  margin-top: 4px;
+}
+.credit-estimate-draft-error {
+  flex-basis: 100%;
+  color: var(--danger);
+}
 .account-credit-summary {
   font-size: 11px;
   padding: 4px 0 10px;

@@ -247,7 +247,9 @@ async function dropProduct(name: string) {
   const product = new File(['product image'], name, { type: 'image/png' })
   const drop = new Event('drop', { bubbles: true, cancelable: true })
   Object.defineProperty(drop, 'dataTransfer', { value: { types: ['Files'], files: [product] } })
-  await act(async () => container.querySelector('.reference-dropzone')!.dispatchEvent(drop))
+  await act(async () =>
+    container.querySelector('.config-card-assets .reference-uploader')!.dispatchEvent(drop),
+  )
   return product
 }
 
@@ -323,15 +325,16 @@ it.each(commerceTrioCases)(
     await openStudio(target)
     await waitForQuote()
     const submitButton = () => container.querySelector<HTMLButtonElement>('button.generate-button')!
-    const productHint = () =>
-      container.querySelector('.config-card-assets .field-helper')?.textContent
+    const selectionCount = () =>
+      container.querySelector('.config-card-assets .field-heading span')?.textContent
     expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 3 张')
     expect(container.querySelector('.generate-meta')?.textContent).toContain(aspectRatio)
     const summary = container.querySelector('[aria-label="同款套图配置"]')?.textContent
     expect(summary).toContain(title)
     for (const label of labels) expect(summary).toContain(`${label} × 1`)
     expect(container.textContent).toContain('3.75 创作点')
-    expect(productHint()).toMatch(/上传.*素材库/)
+    expect(selectionCount()).toBe('1–6 张')
+    expect(submitButton().textContent).toContain('请先选择商品原图')
     expect(container.querySelector('.generate-bar [role="alert"]')).toBeNull()
     expect(casePreviewLabels()).toEqual(['商品原图', ...labels])
     expect(submitButton().disabled).toBe(true)
@@ -339,10 +342,25 @@ it.each(commerceTrioCases)(
     await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
     const product = await dropProduct('my-product.png')
     expect(casePreviewLabels()).toEqual(['商品原图', ...labels])
-    expect(productHint()).toMatch(/核对.*积分/)
+    expect(selectionCount()).toBe('已选 1 张')
     expect(submitButton().disabled).toBe(true)
     await waitForQuote()
     expect(container.textContent).toContain('余额不足')
+    const cost = container.querySelector('.generate-bar .creation-credit-estimate')!
+    expect(cost.textContent).not.toContain('预计预留')
+    const details = cost.querySelector<HTMLDetailsElement>('details')!
+    expect(details.querySelector('summary')?.textContent).toBe('费用明细')
+    expect(details.open).toBe(false)
+    expect(details.textContent).toContain('单价 1.25 创作点/张 × 3 张')
+    const creditHelp = cost.querySelector<HTMLAnchorElement>('a')!
+    expect(creditHelp.target).toBe('')
+    const backToDraft = new URL(creditHelp.href).searchParams.get('returnTo')
+    expect(Object.fromEntries(new URL(backToDraft!, window.location.origin).searchParams)).toEqual({
+      mode: 'commerce',
+      task,
+      projectId: 'my-project',
+      recipe,
+    })
     expect(submitButton().disabled).toBe(true)
     balance = 5000
     await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
@@ -373,7 +391,7 @@ it.each(commerceTrioCases)(
       'button[aria-label="删除主图"]',
     )!
     await act(async () => removeProduct.click())
-    expect(productHint()).toMatch(/上传.*素材库/)
+    expect(selectionCount()).toBe('1–6 张')
     expect(submitButton().disabled).toBe(true)
     expect(container.querySelector('.generate-bar [role="alert"]')).toBeNull()
   },

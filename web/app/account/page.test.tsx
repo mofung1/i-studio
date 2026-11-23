@@ -3,12 +3,18 @@ import { act, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { frontendRequest } from '@/lib/frontend-request'
+import { accountRevisionKey } from '@/lib/credits'
 import Page from './page'
 const state = vi.hoisted(() => ({
   id: 'alice',
   authenticated: true,
   loading: false,
+  query: '',
   refresh: vi.fn(),
+}))
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/account',
+  useSearchParams: () => new URLSearchParams(state.query),
 }))
 vi.mock('@/components/account-provider', () => ({
   useAccount: () => ({
@@ -69,6 +75,7 @@ beforeEach(() => {
   state.id = 'alice'
   state.authenticated = true
   state.loading = false
+  state.query = ''
   state.refresh.mockReset()
   localStorage.setItem('istudio-access-token', 'alice-token')
   container = document.createElement('div')
@@ -83,6 +90,9 @@ afterEach(async () => {
 })
 
 it('claims once, refreshes balance and ledger, and retains the real reward after a configuration change', async () => {
+  const creation =
+    '/studio?mode=commerce&task=detail-page&projectId=album-1&recipe=detail-page-trio'
+  state.query = new URLSearchParams({ returnTo: creation }).toString()
   const checkin = {
     enabled: true,
     rewardMinor: 125,
@@ -146,6 +156,8 @@ it('claims once, refreshes balance and ledger, and retains the real reward after
   expect(container.textContent).not.toContain('图片存储用量')
   expect(container.textContent).not.toContain('MiB')
   expect(state.refresh).toHaveBeenCalled()
+  expect(localStorage.getItem(accountRevisionKey)).toBeTruthy()
+  expect(container.querySelector('#credits a')?.getAttribute('href')).toBe(creation)
 })
 
 it('reconciles an award after a lost claim response and hides the claim action when disabled', async () => {
@@ -233,6 +245,17 @@ it('shows a dedicated signed-out state without account controls or ledger reques
   expect(container.textContent).not.toContain('刷新余额')
   expect(container.querySelector('table')).toBeNull()
   expect(frontendRequest).not.toHaveBeenCalled()
+})
+
+it('preserves the originating workbench when the credit page requires login again', async () => {
+  state.authenticated = false
+  state.query = new URLSearchParams({
+    returnTo: '/studio?mode=commerce&task=clothing-set&recipe=clothing-model-duo',
+  }).toString()
+  localStorage.clear()
+  await act(async () => root.render(<Page />))
+  const login = new URL(container.querySelector('a')!.href)
+  expect(login.searchParams.get('next')).toBe(`/account?${state.query}`)
 })
 it('waits for authentication before showing a login prompt', async () => {
   state.authenticated = false

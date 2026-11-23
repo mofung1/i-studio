@@ -1,9 +1,17 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { CalendarCheck, Check, Loader2 } from 'lucide-react'
+import { creditReturnPath } from '@/lib/credit-navigation'
 import type { CreditPolicy } from '@/lib/credit-policy'
 import { formatCredits } from '@/lib/credits'
+
+function CreditReturnLink() {
+  const query = useSearchParams()
+  return <Link href={creditReturnPath(query?.get('returnTo') ?? null)}>返回创作</Link>
+}
 
 export function CreditBenefits({
   policy,
@@ -30,7 +38,9 @@ export function CreditBenefits({
           <CalendarCheck size={18} aria-hidden="true" />
           每日签到
         </h2>
-        <Link href="/studio">返回创作</Link>
+        <Suspense fallback={<Link href="/studio">返回创作</Link>}>
+          <CreditReturnLink />
+        </Suspense>
       </div>
       <div className="credit-benefits-grid">
         <div className="credit-benefit-item">

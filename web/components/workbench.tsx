@@ -3,6 +3,7 @@
 import { addCreationImage, type CreationImage } from '@/lib/creation-images'
 import { commerceRecipeUrl, getCommerceRecipe, type CommerceRecipe } from '@/lib/commerce-recipe'
 import type { GenerationQuote } from '@/lib/credits'
+import { creditHelpHref } from '@/lib/credit-navigation'
 import { studioToolUrl } from '@/lib/studio-navigation'
 import {
   creationDraftContext,
@@ -1194,6 +1195,11 @@ function StandardWorkbench({
           onCloseSheet={() => setPanelOpen(false)}
           onSubmit={() => createGenerationTask()}
           onConfirmCost={recipe ? createGenerationTask : undefined}
+          creditHelp={
+            recipe
+              ? { href: creditHelpHref(pathname, searchParams), saveDraft: draft.flush }
+              : undefined
+          }
         />
         <ResultWorkspace
           starter={

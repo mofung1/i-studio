@@ -1,4 +1,18 @@
+import type { CommerceTaskType } from './contracts'
+
 export type StudioQuery = Pick<URLSearchParams, 'get'>
+
+const commerceTasks = [
+  'product-main',
+  'detail-page',
+  'viral-recreate',
+  'product-retouch',
+  'clothing-set',
+] as const satisfies readonly CommerceTaskType[]
+
+export function studioCommerceTask(value: string | null | undefined) {
+  return commerceTasks.find((task) => task === value) ?? 'product-main'
+}
 
 /** Keep project ownership across tools without replaying the source URL's handoffs. */
 export function preserveStudioProject(target: string, source?: StudioQuery | null): string {

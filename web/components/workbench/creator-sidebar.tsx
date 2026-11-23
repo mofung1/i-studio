@@ -27,6 +27,7 @@ import { downscaleImageFiles } from '@/lib/image-file'
 import { AdvancedSettings } from './advanced-settings'
 import { BasicSettings } from './basic-settings'
 import { GenerateBar } from './generate-bar'
+import type { CreditHelpNavigation } from '../generation-cost'
 import { ProductPlatformSelector } from './product-platform-selector'
 import { PromptEditor } from './prompt-editor'
 import { ReferenceUploader } from './reference-uploader'
@@ -114,6 +115,7 @@ interface CreatorSidebarProps {
   onCloseSheet: () => void
   onSubmit: () => void
   onConfirmCost?: (quote: GenerationQuote) => void
+  creditHelp?: CreditHelpNavigation
 }
 
 const ASSET_LABELS: Record<CommerceTaskType, string> = {
@@ -210,10 +212,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   const assetFiles = isGeneral ? referenceFiles : productFiles
   const maxFiles = referenceLimit(mode, task)
   const needsSingleReference = !isGeneral && task === 'viral-recreate'
-  const recipeImageHint = productFiles.length
-    ? `已选 ${productFiles.length} 张商品原图，请核对出图张数和积分后确认生成。`
-    : '上传商品原图或从素材库选择。'
-
   const moduleTotal = Object.values(moduleCounts).reduce((total, value) => total + value, 0)
   const outputSummary = isGeneral
     ? `${count} 张`
@@ -489,11 +487,18 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           {!isGeneral && (
             <fieldset className="form-section config-card config-card-assets composer-media">
               <div className="field-heading">
-                <legend>{props.recipeTitle ? '我的商品原图' : assetLabel}</legend>
-                <span>{maxFiles === 1 ? '必须 1 张' : `1–${maxFiles} 张`}</span>
+                <legend>{props.recipeTitle ? '商品原图' : assetLabel}</legend>
+                <span aria-live={props.recipeTitle ? 'polite' : undefined}>
+                  {props.recipeTitle && productFiles.length
+                    ? `已选 ${productFiles.length} 张`
+                    : maxFiles === 1
+                      ? '必须 1 张'
+                      : `1–${maxFiles} 张`}
+                </span>
               </div>
               <ReferenceUploader
                 collapseAt={2}
+                directLocalSelection={Boolean(props.recipeTitle)}
                 disabledReason={referenceDisabledReason}
                 files={productFiles}
                 max={maxFiles}
@@ -503,13 +508,13 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                 emptyHint="拖入图片，或打开素材选择器"
                 acceptedHint={`JPG / PNG / WebP · 最多 ${maxFiles} 张`}
               />
-              <p className="field-helper" aria-live={props.recipeTitle ? 'polite' : undefined}>
-                {props.recipeTitle
-                  ? recipeImageHint
-                  : task === 'product-retouch'
+              {!props.recipeTitle && (
+                <p className="field-helper">
+                  {task === 'product-retouch'
                     ? '以原图为基础做局部精修；需要换底或调整角度时，请在补充要求中说明。'
                     : '多张素材请使用同一商品的不同角度，外观、包装与文字以这些原图为准。'}
-              </p>
+                </p>
+              )}
             </fieldset>
           )}
 
@@ -661,6 +666,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         isGenerating={isGenerating}
         aiEnabled={aiEnabled}
         onConfirmCost={props.onConfirmCost}
+        creditHelp={props.creditHelp}
         disabledReason={props.templateBlockedReason || compatibilityIssue}
         needsProductImage={Boolean(props.recipeTitle) && productFiles.length === 0}
         onSubmit={onSubmit}
