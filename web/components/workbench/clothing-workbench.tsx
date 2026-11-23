@@ -870,9 +870,7 @@ export function ClothingWorkbench({
             <CreationStarter
               mode="commerce"
               task="clothing-set"
-              recipePreview={
-                recipe ? { title: recipe.title, hasProduct: !!settings.garments.length } : undefined
-              }
+              recipePreview={recipe}
               canApply={!settings.requirements.trim()}
               disabled={planning || isGenerating || isSubmitting}
               onApply={(example) => {

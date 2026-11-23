@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { CommerceExampleGallery } from '@/components/commerce-example-gallery'
 import { StudioShell } from '@/components/studio-shell'
-import { moduleLabel, taskMeta } from '@/components/workbench/shared'
+import { taskMeta } from '@/components/workbench/shared'
 import {
   clothingModelRecipe,
   commerceRecipeUrl,
@@ -18,84 +19,54 @@ import styles from './commerce.module.css'
 const examples = [
   {
     id: 'product-main',
-    layout: 'hero',
-    description: '面霜场景主图的 AI 概念示例',
-    image: 'main',
+    description: '米白面霜罐的套图实测',
     recipe: productMainRecipe,
   },
   {
-    id: 'product-retouch',
-    layout: 'retouch',
-    description: '去除瑕疵，提升材质与质感',
-    image: 'retouch',
-  },
-  {
-    id: 'viral-recreate',
-    layout: 'compact',
-    description: '参考版式，换成你的商品',
-    image: 'recreate',
+    id: 'detail-page',
+    description: '绿色滴管瓶的套图实测',
+    recipe: detailPageRecipe,
   },
   {
     id: 'clothing-set',
-    layout: 'clothing',
-    description: '米白衬衫上身的 AI 概念示例',
-    image: 'clothing',
+    description: '米白短袖衬衫的上身实测',
     recipe: clothingModelRecipe,
   },
   {
-    id: 'detail-page',
-    layout: 'detail',
-    description: '精华液详情图的 AI 概念示例',
-    image: 'detail',
-    recipe: detailPageRecipe,
+    id: 'product-retouch',
+    description: '去除瑕疵，提升材质与质感',
+  },
+  {
+    id: 'viral-recreate',
+    description: '参考版式，换成你的商品',
   },
 ] as const satisfies ReadonlyArray<{
   id: CommerceTaskType
-  layout: string
   description: string
-  image: string
   recipe?: CommerceRecipe
 }>
 
-function ExampleFlow({ kind }: { kind: 'recreate' | 'clothing' | 'detail' }) {
-  const clothing = kind === 'clothing'
-  const detail = kind === 'detail'
-  const frames = clothing ? 3 : detail ? 4 : 2
-  const src = `/images/commerce/${kind}.webp`
+function RecreateExample() {
+  const src = '/images/commerce/recreate.webp'
   return (
-    <div className={`${styles.flow} ${detail ? styles.detailFlow : ''}`}>
+    <div className={styles.flow}>
       <ExampleFrame
         src={src}
         index={0}
-        frames={frames}
-        ratio={detail ? 3 / 4 : 2 / 3}
-        label={clothing ? '服装原图' : detail ? '商品原图' : '参考版式'}
-        alt={
-          clothing ? '米白衬衫平铺示例' : detail ? '精华液商品原图示例' : '蓝色商品的参考构图示例'
-        }
+        frames={2}
+        ratio={2 / 3}
+        label="参考版式"
+        alt="蓝色商品的参考构图示例"
       />
-      <ArrowRight size={16} className={styles.flowArrow} aria-hidden="true" />
-      <div className={`${styles.outputs} ${clothing ? styles.clothingOutputs : ''}`}>
-        {Array.from({ length: frames - 1 }, (_, index) => (
-          <ExampleFrame
-            key={index}
-            src={src}
-            index={index + 1}
-            frames={frames}
-            ratio={detail ? 3 / 4 : 2 / 3}
-            alt={
-              clothing
-                ? `同款衬衫模特${index === 0 ? '正面' : '侧面'}上身示例`
-                : detail
-                  ? ['精华液主视觉示例', '精华液材质特写示例', '精华液场景示例'][index]!
-                  : '将参考构图应用到橙色商品的示例'
-            }
-          />
-        ))}
-        <span className={styles.imageLabel} aria-hidden="true">
-          {clothing ? '上身组图' : detail ? 'AI 详情示例' : '套用商品'}
-        </span>
-      </div>
+      <ArrowRight size={12} aria-hidden="true" />
+      <ExampleFrame
+        src={src}
+        index={1}
+        frames={2}
+        ratio={2 / 3}
+        label="套用商品"
+        alt="将参考构图应用到橙色商品的示例"
+      />
     </div>
   )
 }
@@ -114,69 +85,65 @@ export default async function CommercePage({
         <h1 className="sr-only">电商工具</h1>
         <div className={styles.grid}>
           {examples.map((example) => {
-            const { id, layout, description, image } = example
+            const { id, description } = example
             const recipe = 'recipe' in example ? example.recipe : undefined
-            const outputs =
-              recipe?.task === 'clothing-set'
-                ? recipe.shots.map(({ label }) => ({ label, count: 1 }))
-                : Object.entries(recipe?.moduleCounts ?? {}).map(([key, count]) => ({
-                    label: moduleLabel(id, key),
-                    count,
-                  }))
             const href = studioToolUrl('commerce', id, project)
             const title = taskMeta[id].title
             return (
-              <article className={`${styles.card} ${styles[layout]}`} key={id}>
+              <article className={`${styles.card} ${recipe ? styles.recipeCard : ''}`} key={id}>
                 <Link href={href} className={styles.heading} aria-label={`进入${title}`}>
                   <div>
                     <h2>{title}</h2>
-                    <p>{description}</p>
+                    {!recipe && <p>{description}</p>}
                   </div>
                   <ArrowRight size={20} className={styles.entryArrow} aria-hidden="true" />
                 </Link>
-                {id === 'product-main' || id === 'product-retouch' ? (
-                  <CommerceComparison
-                    src={`/images/commerce/${image}.webp`}
-                    title={title}
-                    beforeAlt={
-                      id === 'product-main' ? '灰色背景上的面霜罐示例' : '金属杯精修前示例'
-                    }
-                    afterAlt={
-                      id === 'product-main' ? '同款面霜的暖光场景主图示例' : '同款金属杯精修后示例'
-                    }
-                    afterLabel={id === 'product-main' ? '场景主图示例' : '精修示例'}
-                    mode={id === 'product-retouch' ? 'side' : 'overlay'}
-                    frameRatio={id === 'product-main' ? 900 / 607 : 1.5}
-                    priority={id === 'product-main'}
-                  />
-                ) : (
-                  <ExampleFlow kind={image} />
-                )}
-                {recipe && (
+                {recipe ? (
                   <Link
                     href={commerceRecipeUrl(recipe, project)}
                     className={styles.recipeLink}
                     aria-labelledby={`${id}-recipe-action`}
-                    aria-describedby={`${id}-recipe-summary`}
+                    aria-describedby={`${id}-recipe-description ${id}-recipe-summary`}
                   >
-                    <div className={styles.recipeInfo} id={`${id}-recipe-summary`}>
-                      <h3>
-                        {recipe.title} <span>{recipe.aspectRatio}</span>
-                      </h3>
-                      <ul aria-label="套图内容">
-                        {outputs.map(({ label, count }) => (
-                          <li key={label}>
-                            {label} {count} 张
-                          </li>
-                        ))}
-                      </ul>
+                    <div className={styles.recipePreview}>
+                      <p id={`${id}-recipe-description`}>{description}</p>
+                      <CommerceExampleGallery
+                        recipeId={recipe.id}
+                        sizes="(max-width: 900px) 30vw, (max-width: 1320px) 14vw, 190px"
+                        eager={id === 'product-main'}
+                      />
                     </div>
-                    <span id={`${id}-recipe-action`} className={styles.primary}>
-                      用我的商品做同款
-                      {id !== 'product-main' && <span className="sr-only">（{recipe.title}）</span>}
-                      <ArrowRight size={17} aria-hidden="true" />
-                    </span>
+                    <div className={styles.recipeFooter}>
+                      <h3 id={`${id}-recipe-summary`}>
+                        {recipe.title}
+                        <span>
+                          {Object.values(recipe.moduleCounts).reduce(
+                            (total, count) => total + count,
+                            0,
+                          )}{' '}
+                          张 · {recipe.aspectRatio}
+                        </span>
+                      </h3>
+                      <span id={`${id}-recipe-action`} className={styles.primary}>
+                        用我的商品做同款
+                        {id !== 'product-main' && (
+                          <span className="sr-only">（{recipe.title}）</span>
+                        )}
+                        <ArrowRight size={17} aria-hidden="true" />
+                      </span>
+                    </div>
                   </Link>
+                ) : id === 'product-retouch' ? (
+                  <CommerceComparison
+                    src="/images/commerce/retouch.webp"
+                    title={title}
+                    beforeAlt="金属杯精修前示例"
+                    afterAlt="同款金属杯精修后示例"
+                    afterLabel="精修示例"
+                    mode="side"
+                  />
+                ) : (
+                  <RecreateExample />
                 )}
               </article>
             )

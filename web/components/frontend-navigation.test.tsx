@@ -157,7 +157,7 @@ it.each([
     action: '用我的商品做同款（模特上身套图）',
   },
 ])(
-  'links the $tool title, output descriptions and action to the same project recipe',
+  'links the $tool case photos, description and action to the same project recipe',
   async (example) => {
     const projectId = '项目 A'
     await act(async () =>
@@ -175,17 +175,26 @@ it.each([
       recipe: example.id,
       projectId,
     })
-    const outputs = [...card.querySelectorAll('[aria-label="套图内容"] li')]
-    expect(outputs.map((output) => output.textContent)).toEqual(
-      example.outputs.map((label) => `${label} 1 张`),
-    )
-    for (const output of outputs) expect(output.closest('a')).toBe(recipe)
+    const gallery = card.querySelector('[aria-label="案例原图与生成效果"]')!
+    const captions = [...gallery.querySelectorAll('figcaption')]
+    expect(captions.map((caption) => caption.textContent)).toEqual([
+      example.task === 'clothing-set' ? '服装原图' : '商品原图',
+      ...example.outputs,
+    ])
+    const images = [...gallery.querySelectorAll('img')]
+    expect(images).toHaveLength(captions.length)
+    for (const image of images) {
+      const url = new URL(image.src)
+      expect(url.searchParams.get('url') ?? url.pathname).toMatch(
+        `/images/commerce/recipes/${example.task}-`,
+      )
+      expect(image.closest('a')).toBe(recipe)
+    }
+    expect(card.querySelector(`#${example.task}-recipe-description`)?.closest('a')).toBe(recipe)
     const action = document.getElementById(recipe.getAttribute('aria-labelledby')!)
     expect(action?.textContent?.trim()).toBe(example.action)
     expect(action?.closest('a')).toBe(recipe)
     expect(new URL(ordinary.href).searchParams.has('recipe')).toBe(false)
-    if (example.task === 'product-main')
-      expect(card.querySelector('input[type="range"]')!.closest('a')).toBeNull()
   },
 )
 it('closes mobile navigation after switching a task or pressing Escape and returns focus to the toggle', async () => {

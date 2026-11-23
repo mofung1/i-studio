@@ -1,4 +1,6 @@
 import { ArrowUpRight } from 'lucide-react'
+import { CommerceExampleGallery } from '@/components/commerce-example-gallery'
+import type { CommerceRecipe } from '@/lib/commerce-recipe'
 import type { CommerceTaskType } from '@/lib/contracts'
 import { creationExamples, type CreationExample } from '@/lib/creation-examples'
 
@@ -13,20 +15,19 @@ export function CreationStarter({
   mode: 'general' | 'commerce'
   task: CommerceTaskType
   canApply: boolean
-  recipePreview?: { title: string; hasProduct: boolean }
+  recipePreview?: CommerceRecipe
   disabled?: boolean
   onApply: (example: CreationExample) => void
 }) {
   if (recipePreview) {
-    const title = `${recipePreview.title}预览`
+    const title = `${recipePreview.title}案例效果`
     return (
-      <section className="creation-starter" aria-label={title}>
+      <section className="creation-starter creation-starter-recipe" aria-label={title}>
         <h2>{title}</h2>
-        <p className="creation-starter-lead">
-          {recipePreview.hasProduct
-            ? '生成的套图会显示在这里。'
-            : '选好商品原图后，可核对套图张数和所需积分。'}
-        </p>
+        <CommerceExampleGallery
+          recipeId={recipePreview.id}
+          sizes="(max-width: 560px) 45vw, (max-width: 780px) 24vw, 252px"
+        />
       </section>
     )
   }

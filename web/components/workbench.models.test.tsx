@@ -300,6 +300,13 @@ const commerceTrioCases = [
   },
 ] as const
 
+function casePreviewLabels() {
+  return Array.from(
+    container.querySelectorAll('.creation-starter-recipe figcaption'),
+    (caption) => caption.textContent,
+  )
+}
+
 it.each(commerceTrioCases)(
   'opens $title and submits the user’s product only after confirming the trio quote',
   async ({ task, recipe, title, aspectRatio, moduleCounts, labels }) => {
@@ -326,13 +333,12 @@ it.each(commerceTrioCases)(
     expect(container.textContent).toContain('3.75 创作点')
     expect(productHint()).toMatch(/上传.*素材库/)
     expect(container.querySelector('.generate-bar [role="alert"]')).toBeNull()
-    expect(container.querySelector('.creation-starter')?.textContent).not.toContain(
-      '再填写展示需求',
-    )
+    expect(casePreviewLabels()).toEqual(['商品原图', ...labels])
     expect(submitButton().disabled).toBe(true)
     balance = 200
     await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
     const product = await dropProduct('my-product.png')
+    expect(casePreviewLabels()).toEqual(['商品原图', ...labels])
     expect(productHint()).toMatch(/核对.*积分/)
     expect(submitButton().disabled).toBe(true)
     await waitForQuote()
@@ -390,11 +396,11 @@ it('uses only the selected garment for two modeled views after confirming their 
   await openStudio(target)
   const confirm = () => container.querySelector<HTMLButtonElement>('button.generate-button')!
   await waitForQuote()
-  expect(container.textContent).toContain('正面上身图')
-  expect(container.textContent).toContain('侧面上身图')
+  expect(casePreviewLabels()).toEqual(['服装原图', '正面上身图', '侧面上身图'])
   expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 2 张')
   expect(confirm().disabled).toBe(true)
   const garment = await dropProduct('my-shirt.png')
+  expect(casePreviewLabels()).toEqual(['服装原图', '正面上身图', '侧面上身图'])
   expect(container.textContent).toContain('余额不足')
   expect(confirm().disabled).toBe(true)
   expect(container.textContent).toContain('2.5 创作点')
@@ -517,6 +523,7 @@ it('isolates the ordinary clothing draft and each project’s modeled outfit dra
     '.clothing-mode-selector button[aria-pressed="true"]',
   )!
   expect(ordinaryMode.textContent).toContain('商品组图')
+  expect(casePreviewLabels()).toEqual([])
   await saveGarment('ordinary-shirt.png')
   await openStudio(recipe)
   expect(container.querySelector('.uploaded-thumb')).toBeNull()
@@ -553,6 +560,7 @@ it.each(commerceTrioCases)(
       })
     }
     await openStudio(ordinary)
+    expect(casePreviewLabels()).toEqual([])
     expect(container.querySelector('.recipe-settings-summary')).toBeNull()
     expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 1 张')
     await dropProduct('ordinary-product.png')

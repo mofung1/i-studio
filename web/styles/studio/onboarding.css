@@ -32,6 +32,17 @@
   line-height: 1.8;
   color: var(--foreground-2);
 }
+.result-empty:has(.creation-starter-recipe) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.creation-starter-recipe {
+  container: commerce-recipe-preview / inline-size;
+  width: min(760px, 100%);
+}
+.creation-starter.creation-starter-recipe h2 {
+  margin: 0 0 16px;
+  font-size: clamp(18px, 2vw, 24px);
+}
 .creation-example-list {
   display: grid;
   gap: 8px;

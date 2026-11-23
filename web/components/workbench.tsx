@@ -1199,9 +1199,7 @@ function StandardWorkbench({
             <CreationStarter
               mode={mode}
               task={task}
-              recipePreview={
-                recipe ? { title: recipe.title, hasProduct: hasProductImage } : undefined
-              }
+              recipePreview={recipe}
               canApply={!(mode === 'general' ? prompt : requirements).trim()}
               disabled={isGenerating || isSubmitting}
               onApply={(example) => {
