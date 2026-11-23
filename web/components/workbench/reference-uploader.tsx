@@ -3,7 +3,7 @@
 import { isStoredImage, type CreationImage } from '@/lib/creation-images'
 
 import { ChevronLeft, ImagePlus, Plus, Upload } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 
 import { AssetPicker } from './asset-picker'
 import { SelectedImageThumbnail } from './selected-image-thumbnail'
@@ -53,6 +53,7 @@ export function ReferenceUploader({
   const [pickerOpen, setPickerOpen] = useState(false)
   const uploaderRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const pendingThumbnailFocus = useRef<number | null>(null)
   const stackToggleRef = useRef<HTMLButtonElement>(null)
   const listId = useId()
   const sortRef = useRef<{ index: number; startX: number; startY: number; active: boolean } | null>(
@@ -65,9 +66,24 @@ export function ReferenceUploader({
   const shouldCollapse = Boolean(collapseAt && files.length >= collapseAt)
   const expanded = !shouldCollapse || hovered || pinned || keyboardFocus || draggingIndex !== null
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (shouldCollapse && expanded && listRef.current) listRef.current.scrollLeft = 0
   }, [shouldCollapse, expanded])
+
+  useLayoutEffect(() => {
+    const index = pendingThumbnailFocus.current
+    if (index === null) return
+    pendingThumbnailFocus.current = null
+    listRef.current?.querySelectorAll<HTMLElement>('.uploaded-thumb')[index]?.focus()
+  }, [files])
+
+  function applyPickerSelection(next: CreationImage[], focusIndex: number) {
+    if (disabledReason || !next[focusIndex]) return
+    pendingThumbnailFocus.current = focusIndex
+    if (collapseAt && next.length >= collapseAt) setKeyboardFocus(true)
+    onChange(next)
+    setError('')
+  }
 
   function closeStack() {
     setHovered(false)
@@ -289,9 +305,9 @@ export function ReferenceUploader({
                   onPointerDown={(event) => startSort(index, event)}
                   onRemove={() => onChange(files.filter((_, fileIndex) => fileIndex !== index))}
                   onReplace={(next) =>
-                    !disabledReason &&
-                    onChange(
+                    applyPickerSelection(
                       files.map((current, fileIndex) => (fileIndex === index ? next : current)),
+                      index,
                     )
                   }
                   onMove={move}
@@ -390,10 +406,9 @@ export function ReferenceUploader({
           limit={Math.max(0, max - files.length)}
           excludedIds={files.filter(isStoredImage).map((image) => image.assetId)}
           onClose={() => setPickerOpen(false)}
-          onSelect={(images) => {
-            onChange([...files, ...images].slice(0, max))
-            setError('')
-          }}
+          onSelect={(images) =>
+            applyPickerSelection([...files, ...images].slice(0, max), files.length)
+          }
         />
       )}
 

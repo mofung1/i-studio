@@ -76,6 +76,71 @@ it('opens the unified picker from the original uploader and stages dropped files
   expect(fetch).not.toHaveBeenCalled()
 })
 
+it('returns focus to the first newly selected thumbnail, or to the trigger on cancel', async () => {
+  function ProductImages() {
+    const [files, setFiles] = useState<CreationImage[]>([])
+    return (
+      <ReferenceUploader
+        files={files}
+        onChange={setFiles}
+        max={3}
+        collapseAt={2}
+        labelFor={(index) => `商品图 ${index + 1}`}
+        emptyTitle="上传商品原图"
+        emptyHint="选择本地图片或素材库"
+        acceptedHint="PNG"
+      />
+    )
+  }
+  async function openPicker(label: string) {
+    const trigger = container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!
+    await act(async () => {
+      trigger.focus()
+      trigger.click()
+    })
+    return trigger
+  }
+  async function confirmFiles(...names: string[]) {
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!
+    const input = dialog.querySelector<HTMLInputElement>('input[type="file"]')!
+    Object.defineProperty(input, 'files', {
+      value: names.map((name) => new File(['image'], name, { type: 'image/png' })),
+    })
+    await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })))
+    const confirm = [...dialog.querySelectorAll('button')].find(
+      (button) => button.textContent === '使用所选素材',
+    )!
+    await act(async () => {
+      confirm.focus()
+      confirm.click()
+    })
+  }
+  function expectFocusedThumbnail(filename: string) {
+    const thumbnail = container.querySelector(`img[alt$="${filename}"]`)!.closest('.uploaded-thumb')
+    expect(document.activeElement).toBe(thumbnail)
+    expect(thumbnail!.closest('[inert]')).toBeNull()
+  }
+
+  await act(async () => root.render(<ProductImages />))
+  const trigger = await openPicker('上传商品原图')
+  await act(async () =>
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    ),
+  )
+  expect(document.activeElement).toBe(trigger)
+  await openPicker('上传商品原图')
+  await confirmFiles('product.png')
+  expectFocusedThumbnail('product.png')
+  await openPicker('添加图片')
+  await confirmFiles('side.png', 'detail.png')
+  expect(container.querySelectorAll('.uploaded-thumb')).toHaveLength(3)
+  expectFocusedThumbnail('side.png')
+  await openPicker('替换商品图 3')
+  await confirmFiles('updated.png')
+  expectFocusedThumbnail('updated.png')
+})
+
 it('preserves the image stack and opens each expanded list from the first image', async () => {
   vi.stubGlobal(
     'ResizeObserver',

@@ -84,6 +84,26 @@ it('does not introduce a project into ordinary commerce browsing', async () => {
     expect(new URL(tool.href).searchParams.has('projectId')).toBe(false)
   expect(host.querySelector('[aria-label="查看当前项目的素材与作品"]')).toBeNull()
 })
+it('links the recipe title, output descriptions and action to the same project recipe', async () => {
+  const projectId = '项目 A'
+  await act(async () =>
+    root.render(await CommercePage({ searchParams: Promise.resolve({ projectId }) })),
+  )
+  const title = host.querySelector('article h3')!
+  const card = title.closest('article')!
+  const recipe = title.closest('a')!
+  expect(new URL(recipe.href).searchParams.get('recipe')).toBe('product-main-trio')
+  expect(new URL(recipe.href).searchParams.get('projectId')).toBe(projectId)
+  const outputs = [...card.querySelectorAll('[aria-label="套图内容"] li')]
+  expect(outputs).toHaveLength(3)
+  for (const output of outputs) expect(output.closest('a')).toBe(recipe)
+  const action = document.getElementById(recipe.getAttribute('aria-labelledby')!)
+  expect(action?.textContent?.trim()).toBe('用我的商品做同款')
+  expect(action?.closest('a')).toBe(recipe)
+  const ordinary = card.querySelector<HTMLAnchorElement>('a[aria-label="进入商品主图"]')!
+  expect(new URL(ordinary.href).searchParams.has('recipe')).toBe(false)
+  expect(card.querySelector('input[type="range"]')!.closest('a')).toBeNull()
+})
 it('closes mobile navigation after switching a task or pressing Escape and returns focus to the toggle', async () => {
   const changeTask = vi.fn()
   await act(async () =>

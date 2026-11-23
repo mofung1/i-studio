@@ -124,8 +124,13 @@ export default async function CommercePage({
                   <ExampleFlow kind={image} />
                 )}
                 {layout === 'hero' && (
-                  <div className={styles.footer}>
-                    <div className={styles.recipeInfo}>
+                  <Link
+                    href={productMainRecipeUrl(project)}
+                    className={styles.recipeLink}
+                    aria-labelledby="product-main-recipe-action"
+                    aria-describedby="product-main-recipe-summary"
+                  >
+                    <div className={styles.recipeInfo} id="product-main-recipe-summary">
                       <h3>
                         {productMainRecipe.title} <span>{productMainRecipe.aspectRatio}</span>
                       </h3>
@@ -137,10 +142,10 @@ export default async function CommercePage({
                         ))}
                       </ul>
                     </div>
-                    <Link href={productMainRecipeUrl(project)} className={styles.primary}>
+                    <span id="product-main-recipe-action" className={styles.primary}>
                       用我的商品做同款 <ArrowRight size={17} aria-hidden="true" />
-                    </Link>
-                  </div>
+                    </span>
+                  </Link>
                 )}
               </article>
             )

@@ -82,6 +82,9 @@
 .hero h2 {
   font-size: 26px;
 }
+.hero .heading {
+  position: relative;
+}
 .hero .heading p {
   font-size: 14px;
 }
@@ -214,12 +217,13 @@
   cursor: ew-resize;
   touch-action: pan-y;
 }
-.footer {
+.recipeLink {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px 16px;
+  border-radius: 9px;
 }
 .recipeInfo h3 {
   margin: 0;
@@ -244,8 +248,6 @@
   line-height: 1.5;
 }
 .primary {
-  position: relative;
-  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -260,7 +262,8 @@
   text-decoration: none;
   transition: background-color 150ms ease;
 }
-.primary:hover {
+.recipeLink:hover .primary,
+.recipeLink:focus-visible .primary {
   background: var(--primary-hover);
 }
 .flow {
