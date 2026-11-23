@@ -347,6 +347,22 @@ it('does not restore a pending result after the user clears the draft', async ()
   expect(mocks.notice).not.toHaveBeenCalled()
 })
 
+it('returns to the same project and detail recipe when clearing its draft', async () => {
+  mocks.query = 'mode=commerce&task=detail-page&projectId=project-a&recipe=detail-page-trio'
+  await act(async () => root.render(<Workbench initialMode="commerce" initialTask="detail-page" />))
+  await act(async () => sidebar.onSetProductFiles([image('owned-product')]))
+  await act(async () => draftControls.onClear())
+  expect(sidebar.productFiles).toEqual([])
+  expect(sidebar.moduleCounts).toEqual({ hero: 1, material: 1, scene: 1 })
+  expect(sidebar.aspectRatio).toBe('3:4')
+  const target = new URL(mocks.replace.mock.lastCall![0], 'http://localhost')
+  expect(target.pathname).toBe('/studio')
+  expect(Object.fromEntries(target.searchParams)).toEqual(
+    Object.fromEntries(new URLSearchParams(mocks.query)),
+  )
+  expect(mocks.submit).not.toHaveBeenCalled()
+})
+
 it('does not update state or navigate after leaving with an image load pending', async () => {
   const pending = deferred<StoredImage>()
   mocks.readImage.mockReturnValue(pending.promise)

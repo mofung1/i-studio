@@ -128,26 +128,57 @@ it('links to the focusable settings region on mobile and keeps the desktop discl
   await act(async () => disclosure.click())
   expect(toggle).toHaveBeenCalledTimes(1)
 })
-it('links the recipe title, output descriptions and action to the same project recipe', async () => {
-  const projectId = '项目 A'
-  await act(async () =>
-    root.render(await CommercePage({ searchParams: Promise.resolve({ projectId }) })),
-  )
-  const title = host.querySelector('article h3')!
-  const card = title.closest('article')!
-  const recipe = title.closest('a')!
-  expect(new URL(recipe.href).searchParams.get('recipe')).toBe('product-main-trio')
-  expect(new URL(recipe.href).searchParams.get('projectId')).toBe(projectId)
-  const outputs = [...card.querySelectorAll('[aria-label="套图内容"] li')]
-  expect(outputs).toHaveLength(3)
-  for (const output of outputs) expect(output.closest('a')).toBe(recipe)
-  const action = document.getElementById(recipe.getAttribute('aria-labelledby')!)
-  expect(action?.textContent?.trim()).toBe('用我的商品做同款')
-  expect(action?.closest('a')).toBe(recipe)
-  const ordinary = card.querySelector<HTMLAnchorElement>('a[aria-label="进入商品主图"]')!
-  expect(new URL(ordinary.href).searchParams.has('recipe')).toBe(false)
-  expect(card.querySelector('input[type="range"]')!.closest('a')).toBeNull()
-})
+it.each([
+  {
+    tool: '商品主图',
+    title: '商品上架套图',
+    task: 'product-main',
+    id: 'product-main-trio',
+    ratio: '1:1',
+    outputs: ['白底主图', '场景主图', '细节主图'],
+    action: '用我的商品做同款',
+  },
+  {
+    tool: '商品详情',
+    title: '商品详情套图',
+    task: 'detail-page',
+    id: 'detail-page-trio',
+    ratio: '3:4',
+    outputs: ['首屏主视觉', '材质纹理图', '场景应用图'],
+    action: '用我的商品做同款（商品详情套图）',
+  },
+])(
+  'links the $tool title, output descriptions and action to the same project recipe',
+  async (example) => {
+    const projectId = '项目 A'
+    await act(async () =>
+      root.render(await CommercePage({ searchParams: Promise.resolve({ projectId }) })),
+    )
+    const ordinary = host.querySelector<HTMLAnchorElement>(`a[aria-label="进入${example.tool}"]`)!
+    const card = ordinary.closest('article')!
+    const title = card.querySelector('h3')!
+    expect(title.textContent).toContain(example.title)
+    expect(title.textContent).toContain(example.ratio)
+    const recipe = title.closest('a')!
+    expect(Object.fromEntries(new URL(recipe.href).searchParams)).toEqual({
+      mode: 'commerce',
+      task: example.task,
+      recipe: example.id,
+      projectId,
+    })
+    const outputs = [...card.querySelectorAll('[aria-label="套图内容"] li')]
+    expect(outputs.map((output) => output.textContent)).toEqual(
+      example.outputs.map((label) => `${label} 1 张`),
+    )
+    for (const output of outputs) expect(output.closest('a')).toBe(recipe)
+    const action = document.getElementById(recipe.getAttribute('aria-labelledby')!)
+    expect(action?.textContent?.trim()).toBe(example.action)
+    expect(action?.closest('a')).toBe(recipe)
+    expect(new URL(ordinary.href).searchParams.has('recipe')).toBe(false)
+    if (example.task === 'product-main')
+      expect(card.querySelector('input[type="range"]')!.closest('a')).toBeNull()
+  },
+)
 it('closes mobile navigation after switching a task or pressing Escape and returns focus to the toggle', async () => {
   const changeTask = vi.fn()
   await act(async () =>

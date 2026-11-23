@@ -302,19 +302,35 @@
 .detail {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: minmax(150px, 0.85fr) minmax(0, 3fr);
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 2.2fr);
+  grid-template-areas: 'heading preview' 'recipe preview';
   align-items: center;
   min-height: 168px;
-  gap: 24px;
+  gap: 16px 24px;
 }
-.detail .entryArrow {
+.detail .heading {
+  position: relative;
+  z-index: 2;
+  grid-area: heading;
+}
+.detail .recipeLink {
+  grid-area: recipe;
+}
+.detail .recipeLink::before {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  z-index: 1;
+  inset: 0;
+  border-radius: inherit;
+  content: '';
+}
+.detail .recipeLink > * {
+  position: relative;
+  z-index: 1;
 }
 .detailFlow {
-  height: 134px;
-  margin-right: 26px;
+  grid-area: preview;
+  height: 100%;
+  min-height: 144px;
   grid-template-columns: minmax(0, 1fr) 18px minmax(0, 3fr);
   gap: 10px;
 }
@@ -351,10 +367,6 @@
     flex: auto;
     height: 190px;
   }
-  .detail {
-    grid-template-columns: minmax(140px, 0.85fr) minmax(0, 3fr);
-    gap: 16px;
-  }
 }
 @media (max-width: 600px) {
   .grid {
@@ -388,7 +400,7 @@
   .detailFlow {
     flex: auto;
     height: 140px;
-    margin-right: 0;
+    min-height: 0;
     gap: 6px;
     grid-template-columns: minmax(0, 1fr) 12px minmax(0, 3fr);
   }

@@ -32,6 +32,7 @@ import { PromptEditor } from './prompt-editor'
 import { ReferenceUploader } from './reference-uploader'
 import {
   detailModules,
+  moduleLabel,
   optionLabel,
   productMainModules,
   referenceLimit,
@@ -229,10 +230,13 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   // modules 传可读的「中文名×张数」，moduleKeys 并行传「key×张数」，
   // 由服务端补上该模块的表达要点（与真正出图时的 moduleHint 同源）。
   const usesModules = !isGeneral && (task === 'product-main' || task === 'detail-page')
+  const moduleKeys = props.recipeTitle
+    ? Object.keys(moduleCounts)
+    : (task === 'detail-page' ? detailModules : productMainModules).map(([key]) => key)
   const selectedModules = usesModules
-    ? (task === 'detail-page' ? detailModules : productMainModules)
-        .filter(([key]) => (moduleCounts[key] ?? 0) > 0)
-        .map(([key, label]) => ({ key, label, count: moduleCounts[key] }))
+    ? moduleKeys
+        .filter((key) => (moduleCounts[key] ?? 0) > 0)
+        .map((key) => ({ key, label: moduleLabel(task, key), count: moduleCounts[key] }))
     : []
 
   const advancedSummary = [

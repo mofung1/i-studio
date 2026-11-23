@@ -6,23 +6,24 @@ export function CreationStarter({
   mode,
   task,
   canApply,
-  recipeHasProduct,
+  recipePreview,
   disabled,
   onApply,
 }: {
   mode: 'general' | 'commerce'
   task: CommerceTaskType
   canApply: boolean
-  recipeHasProduct?: boolean
+  recipePreview?: { title: string; hasProduct: boolean }
   disabled?: boolean
   onApply: (example: CreationExample) => void
 }) {
-  if (recipeHasProduct !== undefined) {
+  if (recipePreview) {
+    const title = `${recipePreview.title}预览`
     return (
-      <section className="creation-starter" aria-label="商品套图预览">
-        <h2>商品套图预览</h2>
+      <section className="creation-starter" aria-label={title}>
+        <h2>{title}</h2>
         <p className="creation-starter-lead">
-          {recipeHasProduct
+          {recipePreview.hasProduct
             ? '生成的套图会显示在这里。'
             : '选好商品原图后，可核对套图张数和所需积分。'}
         </p>

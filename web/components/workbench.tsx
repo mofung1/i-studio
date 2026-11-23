@@ -1,7 +1,7 @@
 'use client'
 
 import { addCreationImage, type CreationImage } from '@/lib/creation-images'
-import { getCommerceRecipe, productMainRecipeUrl } from '@/lib/commerce-recipe'
+import { commerceRecipeUrl, getCommerceRecipe, type CommerceRecipe } from '@/lib/commerce-recipe'
 import type { GenerationQuote } from '@/lib/credits'
 import { studioToolUrl } from '@/lib/studio-navigation'
 import {
@@ -124,7 +124,7 @@ function StandardWorkbench({
   initialResolution,
   initialCount,
   recipe,
-}: WorkbenchProps & { recipe?: ReturnType<typeof getCommerceRecipe> }) {
+}: WorkbenchProps & { recipe?: CommerceRecipe }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -133,7 +133,7 @@ function StandardWorkbench({
   const [mode, setMode] = useState<WorkbenchMode>(initialMode)
   const [task, setTask] = useState<CommerceTaskType>(initialTask)
   const currentToolUrl = recipe
-    ? productMainRecipeUrl(searchParams)
+    ? commerceRecipeUrl(recipe, searchParams)
     : studioToolUrl(mode, task, searchParams)
   const [prompt, setPrompt] = useState(initialPrompt ?? '')
   const [inspirationTemplate, setInspirationTemplate] = useState<InspirationTemplate | null>(null)
@@ -1195,7 +1195,9 @@ function StandardWorkbench({
             <CreationStarter
               mode={mode}
               task={task}
-              recipeHasProduct={recipe ? hasProductImage : undefined}
+              recipePreview={
+                recipe ? { title: recipe.title, hasProduct: hasProductImage } : undefined
+              }
               canApply={!(mode === 'general' ? prompt : requirements).trim()}
               disabled={isGenerating || isSubmitting}
               onApply={(example) => {

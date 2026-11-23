@@ -2,7 +2,12 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
 import { moduleLabel, taskMeta } from '@/components/workbench/shared'
-import { productMainRecipe, productMainRecipeUrl } from '@/lib/commerce-recipe'
+import {
+  commerceRecipeUrl,
+  detailPageRecipe,
+  productMainRecipe,
+  type CommerceRecipe,
+} from '@/lib/commerce-recipe'
 import type { CommerceTaskType } from '@/lib/contracts'
 import { studioToolUrl } from '@/lib/studio-navigation'
 import { CommerceComparison } from './comparison'
@@ -10,7 +15,13 @@ import { ExampleFrame } from './example-frame'
 import styles from './commerce.module.css'
 
 const examples = [
-  { id: 'product-main', layout: 'hero', description: '面霜场景主图的 AI 概念示例', image: 'main' },
+  {
+    id: 'product-main',
+    layout: 'hero',
+    description: '面霜场景主图的 AI 概念示例',
+    image: 'main',
+    recipe: productMainRecipe,
+  },
   {
     id: 'product-retouch',
     layout: 'retouch',
@@ -27,14 +38,16 @@ const examples = [
   {
     id: 'detail-page',
     layout: 'detail',
-    description: '一张商品图，生成成套详情素材',
+    description: '精华液详情图的 AI 概念示例',
     image: 'detail',
+    recipe: detailPageRecipe,
   },
 ] as const satisfies ReadonlyArray<{
   id: CommerceTaskType
   layout: string
   description: string
   image: string
+  recipe?: CommerceRecipe
 }>
 
 function ExampleFlow({ kind }: { kind: 'recreate' | 'clothing' | 'detail' }) {
@@ -93,7 +106,9 @@ export default async function CommercePage({
       <main className={`commerce-page ${styles.page}`} aria-label="电商工具">
         <h1 className="sr-only">电商工具</h1>
         <div className={styles.grid}>
-          {examples.map(({ id, layout, description, image }) => {
+          {examples.map((example) => {
+            const { id, layout, description, image } = example
+            const recipe = 'recipe' in example ? example.recipe : undefined
             const href = studioToolUrl('commerce', id, project)
             const title = taskMeta[id].title
             return (
@@ -123,27 +138,29 @@ export default async function CommercePage({
                 ) : (
                   <ExampleFlow kind={image} />
                 )}
-                {layout === 'hero' && (
+                {recipe && (
                   <Link
-                    href={productMainRecipeUrl(project)}
+                    href={commerceRecipeUrl(recipe, project)}
                     className={styles.recipeLink}
-                    aria-labelledby="product-main-recipe-action"
-                    aria-describedby="product-main-recipe-summary"
+                    aria-labelledby={`${id}-recipe-action`}
+                    aria-describedby={`${id}-recipe-summary`}
                   >
-                    <div className={styles.recipeInfo} id="product-main-recipe-summary">
+                    <div className={styles.recipeInfo} id={`${id}-recipe-summary`}>
                       <h3>
-                        {productMainRecipe.title} <span>{productMainRecipe.aspectRatio}</span>
+                        {recipe.title} <span>{recipe.aspectRatio}</span>
                       </h3>
                       <ul aria-label="套图内容">
-                        {Object.entries(productMainRecipe.moduleCounts).map(([key, count]) => (
+                        {Object.entries(recipe.moduleCounts).map(([key, count]) => (
                           <li key={key}>
-                            {moduleLabel('product-main', key)} {count} 张
+                            {moduleLabel(recipe.task, key)} {count} 张
                           </li>
                         ))}
                       </ul>
                     </div>
-                    <span id="product-main-recipe-action" className={styles.primary}>
-                      用我的商品做同款 <ArrowRight size={17} aria-hidden="true" />
+                    <span id={`${id}-recipe-action`} className={styles.primary}>
+                      用我的商品做同款
+                      {id === 'detail-page' && <span className="sr-only">（{recipe.title}）</span>}
+                      <ArrowRight size={17} aria-hidden="true" />
                     </span>
                   </Link>
                 )}
