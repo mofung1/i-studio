@@ -59,6 +59,7 @@ const productAssetsSchema = z
   .min(1, '请至少上传 1 张商品原图')
   .max(6, '商品原图最多上传 6 张')
 const referenceAssetsSchema = z.array(z.string().min(1)).max(6, '参考图最多上传 6 张').default([])
+const moduleOrderSchema = z.array(z.string().min(1).max(50)).min(1).max(16).optional()
 const moduleCountsSchema = z
   .record(
     z.string(),
@@ -103,6 +104,7 @@ export const productMainInputSchema = commerceBaseSchema.extend({
   outputLanguage: outputLanguageSchema.default('none'),
   moduleMode: z.enum(['smart', 'custom']).default('smart'),
   moduleCounts: moduleCountsSchema,
+  moduleOrder: moduleOrderSchema,
 })
 
 export const detailPageInputSchema = commerceBaseSchema.extend({
@@ -111,6 +113,7 @@ export const detailPageInputSchema = commerceBaseSchema.extend({
   outputLanguage: outputLanguageSchema.default('none'),
   moduleMode: z.enum(['smart', 'custom']).default('smart'),
   moduleCounts: moduleCountsSchema,
+  moduleOrder: moduleOrderSchema,
 })
 
 export const viralRecreateInputSchema = commerceBaseSchema.extend({
@@ -157,6 +160,7 @@ export const clothingInputSchema = commerceBaseSchema.extend({
   taskType: z.literal('clothing-set'),
   clothingMode: z.enum(['product', 'model']),
   clothingStyle: z.enum(['studio', 'natural', 'street', 'editorial']).default('studio'),
+  clothingModelSource: z.literal('generated').optional(),
   modelAssetId: z.string().min(1).max(200).optional(),
   sceneAssetId: z.string().min(1).max(200).optional(),
   requirements: z.string().trim().max(2000).default(''),
@@ -174,15 +178,36 @@ export const commerceGenerationInputSchema = z
     clothingInputSchema,
   ])
   .superRefine((input, ctx) => {
+    if (
+      (input.taskType === 'product-main' || input.taskType === 'detail-page') &&
+      input.moduleOrder
+    ) {
+      const order = input.moduleOrder
+      if (
+        input.moduleMode !== 'custom' ||
+        order.length !== Object.keys(input.moduleCounts).length ||
+        new Set(order).size !== order.length ||
+        order.some((key) => !Object.hasOwn(input.moduleCounts, key))
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['moduleOrder'],
+          message: '出图顺序须包含每个已选模块且不可重复',
+        })
+      }
+    }
     if (input.taskType !== 'clothing-set') return
     const counts = input.moduleCounts
     const total = Object.values(counts).reduce((sum, value) => sum + value, 0)
     if (input.clothingMode === 'model') {
-      if (!input.modelAssetId)
+      if (input.clothingModelSource && input.modelAssetId)
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: '生成模特和上传模特照片只能选一种' })
+      if (!input.clothingModelSource && !input.modelAssetId)
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: '模特上身需要上传模特照片' })
       if (Object.keys(counts).some((key) => key !== 'clothing-model') || total > 4)
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: '模特上身一次支持 1–4 张' })
     } else if (
+      input.clothingModelSource ||
       input.modelAssetId ||
       input.sceneAssetId ||
       Object.keys(counts).some(
@@ -246,12 +271,26 @@ export const commerceTaskCapabilities = {
   'product-main': {
     title: '商品主图',
     required: ['productAssetIds'],
-    optional: ['platform', 'outputLanguage', 'moduleMode', 'moduleCounts', 'requirements'],
+    optional: [
+      'platform',
+      'outputLanguage',
+      'moduleMode',
+      'moduleCounts',
+      'moduleOrder',
+      'requirements',
+    ],
   },
   'detail-page': {
     title: '商品详情',
     required: ['productAssetIds'],
-    optional: ['platform', 'outputLanguage', 'moduleMode', 'moduleCounts', 'requirements'],
+    optional: [
+      'platform',
+      'outputLanguage',
+      'moduleMode',
+      'moduleCounts',
+      'moduleOrder',
+      'requirements',
+    ],
   },
   'viral-recreate': {
     title: '爆款复刻',
@@ -266,7 +305,14 @@ export const commerceTaskCapabilities = {
   'clothing-set': {
     title: '服装组图',
     required: ['productAssetIds', 'clothingMode', 'moduleCounts', 'clothingPlan'],
-    optional: ['modelAssetId', 'sceneAssetId', 'clothingStyle', 'requirements', 'outputLanguage'],
+    optional: [
+      'clothingModelSource',
+      'modelAssetId',
+      'sceneAssetId',
+      'clothingStyle',
+      'requirements',
+      'outputLanguage',
+    ],
   },
 } as const satisfies Record<
   CommerceTaskType,

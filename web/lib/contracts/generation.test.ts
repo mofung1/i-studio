@@ -99,4 +99,27 @@ describe('generation input contracts', () => {
     })
     expect(result.success).toBe(false)
   })
+
+  it('validates the explicit delivery order of a case while keeping older submissions valid', () => {
+    const input = {
+      mode: 'commerce',
+      taskType: 'product-main',
+      productAssetIds: ['own-product'],
+      moduleMode: 'custom',
+      moduleCounts: { detail: 1, scene: 1, white: 2 },
+      count: 4,
+    }
+    const moduleOrder = ['white', 'scene', 'detail']
+    expect(generationInputSchema.parse({ ...input, moduleOrder })).toHaveProperty(
+      'moduleOrder',
+      moduleOrder,
+    )
+    expect(generationInputSchema.parse(input)).not.toHaveProperty('moduleOrder')
+    for (const order of [['scene'], ['white', 'scene', 'scene'], ['white', 'scene', 'hero']]) {
+      expect(generationInputSchema.safeParse({ ...input, moduleOrder: order }).success).toBe(false)
+    }
+    expect(
+      generationInputSchema.safeParse({ ...input, moduleOrder, moduleMode: 'smart' }).success,
+    ).toBe(false)
+  })
 })

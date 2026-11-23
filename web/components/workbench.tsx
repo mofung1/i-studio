@@ -106,6 +106,7 @@ export function Workbench(props: WorkbenchProps) {
   return props.initialMode === 'commerce' && props.initialTask === 'clothing-set' ? (
     <ClothingWorkbench
       key={key}
+      recipe={recipe?.task === 'clothing-set' ? recipe : undefined}
       initialModel={props.initialModel}
       initialAspectRatio={props.initialAspectRatio}
       initialResolution={props.initialResolution}
@@ -920,6 +921,9 @@ function StandardWorkbench({
         outputLanguage,
         moduleMode,
         moduleCounts: activeModuleCounts,
+        ...(recipe && moduleMode === 'custom'
+          ? { moduleOrder: Object.keys(activeModuleCounts) }
+          : {}),
       }
     if (task === 'viral-recreate')
       return { ...common, referenceAssetIds, recreateStrength, requirements, outputLanguage }

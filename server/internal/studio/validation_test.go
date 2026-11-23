@@ -3,6 +3,7 @@ package studio
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -35,7 +36,7 @@ func (p *batchProvider) Poll(context.Context, string) (providerPollResult, error
 	return providerPollResult{}, fmt.Errorf("unexpected poll")
 }
 
-// sortedModuleKeys 与 generateModuleBatches 的遍历顺序保持一致（模块 key 字典序）。
+// 没有 moduleOrder 的旧任务按模块 key 字典序交付。
 func sortedModuleCounts(raw map[string]any) []string {
 	keys := make([]string, 0, len(raw))
 	for key := range raw {
@@ -107,6 +108,43 @@ func TestTaskInputMemoryStoreReturnsCopy(t *testing.T) {
 	}
 	if _, exists := stored["taskId"]; exists {
 		t.Fatalf("temporary taskId leaked into stored input: %#v", stored)
+	}
+}
+
+func TestCommerceCaseModuleDeliveryOrder(t *testing.T) {
+	counts := map[string]any{"white": float64(2), "scene": float64(1), "detail": float64(1)}
+	for _, tc := range []struct {
+		name  string
+		order []any
+		want  []string
+	}{
+		{"case", []any{"white", "scene", "detail"}, []string{"white", "white", "scene", "detail"}},
+		{"legacy", nil, []string{"detail", "scene", "white", "white"}},
+		{"duplicate", []any{"white", "white", "scene"}, nil},
+		{"missing", []any{"white", "scene"}, nil},
+		{"unknown", []any{"white", "scene", "selling"}, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			input := map[string]any{"mode": "commerce", "taskType": "product-main", "productAssetIds": []any{"product"}, "moduleMode": "custom", "moduleCounts": counts}
+			if tc.order != nil {
+				input["moduleOrder"] = tc.order
+			}
+			err := validateGenerationInput(input)
+			if tc.want == nil {
+				if err == nil {
+					t.Fatal("accepted invalid module order")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			q := &taskQueue{server: &Service{tasks: map[string]domain.GenerationTask{}, provider: &batchProvider{}}}
+			images, modules, err := q.generateBatches("case", input)
+			if err != nil || len(images) != len(tc.want) || !slices.Equal(modules, tc.want) {
+				t.Fatalf("got %d images, modules %v, error %v", len(images), modules, err)
+			}
+		})
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
-	"sort"
+	"slices"
 	"strconv"
 	"time"
 
@@ -294,23 +294,32 @@ func (q *taskQueue) generateClothingBatches(ctx context.Context, id string, inpu
 	if err := json.Unmarshal(raw, &shots); err != nil || len(shots) == 0 {
 		return nil, nil, fmt.Errorf("服装生成规划缺失，请重新确认规划")
 	}
-	previousCount, previousID, previousHint := input["count"], input["taskId"], input["moduleHint"]
-	defer func() {
-		input["count"], input["taskId"], input["moduleHint"] = previousCount, previousID, previousHint
-		delete(input, "generationModule")
-	}()
+	input = maps.Clone(input)
+	var prepareNext func() error
 	images, attribution := []string{}, []string{}
 	for index, shot := range shots {
 		input["count"] = 1
 		input["taskId"] = fmt.Sprintf("%s-clothing-%d", id, index+1)
 		input["moduleHint"] = shot.Description
 		input["generationModule"] = shot.ModuleKey
-		path, err := q.generateImage(ctx, id, input, index+1, shot.ModuleKey, run)
+		path, err := q.generateImage(ctx, id, input, index+1, shot.ModuleKey, run, prepareNext)
 		if err != nil {
 			return images, attribution, fmt.Errorf("%s 生成失败：%w", shot.Label, err)
 		}
 		images = append(images, path)
 		attribution = append(attribution, shot.ModuleKey)
+		if index == 0 && len(shots) > 1 && input["clothingModelSource"] == "generated" {
+			// Restored deliveries need no reference until the next new provider request.
+			prepareNext = func() error {
+				ref, err := clothingModelReference(ctx, run, path)
+				if err != nil {
+					return fmt.Errorf("无法读取首张上身图作为模特参考：%w", err)
+				}
+				input["sourceImages"] = append(slices.Clone(sourceImages(input)), ref)
+				prepareNext = nil
+				return nil
+			}
+		}
 	}
 	return images, attribution, nil
 }
@@ -323,7 +332,7 @@ func (q *taskQueue) generateLinearBatches(ctx context.Context, id string, input 
 		size := min(remaining, batchSize)
 		input["count"] = size
 		input["taskId"] = fmt.Sprintf("%s-%d", id, batch)
-		path, err := q.generateImage(ctx, id, input, batch, "", run)
+		path, err := q.generateImage(ctx, id, input, batch, "", run, nil)
 		if err != nil {
 			return images, fmt.Errorf("第 %d 批生成失败：%w", batch, err)
 		}
@@ -341,11 +350,10 @@ func (q *taskQueue) generateModuleBatches(ctx context.Context, id string, input 
 	savedHint := stringValue(input["moduleHint"], "")
 	defer func() { input["moduleHint"] = savedHint }()
 
-	modules := make([]string, 0, len(counts))
-	for module := range counts {
-		modules = append(modules, module)
+	modules, err := generationModuleOrder(input, counts)
+	if err != nil {
+		return nil, nil, err
 	}
-	sort.Strings(modules)
 
 	images := make([]string, 0)
 	attribution := make([]string, 0)
@@ -356,7 +364,7 @@ func (q *taskQueue) generateModuleBatches(ctx context.Context, id string, input 
 			input["count"] = size
 			input["taskId"] = fmt.Sprintf("%s-%s-%d", id, module, batch)
 			input["moduleHint"] = configuredModuleHint(input, stringValue(input["taskType"], ""), module)
-			path, err := q.generateImage(ctx, id, input, len(images)+1, module, run)
+			path, err := q.generateImage(ctx, id, input, len(images)+1, module, run, nil)
 			if err != nil {
 				return images, attribution, fmt.Errorf("模块 %s 第 %d 批生成失败：%w", moduleLabel(module), batch, err)
 			}

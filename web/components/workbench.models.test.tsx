@@ -12,6 +12,9 @@ import {
 } from '@/lib/creation-drafts'
 import { Workbench } from './workbench'
 import type { SubmitParams } from './workbench/use-generation-task'
+import { generationInputSchema, type ClothingShot } from '@/lib/contracts'
+import { clothingModelRecipe } from '@/lib/commerce-recipe'
+import { historyWorkbenchUrl } from './workbench/use-workbench-handoff'
 
 const generation = vi.hoisted(() => ({ submit: vi.fn() }))
 const navigation = vi.hoisted(() => ({ query: '' }))
@@ -51,10 +54,6 @@ vi.mock('./workbench/result-workspace', () => ({
   ResultWorkspace: ({ starter }: { starter?: ReactNode }) => <>{starter}</>,
 }))
 vi.mock('./workbench/creation-library-tools', () => ({ CreationLibraryTools: () => null }))
-vi.mock('./workbench/use-workbench-handoff', async (original) => ({
-  ...(await original<object>()),
-  useWorkbenchHandoff: () => {},
-}))
 vi.mock('./workbench/use-reverse-prompt-handoff', () => ({ useReversePromptHandoff: () => {} }))
 vi.mock('./workbench/use-personal-prompt-handoff', () => ({ usePersonalPromptHandoff: () => {} }))
 vi.mock('./workbench/use-generation-task', () => ({
@@ -217,7 +216,7 @@ async function openStudio(url: URL) {
   await act(async () => root.render(page))
 }
 
-function mockCommercePricing(getAvailable = () => 5000) {
+function mockCommercePricing(getAvailable = () => 5000, getUnitPrice = () => 125) {
   fetcher.mockImplementation(async (url) => {
     const { pathname, searchParams } = new URL(String(url))
     if (pathname.endsWith('/capabilities'))
@@ -228,10 +227,11 @@ function mockCommercePricing(getAvailable = () => 5000) {
     if (!pathname.endsWith('/quote')) throw new Error(`Unexpected request: ${url}`)
     const quantity = Number(searchParams.get('count'))
     const availableMinor = getAvailable()
-    const totalMinor = 125 * quantity
+    const unitPriceMinor = getUnitPrice()
+    const totalMinor = unitPriceMinor * quantity
     return Response.json({
       modelId: searchParams.get('modelId'),
-      unitPriceMinor: 125,
+      unitPriceMinor,
       totalMinor,
       quantity,
       availableMinor,
@@ -249,6 +249,36 @@ async function dropProduct(name: string) {
   Object.defineProperty(drop, 'dataTransfer', { value: { types: ['Files'], files: [product] } })
   await act(async () => container.querySelector('.reference-dropzone')!.dispatchEvent(drop))
   return product
+}
+
+async function commerceCaseUrl(title: string) {
+  const page = await CommercePage({ searchParams: Promise.resolve({ projectId: 'my-project' }) })
+  await act(async () => root.render(page))
+  const card = [...container.querySelectorAll('article')].find((entry) =>
+    entry.querySelector('h3')?.textContent?.includes(title),
+  )
+  expect(card).toBeDefined()
+  const cta = [...card!.querySelectorAll('a')].find((link) =>
+    link.textContent?.includes('用我的商品做同款'),
+  )
+  expect(cta).toBeDefined()
+  return new URL(cta!.href)
+}
+
+function useInMemoryDrafts() {
+  const drafts = new Map<string, CreationDraftRecord<unknown>>()
+  vi.mocked(writeCreationDraft).mockImplementation(async (owner, context, value, source = '') => {
+    drafts.set(creationDraftKey(owner, context), {
+      version: 1,
+      source,
+      savedAt: Date.now(),
+      value,
+    })
+  })
+  vi.mocked(readCreationDraft).mockImplementation(async (owner, context, parse) => {
+    const draft = drafts.get(creationDraftKey(owner, context))
+    return draft ? { ...draft, value: parse(draft.value) } : null
+  })
 }
 
 const commerceTrioCases = [
@@ -275,17 +305,7 @@ it.each(commerceTrioCases)(
   async ({ task, recipe, title, aspectRatio, moduleCounts, labels }) => {
     let balance = 5000
     mockCommercePricing(() => balance)
-    const page = await CommercePage({ searchParams: Promise.resolve({ projectId: 'my-project' }) })
-    await act(async () => root.render(page))
-    const card = [...container.querySelectorAll('article')].find((entry) =>
-      entry.querySelector('h3')?.textContent?.includes(title),
-    )
-    expect(card).toBeDefined()
-    const cta = [...card!.querySelectorAll('a')].find((link) =>
-      link.textContent?.includes('用我的商品做同款'),
-    )
-    expect(cta).toBeDefined()
-    const target = new URL(cta!.href)
+    const target = await commerceCaseUrl(title)
     expect(target.pathname).toBe('/studio')
     expect(Object.fromEntries(target.searchParams)).toMatchObject({
       mode: 'commerce',
@@ -340,6 +360,7 @@ it.each(commerceTrioCases)(
       productAssetIds: ['my-product-asset'],
       moduleMode: 'custom',
       moduleCounts,
+      moduleOrder: Object.keys(moduleCounts),
       count: 3,
     })
     const removeProduct = container.querySelector<HTMLButtonElement>(
@@ -352,23 +373,168 @@ it.each(commerceTrioCases)(
   },
 )
 
+it('uses only the selected garment for two modeled views after confirming their credit total', async () => {
+  let available = 100
+  let unitPrice = 125
+  mockCommercePricing(
+    () => available,
+    () => unitPrice,
+  )
+  const target = await commerceCaseUrl('模特上身套图')
+  expect(Object.fromEntries(target.searchParams)).toMatchObject({
+    mode: 'commerce',
+    task: 'clothing-set',
+    recipe: 'clothing-model-duo',
+    projectId: 'my-project',
+  })
+  await openStudio(target)
+  const confirm = () => container.querySelector<HTMLButtonElement>('button.generate-button')!
+  await waitForQuote()
+  expect(container.textContent).toContain('正面上身图')
+  expect(container.textContent).toContain('侧面上身图')
+  expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 2 张')
+  expect(confirm().disabled).toBe(true)
+  const garment = await dropProduct('my-shirt.png')
+  expect(container.textContent).toContain('余额不足')
+  expect(confirm().disabled).toBe(true)
+  expect(container.textContent).toContain('2.5 创作点')
+  available = 5000
+  unitPrice = 200
+  await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
+  expect(confirm().disabled).toBe(true)
+  await waitForQuote()
+  expect(confirm().disabled).toBe(false)
+  expect(confirm().textContent).toMatch(/确认.*4\s*创作点.*生成.*2\s*张/)
+  expect(generation.submit).not.toHaveBeenCalled()
+  await act(async () => confirm().click())
+  expect(generation.submit).toHaveBeenCalledTimes(1)
+  const submission = generation.submit.mock.calls[0]![0] as SubmitParams
+  expect(submission.productFiles).toEqual([garment])
+  expect(submission.referenceFiles).toEqual([])
+  expect(submission.modelFile).toBeUndefined()
+  expect(submission.confirmedQuote).toMatchObject({
+    modelId: 'a',
+    unitPriceMinor: 200,
+    quantity: 2,
+    totalMinor: 400,
+    creditName: '创作点',
+  })
+  const payload = generationInputSchema.parse(submission.buildPayload(['owned-shirt'], []))
+  expect(payload).toMatchObject({
+    mode: 'commerce',
+    taskType: 'clothing-set',
+    projectId: 'my-project',
+    productAssetIds: ['owned-shirt'],
+    clothingMode: 'model',
+    clothingModelSource: 'generated',
+    aspectRatio: '3:4',
+    count: 2,
+    moduleCounts: { 'clothing-model': 2 },
+    clothingPlan: [
+      { moduleKey: 'clothing-model', label: '正面上身图' },
+      { moduleKey: 'clothing-model', label: '侧面上身图' },
+    ],
+  })
+  expect(payload).not.toHaveProperty('modelAssetId')
+})
+
+it('restores an outfit’s garment and edited shot from history and waits for a fresh confirmation', async () => {
+  const shots: ClothingShot[] = clothingModelRecipe.shots.map((shot) => ({ ...shot }))
+  shots[1]!.description = '测试中保存的侧面拍摄要求'
+  const record = {
+    id: 'history-outfit',
+    status: 'succeeded',
+    createdAt: '2026-11-01',
+    input: {
+      mode: 'commerce',
+      taskType: 'clothing-set',
+      projectId: 'saved-project',
+      clothingMode: 'model' as const,
+      clothingModelSource: 'generated' as const,
+      clothingPlan: shots,
+      productAssetIds: ['saved-shirt'],
+      count: 2,
+      endpointId: 'a',
+    },
+  }
+  mockCommercePricing()
+  const pricing = fetcher.getMockImplementation()!
+  fetcher.mockImplementation(async (url, init) => {
+    const path = new URL(String(url)).pathname
+    if (path.endsWith('/tasks/history-outfit')) return Response.json({ task: record })
+    if (path.endsWith('/assets/saved-shirt/metadata'))
+      return Response.json({
+        asset: {
+          id: 'saved-shirt',
+          filename: 'saved-shirt.png',
+          mime: 'image/png',
+          sizeBytes: 25,
+          contentPath: '/v1/assets/saved-shirt/content',
+          thumbnailPath: '/v1/assets/saved-shirt/thumbnail',
+        },
+      })
+    if (path.endsWith('/assets/saved-shirt/thumbnail'))
+      return new Response(new Blob(['image'], { type: 'image/png' }))
+    return pricing(url, init)
+  })
+  const target = new URL(historyWorkbenchUrl(record, true), 'http://localhost')
+  await openStudio(target)
+  await waitForQuote()
+  expect(generation.submit).not.toHaveBeenCalled()
+  const confirm = container.querySelector<HTMLButtonElement>('button.generate-button')!
+  expect(confirm.disabled).toBe(false)
+  expect(confirm.textContent).toMatch(/确认.*2\.5.*生成.*2\s*张/)
+  await act(async () => confirm.click())
+  const submission = generation.submit.mock.calls[0]![0] as SubmitParams
+  expect(submission.productFiles).toMatchObject([{ kind: 'asset', assetId: 'saved-shirt' }])
+  expect(submission.confirmedQuote?.totalMinor).toBe(250)
+  expect(submission.buildPayload(['saved-shirt'], [])).toMatchObject({
+    projectId: 'saved-project',
+    clothingPlan: shots,
+    clothingModelSource: 'generated',
+  })
+})
+
+it('isolates the ordinary clothing draft and each project’s modeled outfit draft', async () => {
+  mockCommercePricing()
+  useInMemoryDrafts()
+  const ordinary = new URL(
+    '/studio?mode=commerce&task=clothing-set&projectId=one',
+    'http://localhost',
+  )
+  const recipe = new URL(ordinary)
+  recipe.searchParams.set('recipe', 'clothing-model-duo')
+  const anotherProject = new URL(recipe)
+  anotherProject.searchParams.set('projectId', 'two')
+  async function saveGarment(name: string) {
+    await dropProduct(name)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(350)
+    })
+  }
+  await openStudio(ordinary)
+  const ordinaryMode = container.querySelector<HTMLButtonElement>(
+    '.clothing-mode-selector button[aria-pressed="true"]',
+  )!
+  expect(ordinaryMode.textContent).toContain('商品组图')
+  await saveGarment('ordinary-shirt.png')
+  await openStudio(recipe)
+  expect(container.querySelector('.uploaded-thumb')).toBeNull()
+  await saveGarment('recipe-shirt.png')
+  await openStudio(anotherProject)
+  expect(container.querySelector('.uploaded-thumb')).toBeNull()
+  await openStudio(ordinary)
+  expect(container.querySelector('img[alt*="ordinary-shirt.png"]')).not.toBeNull()
+  await openStudio(recipe)
+  expect(container.querySelector('img[alt*="recipe-shirt.png"]')).not.toBeNull()
+  expect(generation.submit).not.toHaveBeenCalled()
+})
+
 it.each(commerceTrioCases)(
   'keeps ordinary $task and $title drafts independent',
   async ({ task, recipe }) => {
     mockCommercePricing()
-    const drafts = new Map<string, CreationDraftRecord<unknown>>()
-    vi.mocked(writeCreationDraft).mockImplementation(async (owner, context, value, source = '') => {
-      drafts.set(creationDraftKey(owner, context), {
-        version: 1,
-        source,
-        savedAt: Date.now(),
-        value,
-      })
-    })
-    vi.mocked(readCreationDraft).mockImplementation(async (owner, context, parse) => {
-      const draft = drafts.get(creationDraftKey(owner, context))
-      return draft ? { ...draft, value: parse(draft.value) } : null
-    })
+    useInMemoryDrafts()
     const ordinary = new URL(`/studio?mode=commerce&task=${task}`, 'http://localhost')
     const trio = new URL(ordinary)
     trio.searchParams.set('recipe', recipe)

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
+import { clothingModelRecipe } from '@/lib/commerce-recipe'
 import { preserveStudioProject, type StudioQuery } from '@/lib/studio-navigation'
 import type { HistoryTask } from './use-task-history'
 import type { WorkbenchMode } from './shared'
@@ -17,6 +18,8 @@ export function historyWorkbenchUrl(
     resumeTask: record.id,
   })
   if (record.input.mode === 'commerce') query.set('task', record.input.taskType ?? 'product-main')
+  if (record.input.taskType === 'clothing-set' && record.input.clothingModelSource === 'generated')
+    query.set('recipe', clothingModelRecipe.id)
   if (record.input.projectId) query.set('projectId', record.input.projectId)
   if (regenerate) query.set('review', '1')
   return preserveStudioProject(`/studio?${query}`, source)

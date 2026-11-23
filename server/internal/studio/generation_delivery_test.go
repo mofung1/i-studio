@@ -136,7 +136,7 @@ func TestInterruptedSynchronousDeliveryNeverResubmitsAndFencesOldWorker(t *testi
 	}}
 	input, _ := s.taskInput(job.ID)
 	input["taskId"] = job.ID + "-1"
-	if _, err := q.generateImage(context.Background(), job.ID, input, 1, "", old); err != nil {
+	if _, err := q.generateImage(context.Background(), job.ID, input, 1, "", old, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := old.begin(context.Background(), 2, job.ID+"-2", ""); err != nil {
@@ -260,7 +260,7 @@ func TestRecoveryAfterLastImageSettlesWithoutProviderOrNewSubmission(t *testing.
 	q := &taskQueue{server: s}
 	input, _ := s.taskInput(job.ID)
 	input["taskId"] = job.ID + "-1"
-	if _, err := q.generateImage(context.Background(), job.ID, input, 1, "", old); err != nil {
+	if _, err := q.generateImage(context.Background(), job.ID, input, 1, "", old, nil); err != nil {
 		t.Fatal(err)
 	}
 	s.provider = nil

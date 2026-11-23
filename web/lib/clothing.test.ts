@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeClothingPlan } from './clothing'
+import { clothingModelRecipe } from './commerce-recipe'
 import { generationInputSchema } from './contracts'
 
 const product = () => ({
@@ -63,6 +64,24 @@ describe('clothing planning contracts', () => {
         count: 5,
         moduleCounts: { 'clothing-model': 5 },
       }).success,
+    ).toBe(false)
+  })
+  it('accepts the garment-only case and rejects conflicting model sources', () => {
+    const input = {
+      ...product(),
+      clothingMode: 'model',
+      clothingModelSource: 'generated',
+      count: clothingModelRecipe.shots.length,
+      moduleCounts: clothingModelRecipe.moduleCounts,
+      clothingPlan: clothingModelRecipe.shots,
+    }
+    expect(generationInputSchema.safeParse(input).success).toBe(true)
+    expect(generationInputSchema.safeParse({ ...input, modelAssetId: 'model' }).success).toBe(false)
+    expect(
+      generationInputSchema.safeParse({ ...input, clothingModelSource: 'other' }).success,
+    ).toBe(false)
+    expect(
+      generationInputSchema.safeParse({ ...product(), clothingModelSource: 'generated' }).success,
     ).toBe(false)
   })
   it('flags unseen backs and gives model shots different poses', () => {

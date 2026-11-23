@@ -4,7 +4,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(2, clamp(204px, calc((100dvh - 312px) / 2), 320px)) auto;
+  grid-template-rows: repeat(2, minmax(clamp(204px, calc((100dvh - 312px) / 2), 320px), auto)) auto;
   grid-auto-rows: minmax(220px, auto);
   gap: 16px;
 }
@@ -293,7 +293,7 @@
 .clothingOutputs {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.compact .imageLabel {
+:is(.compact, .clothing) .imageLabel {
   top: 6px;
   left: 5px;
   padding: 3px 4px;
@@ -308,22 +308,27 @@
   min-height: 168px;
   gap: 16px 24px;
 }
-.detail .heading {
+:is(.detail, .clothing) .heading {
   position: relative;
   z-index: 2;
+}
+.clothing .flow {
+  min-height: 140px;
+}
+.detail .heading {
   grid-area: heading;
 }
 .detail .recipeLink {
   grid-area: recipe;
 }
-.detail .recipeLink::before {
+:is(.detail, .clothing) .recipeLink::before {
   position: absolute;
   z-index: 1;
   inset: 0;
   border-radius: inherit;
   content: '';
 }
-.detail .recipeLink > * {
+:is(.detail, .clothing) .recipeLink > * {
   position: relative;
   z-index: 1;
 }
@@ -363,7 +368,7 @@
     flex: auto;
     height: 180px;
   }
-  .compact .flow {
+  :is(.compact, .clothing) .flow {
     flex: auto;
     height: 190px;
   }
@@ -387,10 +392,10 @@
   .hero .comparison {
     height: 260px;
   }
-  .compact .flow {
+  :is(.compact, .clothing) .flow {
     height: 210px;
   }
-  .compact .imageLabel {
+  :is(.compact, .clothing) .imageLabel {
     font-size: 10px;
   }
   .detail {

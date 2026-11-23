@@ -229,7 +229,7 @@ func TestBuildPromptUserTextDropsOutputSpecsAndKeepsModules(t *testing.T) {
 	for _, wanted := range []string{
 		"电商详情页素材",
 		"天猫",
-		"自定义模块：首屏主视觉×1（商品完整清晰，标题与商品分区排版",
+		"自定义模块：首屏主视觉×1（商品完整清晰，用光线勾勒轮廓",
 		"核心卖点图×2（突出一个已知特点",
 		"仅使用已提供的商品信息",
 	} {

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { isCreationImage } from './creation-drafts'
 import { inspirationTemplateSchema } from './inspiration-handoff'
+import { clothingShotSchema } from './contracts'
 import type { CreationImage } from './creation-images'
 
 const images = (limit: number) => z.array(z.custom<CreationImage>(isCreationImage)).max(limit)
@@ -45,6 +46,11 @@ export const clothingCreationDraftSchema = z.object({
   style: z.enum(['studio', 'natural', 'street', 'editorial']),
   counts,
   modelCount: z.number().int().min(1).max(4),
+  shots: z
+    .array(clothingShotSchema.extend({ description: z.string().max(2000) }))
+    .min(1)
+    .max(4)
+    .optional(),
   garments: images(6),
   models: images(1),
   scenes: images(1),

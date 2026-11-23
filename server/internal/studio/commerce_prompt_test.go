@@ -58,6 +58,27 @@ func TestDetailModulesUseTheirOwnDirectionsAndRequireFacts(t *testing.T) {
 	}
 }
 
+func TestCommerceShotFramingAndTextPolicy(t *testing.T) {
+	for _, tc := range []struct{ task, module, language, want, avoid string }{
+		{"product-main", "white", "none", "商品完整居中", "画框切过商品轮廓"},
+		{"product-main", "detail", "none", "画框切过商品轮廓", "完整展示顶部、底部和左右轮廓"},
+		{"detail-page", "material", "none", "裁去商品的一部分", "标题"},
+		{"detail-page", "hero", "none", "商品完整清晰", "标题"},
+		{"detail-page", "hero", "en", "仅使用英语", "不新增营销文案"},
+	} {
+		t.Run(tc.task+"/"+tc.module+"/"+tc.language, func(t *testing.T) {
+			input := map[string]any{
+				"mode": "commerce", "taskType": tc.task, "moduleMode": "custom",
+				"moduleHint": commerceModuleHint(tc.task, tc.module), "outputLanguage": tc.language,
+			}
+			prompt := promptForInput(input)
+			if !strings.Contains(prompt, tc.want) || strings.Contains(prompt, tc.avoid) {
+				t.Fatal("shot directions conflict with requested framing or text", prompt)
+			}
+		})
+	}
+}
+
 func TestCommerceSourceRolesMatchUploadedImageOrder(t *testing.T) {
 	s := testSiteServer(t)
 	s.db = isolatedTestDatabase(t)

@@ -30,6 +30,7 @@ export interface HistoryTaskInput {
   productAssetIds?: string[]
   referenceAssetIds?: string[]
   clothingMode?: ClothingMode
+  clothingModelSource?: 'generated'
   clothingStyle?: ClothingStyle
   clothingPlan?: ClothingShot[]
   modelAssetId?: string

@@ -86,6 +86,40 @@ func TestGenerationTemplateCatalogMigrationAndPersistence(t *testing.T) {
 	}
 }
 
+func TestCommerceTemplateUpgradeOnlyAffectsNewTaskSnapshots(t *testing.T) {
+	s, model, _ := operationTestServer(t)
+	if err := s.ai.migrateLegacy(); err != nil {
+		t.Fatal(err)
+	}
+	const key = "module.product-main.detail"
+	const previous = "产品细节图，近景特写材质与工艺细节"
+	if _, err := s.db.Exec("UPDATE prompt_templates SET content=$1,default_content=$1 WHERE key=$2", previous, key); err != nil {
+		t.Fatal(err)
+	}
+	reserve := func(requestKey string) string {
+		t.Helper()
+		job, _, err := s.reserveGeneration("member", requestKey, 125, operationInput(model, 1))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return job.ID
+	}
+	before := reserve("before-template-upgrade")
+	if err := s.ai.migrateLegacy(); err != nil {
+		t.Fatal(err)
+	}
+	after := reserve("after-template-upgrade")
+	for id, expected := range map[string]string{before: previous, after: generationDefaults[key]} {
+		input := map[string]any{}
+		if err := s.loadFrozenGeneration(id, input); err != nil {
+			t.Fatal(err)
+		}
+		if got := generationText(input, key); got != expected {
+			t.Fatalf("task snapshot has %q, want %q", got, expected)
+		}
+	}
+}
+
 func TestSavedGenerationPromptsReachBothProtocolsAndStayConsistentWithinGroup(t *testing.T) {
 	for _, protocol := range []string{"openai_images", "gemini_native"} {
 		t.Run(protocol, func(t *testing.T) {

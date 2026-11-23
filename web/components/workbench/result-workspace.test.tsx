@@ -2,6 +2,7 @@
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { clothingModelRecipe } from '@/lib/commerce-recipe'
 import { ResultWorkspace } from './result-workspace'
 
 const reference = vi.hoisted(() => vi.fn())
@@ -117,6 +118,31 @@ it.each(['general', 'commerce'] as const)(
     }
   },
 )
+
+it('labels completed outfit views by the planned angle and keeps partial history unambiguous', async () => {
+  const outfit = {
+    ...history,
+    input: {
+      mode: 'commerce',
+      taskType: 'clothing-set',
+      clothingModelSource: 'generated' as const,
+      clothingPlan: clothingModelRecipe.shots.map((shot) => ({ ...shot })),
+      count: 2,
+    },
+    resultImages: ['data:front', 'data:side'],
+    resultModules: ['clothing-model', 'clothing-model'],
+  }
+  await act(async () => root.render(<ResultWorkspace {...props} historyTask={outfit} />))
+  const label = () => container.querySelector('.module-badge')?.textContent
+  expect(label()).toBe('正面上身图')
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('.result-image-area [aria-label="下一张"]')!.click(),
+  )
+  expect(label()).toBe('侧面上身图')
+  const partial = { ...outfit, resultImages: ['data:side'], resultModules: ['clothing-model'] }
+  await act(async () => root.render(<ResultWorkspace {...props} historyTask={partial} />))
+  expect(label()).toBe('模特上身')
+})
 
 it('shows only saved images from the running task and keeps them downloadable before completion', async () => {
   await act(async () =>

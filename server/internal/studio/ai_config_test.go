@@ -169,7 +169,11 @@ func TestLegacyAIImportIsIdempotentAndKeepsTemplates(t *testing.T) {
 	}
 }
 
-func TestRewriteDefaultUpgradePreservesCustomContentAndDisabledState(t *testing.T) {
+func TestPromptDefaultUpgradesPreserveCustomContentAndDisabledState(t *testing.T) {
+	defaults := map[string]string{"rewrite": promptRewriteSystemPrompt}
+	for _, key := range []string{"image.product-main", "module.product-main.detail", "image.detail-page", "module.detail-page.hero", "module.detail-page.material"} {
+		defaults[key] = generationDefaults[key]
+	}
 	for _, test := range []struct {
 		name    string
 		custom  bool
@@ -187,7 +191,7 @@ func TestRewriteDefaultUpgradePreservesCustomContentAndDisabledState(t *testing.
 			if err := s.ai.withConfig(true, func(state *aiConfiguration) error {
 				for i := range state.Templates {
 					template := &state.Templates[i]
-					if template.Key == "rewrite" {
+					if _, upgraded := defaults[template.Key]; upgraded {
 						template.Content, template.DefaultContent = oldDefault, oldDefault
 						template.Enabled = test.enabled
 						if test.custom {
@@ -210,20 +214,24 @@ func TestRewriteDefaultUpgradePreservesCustomContentAndDisabledState(t *testing.
 			if err != nil {
 				t.Fatal(err)
 			}
+			found := 0
 			for _, template := range templates {
-				if template.Key != "rewrite" {
+				currentDefault, upgraded := defaults[template.Key]
+				if !upgraded {
 					continue
 				}
-				want := promptRewriteSystemPrompt
+				found++
+				want := currentDefault
 				if test.custom {
 					want = custom
 				}
-				if template.Content != want || template.DefaultContent != promptRewriteSystemPrompt || template.Enabled != test.enabled {
-					t.Fatal("optimizer migration lost saved state")
+				if template.Content != want || template.DefaultContent != currentDefault || template.Enabled != test.enabled {
+					t.Fatalf("%s migration lost saved state", template.Key)
 				}
-				return
 			}
-			t.Fatal("rewrite template missing")
+			if found != len(defaults) {
+				t.Fatal("upgraded templates missing", found)
+			}
 		})
 	}
 }

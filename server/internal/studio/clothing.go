@@ -1,10 +1,15 @@
 package studio
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
+
+	"github.com/istudio/server/internal/domain"
 )
 
 type clothingShot struct {
@@ -94,8 +99,12 @@ func validateClothingInput(input map[string]any) error {
 	if err := requireOneOf(input, "outputLanguage", allowedLanguages, "none"); err != nil {
 		return err
 	}
+	source, hasSource := input["clothingModelSource"]
+	if hasSource && (source != "generated" || mode != "model" || input["modelAssetId"] != nil) {
+		return fmt.Errorf("生成模特仅适用于未上传模特照片的上身图")
+	}
 	if mode == "model" {
-		if err := requireText(input, "modelAssetId", 1, 200); err != nil {
+		if !hasSource && requireText(input, "modelAssetId", 1, 200) != nil {
 			return fmt.Errorf("模特上身需要上传模特照片")
 		}
 		if input["sceneAssetId"] != nil {
@@ -278,19 +287,61 @@ func (s *Service) clothingPlanHandler(w http.ResponseWriter, r *http.Request) {
 	s.json(w, 200, analyzed)
 }
 
+func clothingModelReference(ctx context.Context, run *generationRun, firstImage string) (map[string]string, error) {
+	var raw []byte
+	if run == nil {
+		data, _, err := readGeneratedImage(generatedImageClient, firstImage)
+		if err != nil {
+			return nil, err
+		}
+		raw = data
+	} else {
+		var key string
+		err := run.server.db.QueryRowContext(ctx, "SELECT storage_key FROM assets WHERE id=$1 AND task_id=$2", assetIDFromPath(firstImage), run.id).Scan(&key)
+		if err != nil {
+			return nil, err
+		}
+		f, err := run.server.storage.Open(key)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+		raw, err = io.ReadAll(io.LimitReader(f, domain.MaxGeneratedImageBytes+1))
+		if err != nil {
+			return nil, err
+		}
+		if len(raw) > domain.MaxGeneratedImageBytes {
+			return nil, fmt.Errorf("首张上身图过大")
+		}
+	}
+	preview, err := generateAssetPreview(ctx, raw, 768)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]string{"role": "generated-model", "mime": "image/jpeg", "data": base64.StdEncoding.EncodeToString(preview)}, nil
+}
+
 func clothingPromptForInput(input map[string]any) string {
 	parts := []string{generationText(input, "image.clothing.common")}
-	if stringValue(input["clothingMode"], "") == "model" {
+	generated := input["clothingModelSource"] == "generated"
+	if generated {
+		parts = append(parts, generationText(input, "image.clothing.generated-model"))
+	} else if stringValue(input["clothingMode"], "") == "model" {
 		parts = append(parts, generationText(input, "image.clothing.model"))
 	} else {
 		parts = append(parts, generationText(input, "image.clothing.product"))
 	}
 	parts = append(parts, generationText(input, "image.clothing.print"))
-	if key := stringValue(input["generationModule"], ""); key != "" {
+	if key := stringValue(input["generationModule"], ""); key != "" && !generated {
 		parts = append(parts, configuredModuleHint(input, "clothing-set", key))
 	}
+	labels := map[string]string{
+		"garment":         "服装原图",
+		"model":           "模特参考，只用于人物身份",
+		"scene":           "场景参考，只用于背景",
+		"generated-model": "首张上身成片，沿用同一人物、穿搭和布景，姿势按本张规划调整",
+	}
 	for index, image := range sourceImages(input) {
-		labels := map[string]string{"garment": "服装原图", "model": "模特参考，只用于人物身份", "scene": "场景参考，只用于背景"}
 		parts = append(parts, fmt.Sprintf("参考图片 %d：%s", index+1, labels[image["role"]]))
 	}
 	parts = append(parts, generationText(input, "clothing.style."+stringValue(input["clothingStyle"], "studio")))

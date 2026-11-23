@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"mime/multipart"
@@ -50,6 +51,7 @@ func TestClothingValidation(t *testing.T) {
 	}{
 		{"missing model", func(v map[string]any) { v["clothingMode"] = "model"; delete(v, "modelAssetId") }},
 		{"product with scene", func(v map[string]any) { v["sceneAssetId"] = "scene" }},
+		{"product with generated model", func(v map[string]any) { v["clothingModelSource"] = "generated" }},
 		{"wrong total", func(v map[string]any) { v["count"] = float64(4) }},
 		{"fraction", func(v map[string]any) { v["moduleCounts"].(map[string]any)["clothing-front"] = 1.5 }},
 		{"extra module", func(v map[string]any) { v["moduleCounts"].(map[string]any)["hero"] = float64(1) }},
@@ -71,6 +73,80 @@ func TestClothingValidation(t *testing.T) {
 	}
 	if _, err := validateClothingCounts("product", map[string]int{"clothing-front": 4, "clothing-back": 4, "clothing-3d": 4, "clothing-detail": 4, "clothing-selling": 1}); err == nil {
 		t.Fatal("accepted more than 16")
+	}
+}
+
+func TestClothingGeneratedModelSource(t *testing.T) {
+	input := clothingFixture("model", map[string]int{"clothing-model": 2})
+	delete(input, "modelAssetId")
+	if validateGenerationInput(input) == nil {
+		t.Fatal("an ordinary model task still requires a model photo")
+	}
+	for _, invalid := range []any{nil, 1, "other"} {
+		input["clothingModelSource"] = invalid
+		if validateGenerationInput(input) == nil {
+			t.Fatal("accepted invalid model source", invalid)
+		}
+	}
+	input["clothingModelSource"] = "generated"
+	if err := validateGenerationInput(input); err != nil {
+		t.Fatal(err)
+	}
+	input["modelAssetId"] = "model"
+	if validateGenerationInput(input) == nil {
+		t.Fatal("accepted conflicting model sources")
+	}
+}
+
+func TestClothingGeneratedModelUsesFirstDeliveryForNextAngle(t *testing.T) {
+	s, model, _ := operationTestServer(t)
+	s.storage = objectstore.NewLocal(s.storageRoot)
+	garment := materialPNG(t, 155)
+	garmentID := uploadMaterial(t, s, "member", garment)
+	input := clothingFixture("model", map[string]int{"clothing-model": 2})
+	delete(input, "modelAssetId")
+	delete(input, "sceneAssetId")
+	input["productAssetIds"] = []any{garmentID}
+	input["clothingModelSource"] = "generated"
+	input["endpointId"], input["aspectRatio"] = model, "3:4"
+	shots := input["clothingPlan"].([]any)
+	shots[0].(map[string]any)["description"] = "正面站立"
+	shots[1].(map[string]any)["description"] = "从侧面拍摄"
+	job, _, err := s.reserveGeneration("member", "clothing-duo", 125, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstImage := siteLogoBytes(t, "png")
+	preview, err := generateAssetPreview(context.Background(), firstImage, 768)
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	s.provider = &deliveryTestProvider{submit: func(ctx context.Context, request map[string]any) (providerTask, error) {
+		calls++
+		sources, prompt := sourceImages(request), promptForInput(request)
+		if len(sources) != calls || sources[0]["role"] != "garment" || sources[0]["data"] != base64.StdEncoding.EncodeToString(garment) {
+			t.Fatal("garment or reference count changed", calls)
+		}
+		if !strings.Contains(prompt, "虚拟成年模特") || strings.Contains(prompt, "上传模特") {
+			t.Fatal("incompatible model directions", prompt)
+		}
+		if calls == 1 && !strings.Contains(prompt, "正面站立") {
+			t.Fatal("missing first shot direction")
+		}
+		if calls == 2 && (sources[1]["role"] != "generated-model" || sources[1]["mime"] != "image/jpeg" ||
+			sources[1]["data"] != base64.StdEncoding.EncodeToString(preview) ||
+			!strings.Contains(prompt, "参考图片 2：首张上身成片") || !strings.Contains(prompt, "从侧面拍摄")) {
+			t.Fatal("side view lost the first model or its own shooting direction")
+		}
+		return providerTask{Images: []string{"data:image/png;base64," + base64.StdEncoding.EncodeToString(firstImage)}}, nil
+	}}
+	q := &taskQueue{server: s}
+	q.processTask(job.ID)
+	q.processTask(job.ID)
+	assertDeliverySettlement(t, s, job.ID, "succeeded", 2, 2)
+	if calls != 2 {
+		t.Fatal("unexpected submission count", calls)
 	}
 }
 

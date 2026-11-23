@@ -581,9 +581,11 @@ func (a *aiConfigStore) migrateLegacy() error {
 			found := false
 			for i, t := range state.Templates {
 				if t.Key == def.Key {
-					// Upgrade the optimizer only when its saved content is still the old default.
-					if t.Key == "rewrite" && t.Content == t.DefaultContent {
-						state.Templates[i].Content = def.Content
+					if t.Content == t.DefaultContent {
+						switch t.Key {
+						case "rewrite", "image.product-main", "module.product-main.detail", "image.detail-page", "module.detail-page.hero", "module.detail-page.material":
+							state.Templates[i].Content = def.Content
+						}
 					}
 					state.Templates[i].DefaultContent = def.Content
 					state.Templates[i].Name = def.Name

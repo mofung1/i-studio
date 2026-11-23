@@ -147,6 +147,15 @@ it.each([
     outputs: ['首屏主视觉', '材质纹理图', '场景应用图'],
     action: '用我的商品做同款（商品详情套图）',
   },
+  {
+    tool: '服装组图',
+    title: '模特上身套图',
+    task: 'clothing-set',
+    id: 'clothing-model-duo',
+    ratio: '3:4',
+    outputs: ['正面上身图', '侧面上身图'],
+    action: '用我的商品做同款（模特上身套图）',
+  },
 ])(
   'links the $tool title, output descriptions and action to the same project recipe',
   async (example) => {

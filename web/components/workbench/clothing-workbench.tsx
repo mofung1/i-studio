@@ -8,6 +8,8 @@ import {
   prepareGuestDraftLogin,
 } from '@/lib/creation-drafts'
 import { clothingCreationDraftSchema } from '@/lib/creation-draft-schema'
+import { commerceRecipeUrl, type clothingModelRecipe } from '@/lib/commerce-recipe'
+import type { GenerationQuote } from '@/lib/credits'
 import { useCreationDraft } from './use-creation-draft'
 import { CreationDraftStatus } from './creation-draft-status'
 import { WorkbenchSkeleton } from './workbench-skeleton'
@@ -26,7 +28,7 @@ import {
   makeClothingPlan,
   type ClothingPlanDefaults,
 } from '@/lib/clothing'
-import type { ClothingPlan } from '@/lib/contracts'
+import type { ClothingPlan, ClothingShot } from '@/lib/contracts'
 import { InfoDialog } from '@/components/info-dialog'
 import {
   resolvePresetEndpoint,
@@ -57,33 +59,40 @@ export function ClothingWorkbench({
   initialModel,
   initialAspectRatio,
   initialResolution,
+  recipe,
 }: {
   initialModel?: string
   initialAspectRatio?: string
   initialResolution?: string
+  recipe?: typeof clothingModelRecipe
 }) {
   const router = useRouter()
   const pathname = usePathname()
   const search = useSearchParams()
   const { account } = useAccount()
-  const [settings, setSettings] = useState<ClothingSettingsValue>({
-    mode: 'product',
+  const defaults: ClothingSettingsValue = {
+    mode: recipe ? 'model' : 'product',
     style: 'studio',
     counts: { ...defaultClothingCounts },
-    modelCount: 1,
+    modelCount: recipe?.shots.length ?? 1,
+    ...(recipe ? { shots: recipe.shots.map((shot) => ({ ...shot })) } : {}),
     garments: [],
     models: [],
     scenes: [],
-    requirements: '',
+    requirements: recipe?.requirements ?? '',
     platform: 'smart',
     outputLanguage: 'none',
     endpointId: '',
     model: initialModel ?? 'gpt-image-2',
-    aspectRatio: initialAspectRatio ?? '3:4',
+    aspectRatio: initialAspectRatio ?? recipe?.aspectRatio ?? '3:4',
     resolution: initialResolution ?? '2K',
-  })
+  }
+  const [settings, setSettings] = useState(defaults)
   const creatorLayout = useCreatorPreferences('commerce')
   const { side, collapsed, setCollapsed } = creatorLayout
+  useEffect(() => {
+    if (recipe) setCollapsed(false)
+  }, [recipe, setCollapsed])
   const [panelOpen, setPanelOpen] = useState(false)
   const [mobile, setMobile] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -127,29 +136,27 @@ export function ClothingWorkbench({
     setActiveResultIndex,
     submit,
     removeResult,
-  } = useGenerationTask('commerce:clothing-set')
+  } = useGenerationTask(
+    recipe
+      ? `commerce:clothing-set:${recipe.id}:${search.get('projectId') ?? ''}`
+      : 'commerce:clothing-set',
+    { restoreLatest: !recipe },
+  )
   const draft = useCreationDraft({
     owner: account.user?.id ?? 'guest',
-    context: creationDraftContext('commerce:clothing-set', search.get('projectId') ?? ''),
+    context: creationDraftContext(
+      'commerce:clothing-set',
+      search.get('projectId') ?? '',
+      recipe?.id,
+    ),
     source: draftEntrySource(search),
     enabled: true,
     value: settings,
     defaultValue: {
-      mode: 'product',
-      style: 'studio',
-      counts: { ...defaultClothingCounts },
-      modelCount: 1,
-      garments: [],
-      models: [],
-      scenes: [],
-      requirements: '',
-      platform: 'smart',
-      outputLanguage: 'none',
+      ...defaults,
       endpointId: settings.endpointId,
       model: settings.model,
-      aspectRatio: initialAspectRatio ?? '3:4',
-      resolution: initialResolution ?? '2K',
-    } as ClothingSettingsValue,
+    },
     parse: (value) => clothingCreationDraftSchema.parse(value),
     onRestore: (value) => {
       setSettings(value)
@@ -159,7 +166,9 @@ export function ClothingWorkbench({
   })
   const restoreHandoff = draft.ready && draft.restoredSource !== draftEntrySource(search)
   const counts: Record<string, number> =
-    settings.mode === 'product' ? settings.counts : { 'clothing-model': settings.modelCount }
+    settings.mode === 'product'
+      ? settings.counts
+      : { 'clothing-model': settings.shots?.length ?? settings.modelCount }
   const expectedCount = Object.values(counts).reduce((sum, count) => sum + count, 0)
   const selectedModel = endpoints.find((endpoint) => endpoint.id === settings.endpointId)
   const modelParameters = {
@@ -231,7 +240,13 @@ export function ClothingWorkbench({
     })
   }
   usePersonalPromptHandoff({
-    ready: aiEnabled !== null && restoreHandoff && !planning && !isGenerating && !isSubmitting,
+    ready:
+      !recipe &&
+      aiEnabled !== null &&
+      restoreHandoff &&
+      !planning &&
+      !isGenerating &&
+      !isSubmitting,
     onApply: (application) => applyCollection(application),
     onError: (message) => setNotice({ kind: 'error', message }),
   })
@@ -292,7 +307,7 @@ export function ClothingWorkbench({
     return () => query.removeEventListener('change', update)
   }, [])
   useEffect(() => {
-    if (!mobile || !panelOpen) return
+    if (recipe || !mobile || !panelOpen) return
     const panel = document.getElementById('creation-settings')
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -330,7 +345,7 @@ export function ClothingWorkbench({
       document.removeEventListener('keydown', keyboard)
       previousFocus?.focus()
     }
-  }, [mobile, panelOpen])
+  }, [mobile, panelOpen, recipe])
 
   function change(patch: Partial<ClothingSettingsValue>) {
     revision.current++
@@ -361,7 +376,7 @@ export function ClothingWorkbench({
     }
     let message = ''
     if (!settings.garments.length) message = '请先上传 1–6 张服装原图'
-    else if (settings.mode === 'model' && settings.models.length !== 1)
+    else if (!recipe && settings.mode === 'model' && settings.models.length !== 1)
       message = '模特上身需要上传 1 张模特照片'
     else if (
       expectedCount < 1 ||
@@ -388,7 +403,7 @@ export function ClothingWorkbench({
     return !message
   }
   async function prepare(useAI = canAnalyze && !draftPlan.current) {
-    if (isSubmitting || isGenerating || planning || !checkSource()) return
+    if (recipe || isSubmitting || isGenerating || planning || !checkSource()) return
     if (!getAccessToken()) {
       login()
       return
@@ -470,13 +485,20 @@ export function ClothingWorkbench({
     setPlanning(false)
     if (close) setPlan(null)
   }
-  function confirm() {
-    if (!plan || planning || isSubmitting || isGenerating || !checkSource()) return
+  function confirm(shots: ClothingShot[], confirmedQuote?: GenerationQuote) {
+    if (!shots.length || planning || isSubmitting || isGenerating || !checkSource()) return
+    if (
+      recipe &&
+      (!confirmedQuote?.canAfford ||
+        confirmedQuote.modelId !== settings.endpointId ||
+        confirmedQuote.quantity !== shots.length)
+    )
+      return
     if (aiEnabled !== true) {
       setPlanMessage('请先在设置中配置可用的 Image AI 生图服务')
       return
     }
-    const confirmed = plan.shots.map((shot) => ({ ...shot }))
+    const confirmed = shots.map((shot) => ({ ...shot }))
     const snapshot = { ...settings, counts: { ...counts } }
     setPlan(null)
     setPanelOpen(false)
@@ -486,7 +508,8 @@ export function ClothingWorkbench({
     void submit({
       productFiles: snapshot.garments,
       referenceFiles: [],
-      modelFile: snapshot.mode === 'model' ? snapshot.models[0] : undefined,
+      confirmedQuote,
+      modelFile: !recipe && snapshot.mode === 'model' ? snapshot.models[0] : undefined,
       sceneFile: snapshot.mode === 'model' ? snapshot.scenes[0] : undefined,
       buildPayload: (productAssetIds, _referenceAssetIds, roles) => ({
         projectId: search.get('projectId') || undefined,
@@ -495,6 +518,7 @@ export function ClothingWorkbench({
         productAssetIds,
         ...(snapshot.mode === 'model' ? roles : {}),
         clothingMode: snapshot.mode,
+        ...(recipe ? { clothingModelSource: 'generated' } : {}),
         clothingStyle: snapshot.style,
         moduleCounts: snapshot.counts,
         clothingPlan: confirmed,
@@ -509,6 +533,10 @@ export function ClothingWorkbench({
         consistencyProtection: true,
       }),
       onAuthRequired: login,
+      onSubmitted: () => {
+        if (recipe && mobile)
+          document.querySelector('.result-workspace')?.scrollIntoView({ block: 'start' })
+      },
     })
   }
 
@@ -523,6 +551,7 @@ export function ClothingWorkbench({
     }
     if (
       record.input.taskType !== 'clothing-set' ||
+      Boolean(recipe) !== (record.input.clothingModelSource === 'generated') ||
       (record.input.projectId && record.input.projectId !== search.get('projectId'))
     ) {
       await navigate(historyWorkbenchUrl(record, regenerate, search))
@@ -560,6 +589,7 @@ export function ClothingWorkbench({
             ? { ...defaultClothingCounts }
             : (input.moduleCounts ?? { ...defaultClothingCounts }),
         modelCount: input.clothingMode === 'model' ? Math.min(4, Math.max(1, input.count ?? 1)) : 1,
+        ...(recipe ? { shots: input.clothingPlan ?? defaults.shots } : {}),
         garments,
         models,
         scenes,
@@ -588,7 +618,9 @@ export function ClothingWorkbench({
         shots: input.clothingPlan ?? restored.shots,
       }
       draft.markEntryApplied()
-      if (regenerate) {
+      if (recipe) {
+        setNotice({ kind: 'success', message: '已载入服装与拍摄角度，请核对积分后确认生成。' })
+      } else if (regenerate) {
         setPlan(draftPlan.current)
         setPlanMessage('')
       } else
@@ -665,7 +697,12 @@ export function ClothingWorkbench({
     draftPlan.current = null
     await draft.clear()
     if (mounted.current)
-      router.replace(studioToolUrl('commerce', 'clothing-set', search), { scroll: false })
+      router.replace(
+        recipe
+          ? commerceRecipeUrl(recipe, search)
+          : studioToolUrl('commerce', 'clothing-set', search),
+        { scroll: false },
+      )
   }
   async function downloadAll() {
     const id = historyTask?.id ?? activeResult?.id
@@ -693,7 +730,8 @@ export function ClothingWorkbench({
   return (
     <div className="workbench-page">
       <div
-        className={`workbench-shell floating-workbench mode-commerce clothing-workbench config-${side} ${collapsed ? 'creator-config-collapsed' : ''} ${panelOpen ? 'panel-open' : ''}`}
+        data-commerce-recipe={recipe?.id}
+        className={`workbench-shell floating-workbench mode-commerce ${recipe ? '' : 'clothing-workbench'} config-${side} ${collapsed ? 'creator-config-collapsed' : ''} ${panelOpen ? 'panel-open' : ''}`}
       >
         <WorkbenchRail
           mode="commerce"
@@ -719,32 +757,35 @@ export function ClothingWorkbench({
                 onClear={clearDraft}
                 disabled={planning || isGenerating || isSubmitting}
               />
-              <CreationLibraryTools
-                config={currentPreset()}
-                prompt={settings.requirements}
-                disabled={isGenerating || isSubmitting || planning}
-                onApply={(application) => applyCollection(application)}
-                onUndo={
-                  collectionUndo
-                    ? () => {
-                        try {
-                          applyCollection(collectionUndo, true)
-                          setCollectionUndo(null)
-                        } catch (reason) {
-                          setNotice({
-                            kind: 'error',
-                            message: reason instanceof Error ? reason.message : '撤销失败',
-                          })
+              {!recipe && (
+                <CreationLibraryTools
+                  config={currentPreset()}
+                  prompt={settings.requirements}
+                  disabled={isGenerating || isSubmitting || planning}
+                  onApply={(application) => applyCollection(application)}
+                  onUndo={
+                    collectionUndo
+                      ? () => {
+                          try {
+                            applyCollection(collectionUndo, true)
+                            setCollectionUndo(null)
+                          } catch (reason) {
+                            setNotice({
+                              kind: 'error',
+                              message: reason instanceof Error ? reason.message : '撤销失败',
+                            })
+                          }
                         }
-                      }
-                    : undefined
-                }
-              />
+                      : undefined
+                  }
+                />
+              )}
             </>
           }
           mode="commerce"
           task="clothing-set"
           panelOpen={mobile ? panelOpen : !collapsed}
+          jumpToSettings={!!recipe && mobile}
           onShowDetails={() => setDetailsOpen(true)}
           historyOpen={historyOpen}
           onToggleHistory={() => setHistoryOpen((value) => !value)}
@@ -755,7 +796,7 @@ export function ClothingWorkbench({
         <button
           type="button"
           className="clothing-panel-backdrop"
-          hidden={!panelOpen}
+          hidden={!!recipe || !panelOpen}
           onClick={() => setPanelOpen(false)}
           aria-label="关闭服装设置"
           tabIndex={-1}
@@ -775,7 +816,7 @@ export function ClothingWorkbench({
           isSubmitting={isSubmitting || planning}
           isGenerating={isGenerating}
           taskStatus={generationTask?.status}
-          dialog={mobile && panelOpen}
+          dialog={!recipe && mobile && panelOpen}
         >
           <div id="creation-settings-body" className="configuration-scroll" hidden={collapsed}>
             <div className="creator-sheet-head">
@@ -784,13 +825,18 @@ export function ClothingWorkbench({
                 <X size={18} aria-hidden="true" />
               </button>
             </div>
-            <ClothingSettings value={settings} onChange={change} endpoints={endpoints} />
+            <ClothingSettings
+              recipeTitle={recipe?.title}
+              value={settings}
+              onChange={change}
+              endpoints={endpoints}
+            />
             <ModelCompatibilityNotice
               model={selectedModel}
               parameters={modelParameters}
               onApply={change}
             />
-            {!canAnalyze && (
+            {!recipe && !canAnalyze && (
               <p className="clothing-field-help">
                 当前使用手动规划，可逐张编辑拍摄要求；配置支持识图的 Prompt 服务后可进行 AI 分析。
               </p>
@@ -808,7 +854,14 @@ export function ClothingWorkbench({
             isSubmitting={isSubmitting || planning}
             isGenerating={isGenerating}
             aiEnabled={aiEnabled}
-            disabledReason={compatibilityIssue}
+            needsProductImage={!!recipe && !settings.garments.length}
+            disabledReason={
+              compatibilityIssue ||
+              (recipe && !settings.shots?.every((shot) => shot.description.trim())
+                ? '请在套图设置中补全各角度的拍摄要求'
+                : undefined)
+            }
+            onConfirmCost={recipe ? (quote) => confirm(settings.shots ?? [], quote) : undefined}
             onSubmit={() => void prepare()}
           />
         </CreatorPanel>
@@ -817,6 +870,9 @@ export function ClothingWorkbench({
             <CreationStarter
               mode="commerce"
               task="clothing-set"
+              recipePreview={
+                recipe ? { title: recipe.title, hasProduct: !!settings.garments.length } : undefined
+              }
               canApply={!settings.requirements.trim()}
               disabled={planning || isGenerating || isSubmitting}
               onApply={(example) => {
@@ -858,14 +914,25 @@ export function ClothingWorkbench({
           onDeleteHistoryTask={deleteRecord}
           onUseImageAsReference={(path, source) => void useReference(path, source)}
           onSetActiveResultIndex={setActiveResultIndex}
-          onRegenerate={() => void prepare()}
+          onRegenerate={() => {
+            if (!recipe) return void prepare()
+            setCollapsed(false)
+            setNotice({ kind: 'success', message: '请核对服装图和积分后确认生成。' })
+            requestAnimationFrame(() =>
+              document.querySelector<HTMLElement>('.generate-button')?.focus(),
+            )
+          }}
           onDownloadAll={() => void downloadAll()}
           downloadAllBusy={downloadBusy}
-          onConfigure={() => {
-            setCollapsed(false)
-            setPanelOpen(true)
-            document.getElementById('creation-settings')?.scrollIntoView({ block: 'nearest' })
-          }}
+          onConfigure={
+            recipe
+              ? undefined
+              : () => {
+                  setCollapsed(false)
+                  setPanelOpen(true)
+                  document.getElementById('creation-settings')?.scrollIntoView({ block: 'nearest' })
+                }
+          }
         />
         {plan && (
           <ClothingPlanDialog
@@ -883,7 +950,7 @@ export function ClothingWorkbench({
             onAnalyze={() => void prepare(true)}
             onManual={() => cancelAnalysis()}
             onClose={() => cancelAnalysis(true)}
-            onConfirm={confirm}
+            onConfirm={() => confirm(plan.shots)}
           />
         )}
         {detailsOpen && (
@@ -893,12 +960,21 @@ export function ClothingWorkbench({
               <dd>{settings.mode === 'product' ? '商品组图' : '模特上身'}</dd>
               <dt>服装素材</dt>
               <dd>{settings.garments.length} 张</dd>
-              <dt>模特 / 场景</dt>
-              <dd>
-                {settings.mode === 'model'
-                  ? `${settings.models.length} / ${settings.scenes.length} 张`
-                  : '不使用'}
-              </dd>
+              {recipe ? (
+                <>
+                  <dt>模特来源</dt>
+                  <dd>AI 生成</dd>
+                </>
+              ) : (
+                <>
+                  <dt>模特 / 场景</dt>
+                  <dd>
+                    {settings.mode === 'model'
+                      ? `${settings.models.length} / ${settings.scenes.length} 张`
+                      : '不使用'}
+                  </dd>
+                </>
+              )}
               <dt>拍摄风格</dt>
               <dd>{clothingStyles.find(([key]) => key === settings.style)?.[1]}</dd>
               <dt>比例 / 清晰度</dt>

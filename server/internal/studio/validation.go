@@ -2,6 +2,8 @@ package studio
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -112,12 +114,16 @@ func validateCommerceInput(input map[string]any) error {
 		}
 		moduleTotal := 0
 		countProvided := input["count"] != nil
-		if input["moduleCounts"] != nil {
-			if _, ok := input["moduleCounts"].(map[string]any); !ok {
-				return fmt.Errorf("moduleCounts must be an object")
+		counts, ok := input["moduleCounts"].(map[string]any)
+		if !ok && input["moduleCounts"] != nil {
+			return fmt.Errorf("moduleCounts must be an object")
+		}
+		if _, ordered := input["moduleOrder"]; ordered {
+			if _, err := generationModuleOrder(input, counts); err != nil {
+				return err
 			}
 		}
-		if counts, ok := input["moduleCounts"].(map[string]any); ok {
+		if counts != nil {
 			allowed := allowedModules[taskType]
 			for key, value := range counts {
 				if !isJSONInteger(value) {
@@ -181,6 +187,28 @@ func validateCommerceInput(input map[string]any) error {
 	default:
 		return nil
 	}
+}
+
+// Older tasks persisted only counts; their delivery positions were assigned in key order.
+func generationModuleOrder[V any](input map[string]any, counts map[string]V) ([]string, error) {
+	if _, ordered := input["moduleOrder"]; !ordered {
+		return slices.Sorted(maps.Keys(counts)), nil
+	}
+	if input["moduleMode"] != "custom" || len(counts) == 0 {
+		return nil, fmt.Errorf("moduleOrder requires custom module counts")
+	}
+	if err := validateStringArray(input, "moduleOrder", len(counts), len(counts), 50); err != nil {
+		return nil, err
+	}
+	order := stringsFromArray(input["moduleOrder"])
+	seen := map[string]bool{}
+	for _, key := range order {
+		if _, exists := counts[key]; !exists || seen[key] {
+			return nil, fmt.Errorf("moduleOrder must include each selected module exactly once")
+		}
+		seen[key] = true
+	}
+	return order, nil
 }
 
 func requireText(input map[string]any, key string, minimum, maximum int) error {

@@ -215,7 +215,7 @@ type recoverableImageProvider interface {
 	SupportsTaskRecovery() bool
 }
 
-func (q *taskQueue) generateImage(ctx context.Context, id string, input map[string]any, position int, module string, run *generationRun) (string, error) {
+func (q *taskQueue) generateImage(ctx context.Context, id string, input map[string]any, position int, module string, run *generationRun, prepareInput func() error) (string, error) {
 	client := q.imageClient(input)
 	delivery, fresh := generationDelivery{}, true
 	if run != nil {
@@ -240,6 +240,11 @@ func (q *taskQueue) generateImage(ctx context.Context, id string, input map[stri
 	started := time.Now()
 	remote := providerTask{ID: delivery.providerID}
 	if fresh {
+		if prepareInput != nil {
+			if err := prepareInput(); err != nil {
+				return "", err
+			}
+		}
 		if run == nil {
 			q.server.updateTaskStatus(id, "processing")
 		}

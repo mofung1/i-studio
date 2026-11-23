@@ -199,6 +199,19 @@ export function ResultWorkspace({
       ? '通用生图'
       : (taskMeta[imageSource.taskType]?.title ?? '电商设计')
   const referenceTitle = `用作「${referenceTarget}」的参考图`
+  const currentModule = displayModules?.[safeIndex] ?? ''
+  // 删除或缺失一张结果后，图片下标可能已经与原拍摄顺序不同。
+  const shot =
+    displayInput &&
+    'clothingModelSource' in displayInput &&
+    displayInput.clothingModelSource === 'generated' &&
+    displayInput.clothingPlan?.length === images.length
+      ? displayInput.clothingPlan[safeIndex]
+      : undefined
+  const imageLabel =
+    shot?.moduleKey === currentModule
+      ? shot.label
+      : moduleLabel(imageSource.taskType, currentModule)
 
   useEffect(() => {
     setActiveImageIndex(pendingImageRef.current ?? 0)
@@ -519,11 +532,7 @@ export function ResultWorkspace({
                       </div>
                     )}
 
-                    {moduleLabel(imageSource.taskType, displayModules?.[safeIndex] ?? '') && (
-                      <span className="module-badge">
-                        {moduleLabel(imageSource.taskType, displayModules?.[safeIndex] ?? '')}
-                      </span>
-                    )}
+                    {imageLabel && <span className="module-badge">{imageLabel}</span>}
                   </ImageViewport>
                   {images.length > 1 && (
                     <>

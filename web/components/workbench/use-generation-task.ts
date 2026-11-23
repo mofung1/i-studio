@@ -5,6 +5,7 @@ import type { CreationImage } from '@/lib/creation-images'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { generationInputSchema, type GenerationInput } from '@/lib/contracts'
+import { clothingModelRecipe } from '@/lib/commerce-recipe'
 
 import { displayedUnitPrice, fetchGenerationQuote } from '../generation-cost'
 import { refreshAccount, type GenerationQuote } from '@/lib/credits'
@@ -150,38 +151,51 @@ export function useGenerationTask(scopeKey = 'default', { restoreLatest = true }
       const params = new URLSearchParams({ limit: '50', mode })
       if (productId) params.set('productId', productId)
       if (mode === 'commerce' && taskType) params.set('taskType', taskType)
+      const matchesScope = ({ input }: InlineGenerationTask) => {
+        if (!input || input.mode !== mode) return false
+        if (input.mode === 'general') return (input.productId ?? '') === productId
+        if (input.taskType !== taskType) return false
+        if (input.taskType !== 'clothing-set') return true
+        const clothingScope =
+          input.clothingModelSource === 'generated'
+            ? `commerce:clothing-set:${clothingModelRecipe.id}:${input.projectId ?? ''}`
+            : 'commerce:clothing-set'
+        return scopeKey === clothingScope
+      }
+      const isCurrent = () => !controller.signal.aborted && requestId === submissionId.current
       try {
-        const response = await fetch(
-          `${apiBaseUrl}/v1/generation/tasks${savedId ? `/${encodeURIComponent(savedId)}` : `?${params}`}`,
-          {
+        const load = async (suffix: string) => {
+          const response = await fetch(`${apiBaseUrl}/v1/generation/tasks${suffix}`, {
             headers: { Authorization: `Bearer ${token}` },
             signal: controller.signal,
-          },
-        )
-        if (controller.signal.aborted || requestId !== submissionId.current) return
-        if (!response.ok) {
-          if (savedId && (response.status === 401 || response.status === 404))
+          })
+          if (!isCurrent()) return
+          if (!response.ok) {
+            if (savedId && (response.status === 401 || response.status === 404))
+              pendingTaskId(scopeKey, null)
+            throw new Error('任务读取失败')
+          }
+          return (await response.json()) as {
+            task?: InlineGenerationTask
+            tasks?: InlineGenerationTask[]
+          }
+        }
+        let restored: InlineGenerationTask | undefined
+        if (savedId) {
+          restored = (await load(`/${encodeURIComponent(savedId)}`))?.task
+          if (!isCurrent()) return
+          if (!restored || !matchesScope(restored)) {
             pendingTaskId(scopeKey, null)
-          return
+            restored = undefined
+          }
         }
-        const data = (await response.json()) as {
-          task?: InlineGenerationTask
-          tasks?: InlineGenerationTask[]
+        if (!restored && restoreLatest) {
+          const data = await load(`?${params}`)
+          restored = data?.tasks?.find(
+            (item) => activeStatuses.has(item.status) && matchesScope(item),
+          )
         }
-        if (controller.signal.aborted || requestId !== submissionId.current) return
-        const restored = savedId
-          ? data.task
-          : data.tasks?.find(
-              (item) =>
-                activeStatuses.has(item.status) &&
-                (productId
-                  ? item.input?.productId === productId
-                  : mode !== 'general' || !item.input?.productId),
-            )
-        if (!restored || restored.input?.mode !== mode) return
-        if (productId && restored.input.productId !== productId) return
-        if (!productId && mode === 'general' && restored.input.productId) return
-        if (restored.input.mode === 'commerce' && restored.input.taskType !== taskType) return
+        if (!restored || !isCurrent()) return
         setGenerationTask(restored)
         if (terminalStatuses.has(restored.status)) {
           pendingTaskId(scopeKey, null)

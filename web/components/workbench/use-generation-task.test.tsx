@@ -9,8 +9,14 @@ vi.mock('@/components/account-provider', () => ({
 }))
 let hook: ReturnType<typeof useGenerationTask>
 let root: Root
-function Harness({ scope = 'general:submission-test' }: { scope?: string }) {
-  const value = useGenerationTask(scope)
+function Harness({
+  scope = 'general:submission-test',
+  restoreLatest = true,
+}: {
+  scope?: string
+  restoreLatest?: boolean
+}) {
+  const value = useGenerationTask(scope, { restoreLatest })
   useEffect(() => {
     hook = value
   })
@@ -243,3 +249,54 @@ it('never restores a product generation into the ordinary image workbench', asyn
   await act(async () => root.render(<Harness />))
   expect(hook.generationTask?.id).toBe('ordinary')
 })
+
+it.each([false, true])(
+  'restores an ordinary clothing task independently of case tasks (stale saved ID: %s)',
+  async (staleSavedId) => {
+    const scope = 'commerce:clothing-set'
+    const key = `istudio-pending-generation:${scope}`
+    const input = { mode: 'commerce', taskType: 'clothing-set' }
+    const tasks = [
+      { id: 'outfit', status: 'queued', input: { ...input, clothingModelSource: 'generated' } },
+      { id: 'ordinary', status: 'queued', input },
+    ]
+    if (staleSavedId) sessionStorage.setItem(key, 'outfit')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const task = tasks.find((item) => url.endsWith(`/tasks/${item.id}`))
+        return Response.json(task ? { task } : { tasks })
+      }),
+    )
+    await act(async () => root.render(<Harness scope={scope} />))
+    expect(hook.generationTask?.id).toBe('ordinary')
+    expect(sessionStorage.getItem(key)).toBe('ordinary')
+  },
+)
+
+it.each(['my-project', 'another-project'])(
+  'resumes a saved outfit only in its own project (%s)',
+  async (projectId) => {
+    const scope = 'commerce:clothing-set:clothing-model-duo:my-project'
+    const key = `istudio-pending-generation:${scope}`
+    const task = {
+      id: 'outfit',
+      status: 'queued',
+      input: {
+        mode: 'commerce',
+        taskType: 'clothing-set',
+        clothingModelSource: 'generated',
+        projectId,
+      },
+    }
+    sessionStorage.setItem(key, task.id)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ task })),
+    )
+    await act(async () => root.render(<Harness scope={scope} restoreLatest={false} />))
+    const belongsToProject = projectId === 'my-project'
+    expect(hook.generationTask?.id).toBe(belongsToProject ? 'outfit' : undefined)
+    expect(sessionStorage.getItem(key)).toBe(belongsToProject ? 'outfit' : null)
+  },
+)

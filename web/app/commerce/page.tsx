@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import { StudioShell } from '@/components/studio-shell'
 import { moduleLabel, taskMeta } from '@/components/workbench/shared'
 import {
+  clothingModelRecipe,
   commerceRecipeUrl,
   detailPageRecipe,
   productMainRecipe,
@@ -34,7 +35,13 @@ const examples = [
     description: '参考版式，换成你的商品',
     image: 'recreate',
   },
-  { id: 'clothing-set', layout: 'compact', description: '一件服装，多角度呈现', image: 'clothing' },
+  {
+    id: 'clothing-set',
+    layout: 'clothing',
+    description: '米白衬衫上身的 AI 概念示例',
+    image: 'clothing',
+    recipe: clothingModelRecipe,
+  },
   {
     id: 'detail-page',
     layout: 'detail',
@@ -109,6 +116,13 @@ export default async function CommercePage({
           {examples.map((example) => {
             const { id, layout, description, image } = example
             const recipe = 'recipe' in example ? example.recipe : undefined
+            const outputs =
+              recipe?.task === 'clothing-set'
+                ? recipe.shots.map(({ label }) => ({ label, count: 1 }))
+                : Object.entries(recipe?.moduleCounts ?? {}).map(([key, count]) => ({
+                    label: moduleLabel(id, key),
+                    count,
+                  }))
             const href = studioToolUrl('commerce', id, project)
             const title = taskMeta[id].title
             return (
@@ -150,16 +164,16 @@ export default async function CommercePage({
                         {recipe.title} <span>{recipe.aspectRatio}</span>
                       </h3>
                       <ul aria-label="套图内容">
-                        {Object.entries(recipe.moduleCounts).map(([key, count]) => (
-                          <li key={key}>
-                            {moduleLabel(recipe.task, key)} {count} 张
+                        {outputs.map(({ label, count }) => (
+                          <li key={label}>
+                            {label} {count} 张
                           </li>
                         ))}
                       </ul>
                     </div>
                     <span id={`${id}-recipe-action`} className={styles.primary}>
                       用我的商品做同款
-                      {id === 'detail-page' && <span className="sr-only">（{recipe.title}）</span>}
+                      {id !== 'product-main' && <span className="sr-only">（{recipe.title}）</span>}
                       <ArrowRight size={17} aria-hidden="true" />
                     </span>
                   </Link>
