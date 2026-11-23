@@ -212,15 +212,15 @@ it('keeps AI undo available after changing views and renders each tool only once
   expect(reverse).toHaveBeenCalledOnce()
 })
 
-it('grows for a long paste and shrinks again after the content is shortened', async () => {
+it('refreshes the intrinsic editor height when a long prompt is pasted or shortened', async () => {
   vi.spyOn(Element.prototype, 'scrollHeight', 'get').mockImplementation(function (this: Element) {
     return this instanceof HTMLTextAreaElement && this.value.length > 100 ? 900 : 100
   })
   await act(async () => root.render(<Editor />))
-  expect(Number.parseInt(inlineInput().style.height)).toBe(220)
+  expect(inlineInput().style.height).toBe('100px')
   await edit(inlineInput(), '多段长提示词。'.repeat(200))
-  expect(Number.parseInt(inlineInput().style.height)).toBe(360)
+  expect(inlineInput().style.height).toBe('900px')
   expect(inlineInput().value).toBe('多段长提示词。'.repeat(200))
   await edit(inlineInput(), '精简后的描述')
-  expect(Number.parseInt(inlineInput().style.height)).toBe(220)
+  expect(inlineInput().style.height).toBe('100px')
 })

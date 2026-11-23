@@ -303,7 +303,6 @@ export function BasicSettings(props: BasicSettingsProps) {
               aria-controls={popoverId}
               popoverTarget={popoverId}
             >
-              <span className="settings-output-label">画面参数</span>
               <span>
                 {aspectRatio} · {resolution} · {count} 张
               </span>

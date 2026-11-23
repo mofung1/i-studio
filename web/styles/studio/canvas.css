@@ -401,6 +401,25 @@
   }
   .mode-general .workbench-nav {
     order: 1;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding-block: 8px;
+  }
+  .mode-general .workbench-nav .studio-breadcrumb {
+    flex-basis: 100%;
+    gap: 8px;
+  }
+  .mode-general .workbench-nav-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+  .mode-general .workbench-nav-actions > .library-count {
+    min-width: 0;
+    margin-inline-end: auto;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
   .mode-general .configuration-panel {
     order: 2;

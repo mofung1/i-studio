@@ -188,10 +188,10 @@ it('adds local recipe images directly, validates them, and focuses the first new
   expect(container.querySelector('[role="alert"]')?.textContent).toContain('单张不超过 10 MB')
   const thumbnails = [...container.querySelectorAll('.uploaded-thumb')]
   expect(thumbnails).toHaveLength(2)
-  expect(thumbnails[0].querySelector('img')?.alt).toContain('front.png')
-  expect(thumbnails[1].querySelector('img')?.alt).toContain('side.webp')
+  expect(thumbnails[0]?.querySelector('img')?.alt).toContain('front.png')
+  expect(thumbnails[1]?.querySelector('img')?.alt).toContain('side.webp')
   expect(document.activeElement).toBe(thumbnails[0])
-  expect(thumbnails[0].closest('[inert]')).toBeNull()
+  expect(thumbnails[0]?.closest('[inert]')).toBeNull()
   expect(input.multiple).toBe(false)
 
   const libraryButton = [...container.querySelectorAll('button')].find(

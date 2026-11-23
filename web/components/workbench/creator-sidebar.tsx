@@ -127,9 +127,7 @@ const ASSET_LABELS: Record<CommerceTaskType, string> = {
 }
 
 /**
- * 左侧创作控制区：
- * 默认只露出「素材 → 描述 → 风格比例」这三步，其余参数收进高级设置，
- * 生成按钮固定在面板底部，不随滚动消失。
+ * 创作控制区。画面参数可按需展开，生成按钮固定在面板底部。
  */
 export function CreatorSidebar(props: CreatorSidebarProps) {
   const {

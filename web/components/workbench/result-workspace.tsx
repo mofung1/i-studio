@@ -114,7 +114,7 @@ type ArchiveDownload = { taskId: string } & (
   | { error: string }
 )
 
-/** 右侧结果工作区：当前任务结果 + 历史记录抽屉 + 图片查看/裁剪。 */
+/** 结果工作区：当前任务结果、历史记录与图片查看。 */
 export function ResultWorkspace({
   mode,
   task,
@@ -494,6 +494,51 @@ export function ResultWorkspace({
       />
     ) : null
 
+  const groupGeneralActions = mode === 'general' && imageSource.mode === 'general'
+  const downloadAction = (
+    <button
+      type="button"
+      className="studio-secondary"
+      disabled={!heroReady}
+      onClick={downloadCurrent}
+    >
+      <Download size={15} aria-hidden="true" />
+      下载图片
+    </button>
+  )
+  const referenceAction = (
+    <button
+      type="button"
+      className="studio-secondary"
+      disabled={!heroReady}
+      title={referenceTitle}
+      onClick={() => onUseImageAsReference(heroImage, imageSource)}
+    >
+      <ImageIcon size={15} aria-hidden="true" />
+      用作参考图
+    </button>
+  )
+  const fullscreenAction = (
+    <button
+      type="button"
+      className="studio-secondary result-fullscreen-command"
+      disabled={!heroReady}
+      onClick={() => setLightboxOpen(true)}
+    >
+      <Maximize2 size={15} aria-hidden="true" />
+      全屏查看
+    </button>
+  )
+  const compareAction = (
+    <ImageComparisonButton
+      candidates={comparisonImages}
+      initialLeft={productOriginal?.path ?? heroImage}
+      initialRight={productOriginal ? heroImage : undefined}
+      originalFallbackPaths={fallbackOriginals.map(({ path }) => path)}
+      disabled={!heroReady}
+    />
+  )
+
   return (
     <section className="creation-canvas result-workspace">
       <header className="result-head" ref={resultHeader} tabIndex={-1}>
@@ -542,8 +587,6 @@ export function ResultWorkspace({
                   {generationStatusLabels[generationTask?.status ?? ''] ?? '任务处理中'}
                 </span>
               )}
-              {/* 还没有任何结果时不显示「N 张 / 比例 / 分辨率」和「重新生成」：
-                  此时没有可重新生成的对象，直接引导用户用左侧的生成按钮 */}
               {(hasResults || isGenerating) && (
                 <>
                   <span className="meta-chip">{displayRatio}</span>
@@ -551,7 +594,7 @@ export function ResultWorkspace({
                   <button
                     type="button"
                     className="meta-action is-primary"
-                    title="用当前左侧配置再生成一次"
+                    title="用当前创作设置重新生成"
                     disabled={isSubmitting || isGenerating}
                     onClick={onRegenerate}
                   >
@@ -680,7 +723,11 @@ export function ResultWorkspace({
 
           {heroImage !== '' && (
             <div className="result-result">
-              <div className="result-image-toolbar" role="group" aria-label="图片查看操作">
+              <div
+                className={`result-image-toolbar${groupGeneralActions ? ' is-grouped' : ''}`}
+                role="group"
+                aria-label="图片查看操作"
+              >
                 <span className="result-image-info" aria-live="polite">
                   <strong>
                     {visibleIndex + 1} / {images.length}
@@ -695,63 +742,55 @@ export function ResultWorkspace({
                   )}
                 </span>
                 <div className="result-image-commands">
-                  <button
-                    type="button"
-                    className="studio-secondary"
-                    disabled={!heroReady}
-                    onClick={downloadCurrent}
-                  >
-                    <Download size={15} aria-hidden="true" />
-                    下载图片
-                  </button>
-                  {groupTitle && displayTaskId && (
-                    <button
-                      type="button"
-                      className="studio-secondary"
-                      disabled={downloadGroupBusy}
-                      onClick={() => void downloadGroup(displayTaskId, groupTitle)}
-                    >
-                      <Download size={15} aria-hidden="true" />
-                      {downloadGroupBusy ? '打包中…' : partialGroup ? '下载已完成图片' : '下载整套'}
-                    </button>
+                  {groupGeneralActions ? (
+                    <>
+                      <div className="result-image-action-group" role="group" aria-label="使用图片">
+                        {downloadAction}
+                        {referenceAction}
+                      </div>
+                      <div
+                        className="result-image-action-group is-view-group"
+                        role="group"
+                        aria-label="查看图片"
+                      >
+                        {fullscreenAction}
+                        {compareAction}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {downloadAction}
+                      {groupTitle && displayTaskId && (
+                        <button
+                          type="button"
+                          className="studio-secondary"
+                          disabled={downloadGroupBusy}
+                          onClick={() => void downloadGroup(displayTaskId, groupTitle)}
+                        >
+                          <Download size={15} aria-hidden="true" />
+                          {downloadGroupBusy
+                            ? '打包中…'
+                            : partialGroup
+                              ? '下载已完成图片'
+                              : '下载整套'}
+                        </button>
+                      )}
+                      {redoCandidate && (
+                        <button
+                          type="button"
+                          className="studio-secondary"
+                          disabled={!heroReady || isGenerating || isSubmitting}
+                          onClick={() => setRedoSelection(redoCandidate)}
+                        >
+                          <RotateCcw size={15} aria-hidden="true" />
+                          只重做这张
+                        </button>
+                      )}
+                      {fullscreenAction}
+                      {referenceAction}
+                      {compareAction}
+                    </>
                   )}
-                  {redoCandidate && (
-                    <button
-                      type="button"
-                      className="studio-secondary"
-                      disabled={!heroReady || isGenerating || isSubmitting}
-                      onClick={() => setRedoSelection(redoCandidate)}
-                    >
-                      <RotateCcw size={15} aria-hidden="true" />
-                      只重做这张
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="studio-secondary result-fullscreen-command"
-                    disabled={!heroReady}
-                    onClick={() => setLightboxOpen(true)}
-                  >
-                    <Maximize2 size={15} aria-hidden="true" />
-                    全屏查看
-                  </button>
-                  <button
-                    type="button"
-                    className="studio-secondary"
-                    disabled={!heroReady}
-                    title={referenceTitle}
-                    onClick={() => onUseImageAsReference(heroImage, imageSource)}
-                  >
-                    <ImageIcon size={15} aria-hidden="true" />
-                    用作参考图
-                  </button>
-                  <ImageComparisonButton
-                    candidates={comparisonImages}
-                    initialLeft={productOriginal?.path ?? heroImage}
-                    initialRight={productOriginal ? heroImage : undefined}
-                    originalFallbackPaths={fallbackOriginals.map(({ path }) => path)}
-                    disabled={!heroReady}
-                  />
                 </div>
                 {groupTitle && (
                   <p

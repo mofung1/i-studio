@@ -26,7 +26,7 @@ interface PromptEditorProps {
   enhanceDisabledReason?: string
   helper?: string
   maxLength?: number
-  /** Retained for existing callers; both variants now adapt to their content. */
+  /** Use a shorter inline writing area in the general workbench. */
   compact?: boolean
   collapsed?: boolean
   actions?: ReactNode
@@ -34,9 +34,6 @@ interface PromptEditorProps {
   draftError?: string
   onRetryDraft?: () => Promise<void>
 }
-
-const minimumHeight = 220
-const maximumHeight = 360
 
 function usePromptHeight(
   ref: RefObject<HTMLTextAreaElement | null>,
@@ -49,7 +46,7 @@ function usePromptHeight(
     const resize = () => {
       const scrollTop = node.scrollTop
       node.style.height = 'auto'
-      node.style.height = `${Math.max(minimumHeight, Math.min(node.scrollHeight, maximumHeight))}px`
+      node.style.height = `${node.scrollHeight}px`
       node.scrollTop = scrollTop
     }
     resize()
@@ -192,6 +189,7 @@ export function PromptEditor({
   enhanceDisabledReason,
   helper,
   maxLength = 10000,
+  compact = false,
   collapsed = false,
   actions,
   draftStatus,
@@ -384,7 +382,7 @@ export function PromptEditor({
   return (
     <>
       <div
-        className={styles.editor}
+        className={`${styles.editor}${compact ? ` ${styles.compact}` : ''}`}
         aria-hidden={expanded || undefined}
         inert={expanded || undefined}
       >

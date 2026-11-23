@@ -127,6 +127,23 @@ it.each(['general', 'commerce'] as const)(
       await loadResultImage()
       expect(container.querySelector('.result-image-info')?.textContent).toContain('2 / 3')
       const toolbar = container.querySelector('.result-image-toolbar')!
+      const actionGroups = [...toolbar.querySelectorAll('.result-image-action-group')]
+      if (mode === 'general' && !historyTask) {
+        expect(
+          actionGroups.map((group) => [
+            group.getAttribute('aria-label'),
+            [...group.querySelectorAll('button')].map((button) => button.textContent),
+          ]),
+        ).toEqual([
+          ['使用图片', ['下载图片', '用作参考图']],
+          ['查看图片', ['全屏查看', '图片对比']],
+        ])
+        expect(container.querySelector('.result-head .meta-action')?.getAttribute('title')).toBe(
+          '用当前创作设置重新生成',
+        )
+      } else {
+        expect(actionGroups).toHaveLength(0)
+      }
       const button = (text: string) =>
         [...toolbar.querySelectorAll('button')].find((button) => button.textContent === text)!
       await act(async () => button('下载图片').click())
@@ -466,12 +483,13 @@ it('shows the selected failed redo history even while a different task is genera
 })
 
 it('keeps the redo selected when the original is unavailable and opens the exact image when found', async () => {
+  const earlierPath = '/v1/assets/earlier-image/content'
   const sourcePath = '/v1/assets/source-image/content'
   const redoImagePath = '/v1/assets/redo-image/content'
   const origin = {
     ...history,
     id: 'source-task',
-    resultImages: [history.resultImages[0], sourcePath],
+    resultImages: [earlierPath, sourcePath],
   }
   const redo = {
     ...history,
@@ -482,9 +500,7 @@ it('keeps the redo selected when the original is unavailable and opens the exact
   const selectHistory = vi.fn()
   const fetchOrigin = vi
     .fn<typeof fetch>()
-    .mockResolvedValueOnce(
-      Response.json({ task: { ...origin, resultImages: [history.resultImages[0]] } }),
-    )
+    .mockResolvedValueOnce(Response.json({ task: { ...origin, resultImages: [earlierPath] } }))
     .mockResolvedValueOnce(Response.json({ message: '生成任务不存在' }, { status: 404 }))
     .mockResolvedValueOnce(Response.json({ task: origin }))
   vi.stubGlobal('fetch', fetchOrigin)
