@@ -5,15 +5,26 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"mime"
 	"net/http"
-	"reflect"
+	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
+	"testing/iotest"
+
+	"github.com/istudio/server/internal/domain"
+	objectstore "github.com/istudio/server/internal/storage"
 )
 
 func TestTaskDownloadNamesCommerceSuites(t *testing.T) {
+	const browserOrigin = "https://studio.example"
+	t.Setenv("WEB_ORIGINS", browserOrigin)
 	s := testLibraryServer(t)
+	router := s.router()
+	image := siteLogoBytes(t, "png")
 	for _, suite := range []struct {
 		taskType string
 		filename string
@@ -49,10 +60,10 @@ func TestTaskDownloadNamesCommerceSuites(t *testing.T) {
 			for i, module := range suite.modules {
 				id := assetIDFromPath(paths[i])
 				if _, err := s.db.Exec(`INSERT INTO assets(id,user_id,task_id,filename,storage_key,mime,size_bytes)
-					VALUES($1,'library-a',$2,$1,$1,'image/png',8)`, id, suite.taskType); err != nil {
+					VALUES($1,'library-a',$2,$1,$1,'image/png',$3)`, id, suite.taskType, len(image)); err != nil {
 					t.Fatal(err)
 				}
-				if err := s.storage.Save(id, strings.NewReader("image-"+id)); err != nil {
+				if err := s.storage.Save(id, bytes.NewReader(image)); err != nil {
 					t.Fatal(err)
 				}
 				if generatedModel {
@@ -66,9 +77,30 @@ func TestTaskDownloadNamesCommerceSuites(t *testing.T) {
 			assertDownload := func(filename string, expected []string) {
 				t.Helper()
 				path := "/v1/generation/tasks/" + suite.taskType + "/download"
-				w := libraryHTTP(t, s, http.MethodGet, path, "library-a", "")
+				request := httptest.NewRequest(http.MethodGet, path, nil)
+				request.Header.Set("Origin", browserOrigin)
+				request.Header.Set("Authorization", "Bearer "+s.testToken(domain.User{ID: "library-a"}))
+				w := httptest.NewRecorder()
+				router.ServeHTTP(w, request)
 				if w.Code != http.StatusOK {
 					t.Fatal(w.Code, w.Body.String())
+				}
+				if got := w.Header().Get("Access-Control-Allow-Origin"); got != browserOrigin {
+					t.Errorf("allowed origin = %q, want %q", got, browserOrigin)
+				}
+				exposedHeaders := w.Header().Get("Access-Control-Expose-Headers")
+				exposed := strings.Split(strings.ReplaceAll(exposedHeaders, " ", ""), ",")
+				if !slices.Contains(exposed, "X-Archive-Image-Count") || !slices.Contains(exposed, "X-Archive-Expected-Count") {
+					t.Errorf("archive counts are not exposed to the browser: %q", exposedHeaders)
+				}
+				for header, want := range map[string]int{
+					"X-Archive-Image-Count":    len(expected),
+					"X-Archive-Expected-Count": len(suite.modules),
+					"Content-Length":           w.Body.Len(),
+				} {
+					if got := w.Header().Get(header); got != fmt.Sprint(want) {
+						t.Errorf("%s = %q, want %d", header, got, want)
+					}
 				}
 				_, params, err := mime.ParseMediaType(w.Header().Get("Content-Disposition"))
 				if err != nil || params["filename"] != filename {
@@ -78,12 +110,17 @@ func TestTaskDownloadNamesCommerceSuites(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				var names []string
-				for _, entry := range archive.File {
-					names = append(names, entry.Name)
+				if len(archive.File) != len(expected) {
+					t.Fatalf("archive has %d entries, want %d", len(archive.File), len(expected))
 				}
-				if !reflect.DeepEqual(names, expected) {
-					t.Fatalf("archive entries %v, want %v", names, expected)
+				for index, entry := range archive.File {
+					if entry.Name != expected[index] {
+						t.Errorf("archive entry %d = %q, want %q", index, entry.Name, expected[index])
+					}
+					data, err := fs.ReadFile(archive, entry.Name)
+					if err != nil || !bytes.Equal(data, image) {
+						t.Errorf("%s contents were not preserved (%v)", entry.Name, err)
+					}
 				}
 			}
 			assertDownload(suite.filename, expected)
@@ -92,7 +129,68 @@ func TestTaskDownloadNamesCommerceSuites(t *testing.T) {
 				if w.Code != http.StatusOK {
 					t.Fatal(w.Code, w.Body.String())
 				}
-				assertDownload("模特上身套图-已完成图片.zip", []string{"01_侧面上身图.png"})
+				assertDownload("模特上身套图-缺1张.zip", []string{"01_侧面上身图.png"})
+			}
+		})
+	}
+}
+
+type interruptedTaskDownloadStore struct {
+	objectstore.Store
+	secondImage io.Reader
+}
+
+func (s interruptedTaskDownloadStore) Open(key string) (io.ReadCloser, error) {
+	if key == "archive-second" {
+		return io.NopCloser(s.secondImage), nil
+	}
+	return s.Store.Open(key)
+}
+
+func TestTaskDownloadRejectsInterruptedStorageReads(t *testing.T) {
+	s := testLibraryServer(t)
+	image := siteLogoBytes(t, "png")
+	if _, err := s.db.Exec(`INSERT INTO generation_tasks(id,user_id,status,input,result_images)
+		VALUES('archive-task','library-a','succeeded','{"taskType":"product-main","count":2}',
+		'["/v1/assets/archive-first/content","/v1/assets/archive-second/content"]')`); err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"archive-first", "archive-second"} {
+		if _, err := s.db.Exec(`INSERT INTO assets(id,user_id,task_id,filename,storage_key,mime,size_bytes)
+			VALUES($1,'library-a','archive-task',$1,$1,'image/png',$2)`, id, len(image)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.storage.Save("archive-first", bytes.NewReader(image)); err != nil {
+		t.Fatal(err)
+	}
+
+	baseStore := s.storage
+	truncated := image[:len(image)/2]
+	for _, test := range []struct {
+		name   string
+		reader io.Reader
+	}{
+		{"read error", io.MultiReader(bytes.NewReader(truncated), iotest.ErrReader(io.ErrUnexpectedEOF))},
+		{"silent short read", bytes.NewReader(truncated)},
+		{"oversized object", bytes.NewReader(append(bytes.Clone(image), 0))},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			s.storage = interruptedTaskDownloadStore{Store: baseStore, secondImage: test.reader}
+			w := libraryHTTP(t, s, http.MethodGet, "/v1/generation/tasks/archive-task/download", "library-a", "")
+			if w.Code != http.StatusInternalServerError || w.Header().Get("Content-Type") != "application/json" {
+				t.Fatalf("expected JSON failure, got %d %v", w.Code, w.Header())
+			}
+			for _, header := range []string{"Content-Disposition", "X-Archive-Image-Count", "X-Archive-Expected-Count"} {
+				if w.Header().Get(header) != "" {
+					t.Errorf("failed response included archive header %s", header)
+				}
+			}
+			var problem struct {
+				Code string `json:"code"`
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &problem); err != nil || problem.Code != "TASK_ARCHIVE_FAILED" {
+				t.Fatalf("unexpected error body %q (%v)", w.Body, err)
 			}
 		})
 	}

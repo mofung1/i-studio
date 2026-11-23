@@ -353,10 +353,11 @@ func TestClothingAssetOwnershipRolesAndZip(t *testing.T) {
 		if id == "foreign" {
 			uid = "other"
 		}
-		if _, err := db.Exec("INSERT INTO assets(id,user_id,filename,storage_key,mime,size_bytes) VALUES($1,$2,$1,$1,'image/png',8)", id, uid); err != nil {
+		image := "image-" + id
+		if _, err := db.Exec("INSERT INTO assets(id,user_id,filename,storage_key,mime,size_bytes) VALUES($1,$2,$1,$1,'image/png',$3)", id, uid, len(image)); err != nil {
 			t.Fatal(err)
 		}
-		if err := storage.Save(id, strings.NewReader("image-"+id)); err != nil {
+		if err := storage.Save(id, strings.NewReader(image)); err != nil {
 			t.Fatal(err)
 		}
 	}

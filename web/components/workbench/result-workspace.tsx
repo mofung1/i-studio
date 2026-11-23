@@ -109,6 +109,11 @@ interface LoadedPreview extends PreviewImage {
   height: number
 }
 
+type ArchiveDownload = { taskId: string } & (
+  | { imageCount: number; expectedCount: number }
+  | { error: string }
+)
+
 /** 右侧结果工作区：当前任务结果 + 历史记录抽屉 + 图片查看/裁剪。 */
 export function ResultWorkspace({
   mode,
@@ -153,6 +158,7 @@ export function ResultWorkspace({
     null,
   )
   const [downloadGroupBusy, setDownloadGroupBusy] = useState(false)
+  const [archiveDownload, setArchiveDownload] = useState<ArchiveDownload | null>(null)
   const [redoSelection, setRedoSelection] = useState<RedoSelection | null>(null)
   const [redoOriginBusy, setRedoOriginBusy] = useState(false)
   const [redoOriginError, setRedoOriginError] = useState('')
@@ -271,6 +277,22 @@ export function ResultWorkspace({
       ? archiveTitle
       : undefined
   const partialGroup = displayTask?.status !== 'succeeded' || plannedCount > images.length
+  const archiveResult = archiveDownload?.taskId === displayTaskId ? archiveDownload : null
+  const archiveError = archiveResult && 'error' in archiveResult ? archiveResult.error : ''
+  const downloadedArchive = archiveResult && 'imageCount' in archiveResult ? archiveResult : null
+  const archiveMissing = downloadedArchive
+    ? downloadedArchive.expectedCount - downloadedArchive.imageCount
+    : Math.max(0, plannedCount - images.length)
+  const archiveWarning = archiveError !== '' || archiveMissing > 0
+  const missingNotice = archiveMissing > 0 ? `，缺少 ${archiveMissing} 张` : ''
+  let archiveNotice = ''
+  if (archiveError) {
+    archiveNotice = archiveError
+  } else if (downloadedArchive) {
+    archiveNotice = `ZIP 已打包 ${downloadedArchive.imageCount} / ${downloadedArchive.expectedCount} 张${missingNotice}。`
+  } else if (archiveMissing > 0 && (!isGenerating || isHistoryView)) {
+    archiveNotice = `本套已有 ${images.length} / ${plannedCount} 张成片${missingNotice}。`
+  }
   const currentModule = displayModules?.[safeIndex] ?? ''
   // 删除或缺失一张结果后，图片下标可能已经与原拍摄顺序不同。
   const shot =
@@ -332,8 +354,9 @@ export function ResultWorkspace({
     )
   }
 
-  async function downloadGroup(id: string, filename: string) {
+  async function downloadGroup(id: string, title: string) {
     setDownloadError(null)
+    setArchiveDownload(null)
     setDownloadGroupBusy(true)
     try {
       const token = getAccessToken()
@@ -342,18 +365,31 @@ export function ResultWorkspace({
         { headers: { Authorization: `Bearer ${token}` } },
       )
       if (!response.ok) throw new Error(await readApiError(response, '图组下载失败'))
+      const imageCount = Number(response.headers.get('X-Archive-Image-Count'))
+      const expectedCount = Number(response.headers.get('X-Archive-Expected-Count'))
+      if (
+        !Number.isSafeInteger(imageCount) ||
+        imageCount < 1 ||
+        !Number.isSafeInteger(expectedCount) ||
+        expectedCount < imageCount
+      ) {
+        throw new Error('无法确认 ZIP 的图片数量，请重试')
+      }
       const archive = await response.blob()
       if (getAccessToken() !== token) throw new Error('账号已切换，请重新下载')
+      const missing = expectedCount - imageCount
+      const suffix = missing > 0 ? `-缺${missing}张` : ''
       const url = URL.createObjectURL(archive)
       const anchor = document.createElement('a')
       anchor.href = url
-      anchor.download = filename
+      anchor.download = `${title}${suffix}.zip`
       anchor.click()
       window.setTimeout(() => URL.revokeObjectURL(url), 30000)
+      setArchiveDownload({ taskId: id, imageCount, expectedCount })
     } catch (error) {
-      setDownloadError({
+      setArchiveDownload({
         taskId: id,
-        message: error instanceof Error ? error.message : '图组下载失败',
+        error: error instanceof Error ? error.message : '图组下载失败',
       })
     } finally {
       setDownloadGroupBusy(false)
@@ -618,12 +654,7 @@ export function ResultWorkspace({
                       type="button"
                       className="studio-secondary"
                       disabled={downloadGroupBusy}
-                      onClick={() =>
-                        void downloadGroup(
-                          displayTaskId,
-                          `${groupTitle}${partialGroup ? '-已完成图片' : ''}.zip`,
-                        )
-                      }
+                      onClick={() => void downloadGroup(displayTaskId, groupTitle)}
                     >
                       <Download size={15} aria-hidden="true" />
                       {downloadGroupBusy ? '打包中…' : partialGroup ? '下载已完成图片' : '下载整套'}
@@ -666,6 +697,25 @@ export function ResultWorkspace({
                     disabled={!heroReady}
                   />
                 </div>
+                {groupTitle && (
+                  <p
+                    className={`form-notice result-archive-notice ${
+                      archiveNotice ? (archiveWarning ? 'error' : 'success') : 'sr-only'
+                    }`}
+                    role={archiveError ? 'alert' : 'status'}
+                  >
+                    {archiveNotice && (
+                      <>
+                        {archiveWarning ? (
+                          <AlertTriangle size={15} aria-hidden="true" />
+                        ) : (
+                          <Check size={15} aria-hidden="true" />
+                        )}
+                        <span>{archiveNotice}</span>
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
               <div className={`result-stage${images.length > 1 ? ' has-strip' : ''}`}>
                 <div

@@ -1044,6 +1044,18 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.result-archive-notice {
+  align-items: center;
+  flex: 0 0 100%;
+  margin: 0;
+  font-size: 12px;
+}
+.result-archive-notice.error {
+  color: var(--danger);
+}
+.result-archive-notice > svg {
+  flex: none;
+}
 .result-image-info {
   display: inline-flex;
   align-items: center;

@@ -427,3 +427,63 @@ it('downloads the displayed task group from the workbench and distinguishes part
   expect(downloadButton('查看原版')).toBeDefined()
   expect(downloadButton('下载整套')).toBeUndefined()
 })
+
+it('reports the ZIP image count from the server even when the displayed task looks complete', async () => {
+  const archives: string[] = []
+  const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    archives.push(this.download)
+  })
+  vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static createObjectURL = vi.fn(() => 'blob:archive')
+      static revokeObjectURL = vi.fn()
+    },
+  )
+  const fetchArchive = vi.fn<typeof fetch>()
+  fetchArchive.mockResolvedValueOnce(
+    new Response('partial archive', {
+      headers: { 'X-Archive-Image-Count': '2', 'X-Archive-Expected-Count': '3' },
+    }),
+  )
+  fetchArchive.mockResolvedValueOnce(new Response('archive with no confirmed count'))
+  fetchArchive.mockResolvedValueOnce(
+    new Response('full archive', {
+      headers: { 'X-Archive-Image-Count': '3', 'X-Archive-Expected-Count': '3' },
+    }),
+  )
+  vi.stubGlobal('fetch', fetchArchive)
+  vi.useFakeTimers()
+
+  try {
+    await act(async () =>
+      root.render(<ResultWorkspace {...props} mode="commerce" historyTask={history} />),
+    )
+    const downloadGroup = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent === '下载整套',
+    )!
+    const notice = container.querySelector('.result-archive-notice')
+
+    await act(async () => downloadGroup.click())
+    expect(archives).toEqual(['商品详情套图-缺1张.zip'])
+    expect(notice?.textContent).toBe('ZIP 已打包 2 / 3 张，缺少 1 张。')
+
+    await act(async () => downloadGroup.click())
+    expect(archives).toHaveLength(1)
+    expect(notice?.getAttribute('role')).toBe('alert')
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      '无法确认 ZIP 的图片数量，请重试',
+    )
+
+    await act(async () => downloadGroup.click())
+    expect(archives).toEqual(['商品详情套图-缺1张.zip', '商品详情套图.zip'])
+    expect(notice?.textContent).toBe('ZIP 已打包 3 / 3 张。')
+    expect(container.querySelector('[role="alert"]')).toBeNull()
+  } finally {
+    anchorClick.mockRestore()
+    vi.clearAllTimers()
+    vi.useRealTimers()
+  }
+})
