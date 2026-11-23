@@ -1788,6 +1788,7 @@
   .comparison-dialog:has(.comparison-workspace) {
     overflow-y: auto;
     overscroll-behavior-y: contain;
+    scroll-padding-top: 60px;
   }
   .comparison-dialog:has(.comparison-workspace) .comparison-header {
     position: sticky;
