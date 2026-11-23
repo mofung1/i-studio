@@ -1,5 +1,5 @@
 'use client'
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ export function AdminEditorDialog({
   portalContainer?: HTMLElement | null
   footer?: ReactNode
 }) {
+  const returnFocus = useRef<HTMLElement | null>(null)
   const fixedBody = !!footer || !hideActions
   return (
     <Dialog
@@ -39,10 +40,20 @@ export function AdminEditorDialog({
       <DialogContent
         className={`admin-editor-dialog${fixedBody ? ' admin-editor-with-footer' : ''}`}
         portalContainer={portalContainer}
+        {...(!subtitle && { 'aria-describedby': undefined })}
+        onOpenAutoFocus={() => {
+          const current = document.activeElement
+          returnFocus.current = current instanceof HTMLElement ? current : null
+        }}
+        onCloseAutoFocus={(event) => {
+          if (!returnFocus.current?.isConnected) return
+          event.preventDefault()
+          returnFocus.current.focus({ preventScroll: true })
+        }}
       >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{subtitle ?? '修改后保存，配置将立即生效。'}</DialogDescription>
+          {subtitle && <DialogDescription>{subtitle}</DialogDescription>}
         </DialogHeader>
         {fixedBody ? <div className="dialog-scroll-body">{children}</div> : children}
         {footer}

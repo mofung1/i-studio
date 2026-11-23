@@ -2,11 +2,12 @@
 
 import { DialogActions } from '@/components/dialog-actions'
 import { FavoriteStar } from '@/components/favorite-star'
-import { Check, ChevronLeft, ChevronRight, Images, Maximize2, Plus, Search, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Images, Maximize2, Search, X } from 'lucide-react'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { AccountAccess } from '@/components/account-access'
 import { useAccount } from '@/components/account-provider'
 import { AuthenticatedImage } from '@/components/authenticated-image'
+import { ImageUpload, ImageUploadDropArea } from '@/components/image-upload'
 import { LibraryDialog, LibrarySelect } from '@/components/library-controls'
 import { getAccessToken } from '@/lib/api'
 import {
@@ -243,7 +244,6 @@ export function AssetPicker({
   const [selectedPreview, setSelectedPreview] = useState<CreationImage | null>(null)
   useEffect(() => setSelectedPreview(null), [owner, account.authenticated])
   const [attempt, setAttempt] = useState(0)
-  const input = useRef<HTMLInputElement>(null)
   const scope = `${owner}:${account.authenticated}:${kind}:${query}:${favorite}:${project}:${attempt}`
   const currentScope = useRef(scope)
   currentScope.current = scope
@@ -370,60 +370,34 @@ export function AssetPicker({
         </footer>
       }
     >
-      <div
+      <ImageUploadDropArea
         className={`asset-picker${dragging ? ' is-dragging' : ''}`}
-        onDragOver={(event) => {
-          if (!Array.from(event.dataTransfer.types).includes('Files')) return
-          event.preventDefault()
-          event.stopPropagation()
-          setDragging(true)
-        }}
-        onDragLeave={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragging(false)
-        }}
-        onDrop={(event) => {
-          if (!Array.from(event.dataTransfer.types).includes('Files')) return
-          event.preventDefault()
-          event.stopPropagation()
-          setDragging(false)
-          addLocal(Array.from(event.dataTransfer.files))
-        }}
+        onDraggingChange={setDragging}
+        onFiles={addLocal}
       >
         <div className="asset-picker-materials">
-          <button
+          <ImageUpload
             className="asset-picker-upload"
-            type="button"
-            aria-label="选择本地图片"
+            variant="tile"
+            inputLabel="选择本地图片"
+            label="添加图片"
+            hint={selected.length >= limit ? '已达上限' : '点击或拖入'}
             title={
               selected.length >= limit
                 ? `已选满 ${limit} 张，移除图片后可继续添加`
                 : '选择本地图片，或拖入图片'
             }
             disabled={selected.length >= limit}
-            onClick={() => input.current?.click()}
-          >
-            <Plus size={23} aria-hidden="true" />
-            <strong>添加图片</strong>
-            <small>{selected.length >= limit ? '已达上限' : '点击或拖入'}</small>
-          </button>
+            multiple={limit > 1}
+            allowDrop={false}
+            onFiles={addLocal}
+          />
           <SelectedImages
             images={selected}
             onPreview={setSelectedPreview}
             onRemove={(index) => select((previous) => previous.filter((_, at) => at !== index))}
           />
         </div>
-        <input
-          ref={input}
-          type="file"
-          hidden
-          multiple={limit > 1}
-          accept={creationImageTypes.join(',')}
-          aria-label="选择本地图片"
-          onChange={(event) => {
-            addLocal(Array.from(event.target.files ?? []))
-            event.target.value = ''
-          }}
-        />
         <p className="asset-picker-file-status" role={fileError ? 'alert' : undefined}>
           {fileError || 'JPG / PNG / WebP · 单张不超过 10 MB'}
         </p>
@@ -591,7 +565,7 @@ export function AssetPicker({
             </div>
           </>
         )}
-      </div>
+      </ImageUploadDropArea>
       {selectedPreview &&
         (isStoredImage(selectedPreview) ? (
           account.authenticated && (

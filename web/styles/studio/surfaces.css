@@ -171,15 +171,6 @@
     border: 0;
     background: var(--studio-canvas);
   }
-  .mode-general .basic-settings-popover {
-    width: min(440px, calc(100vw - 64px));
-    max-width: calc(100vw - 64px);
-    max-height: min(420px, 60dvh);
-    overflow-y: auto;
-  }
-  .mode-general .basic-settings-popover-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .mode-general .composer-surface {
     border-radius: 12px;
   }
@@ -550,17 +541,8 @@
   background: var(--control-bg);
   color: var(--foreground);
 }
-.studio-primary:hover,
-.generate-button:hover:not(:disabled) {
+.studio-primary:hover {
   background: var(--primary-hover);
-}
-.generate-button {
-  color: var(--primary-foreground);
-}
-.generate-button:disabled {
-  color: var(--muted);
-  background: var(--control-bg);
-  border-color: transparent;
 }
 .info-dialog-backdrop {
   animation: none;

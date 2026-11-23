@@ -56,7 +56,7 @@ it('shows actionable usage alerts while keeping credits distinct from the suppli
 
 it('keeps missing metrics unknown instead of inventing usage or available budgets', async () => {
   await withOverview({}, (container) => {
-    const metrics = container.querySelector('[aria-label="今日运营数据"]')!
+    const metrics = container.querySelector('[aria-labelledby="overview-today-title"]')!
     expect([...metrics.querySelectorAll('dd > span')].map((item) => item.textContent)).toEqual([
       '—',
       '—',
@@ -103,9 +103,17 @@ it('keeps first-time setup secondary and links daily tasks to their management p
       expect(container.querySelector('a[href="/admin/feedback"]')?.textContent).toContain(
         '处理用户反馈',
       )
-      const metrics = container.querySelector('[aria-label="今日运营数据"]')!
+      const metrics = container.querySelector('[aria-labelledby="overview-today-title"]')!
       expect(metrics.querySelectorAll('dd')).toHaveLength(4)
       expect(metrics.textContent).toContain('12.5')
     },
   )
+})
+
+it('links from the queue snapshot to standalone monitoring without embedding diagnostics', async () => {
+  await withOverview({}, (container) => {
+    const queue = container.querySelector('[aria-labelledby="overview-queue-title"]')
+    expect(queue?.querySelector('a[href="/admin/monitoring"]')?.textContent).toContain('查看运行监控')
+    expect(container.textContent).not.toContain('刷新监控')
+  })
 })

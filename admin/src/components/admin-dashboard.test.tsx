@@ -88,9 +88,12 @@ it('keeps balance retries idempotent and starts a new adjustment after editing',
   await act(async () => {
     await vi.advanceTimersByTimeAsync(250)
   })
-  await act(async () => button('调整余额').click())
+  const adjustBalance = button('调整余额')
+  adjustBalance.focus()
+  await act(async () => adjustBalance.click())
   const editor = () => container.querySelector<HTMLElement>('[aria-label="调整用户余额"]')!
   const inputs = editor().querySelectorAll('input')
+  expect(document.activeElement).toBe(inputs[0])
   await change(inputs[0]!, '2.50')
   await change(inputs[1]!, '测试发放')
   await submit(editor().querySelector('form')!)
@@ -107,6 +110,10 @@ it('keeps balance retries idempotent and starts a new adjustment after editing',
   expect(submissions[2]!.requestKey).not.toBe(submissions[0]!.requestKey)
   expect(submissions[2]).toMatchObject({ deltaMinor: 325, note: '测试发放' })
   expect(editor()).toBeNull()
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1)
+  })
+  expect(document.activeElement).toBe(adjustBalance)
 })
 
 it('submits precise model pricing and clears the default flag when taking it off sale', async () => {
@@ -155,8 +162,10 @@ it('submits precise model pricing and clears the default flag when taking it off
 })
 
 it('keeps search focused while loading and ignores an older search response', async () => {
-  const pending: Array<(value: unknown) => void> = []
-  request.mockImplementation(() => new Promise((resolve) => pending.push(resolve)))
+  const pending: Array<{ resolve: (value: unknown) => void; reject: (reason: Error) => void }> = []
+  request.mockImplementation(
+    () => new Promise((resolve, reject) => pending.push({ resolve, reject })),
+  )
   await act(async () => root.render(<AdminDashboard view="users" />))
   await act(async () => {
     await vi.advanceTimersByTimeAsync(250)
@@ -177,10 +186,21 @@ it('keeps search focused while loading and ignores an older search response', as
     available: 0,
     held: 0,
   })
-  await act(async () => pending[1]!(firstPage('users', [user('alice')])))
-  await act(async () => pending[0]!(firstPage('users', [user('stale-result')])))
+  await act(async () => pending[1]!.resolve(firstPage('users', [user('alice')])))
+  await act(async () => pending[0]!.resolve(firstPage('users', [user('stale-result')])))
   expect(container.textContent).toContain('alice')
   expect(container.textContent).not.toContain('stale-result')
+
+  await act(async () => button('刷新').click())
+  await change(search, 'bob')
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(250)
+  })
+  await act(async () => pending[2]!.reject(new Error('过期的刷新失败')))
+  expect(container.querySelector('[role="alert"]')).toBeNull()
+  expect(container.querySelector('.admin-data-meta')?.textContent).toContain('正在更新')
+  await act(async () => pending[3]!.resolve(firstPage('users', [user('bob')])))
+  expect(container.querySelector('tbody')?.textContent).toContain('bob')
 })
 
 it('refreshes the dashboard with a single read', async () => {
@@ -238,7 +258,8 @@ it('requests backend pages and resets to page one when changing page size', asyn
   await act(async () => root.render(<AdminDashboard view="tasks" />))
   await flushTaskRequest()
   expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=20')
-  expect(container.textContent).toContain('第 1–20 条，共 45 条任务')
+  expect(container.querySelector('.admin-data-meta')?.textContent).toContain('共 45 条')
+  expect(container.querySelector('.admin-pagination-summary')?.textContent).toContain('第 1–20 条')
   expect(previousTaskPage().disabled).toBe(true)
   await act(async () => nextTaskPage().click())
   expect(nextTaskPage().disabled).toBe(true)
@@ -250,9 +271,9 @@ it('requests backend pages and resets to page one when changing page size', asyn
   await chooseMenuOption(size, '50', 'option')
   await flushTaskRequest()
   expect(request).toHaveBeenLastCalledWith('tasks?page=1&pageSize=50')
-  expect(container.textContent).toContain('第 1–45 条，共 45 条任务')
-  expect(nextTaskPage().disabled).toBe(true)
-  expect(previousTaskPage().disabled).toBe(true)
+  expect(container.querySelector('.admin-pagination-summary')?.textContent).toContain('第 1–45 条')
+  expect(nextTaskPage()).toBeNull()
+  expect(previousTaskPage()).toBeNull()
 })
 
 it('allows retrying a failed page without getting stuck loading', async () => {
@@ -272,7 +293,7 @@ it('allows retrying a failed page without getting stuck loading', async () => {
   expect(nextTaskPage().disabled).toBe(false)
   await act(async () => nextTaskPage().click())
   await flushTaskRequest()
-  expect(container.textContent).toContain('第 21–40 条，共 45 条任务')
+  expect(container.querySelector('.admin-pagination-summary')?.textContent).toContain('第 21–40 条')
   expect(container.querySelector('[role="alert"]')).toBeNull()
   expect(nextTaskPage().disabled).toBe(false)
 })
@@ -345,13 +366,15 @@ it.each([
       expect(container.textContent).toContain('保存图片反推配置')
       expect(container.textContent).toContain('完整对象编号-12345678901234567890')
     }
-    const size = container.querySelector<HTMLElement>(`[role="combobox"][aria-label="每页${label}条数"]`)!
+    const size = container.querySelector<HTMLElement>(
+      `[role="combobox"][aria-label="每页${label}条数"]`,
+    )!
     await chooseMenuOption(size, '50', 'option')
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250)
     })
-    expect(container.textContent).toContain('第 1 / 1 页')
-    expect(next.disabled).toBe(true)
+    expect(container.querySelector('.admin-pagination-summary')?.textContent).toContain('第 1–45')
+    expect(next.isConnected).toBe(false)
   },
 )
 
@@ -438,4 +461,23 @@ it('saves daily gift budget, usage alert and storage quota without losing decima
       accountStorageLimitBytes: 134217728,
     }),
   )
+
+  const form = container.querySelector('form')
+  const budgetTab = button('平台额度')
+  await act(async () => {
+    budgetTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  })
+  expect(budgetTab.getAttribute('aria-selected')).toBe('true')
+
+  let finishRefresh!: (value: unknown) => void
+  request.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishRefresh = resolve
+      }),
+  )
+  await act(async () => button('刷新').click())
+  expect(container.querySelector('form')).toBe(form)
+  await act(async () => finishRefresh(settings))
+  expect(budgetTab.getAttribute('aria-selected')).toBe('true')
 })

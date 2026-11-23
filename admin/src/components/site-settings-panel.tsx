@@ -243,7 +243,6 @@ export function SiteSettingsPanel({
                   <BrandLogo src={logoSource} size={44} />
                   <strong>{name.trim() || '网站名称'}</strong>
                 </div>
-                <p>图片会按原比例显示</p>
               </div>
             </fieldset>
           </section>

@@ -148,17 +148,15 @@ export function WorkbenchRail({
           {collapsed ? '展开侧边栏' : '收起侧边栏'}
         </span>
       </button>
-      {section !== 'assets' && section !== 'history' && (
-        <a
-          className="studio-new"
-          href={studioToolUrl('general', undefined, project)}
-          aria-label="新建创作"
-          title="新建创作"
-        >
-          <Plus size={18} />
-          <span>新建创作</span>
-        </a>
-      )}
+      <a
+        className="studio-new"
+        href={studioToolUrl('general', undefined, project)}
+        aria-label="新建创作"
+        title="新建创作"
+      >
+        <Plus size={18} />
+        <span>新建创作</span>
+      </a>
       <nav
         id="studio-navigation"
         className="workbench-rail-nav"
@@ -197,12 +195,12 @@ export function WorkbenchRail({
         <Link
           href={preserveStudioProject('/products', project)}
           className={section === 'products' ? 'active' : ''}
-          aria-label="商品工作室"
-          title="商品工作室"
+          aria-label="商品管理"
+          title="商品管理"
           aria-current={section === 'products' ? 'page' : undefined}
         >
           <Box size={18} />
-          <span>商品工作室</span>
+          <span>商品管理</span>
         </Link>
         <Link
           href={preserveStudioProject('/commerce', project)}

@@ -3,12 +3,16 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 24px;
+  gap: var(--admin-section-gap);
   --trend-completed: #4d5ee1;
   --trend-failed: #d25a49;
   --trend-other: #b6c1ec;
   --trend-charged: #377cbd;
   --trend-queued: #4d5ee1;
+}
+
+.monitorPage {
+  container-type: inline-size;
 }
 
 :global(.dark) .overview {
@@ -24,13 +28,44 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0;
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--background);
+  border-radius: var(--admin-panel-radius);
+  background: var(--card);
+}
+
+.summaryHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.summaryHeading > div {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  min-width: 0;
+}
+.summaryHeading h2,
+.snapshotTime {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.summaryHeading span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.summaryHeading button {
+  min-height: var(--admin-control-height);
+}
+.snapshotTime time {
+  font-variant-numeric: tabular-nums;
 }
 
 .metric {
   min-width: 0;
-  padding: 22px;
+  padding: var(--admin-panel-padding);
 }
 
 .metric + .metric {
@@ -48,11 +83,11 @@
   flex-shrink: 0;
 }
 .metric dd {
-  margin: 14px 0 0;
+  margin: 10px 0 0;
 }
 .metricValue {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-size: clamp(26px, 2.5vw, 34px);
   line-height: 1.2;
   font-weight: 650;
@@ -80,7 +115,7 @@
 }
 
 .attention {
-  padding: 18px 22px;
+  padding: 14px var(--admin-panel-padding);
   border: 1px solid var(--admin-warning-line);
   border-radius: 10px;
   background: var(--admin-warning-soft);
@@ -129,13 +164,13 @@
 .dailyGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 24px;
+  gap: var(--admin-section-gap);
 }
 
 .chartGrid {
   display: grid;
   grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
-  gap: 20px;
+  gap: var(--admin-section-gap);
 }
 
 .chartHeading {
@@ -448,17 +483,17 @@
 .panel,
 .monitor {
   min-width: 0;
-  padding: 22px;
+  padding: var(--admin-panel-padding);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--background);
+  border-radius: var(--admin-panel-radius);
+  background: var(--card);
 }
 .sectionHeading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: var(--admin-section-gap);
 }
 .sectionHeading > div {
   min-width: 0;
@@ -474,6 +509,11 @@
   color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.7;
+}
+.monitor .summaryHeading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--admin-section-gap);
 }
 .sectionHeading > a {
   display: inline-flex;
@@ -773,7 +813,7 @@
 }
 
 .monitorError {
-  margin-bottom: 20px;
+  margin-bottom: var(--admin-section-gap);
 }
 .loading {
   margin: 0;
@@ -783,7 +823,7 @@
 .monitorGroups {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px;
+  gap: var(--admin-section-gap);
 }
 .monitorGroup {
   display: flex;
@@ -800,7 +840,7 @@
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
 }
-.monitorGroup h3 {
+.monitorGroup h2 {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
@@ -851,7 +891,7 @@
   color: var(--admin-warning-text);
 }
 .diagnostics {
-  margin-top: 20px;
+  margin-top: var(--admin-section-gap);
   border-top: 1px solid var(--border);
 }
 .diagnostics > summary {
@@ -859,8 +899,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  min-height: 48px;
-  padding-block: 14px 4px;
+  min-height: var(--admin-control-height);
+  padding-block: 8px 2px;
   list-style: none;
   cursor: pointer;
   font-size: 13px;
@@ -874,6 +914,10 @@
 }
 .diagnostics > summary svg {
   flex-shrink: 0;
+  transition: rotate var(--admin-motion-fast) var(--admin-motion-ease);
+}
+.diagnostics[open] > summary svg {
+  rotate: 180deg;
 }
 .diagnostics ul {
   display: grid;
@@ -915,8 +959,8 @@
   overflow-wrap: anywhere;
 }
 .snapshot {
-  margin: 22px 0 0;
-  padding-top: 16px;
+  margin: var(--admin-section-gap) 0 0;
+  padding-top: 12px;
   border-top: 1px solid var(--border);
   color: var(--muted-foreground);
   font-size: 12px;
@@ -943,16 +987,9 @@
   }
   .monitorGroups {
     grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
   }
   .monitorGroup > a {
     margin-top: 0;
-  }
-}
-
-@media (max-width: 600px) {
-  .overview {
-    gap: 20px;
   }
 }
 
@@ -993,7 +1030,6 @@
   .sectionHeading {
     flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 20px;
   }
   .quotas {
     grid-template-columns: minmax(0, 1fr);

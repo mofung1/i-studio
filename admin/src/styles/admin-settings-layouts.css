@@ -4,7 +4,7 @@
 
 .admin-prompts-page .prompt-template-browser {
   display: grid;
-  gap: 10px;
+  gap: var(--admin-control-gap);
 }
 
 .admin-prompts-page .prompt-template-search {
@@ -30,7 +30,7 @@
 .admin-prompts-page .prompt-template-search > input {
   width: 100%;
   min-width: 0;
-  min-height: 36px;
+  min-height: var(--admin-control-height);
   color: var(--foreground);
   font-size: 13px;
 }
@@ -49,7 +49,7 @@
 .admin-prompts-page .prompt-template-tree button {
   display: flex;
   width: 100%;
-  min-height: 36px;
+  min-height: var(--admin-control-height);
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
@@ -110,7 +110,7 @@
 
 .admin-prompts-page .prompt-settings-editor {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .admin-prompts-page .prompt-editor-heading,
@@ -165,7 +165,7 @@
 }
 
 .admin-prompts-page .prompt-content-editor {
-  height: clamp(300px, 44dvh, 540px);
+  height: clamp(12rem, 38dvh, 30rem);
 }
 
 .admin-prompts-page .prompt-default {
@@ -207,15 +207,21 @@
 }
 
 .admin-site-page .site-settings-heading h2 {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   font-weight: 600;
+}
+
+.admin-site-page .site-settings-heading p {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .admin-site-page .site-settings-fields {
   display: grid;
   min-width: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: var(--admin-field-gap);
 }
 
 .admin-site-page .site-settings-editor {
@@ -233,7 +239,7 @@
 }
 
 .admin-site-page .site-logo-field {
-  margin-top: 20px;
+  margin-top: var(--admin-field-gap);
 }
 
 .admin-site-page .site-logo-controls,
@@ -251,7 +257,7 @@
   display: none;
 }
 
-.admin-site-page :is(.site-field-help, .site-logo-filename, .site-brand-preview > span, .site-brand-preview > p) {
+.admin-site-page :is(.site-field-help, .site-logo-filename, .site-brand-preview > span) {
   color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.65;
@@ -265,12 +271,13 @@
 .admin-site-page .site-brand-preview {
   display: flex;
   min-width: 0;
+  align-self: start;
   flex-direction: column;
   justify-content: center;
-  gap: 12px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  gap: var(--admin-control-gap);
+  padding: 12px var(--admin-field-gap);
+  border-radius: var(--admin-control-radius);
+  background: var(--muted);
 }
 
 .admin-site-page .site-brand-preview-content {
@@ -302,7 +309,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  min-height: 36px;
+  min-height: var(--admin-control-height);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -341,19 +348,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   object-fit: contain;
-}
-
-.admin-app .feedback-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 156px auto auto;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: var(--admin-section-gap);
-}
-
-.admin-app .feedback-toolbar > :is(input, button) {
-  min-width: 0;
-  min-height: 40px;
 }
 
 .admin-app .feedback-meta {
@@ -424,16 +418,6 @@
   object-fit: contain;
 }
 
-@container prompt-page (max-width: 620px) {
-  .admin-prompts-page .prompt-settings {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-prompts-page .prompt-settings > :first-child {
-    position: static;
-  }
-}
-
 @container site-page (max-width: 620px) {
   .admin-site-page .site-settings-fields {
     grid-template-columns: minmax(0, 1fr);
@@ -444,13 +428,5 @@
   .admin-prompts-page .prompt-template-search > input,
   .admin-site-page .site-name-field > :is(textarea, input[type='file']) {
     font-size: 16px;
-  }
-
-  .admin-app .feedback-toolbar {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-  }
-
-  .admin-app .feedback-toolbar > input {
-    grid-column: 1 / -1;
   }
 }

@@ -1,8 +1,7 @@
 'use client'
 
 import Link from '@/routing/link'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { adminRequest, type OperationalMonitoring } from '@/lib/admin'
+import { monitoringDuration, type useAdminMonitoring } from '@/hooks/use-admin-monitoring'
 import { formatCredits } from '@/lib/credits'
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Button } from './ui/button'
@@ -26,67 +25,7 @@ const operationLabels: Record<string, string> = {
   delete: '删除失败',
   sign: '签名失败',
 }
-export const monitoringDuration = (seconds: number) =>
-  seconds < 60 ? `${seconds} 秒` : `${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`
 const clock = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false })
-
-export function useAdminMonitoring() {
-  const [data, setData] = useState<OperationalMonitoring | null>(null)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const controller = useRef<AbortController | null>(null)
-  const refresh = useCallback(async () => {
-    if (controller.current) return
-    const request = new AbortController()
-    controller.current = request
-    setLoading(true)
-    const timeout = window.setTimeout(() => request.abort(), 10000)
-    request.signal.addEventListener('abort', () => window.clearTimeout(timeout), { once: true })
-    try {
-      const result = await adminRequest<OperationalMonitoring>(
-        'monitoring',
-        'GET',
-        undefined,
-        request.signal,
-      )
-      if (!request.signal.aborted) {
-        setData(result)
-        setError('')
-      }
-    } catch (cause) {
-      if (controller.current === request)
-        setError(
-          cause instanceof TypeError
-            ? '无法连接监控服务，请检查 API 或网络后重试'
-            : cause instanceof Error && cause.name !== 'AbortError'
-              ? cause.message
-              : '监控请求超时，请刷新重试',
-        )
-    } finally {
-      window.clearTimeout(timeout)
-      if (controller.current === request) {
-        controller.current = null
-        setLoading(false)
-      }
-    }
-  }, [])
-  useEffect(() => {
-    void refresh()
-    const updateWhenVisible = () => {
-      if (document.visibilityState === 'visible') void refresh()
-    }
-    const interval = window.setInterval(updateWhenVisible, 30000)
-    document.addEventListener('visibilitychange', updateWhenVisible)
-    return () => {
-      window.clearInterval(interval)
-      document.removeEventListener('visibilitychange', updateWhenVisible)
-      const pending = controller.current
-      controller.current = null
-      pending?.abort()
-    }
-  }, [refresh])
-  return { data, error, loading, refresh }
-}
 
 export function AdminMonitoring({
   unit,
@@ -108,11 +47,15 @@ export function AdminMonitoring({
     !!data &&
     data.storageFailures24h + data.deletionRetryPending + data.storageMonitoringDropped > 0
   return (
-    <section className={styles.monitor} aria-labelledby="admin-monitor-title">
-      <header className={styles.sectionHeading}>
+    <section className={styles.monitor} aria-label="运行监控">
+      <header className={styles.summaryHeading}>
         <div>
-          <h2 id="admin-monitor-title">运行监控</h2>
-          <p>页面可见时每 30 秒更新。</p>
+          <p className={styles.snapshotTime}>
+            {data ? (
+              <>快照时间 <time dateTime={data.checkedAt}>{clock(data.checkedAt)}</time></>
+            ) : '监控快照'}
+          </p>
+          <span>页面可见时每 30 秒更新</span>
         </div>
         <Button variant="outline" size="sm" disabled={loading} onClick={() => void refresh()}>
           <RefreshCw size={14} aria-hidden="true" />
@@ -138,7 +81,7 @@ export function AdminMonitoring({
             <div className={styles.monitorGroups}>
               <section aria-labelledby="monitor-queue-title" className={styles.monitorGroup}>
                 <header>
-                  <h3 id="monitor-queue-title">任务积压</h3>
+                  <h2 id="monitor-queue-title">任务积压</h2>
                   <AdminStatusBadge tone={error || queueAlert ? 'warning' : 'neutral'}>
                     {error ? '状态待确认' : queueAlert ? '需关注' : '未见异常'}
                   </AdminStatusBadge>
@@ -173,7 +116,7 @@ export function AdminMonitoring({
               </section>
               <section aria-labelledby="monitor-reservation-title" className={styles.monitorGroup}>
                 <header>
-                  <h3 id="monitor-reservation-title">异常预留</h3>
+                  <h2 id="monitor-reservation-title">异常预留</h2>
                   <AdminStatusBadge tone={error || reservationAlert ? 'warning' : 'neutral'}>
                     {error ? '状态待确认' : reservationAlert ? '需核查' : '未见异常'}
                   </AdminStatusBadge>
@@ -202,7 +145,7 @@ export function AdminMonitoring({
               </section>
               <section aria-labelledby="monitor-storage-title" className={styles.monitorGroup}>
                 <header>
-                  <h3 id="monitor-storage-title">存储记录</h3>
+                  <h2 id="monitor-storage-title">存储记录</h2>
                   <AdminStatusBadge tone={error || storageAlert ? 'warning' : 'neutral'}>
                     {error ? '状态待确认' : storageAlert ? '有失败记录' : '未记录失败'}
                   </AdminStatusBadge>
@@ -290,8 +233,7 @@ export function AdminMonitoring({
               </details>
             )}
             <p className={styles.snapshot}>
-              快照时间：{clock(data.checkedAt)}
-              。监控只读取状态；存储历史失败记录不等于当前仍不可用。
+              监控只读取状态。存储历史失败记录不等于当前仍不可用。
             </p>
           </>
         )}

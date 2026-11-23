@@ -1243,7 +1243,7 @@ function StandardWorkbench({
           onSubmit={() => createGenerationTask()}
           onConfirmCost={recipe ? createGenerationTask : undefined}
           creditHelp={
-            recipe
+            mode === 'general' || recipe
               ? { href: creditHelpHref(pathname, searchParams), saveDraft: draft.flush }
               : undefined
           }
@@ -1337,8 +1337,16 @@ function StandardWorkbench({
       {confirmOpen && (
         <RegenerateDialog
           title={title}
+          modelId={endpointId}
           rows={configRows}
           expectedCount={expectedCount}
+          disabled={
+            isSubmitting ||
+            isGenerating ||
+            aiEnabled !== true ||
+            !draft.ready ||
+            Boolean(templateBlockedReason || compatibilityIssue)
+          }
           onCancel={() => setConfirmOpen(false)}
           onConfirm={() => {
             setConfirmOpen(false)

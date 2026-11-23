@@ -1,13 +1,14 @@
 'use client'
 
-import { RotateCcw, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { DialogActions } from '@/components/dialog-actions'
-import { GenerationCost, useGenerationCost } from '@/components/generation-cost'
+import { useGenerationCost } from '@/components/generation-cost'
+import { GenerationFooter } from '@/components/generation-footer'
 import { useDialogFocus } from '@/components/use-dialog-focus'
-import { formatCredits, type GenerationQuote } from '@/lib/credits'
+import type { GenerationQuote } from '@/lib/credits'
 
 export function RedoImageDialog({
   modelId,
@@ -86,28 +87,21 @@ export function RedoImageDialog({
             onChange={(event) => setRequirements(event.target.value)}
           />
         </div>
-        <GenerationCost {...cost} />
-        {error && (
-          <p className="form-notice error" role="alert">
-            {error}
-          </p>
-        )}
+        <GenerationFooter
+          cost={cost}
+          label={locked ? '正在提交…' : '确认重做 1 张'}
+          busy={locked}
+          onSubmit={() => void submit()}
+        >
+          {error && (
+            <p className="form-notice error" role="alert">
+              {error}
+            </p>
+          )}
+        </GenerationFooter>
         <DialogActions className="confirm-dialog-actions">
           <button type="button" className="confirm-dialog-cancel" disabled={locked} onClick={close}>
             取消
-          </button>
-          <button
-            type="button"
-            className="confirm-dialog-primary"
-            disabled={locked || !cost.quote?.canAfford}
-            onClick={() => void submit()}
-          >
-            <RotateCcw size={15} aria-hidden="true" />
-            {locked
-              ? '正在提交…'
-              : cost.quote
-                ? `确认 ${formatCredits(cost.quote.totalMinor)} ${cost.quote.creditName}并重做 1 张`
-                : '确认费用并重做 1 张'}
           </button>
         </DialogActions>
       </div>

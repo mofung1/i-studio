@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from '@/routing/link'
 import { useRouter } from '@/routing/navigation'
-import { ArrowUpRight, Images, LoaderCircle, ScanText, WandSparkles } from 'lucide-react'
+import { ArrowUpRight, Images, LoaderCircle, Plus, ScanText, WandSparkles } from 'lucide-react'
 import { AdminPageHeader } from '@/components/admin/page-header'
 import { AiEndpointEditor, type EndpointEditing } from '@/components/admin/ai-endpoint-editor'
-import { AiServiceList } from '@/components/admin/ai-service-list'
+import { AiServiceList, type AiServiceTest } from '@/components/admin/ai-service-list'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Button } from '@/components/admin/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/admin/ui/tabs'
@@ -25,6 +25,7 @@ import type {
 import styles from '@/components/admin/ai-services.module.css'
 
 type View = 'image' | 'prompt' | 'reverse'
+type ServiceAction = { kind: 'save' | 'update' } | ({ kind: 'test' } & AiServiceTest)
 function newEndpoint(purpose: EndpointPurpose): EndpointInput {
   return {
     name: '',
@@ -59,7 +60,7 @@ export default function AISettingsPage() {
   const [loggedIn, setLoggedIn] = useState(true)
   const [message, setMessage] = useState('')
   const [saved, setSaved] = useTransientMessage()
-  const [busy, setBusy] = useState('')
+  const [busy, setBusy] = useState<ServiceAction | null>(null)
   const [editing, setEditing] = useState<EndpointEditing | null>(null)
   const [tests, setTests] = useState<
     Record<string, AIConnectionTest & { mode: 'connection' | 'generate' }>
@@ -138,7 +139,7 @@ export default function AISettingsPage() {
   }
   async function action(id: string, run: () => Promise<unknown>, success: string) {
     if (busy) return
-    setBusy(id)
+    setBusy({ kind: 'update' })
     setMessage('')
     setSaved('')
     try {
@@ -153,7 +154,7 @@ export default function AISettingsPage() {
     } catch (error) {
       setMessage(errorMessage(error))
     } finally {
-      setBusy('')
+      setBusy(null)
     }
   }
   async function retry() {
@@ -170,7 +171,7 @@ export default function AISettingsPage() {
   async function saveEndpoint(event: React.FormEvent) {
     event.preventDefault()
     if (!editing || busy) return
-    setBusy('save')
+    setBusy({ kind: 'save' })
     setMessage('')
     try {
       const { id, input } = editing
@@ -190,12 +191,12 @@ export default function AISettingsPage() {
     } catch (error) {
       setMessage(errorMessage(error))
     } finally {
-      setBusy('')
+      setBusy(null)
     }
   }
   async function testEndpoint(
     endpoint: AIEndpoint,
-    mode: 'connection' | 'generate' = 'connection',
+    mode: AiServiceTest['mode'] = 'connection',
   ) {
     if (busy || !endpoint.enabled) return
     if (
@@ -209,7 +210,7 @@ export default function AISettingsPage() {
       }))
     )
       return
-    setBusy(endpoint.id)
+    setBusy({ kind: 'test', id: endpoint.id, mode })
     setMessage('')
     try {
       const result = await adminRequest<AIConnectionTest>(
@@ -230,7 +231,7 @@ export default function AISettingsPage() {
         },
       }))
     } finally {
-      setBusy('')
+      setBusy(null)
     }
   }
   function switchView(next: View) {
@@ -247,6 +248,7 @@ export default function AISettingsPage() {
     (item) => item.purpose === 'prompt' && item.enabled && item.isDefault,
   )
   const showTabs = loggedIn && !loading && loaded
+  const activeEndpointCount = endpoints.filter((item) => item.purpose === view).length
   const modelShortcut = (
     <Button asChild variant="outline">
       <Link href="/admin/models">
@@ -311,7 +313,20 @@ export default function AISettingsPage() {
                   </TabsTrigger>
                 )}
               </TabsList>
-              {modelShortcut}
+              <div className={styles.toolbarActions}>
+                {view !== 'reverse' && (
+                  <p className={styles.serviceCount}>
+                    {activeEndpointCount} {view === 'image' ? '个渠道' : '个服务'}
+                  </p>
+                )}
+                {modelShortcut}
+                {canManage && view !== 'reverse' && (
+                  <Button onClick={() => edit(undefined, view)} disabled={!!busy}>
+                    <Plus data-icon="inline-start" />
+                    {view === 'image' ? '添加生图渠道' : '添加提示词服务'}
+                  </Button>
+                )}
+              </div>
             </div>
             {message && !editing && (
               <Alert variant="destructive" role="alert">
@@ -343,9 +358,9 @@ export default function AISettingsPage() {
                   purpose={purpose}
                   endpoints={endpoints.filter((item) => item.purpose === purpose)}
                   canManage={canManage}
-                  busy={busy}
+                  busy={!!busy}
+                  testing={busy?.kind === 'test' ? busy : undefined}
                   tests={tests}
-                  onAdd={() => edit(undefined, purpose)}
                   onEdit={edit}
                   onTest={testEndpoint}
                   onToggle={(endpoint) =>

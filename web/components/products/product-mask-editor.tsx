@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Brush, LoaderCircle, RotateCcw, Undo2, X } from 'lucide-react'
+import { Brush, RotateCcw, Undo2, X } from 'lucide-react'
 import { useProtectedImageUrl } from '@/components/authenticated-image'
 import { useDialogFocus } from '@/components/use-dialog-focus'
-import { GenerationCost, useGenerationCost } from '@/components/generation-cost'
+import { useGenerationCost } from '@/components/generation-cost'
+import { GenerationFooter } from '@/components/generation-footer'
 import { exportProductMask, maskPoint, paintMask, type MaskMark } from '@/lib/product-mask'
 import type { ProductVersion } from '@/lib/products'
 import styles from './products.module.css'
@@ -97,7 +98,7 @@ export function ProductMaskEditor({
     ])
   }
   async function submit() {
-    if (busy || !marks.length || !instructions.trim()) return
+    if (busy || !marks.length || !instructions.trim() || !cost.quote?.canAfford) return
     setBusy(true)
     setError('')
     try {
@@ -249,36 +250,31 @@ export function ProductMaskEditor({
               </label>
             </fieldset>
             <p className={styles.muted}>{modelName} · 本次生成 1 张修改版本</p>
-            <GenerationCost {...cost} />
+          </div>
+        </div>
+        <footer className={styles.dialogFooter}>
+          <div className={styles.dialogFooterTools}>
+            <span aria-live="polite">
+              {marks.length ? `已添加 ${marks.length} 处选区` : '先选择需要修改的区域'}
+            </span>
+            <button type="button" className="studio-secondary" disabled={busy} onClick={onClose}>
+              取消
+            </button>
+          </div>
+          <GenerationFooter
+            cost={cost}
+            label={busy ? '正在提交…' : '生成修改版本'}
+            busy={busy}
+            disabled={busy || !marks.length || !instructions.trim()}
+            popoverContainer={panel.current}
+            onSubmit={() => void submit()}
+          >
             {(submissionError || error) && (
               <p role="alert" className={styles.error}>
                 {submissionError || error}
               </p>
             )}
-          </div>
-        </div>
-        <footer className={styles.dialogFooter}>
-          <span aria-live="polite">
-            {marks.length ? `已添加 ${marks.length} 处选区` : '先选择需要修改的区域'}
-          </span>
-          <div className={styles.actions}>
-            <button className="studio-secondary" disabled={busy} onClick={onClose}>
-              取消
-            </button>
-            <button
-              className="studio-primary"
-              disabled={
-                busy ||
-                !marks.length ||
-                !instructions.trim() ||
-                !cost.quote?.canAfford ||
-                cost.pending
-              }
-              onClick={() => void submit()}
-            >
-              {busy && <LoaderCircle className={styles.spinner} size={15} />}生成修改版本
-            </button>
-          </div>
+          </GenerationFooter>
         </footer>
       </div>
     </div>,

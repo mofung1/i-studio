@@ -27,7 +27,7 @@ func validateProductGenerationFields(input map[string]any) error {
 		return err
 	}
 	if stringValue(input["mode"], "") != "general" {
-		return fmt.Errorf("商品工作室需要使用通用生成模式")
+		return fmt.Errorf("商品管理需要使用通用生成模式")
 	}
 	if !isJSONInteger(input["productVersion"]) || input["productVersion"].(float64) < 1 {
 		return fmt.Errorf("请先保存商品档案")

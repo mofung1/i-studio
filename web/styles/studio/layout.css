@@ -10,18 +10,17 @@
   background: var(--app-background);
 }
 .workbench-page {
-  --workbench-inset: var(--layout-padding);
   height: 100dvh;
   min-height: 0;
-  padding: var(--workbench-inset);
+  padding: var(--layout-padding);
   overflow: hidden;
   background: var(--app-background);
 }
 .workbench-shell,
 .workbench-shell.config-right {
-  height: calc(100dvh - 2 * var(--workbench-inset));
+  height: calc(100dvh - 2 * var(--layout-padding));
   padding: 0;
-  gap: var(--workbench-gap, var(--layout-gap));
+  gap: var(--layout-gap);
   overflow: hidden;
   background: transparent;
 }
@@ -39,10 +38,6 @@
   grid-template-rows: var(--studio-header) minmax(0, 1fr);
 }
 @media (min-width: 781px) {
-  .workbench-page:has(> .workbench-shell.mode-general) {
-    --workbench-inset: 12px;
-    --workbench-gap: 12px;
-  }
   .workbench-shell.floating-workbench.creator-config-collapsed {
     grid-template-columns: var(--studio-rail) minmax(0, 1fr);
   }
@@ -132,28 +127,14 @@
 .studio-content > .ai-settings {
   max-width: none;
 }
+.studio-content > .commerce-page {
+  padding: 0;
+}
 .studio-content .content-page {
   min-height: 100%;
 }
 .studio-content .library-content {
   max-width: none;
-}
-.commerce-output-field {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.commerce-output-field > span:first-child {
-  flex: 0 0 auto;
-}
-.commerce-output-field .select-trigger {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.commerce-output-field .settings-value {
-  flex: 0 0 auto;
-  margin: 0;
 }
 .studio-rail-nav :is(a, button).active {
   color: var(--foreground);
@@ -254,8 +235,6 @@
   .studio-shell {
     height: auto;
     min-height: 100dvh;
-    padding: 12px;
-    gap: 10px;
     overflow: visible;
   }
   .studio-shell > .workbench-rail,
@@ -279,13 +258,11 @@
   }
   .studio-content > .content-page,
   .studio-content > .studio-inspiration,
-  .studio-content > .commerce-page,
   .studio-content > .ai-settings {
     min-height: 0;
     padding: 8px;
   }
   .workbench-page {
-    --workbench-inset: 12px;
     height: auto;
     min-height: 100dvh;
     overflow: visible;
@@ -295,9 +272,7 @@
   .workbench-shell.mode-general,
   .workbench-shell.mode-general.config-right {
     height: auto;
-    min-height: calc(100dvh - 2 * var(--workbench-inset));
-    padding: 0;
-    gap: 10px;
+    min-height: calc(100dvh - 2 * var(--layout-padding));
     overflow: visible;
     background: transparent;
   }
@@ -329,22 +304,18 @@
     box-shadow: none;
   }
   .studio-page-skeleton {
-    display: grid;
     height: auto;
     min-height: 100dvh;
-    padding: 12px;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr);
-    gap: 10px;
   }
   .studio-page-skeleton-rail {
     grid-row: auto;
-    height: 112px;
     border-radius: var(--radius-sidebar);
   }
   .studio-page-skeleton-topbar {
     grid-column: 1;
-    height: 56px;
+    height: 60px;
   }
   .studio-page-skeleton-content {
     grid-column: 1;
@@ -379,7 +350,7 @@
   object-fit: contain;
 }
 
-/* The rail handle is centered on the sidebar edge, independent of the logo row. */
+/* Keep the rail handle at the top edge, alongside the logo. */
 .studio-shell,
 .workbench-shell {
   transition: grid-template-columns var(--motion-content) var(--motion-ease-out);
@@ -557,29 +528,6 @@ html:has(.library-content)::-webkit-scrollbar-thumb,
   border-color: var(--line-strong);
 }
 
-/* The language selector and live output summary share one balanced row. */
-.workbench-shell.mode-commerce .commerce-output-controls {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  width: 100%;
-}
-.workbench-shell.mode-commerce .commerce-output-controls > .settings-value {
-  width: 100%;
-  min-width: 0;
-  margin: 0;
-}
-.workbench-shell.mode-commerce .commerce-output-controls > .select-trigger {
-  width: 100%;
-  min-width: 0;
-}
-.workbench-shell.mode-commerce .commerce-output-controls > .settings-value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: var(--surface-subtle);
-  border-color: var(--border);
-}
 
 /* Preserve scrolling while keeping browser scrollbar chrome out of the workspace. */
 *:not([data-prompt-scroll], [data-gallery-scroll]),
@@ -602,13 +550,6 @@ html:has(.library-content)::-webkit-scrollbar-thumb,
   max-height: none;
   overflow: visible;
 }
-.mode-general .compact-basic-settings.is-open {
-  position: relative;
-  z-index: 80;
-}
-.mode-general .basic-settings-popover {
-  z-index: 100;
-}
 
 /* Keep the inspiration filter sheet flush to its layout slot with every corner clipped evenly. */
 .studio-shell .inspire-gallery-head {
@@ -618,28 +559,6 @@ html:has(.library-content)::-webkit-scrollbar-thumb,
   overflow: hidden;
 }
 
-/* The expected output field occupies its own full-width row in commerce settings. */
-.workbench-shell.mode-commerce .commerce-output-field {
-  grid-column: 1 / -1;
-  display: grid;
-  gap: 8px;
-  width: 100%;
-  min-width: 0;
-}
-.commerce-output-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.workbench-shell.mode-commerce .commerce-output-field .select-trigger {
-  flex: 1 1 0;
-  min-width: 0;
-}
-.workbench-shell.mode-commerce .commerce-output-field .select-trigger > span:first-child {
-  flex: 1 1 auto;
-  min-width: 0;
-}
 
 /* Fill the actual content slot instead of centering an old fixed-width gallery. */
 .studio-content > .studio-inspiration {
@@ -711,13 +630,6 @@ html[data-theme='dark'] .studio-inspiration .inspire-gallery-head {
     overflow-y: auto;
     padding-right: 8px;
   }
-}
-
-/* Keep the edge handle vertically centered as the navigation list changes height. */
-.studio-rail-toggle,
-html[data-studio-rail='collapsed'] .studio-rail-toggle {
-  top: 50%;
-  transform: translateY(-50%);
 }
 
 /* Compact mobile navigation leaves the first screen for the current tool. */

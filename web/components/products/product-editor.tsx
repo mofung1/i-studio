@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
-import { Check, ChevronDown, ImagePlus, LoaderCircle, Save, Sparkles, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Check, ChevronDown, LoaderCircle, Save, Sparkles, X } from 'lucide-react'
 import { AuthenticatedImage } from '@/components/authenticated-image'
+import { ImageUpload } from '@/components/image-upload'
 import { getAccessToken, uploadAsset } from '@/lib/api'
+import { creationImageTypes } from '@/lib/creation-images'
 import { frontendRequest, FrontendRequestError } from '@/lib/frontend-request'
 import {
   productApi,
@@ -134,19 +136,14 @@ export function ProductEditor({
       if (alive.current) setBusy('')
     }
   }
-  async function upload(
-    event: ChangeEvent<HTMLInputElement>,
-    role: 'productAssetIds' | 'referenceAssetIds',
-  ) {
-    const files = Array.from(event.target.files ?? [])
-    event.target.value = ''
-    if (!files.length) return
+  async function upload(files: File[], role: 'productAssetIds' | 'referenceAssetIds') {
+    if (busy || !files.length) return
     const total = draft.productAssetIds.length + draft.referenceAssetIds.length
     if (total + files.length > 6) {
       setError(`两类图片合计最多 6 张，目前还可添加 ${6 - total} 张`)
       return
     }
-    if (files.some((file) => !['image/png', 'image/jpeg', 'image/webp'].includes(file.type))) {
+    if (files.some((file) => !creationImageTypes.includes(file.type))) {
       setError('请上传 PNG、JPG 或 WebP 图片')
       return
     }
@@ -356,17 +353,15 @@ export function ProductEditor({
                       </div>
                     ))}
                     {totalImages < 6 && (
-                      <label className={styles.uploadButton}>
-                        <ImagePlus size={19} />
-                        <span>添加图片</span>
-                        <input
-                          aria-label={`上传${role === 'productAssetIds' ? '商品原图' : '风格参考'}`}
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          multiple
-                          onChange={(event) => void upload(event, role)}
-                        />
-                      </label>
+                      <ImageUpload
+                        variant="tile"
+                        className={styles.uploadButton}
+                        inputLabel={`上传${role === 'productAssetIds' ? '商品原图' : '风格参考'}`}
+                        label={role === 'productAssetIds' ? '添加原图' : '添加参考'}
+                        disabled={Boolean(busy)}
+                        multiple
+                        onFiles={(files) => void upload(files, role)}
+                      />
                     )}
                   </div>
                 </div>

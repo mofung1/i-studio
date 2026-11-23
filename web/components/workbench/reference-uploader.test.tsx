@@ -141,12 +141,11 @@ it('returns focus to the first newly selected thumbnail, or to the trigger on ca
   expectFocusedThumbnail('updated.png')
 })
 
-it('adds local recipe images directly, validates them, and focuses the first new thumbnail', async () => {
-  function RecipeImages() {
+it('validates dropped images, respects the limit, and focuses the first added thumbnail', async () => {
+  function ProductImages() {
     const [files, setFiles] = useState<CreationImage[]>([])
     return (
       <ReferenceUploader
-        directLocalSelection
         files={files}
         onChange={setFiles}
         max={3}
@@ -159,32 +158,23 @@ it('adds local recipe images directly, validates them, and focuses the first new
     )
   }
 
-  await act(async () => root.render(<RecipeImages />))
-  const localButton = [...container.querySelectorAll('button')].find(
-    (button) => button.textContent === '从本机选图',
-  )!
-  const input = container.querySelector<HTMLInputElement>('input[type="file"]')!
-  const nativeClick = vi.spyOn(input, 'click')
-  await act(async () => {
-    localButton.focus()
-    localButton.click()
-  })
-  expect(nativeClick).toHaveBeenCalledOnce()
-  expect(input.multiple).toBe(true)
-  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  async function dropImages(files: File[]) {
+    const drop = new Event('drop', { bubbles: true, cancelable: true })
+    Object.defineProperty(drop, 'dataTransfer', { value: { types: ['Files'], files } })
+    await act(async () => container.querySelector('.reference-uploader')!.dispatchEvent(drop))
+  }
 
+  await act(async () => root.render(<ProductImages />))
   const invalid = new File(['image'], 'invalid.svg', { type: 'image/svg+xml' })
   const tooLarge = new File(['image'], 'large.png', { type: 'image/png' })
   Object.defineProperty(tooLarge, 'size', { value: maxCreationImageSize + 1 })
-  Object.defineProperty(input, 'files', {
-    value: [
-      invalid,
-      new File(['image'], 'front.png', { type: 'image/png' }),
-      tooLarge,
-      new File(['image'], 'side.webp', { type: 'image/webp' }),
-    ],
-  })
-  await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })))
+
+  await dropImages([
+    invalid,
+    new File(['image'], 'front.png', { type: 'image/png' }),
+    tooLarge,
+    new File(['image'], 'side.webp', { type: 'image/webp' }),
+  ])
   expect(container.querySelector('[role="alert"]')?.textContent).toContain('单张不超过 10 MB')
   const thumbnails = [...container.querySelectorAll('.uploaded-thumb')]
   expect(thumbnails).toHaveLength(2)
@@ -192,34 +182,11 @@ it('adds local recipe images directly, validates them, and focuses the first new
   expect(thumbnails[1]?.querySelector('img')?.alt).toContain('side.webp')
   expect(document.activeElement).toBe(thumbnails[0])
   expect(thumbnails[0]?.closest('[inert]')).toBeNull()
-  expect(input.multiple).toBe(false)
 
-  const libraryButton = [...container.querySelectorAll('button')].find(
-    (button) => button.textContent === '从素材库选',
-  )!
-  await act(async () => {
-    libraryButton.focus()
-    libraryButton.click()
-  })
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('选择创作素材')
-  await act(async () =>
-    document.activeElement!.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
-    ),
-  )
-  expect(document.activeElement).toBe(libraryButton)
-
-  const drop = new Event('drop', { bubbles: true, cancelable: true })
-  Object.defineProperty(drop, 'dataTransfer', {
-    value: {
-      types: ['Files'],
-      files: [
-        new File(['image'], 'angle.jpg', { type: 'image/jpeg' }),
-        new File(['image'], 'extra.jpg', { type: 'image/jpeg' }),
-      ],
-    },
-  })
-  await act(async () => container.querySelector('.reference-uploader')!.dispatchEvent(drop))
+  await dropImages([
+    new File(['image'], 'angle.jpg', { type: 'image/jpeg' }),
+    new File(['image'], 'extra.jpg', { type: 'image/jpeg' }),
+  ])
   expect(container.querySelectorAll('.uploaded-thumb')).toHaveLength(3)
   expect(container.querySelector('[role="alert"]')?.textContent).toContain('最多 3 张')
   expect(container.querySelector('img[alt$="extra.jpg"]')).toBeNull()

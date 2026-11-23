@@ -343,16 +343,140 @@
 .ops-access a {
   font-size: 13px;
 }
+.generation-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+.generation-footer .generate-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  padding: 8px 12px;
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.generation-footer .generate-button svg {
+  flex: none;
+}
+.generation-footer .generate-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+.generation-footer .generate-button:disabled {
+  border-color: transparent;
+  color: var(--muted);
+  background: var(--control-bg);
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .generation-footer .generate-button {
+    transition:
+      scale var(--motion-feedback) var(--motion-ease-out),
+      background-color var(--motion-feedback) var(--motion-ease-out);
+  }
+  .generation-footer .generate-button:active:not(:disabled) {
+    scale: var(--motion-press-scale);
+  }
+}
 .creation-credit-estimate {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 11px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-block-size: 28px;
+  margin: 0;
   color: var(--foreground-3);
-  margin: 10px 0;
-  line-height: 1.6;
-  flex-wrap: wrap;
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
   overflow-wrap: anywhere;
+}
+.credit-estimate-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px 8px;
+  min-block-size: 28px;
+}
+.credit-estimate-reserved {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.creation-credit-estimate strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.credit-estimate-available {
+  min-width: 0;
+  max-width: 100%;
+  margin-inline-start: auto;
+  text-align: end;
+}
+.credit-estimate-info {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.credit-estimate-info:hover,
+.credit-estimate-info[data-state='open'] {
+  color: var(--foreground);
+  background: var(--surface-2);
+}
+.credit-estimate-info:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: -2px;
+}
+.credit-estimate-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+}
+.credit-estimate-popover {
+  z-index: 85;
+  width: max-content;
+  max-width: min(320px, var(--radix-popover-content-available-width, calc(100vw - 24px)));
+  max-height: var(--radix-popover-content-available-height, calc(100dvh - 24px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground-2);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
 }
 .credit-estimate-retry {
   padding: 0;
@@ -364,22 +488,10 @@
   text-underline-offset: 3px;
   cursor: pointer;
 }
-.creation-credit-estimate strong {
-  color: var(--foreground);
-  font-weight: 600;
-}
 .creation-credit-estimate a {
   color: var(--foreground);
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-.credit-estimate-details summary {
-  width: fit-content;
-  cursor: pointer;
-}
-.credit-estimate-details .credit-unit-price {
-  display: block;
-  margin-top: 4px;
 }
 .credit-estimate-draft-error {
   flex-basis: 100%;
@@ -473,9 +585,6 @@
   font-size: 12px;
   white-space: nowrap;
 }
-.generate-bar a.generate-button {
-  text-decoration: none;
-}
 .account-dropdown [role='menuitem'] {
   display: flex;
   align-items: center;
@@ -553,6 +662,8 @@
 
 .account-page .account-summary {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: var(--layout-gap);
+  margin-bottom: var(--layout-gap);
 }
 .account-summary > .credit-benefits {
   margin-bottom: 0;

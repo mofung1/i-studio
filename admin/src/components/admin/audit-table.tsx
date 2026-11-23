@@ -1,7 +1,13 @@
 'use client'
 
 import type { AdminAudit as Audit } from '@/lib/admin'
-import { AdminDataTable, type AdminColumn, type AdminSortProps } from './data-table'
+import {
+  AdminCellText,
+  AdminDataTable,
+  type AdminColumn,
+  type AdminSortProps,
+  type AdminTableToolbarProps,
+} from './data-table'
 
 const actionLabels: Record<string, string> = {
   'admin.login': '登录后台',
@@ -34,7 +40,8 @@ export function AdminAuditTable({
   loading = false,
   sorting,
   onSortingChange,
-}: { audit: Audit[]; loading?: boolean } & AdminSortProps) {
+  ...tableProps
+}: { audit: Audit[]; loading?: boolean } & AdminSortProps & AdminTableToolbarProps) {
   const columns: AdminColumn<Audit>[] = [
     {
       id: 'createdAt',
@@ -69,17 +76,18 @@ export function AdminAuditTable({
       id: 'target',
       header: '对象',
       size: 230,
-      cell: (item) => <span className="admin-cell-message">{item.targetId || '—'}</span>,
+      cell: (item) => <AdminCellText value={item.targetId || '—'} previewLimit={40} />,
     },
     {
       id: 'detail',
       header: '内容',
       size: 300,
-      cell: (item) => <span className="admin-cell-message">{item.detail}</span>,
+      cell: (item) => <AdminCellText value={item.detail || '—'} />,
     },
   ]
   return (
     <AdminDataTable
+      {...tableProps}
       title="操作日志列表"
       hideTitle
       columns={columns}

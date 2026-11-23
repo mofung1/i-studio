@@ -2,10 +2,52 @@
   font-weight: 650;
 }
 
-.editor :global(.model-editor-section-title) p,
 .editor :global(.model-editor-hint),
 .editor :global(.model-draft-note) {
   color: var(--muted-foreground);
+}
+
+.editor :global(.model-editor-section),
+.editor :global(.model-channel-card) {
+  gap: 12px;
+}
+
+.editor :global(.model-channel-card) {
+  padding: 12px;
+  border-radius: var(--admin-control-radius);
+}
+
+.editor :global(.model-primary-summary) {
+  padding: 10px 12px;
+  border-radius: var(--admin-control-radius);
+}
+
+.editor :global(.model-channel-card-heading) > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.editor :global(.model-channel-test) {
+  font-variant-numeric: tabular-nums;
+}
+
+.editor :global(.model-capability-row) {
+  margin-block: 0;
+}
+
+.editor :global(.model-editor-footer) .testingNote {
+  display: block;
+}
+
+.capabilityChecks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--admin-field-gap);
+}
+
+.capabilityChecks :global(.model-reference-toggle) {
+  min-height: 32px;
+  margin: 0;
 }
 
 .checks {
@@ -42,5 +84,9 @@
   .editor .testFields:global(.ops-form-grid) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
+  }
+
+  .editor :global(.model-editor-footer) .testingNote {
+    flex-basis: 100%;
   }
 }

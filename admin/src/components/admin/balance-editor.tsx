@@ -32,7 +32,6 @@ export function AdminBalanceEditor({
             <FieldLabel className="settings-field">
               <span>调整数量（{unit}）</span>
               <Input
-                autoFocus
                 required
                 inputMode="decimal"
                 value={amount}

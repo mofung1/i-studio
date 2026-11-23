@@ -6,6 +6,7 @@ import {
   lazyRouteComponent,
   Navigate,
   Outlet,
+  redirect,
   RouterProvider,
   useLocation,
 } from "@tanstack/react-router";
@@ -89,7 +90,17 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/admin/",
+    beforeLoad: ({ location }) => {
+      if (location.hash === "admin-monitor-title") {
+        throw redirect({ to: "/admin/monitoring", replace: true });
+      }
+    },
     component: lazyRouteComponent(() => import("./app/admin/page")),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/admin/monitoring",
+    component: lazyRouteComponent(() => import("./app/admin/monitoring/page")),
   }),
   createRoute({
     getParentRoute: () => rootRoute,
@@ -135,7 +146,7 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/admin/inspiration/categories",
     component: () => (
-      <Navigate to="/admin/inspiration" search={{ categories: "1" }} replace />
+      <Navigate to="/admin/inspiration" search={{ categories: 1 }} replace />
     ),
   }),
   createRoute({

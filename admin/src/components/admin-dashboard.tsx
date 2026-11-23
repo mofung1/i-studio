@@ -23,7 +23,7 @@ import type {
   AdminModelPage,
   AdminOverviewData,
 } from '@/lib/admin'
-import type { AdminSorting } from './admin/data-table'
+import type { AdminSorting, AdminSortProps, AdminTableToolbarProps } from './admin/data-table'
 import { AdminUserTable } from './admin/user-table'
 import { adminRequest as request } from '@/lib/admin'
 import { AdminOverview } from './admin/overview'
@@ -71,6 +71,7 @@ export function AdminDashboard({
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState('')
   const [success, setSuccess] = useTransientMessage()
   const [editing, setEditing] = useState<Model | null>(null)
   const [price, setPrice] = useState('0')
@@ -81,6 +82,7 @@ export function AdminDashboard({
   const loadVersion = useRef(0)
   const editorHost = useRef<HTMLElement>(null)
   const listRegion = useRef<HTMLDivElement>(null)
+  const memberSearch = useRef<HTMLInputElement>(null)
   const unit = account.creditName
   const isList = ['models', 'users', 'tasks', 'audit'].includes(view)
   useEffect(() => {
@@ -158,11 +160,12 @@ export function AdminDashboard({
     let current = true
     setLoading(true)
     setError('')
+    setLoadError('')
     const timer = setTimeout(
       () => {
         load()
           .catch((error) => {
-            if (current) setError(errorText(error))
+            if (current) setLoadError(errorText(error))
           })
           .finally(() => {
             if (current) setLoading(false)
@@ -180,13 +183,16 @@ export function AdminDashboard({
     if (loading || busy) return
     setLoading(true)
     setError('')
+    setLoadError('')
     setSuccess('')
+    const pending = load()
+    const version = loadVersion.current
     try {
-      await load()
+      await pending
     } catch (error) {
-      setError(errorText(error))
+      if (version === loadVersion.current) setLoadError(errorText(error))
     } finally {
-      setLoading(false)
+      if (version === loadVersion.current) setLoading(false)
     }
   }
   async function action(run: () => Promise<unknown>, message = '已保存') {
@@ -198,6 +204,7 @@ export function AdminDashboard({
       await run()
       refreshAdmin()
       await load()
+      setLoadError('')
       setSuccess(message)
       return true
     } catch (error) {
@@ -314,54 +321,73 @@ export function AdminDashboard({
       audit: '操作日志',
     } as const
   )[view]
-  const operationsReady = view === 'operations' && !loading && ops !== null
+  const operationsReady = view === 'operations' && ops !== null
+  const initialPageLoad =
+    loading && ((view === 'overview' && !overview) || (view === 'operations' && !ops))
   const refreshAction = (
-    <Button type="button" variant="outline" disabled={busy || loading} onClick={() => void refresh()}>
-      <RefreshCw data-icon="inline-start" />
-      刷新
+    <Button
+      type="button"
+      variant="outline"
+      title="刷新"
+      disabled={busy || loading}
+      onClick={() => void refresh()}
+    >
+      <RefreshCw data-icon="inline-start" aria-hidden="true" />
+      <span data-admin-refresh-label>刷新</span>
     </Button>
   )
+  const tableProps: AdminTableToolbarProps & AdminSortProps & { loading: boolean } = {
+    loading,
+    sorting,
+    onSortingChange: changeSorting,
+    total: pagination.total,
+    loadError,
+    toolbar: {
+      filters:
+        view === 'users' ? (
+          <form role="search" aria-label="搜索用户" onSubmit={(event) => event.preventDefault()}>
+            <label className="sr-only" htmlFor="member-search">
+              搜索账号
+            </label>
+            <Input
+              ref={memberSearch}
+              id="member-search"
+              type="search"
+              placeholder="输入用户名"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value)
+                setPage(1)
+              }}
+              maxLength={80}
+            />
+          </form>
+        ) : undefined,
+      actions: (
+        <>
+          {refreshAction}
+          {view === 'models' && (
+            <Button onClick={() => edit()} disabled={busy || loading || !endpoints.length}>
+              <Plus data-icon="inline-start" aria-hidden="true" />
+              添加模型
+            </Button>
+          )}
+        </>
+      ),
+    },
+  }
+  const pageError = error || (!isList ? loadError : '')
   return (
     <main ref={editorHost} className={`ops-page${isList ? ' admin-list-page' : ''}`}>
       <AdminPageHeader
         title={title}
         actions={
-          operationsReady ? undefined : (
-            <div className="ops-heading-actions">
-              {view === 'models' && (
-                <Button onClick={() => edit()} disabled={busy || !endpoints.length}>
-                  <Plus data-icon="inline-start" />
-                  添加模型
-                </Button>
-              )}
-              {refreshAction}
-            </div>
-          )
-        }
-        tools={
-          view === 'users' ? (
-            <form className="ops-search" onSubmit={(event) => event.preventDefault()}>
-              <label className="sr-only" htmlFor="member-search">
-                搜索账号
-              </label>
-              <Input
-                id="member-search"
-                type="search"
-                placeholder="输入用户名"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value)
-                  setPage(1)
-                }}
-                maxLength={80}
-              />
-            </form>
-          ) : undefined
+          isList || operationsReady || (view === 'overview' && overview) ? undefined : refreshAction
         }
       />
-      {error && !editing && !adjusting && (
+      {pageError && !editing && !adjusting && (
         <Alert variant="destructive" className="settings-error" role="alert">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{pageError}</AlertDescription>
         </Alert>
       )}
       {success && (
@@ -371,36 +397,35 @@ export function AdminDashboard({
       )}
       <div ref={listRegion} className={isList ? 'admin-list-region' : 'admin-page-body'}>
         {view === 'tasks' ? (
-          <AdminTaskTable
-            tasks={tasks}
-            loading={loading}
-            sorting={sorting}
-            onSortingChange={changeSorting}
-          />
-        ) : loading && !isList && (view !== 'overview' || !overview) ? (
+          <AdminTaskTable {...tableProps} tasks={tasks} />
+        ) : initialPageLoad ? (
           <p role="status">正在读取…</p>
         ) : (
           <>
-            {view === 'overview' && overview && <AdminOverview overview={overview} unit={unit} />}
+            {view === 'overview' && overview && (
+              <AdminOverview overview={overview} unit={unit} actions={refreshAction} />
+            )}
             {view === 'models' && (
               <AdminModelList
+                {...tableProps}
                 models={models}
                 endpoints={endpoints}
                 unit={unit}
                 onEdit={edit}
-                loading={loading}
-                sorting={sorting}
-                onSortingChange={changeSorting}
               />
             )}
             {view === 'users' && (
               <AdminUserTable
+                {...tableProps}
                 members={members}
                 unit={unit}
-                loading={loading}
                 busy={busy}
-                sorting={sorting}
-                onSortingChange={changeSorting}
+                searchActive={Boolean(query.trim())}
+                onClearSearch={() => {
+                  memberSearch.current?.focus()
+                  setQuery('')
+                  setPage(1)
+                }}
                 onAdjust={(member) => {
                   setAdjusting(member)
                   setAmount('')
@@ -441,20 +466,13 @@ export function AdminDashboard({
                 creditAlert={creditAlert}
                 onGiftBudgetChange={setGiftBudget}
                 onCreditAlertChange={setCreditAlert}
-                busy={busy}
+                busy={busy || loading}
                 onChange={setOps}
                 onGiftChange={setGift}
                 onSubmit={saveOperations}
               />
             )}
-            {view === 'audit' && (
-              <AdminAuditTable
-                audit={audit}
-                loading={loading}
-                sorting={sorting}
-                onSortingChange={changeSorting}
-              />
-            )}
+            {view === 'audit' && <AdminAuditTable {...tableProps} audit={audit} />}
           </>
         )}
       </div>
@@ -472,6 +490,7 @@ export function AdminDashboard({
             }[view]
           }
           unit={view === 'users' ? '位' : view === 'models' ? '个' : '条'}
+          showTotal={false}
           pageSize={pageSize}
           loading={loading || busy}
           onPageChange={(next) => {
@@ -489,7 +508,11 @@ export function AdminDashboard({
       )}
       {editing && (
         <InfoDialog
-          title={editing.id ? '编辑模型' : '添加模型'}
+          title={
+            editing.id
+              ? `编辑模型 · ${models.find((model) => model.id === editing.id)?.name ?? editing.name}`
+              : '添加模型'
+          }
           hideActions
           onClose={() => {
             if (!busy) setEditing(null)

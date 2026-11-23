@@ -29,7 +29,6 @@
   min-width: 0;
 }
 .feedback-image,
-.feedback-upload,
 .feedback-attachment {
   position: relative;
   display: flex;
@@ -43,16 +42,11 @@
   background: var(--surface-subtle);
   color: var(--foreground);
 }
-.feedback-upload {
-  flex-direction: column;
-  gap: 8px;
-  border-style: dashed;
-  font-size: 13px;
-  cursor: pointer;
-}
-.feedback-upload.is-disabled {
-  opacity: 0.5;
-  cursor: wait;
+.feedback-images .feedback-upload {
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  aspect-ratio: 1;
 }
 .feedback-image img,
 .feedback-attachment img {
@@ -83,19 +77,6 @@
 }
 .feedback-image button svg {
   position: relative;
-}
-.feedback-file-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-.feedback-form:has(.feedback-file-input:focus-visible) .feedback-upload {
-  outline: 2px solid var(--line-strong);
-  outline-offset: 2px;
 }
 .feedback-success {
   display: flex;

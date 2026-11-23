@@ -10,6 +10,7 @@ import { adminRequest } from '@/lib/admin'
 import type { ManagedInspirationCategory } from '@/lib/inspiration-settings'
 import { AdminPagination } from './admin/pagination'
 import { AdminDataTable, type AdminColumn, type AdminSorting } from './admin/data-table'
+import { Button } from './admin/ui/button'
 import {
   Select,
   SelectContent,
@@ -36,6 +37,8 @@ export function InspirationCategoryManager({
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
   const [categories, setCategories] = useState<ManagedInspirationCategory[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -67,6 +70,8 @@ export function InspirationCategoryManager({
   useEffect(() => {
     if (!loggedIn) return
     const controller = new AbortController()
+    setLoading(true)
+    setLoadError('')
     adminRequest<{ categories: ManagedInspirationCategory[] }>(
       'inspiration/categories?includeDisabled=true',
       'GET',
@@ -77,13 +82,13 @@ export function InspirationCategoryManager({
         if (!controller.signal.aborted) setCategories(data.categories)
       })
       .catch((error) => {
-        if (!controller.signal.aborted) setError(errorText(error))
+        if (!controller.signal.aborted) setLoadError(errorText(error))
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [loggedIn])
+  }, [loggedIn, loadAttempt])
   useEffect(() => {
     if (deleteOpen) dialogRef.current?.showModal()
     else {
@@ -385,19 +390,6 @@ export function InspirationCategoryManager({
       <p className="category-order-hint">
         排序值越小越靠前，修改后按 Enter 或移开焦点即可保存，前台同步生效。
       </p>
-      <label className="inspiration-manager-search inspiration-category-search">
-        <Search size={16} aria-hidden="true" />
-        <input
-          type="search"
-          aria-label="搜索灵感分类"
-          placeholder="搜索分类名称"
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value)
-            setPage(1)
-          }}
-        />
-      </label>
       {error && (
         <p className="settings-error" role="alert">
           {error}
@@ -410,22 +402,59 @@ export function InspirationCategoryManager({
       )}
       <AdminDataTable
         title="灵感分类列表"
+        hideTitle
         data={pagedCategories}
         columns={columns}
         getRowId={(row) => row.id}
         loading={loading}
+        loadError={loadError}
+        total={visible.length}
+        toolbar={{
+          filters: (
+            <label className="inspiration-manager-search inspiration-category-search">
+              <Search size={16} aria-hidden="true" />
+              <input
+                type="search"
+                aria-label="搜索灵感分类"
+                placeholder="搜索分类名称"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value)
+                  setPage(1)
+                }}
+              />
+            </label>
+          ),
+          actions: loadError && (
+            <Button variant="outline" onClick={() => setLoadAttempt((previous) => previous + 1)}>
+              重试
+            </Button>
+          ),
+        }}
         sorting={sorting}
         onSortingChange={(next) => {
           setSorting(next)
           setPage(1)
         }}
         scrollKey={`${currentPage}:${pageSize}:${search}:${JSON.stringify(sorting)}`}
-        emptyTitle="暂无分类"
-        emptyDescription="调整搜索条件，或新增一个分类。"
+        emptyTitle={search.trim() ? '没有匹配的分类' : '暂无分类'}
+        emptyAction={search.trim() && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSearch('')
+              setPage(1)
+            }}
+          >
+            清空搜索
+          </Button>
+        )}
       />
       <AdminPagination
         label="分类"
         unit="个"
+        showTotal={false}
         page={currentPage}
         pageSize={pageSize}
         total={visible.length}

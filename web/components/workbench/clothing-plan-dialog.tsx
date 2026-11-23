@@ -1,7 +1,8 @@
 'use client'
 import { DialogActions } from '@/components/dialog-actions'
 
-import { GenerationCost, useGenerationCost } from '../generation-cost'
+import { useGenerationCost } from '../generation-cost'
+import { GenerationFooter } from '../generation-footer'
 import { LoaderCircle, Sparkles, X } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { ClothingPlan } from '@/lib/contracts'
@@ -145,20 +146,16 @@ export function ClothingPlanDialog({
         </fieldset>
       </div>
       <footer className="clothing-plan-footer">
-        <GenerationCost {...cost} />
+        <GenerationFooter
+          cost={cost}
+          label={busy ? '正在分析服装…' : `确认生成 ${plan.shots.length} 张`}
+          disabled={!valid}
+          busy={busy}
+          onSubmit={onConfirm}
+        />
         <DialogActions>
           <button type="button" className="settings-command" onClick={onClose}>
             返回设置
-          </button>
-          <button
-            type="button"
-            className="settings-primary"
-            disabled={
-              busy || !valid || (cost.authenticated && (!cost.quote || !cost.quote.canAfford))
-            }
-            onClick={onConfirm}
-          >
-            确认生成 {plan.shots.length} 张
           </button>
         </DialogActions>
       </footer>

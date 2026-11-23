@@ -1,9 +1,11 @@
 'use client'
 
 import { DialogActions } from '@/components/dialog-actions'
-import { ChevronDown, ChevronUp, Sparkles, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useGenerationCost } from '../generation-cost'
+import { GenerationFooter } from '../generation-footer'
 import { useDialogFocus } from '../use-dialog-focus'
 
 export interface RegenerateRow {
@@ -15,9 +17,11 @@ export interface RegenerateRow {
 
 interface RegenerateDialogProps {
   title: string
+  modelId?: string
   /** 弹窗里逐条展示的当前配置 */
   rows: ReadonlyArray<RegenerateRow>
   expectedCount: number
+  disabled?: boolean
   onCancel: () => void
   onConfirm: () => void
 }
@@ -34,8 +38,10 @@ export function shouldSkipRegenerateConfirm() {
  */
 export function RegenerateDialog({
   title,
+  modelId,
   rows,
   expectedCount,
+  disabled,
   onCancel,
   onConfirm,
 }: RegenerateDialogProps) {
@@ -43,6 +49,7 @@ export function RegenerateDialog({
   const [expandedRows, setExpandedRows] = useState<string[]>([])
   // 只有真的被截断的行才需要「展开」按钮
   const [overflowingRows, setOverflowingRows] = useState<string[]>([])
+  const cost = useGenerationCost(modelId, expectedCount)
   const dialogRef = useRef<HTMLDivElement>(null)
   useDialogFocus(dialogRef, onCancel, '.confirm-dialog-cancel')
   const textRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -152,13 +159,10 @@ export function RegenerateDialog({
           />
           <span>以后重新生成不再提示</span>
         </label>
+        <GenerationFooter cost={cost} label="确认生成" disabled={disabled} onSubmit={confirm} />
         <DialogActions className="confirm-dialog-actions">
           <button type="button" className="confirm-dialog-cancel" onClick={onCancel}>
             取消
-          </button>
-          <button type="button" className="confirm-dialog-primary" onClick={confirm}>
-            <Sparkles size={15} aria-hidden="true" />
-            确认生成
           </button>
         </DialogActions>
       </div>

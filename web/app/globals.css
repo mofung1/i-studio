@@ -131,6 +131,9 @@
   gap: 20px;
   min-width: 0;
 }
+.submission-library {
+  gap: var(--layout-gap);
+}
 .submission-toolbar,
 .submission-actions,
 .submission-pagination,

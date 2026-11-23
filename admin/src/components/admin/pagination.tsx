@@ -13,7 +13,7 @@ import {
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 
-const defaultPageSizes = [20, 50, 100]
+const defaultPageSizes = [20, 50, 100] as const
 
 export function AdminPagination({
   page,
@@ -23,6 +23,7 @@ export function AdminPagination({
   loading,
   label = '任务',
   unit = '条',
+  showTotal = true,
   onPageChange,
   onPageSizeChange,
 }: {
@@ -33,11 +34,16 @@ export function AdminPagination({
   loading: boolean
   label?: string
   unit?: string
+  showTotal?: boolean
   onPageChange: (page: number) => void
   onPageSizeChange?: (size: number) => void
 }) {
   const jumpId = useId()
-  const first = total ? (page - 1) * pageSize + 1 : 0
+  const multiplePages = totalPages > 1
+  if (total === 0 || (!multiplePages && (!onPageSizeChange || total <= defaultPageSizes[0]))) {
+    return null
+  }
+  const first = (page - 1) * pageSize + 1
   const last = Math.min(page * pageSize, total)
   const pageSizes = [...new Set([...defaultPageSizes, pageSize])].sort((a, b) => a - b)
   const pages = [...new Set([1, page - 1, page, page + 1, totalPages])]
@@ -56,9 +62,8 @@ export function AdminPagination({
     <nav className="admin-pagination" aria-label={`${label}分页`}>
       <div className="admin-pagination-summary" aria-live="polite">
         <span>
-          {total
-            ? `第 ${first}–${last} ${unit}，共 ${total} ${unit}${label}`
-            : `暂无${label}记录`}
+          第 {first}–{last} {unit}
+          {showTotal && `，共 ${total} ${unit}${label}`}
         </span>
         {loading && <span>正在读取…</span>}
       </div>
@@ -86,57 +91,59 @@ export function AdminPagination({
             </Select>
           </div>
         )}
-        <div className="admin-pagination-navigation">
-          <span className="admin-page-position">
-            第 {page} / {Math.max(totalPages, 1)} 页
-          </span>
-          <div className="admin-pagination-buttons">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              type="button"
-              aria-label={`上一页${label}`}
-              disabled={loading || page <= 1}
-              onClick={() => onPageChange(page - 1)}
-            >
-              <ChevronLeft aria-hidden="true" />
-            </Button>
-            {steps.map((step) =>
-              typeof step === 'number' ? (
-                <Button
-                  variant={page === step ? 'default' : 'outline'}
-                  size="sm"
-                  key={step}
-                  type="button"
-                  aria-label={`第 ${step} 页${label}`}
-                  aria-current={page === step ? 'page' : undefined}
-                  className="admin-page-number min-w-8 px-2"
-                  disabled={loading}
-                  onClick={() => {
-                    if (step !== page) onPageChange(step)
-                  }}
-                >
-                  {step}
-                </Button>
-              ) : (
-                <span key={step} className="admin-page-gap px-0.5" aria-hidden="true">
-                  …
-                </span>
-              ),
-            )}
-            <Button
-              variant="outline"
-              size="icon-sm"
-              type="button"
-              aria-label={`下一页${label}`}
-              disabled={loading || page >= totalPages}
-              onClick={() => onPageChange(page + 1)}
-            >
-              <ChevronRight aria-hidden="true" />
-            </Button>
+        {multiplePages && (
+          <div className="admin-pagination-navigation">
+            <span className="admin-page-position">
+              第 {page} / {Math.max(totalPages, 1)} 页
+            </span>
+            <div className="admin-pagination-buttons">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                type="button"
+                aria-label={`上一页${label}`}
+                disabled={loading || page <= 1}
+                onClick={() => onPageChange(page - 1)}
+              >
+                <ChevronLeft aria-hidden="true" />
+              </Button>
+              {steps.map((step) =>
+                typeof step === 'number' ? (
+                  <Button
+                    variant={page === step ? 'default' : 'outline'}
+                    size="sm"
+                    key={step}
+                    type="button"
+                    aria-label={`第 ${step} 页${label}`}
+                    aria-current={page === step ? 'page' : undefined}
+                    className="admin-page-number min-w-8 px-2"
+                    disabled={loading}
+                    onClick={() => {
+                      if (step !== page) onPageChange(step)
+                    }}
+                  >
+                    {step}
+                  </Button>
+                ) : (
+                  <span key={step} className="admin-page-gap px-0.5" aria-hidden="true">
+                    …
+                  </span>
+                ),
+              )}
+              <Button
+                variant="outline"
+                size="icon-sm"
+                type="button"
+                aria-label={`下一页${label}`}
+                disabled={loading || page >= totalPages}
+                onClick={() => onPageChange(page + 1)}
+              >
+                <ChevronRight aria-hidden="true" />
+              </Button>
+            </div>
           </div>
-        </div>
-        {totalPages > 1 && (
+        )}
+        {multiplePages && (
           <form
             className="admin-pagination-jump"
             onSubmit={(event) => {

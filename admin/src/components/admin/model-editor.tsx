@@ -168,14 +168,12 @@ export function AdminModelEditor({
         )}
         <div className="model-editor-section-title">
           <h3>模型信息</h3>
-          <p>用户看到的名称与每张价格，独立于渠道设置。</p>
         </div>
         <FieldGroup className="ops-form-grid">
           <Field>
             <FieldLabel className="settings-field">
               <span>前台显示名称</span>
               <Input
-                autoFocus
                 required
                 maxLength={80}
                 value={editing.name}
@@ -517,39 +515,41 @@ export function AdminModelEditor({
           <p className="model-editor-hint">
             按实际模型支持范围配置；切换渠道后，也请确认这些参数仍可用。
           </p>
-          <label className="model-reference-toggle">
-            <input
-              type="checkbox"
-              checked={capabilities.referenceImages}
-              onChange={(event) =>
-                onChange({
-                  ...editing,
-                  capabilities: {
-                    ...capabilities,
-                    referenceImages: event.target.checked,
-                    maskEditing: event.target.checked ? capabilities.maskEditing : false,
-                  },
-                })
-              }
-            />
-            支持参考图
-          </label>
-          <label className="model-reference-toggle">
-            <input
-              type="checkbox"
-              checked={capabilities.maskEditing ?? false}
-              disabled={
-                !capabilities.referenceImages || primaryEndpoint?.protocol !== 'openai_images'
-              }
-              onChange={(event) =>
-                onChange({
-                  ...editing,
-                  capabilities: { ...capabilities, maskEditing: event.target.checked },
-                })
-              }
-            />
-            支持局部修改（已验证遮罩编辑）
-          </label>
+          <div className={styles.capabilityChecks}>
+            <label className="model-reference-toggle">
+              <input
+                type="checkbox"
+                checked={capabilities.referenceImages}
+                onChange={(event) =>
+                  onChange({
+                    ...editing,
+                    capabilities: {
+                      ...capabilities,
+                      referenceImages: event.target.checked,
+                      maskEditing: event.target.checked ? capabilities.maskEditing : false,
+                    },
+                  })
+                }
+              />
+              支持参考图
+            </label>
+            <label className="model-reference-toggle">
+              <input
+                type="checkbox"
+                checked={capabilities.maskEditing ?? false}
+                disabled={
+                  !capabilities.referenceImages || primaryEndpoint?.protocol !== 'openai_images'
+                }
+                onChange={(event) =>
+                  onChange({
+                    ...editing,
+                    capabilities: { ...capabilities, maskEditing: event.target.checked },
+                  })
+                }
+              />
+              支持局部修改（已验证遮罩编辑）
+            </label>
+          </div>
           <p className="model-editor-hint">
             验证当前主渠道的图片编辑与遮罩参数后再开启。更换渠道或上游模型时请重新验证。
           </p>
@@ -582,9 +582,11 @@ export function AdminModelEditor({
           ))}
         </FieldSet>
         <DialogActions sticky className="settings-form-actions model-editor-footer">
-          <span className="dialog-actions-note">
-            {testing ? '生图测试进行中，请等待测试完成' : '保存后生效'}
-          </span>
+          {testing && (
+            <span className={styles.testingNote} role="status">
+              正在进行生图测试…
+            </span>
+          )}
           <Button variant="outline" type="button" disabled={locked} onClick={onClose}>
             取消
           </Button>

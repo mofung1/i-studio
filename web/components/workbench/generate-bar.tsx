@@ -1,13 +1,12 @@
 'use client'
 
-import { Check, Loader2, Sparkles } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useId } from 'react'
 
-import { formatCredits, type GenerationQuote } from '@/lib/credits'
-import { GenerationCost, useGenerationCost, type CreditHelpNavigation } from '../generation-cost'
+import type { GenerationQuote } from '@/lib/credits'
+import { useGenerationCost, type CreditHelpNavigation } from '../generation-cost'
+import { GenerationFooter } from '../generation-footer'
 import type { GenerationNotice } from './use-generation-task'
-import { useAccount } from '../account-provider'
-import { LoginLink } from '../login-link'
 
 interface GenerateBarProps {
   modelId?: string
@@ -50,19 +49,15 @@ export function GenerateBar({
   needsProductImage,
   productImageLabel = '商品原图',
 }: GenerateBarProps) {
-  const { account, loading } = useAccount()
   const noticeId = useId()
   const visibleNotice: GenerationNotice | null = disabledReason
     ? { kind: 'error', message: disabledReason }
     : notice
   const cost = useGenerationCost(modelId, expectedCount)
-  const costBlocked = cost.authenticated && (!cost.quote || !cost.quote.canAfford)
   const missingImageHint = needsProductImage ? `请先选择${productImageLabel}` : undefined
   const submitLabel = onConfirmCost
     ? (missingImageHint ??
-      (cost.quote
-        ? `确认 ${formatCredits(cost.quote.totalMinor)} ${cost.quote.creditName}，生成 ${cost.quote.quantity} 张`
-        : '确认积分并生成套图'))
+      (cost.quote ? `确认生成 ${cost.quote.quantity} 张` : '确认积分并生成套图'))
     : (buttonLabel ?? `生成${title}`)
   const label = isSubmitting
     ? (busyLabel ?? '正在提交…')
@@ -97,56 +92,30 @@ export function GenerateBar({
           {aspectRatio} · {resolution}
         </span>
       </div>
-      <GenerationCost
-        {...cost}
-        compact={Boolean(onConfirmCost)}
-        totalInButton={Boolean(onConfirmCost && !missingImageHint && label === submitLabel)}
+      <GenerationFooter
+        cost={cost}
+        label={label}
+        busy={isSubmitting || isGenerating}
+        disabled={aiEnabled !== true || needsProductImage || Boolean(disabledReason)}
+        title={hint}
+        describedBy={visibleNotice ? noticeId : undefined}
         creditHelp={creditHelp}
-      />
-      {visibleNotice && (
-        <p
-          id={noticeId}
-          className={`form-notice ${visibleNotice.kind}`}
-          role={visibleNotice.kind === 'error' ? 'alert' : 'status'}
-        >
-          {visibleNotice.kind === 'success' && <Check size={15} aria-hidden="true" />}
-          {visibleNotice.message}
-        </p>
-      )}
-      {!account.authenticated && !loading ? (
-        <LoginLink className="generate-button">
-          <Sparkles size={17} aria-hidden="true" />
-          登录后开始创作
-        </LoginLink>
-      ) : (
-        <button
-          className="generate-button"
-          type="button"
-          disabled={
-            loading ||
-            isSubmitting ||
-            isGenerating ||
-            aiEnabled === null ||
-            aiEnabled === false ||
-            costBlocked ||
-            needsProductImage ||
-            Boolean(disabledReason)
-          }
-          title={hint}
-          aria-describedby={visibleNotice ? noticeId : undefined}
-          onClick={() => {
-            if (!onConfirmCost) onSubmit()
-            else if (cost.quote) onConfirmCost(cost.quote)
-          }}
-        >
-          {isSubmitting || isGenerating ? (
-            <Loader2 size={17} className="animate-spin" aria-hidden="true" />
-          ) : (
-            <Sparkles size={17} aria-hidden="true" />
-          )}
-          {loading ? '正在确认登录状态…' : label}
-        </button>
-      )}
+        onSubmit={() => {
+          if (!onConfirmCost) onSubmit()
+          else if (cost.quote) onConfirmCost(cost.quote)
+        }}
+      >
+        {visibleNotice && (
+          <p
+            id={noticeId}
+            className={`form-notice ${visibleNotice.kind}`}
+            role={visibleNotice.kind === 'error' ? 'alert' : 'status'}
+          >
+            {visibleNotice.kind === 'success' && <Check size={15} aria-hidden="true" />}
+            {visibleNotice.message}
+          </p>
+        )}
+      </GenerationFooter>
     </footer>
   )
 }

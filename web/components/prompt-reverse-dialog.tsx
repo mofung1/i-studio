@@ -10,7 +10,6 @@ import {
   Check,
   Copy,
   History,
-  ImagePlus,
   LoaderCircle,
   RotateCcw,
   ScanText,
@@ -39,6 +38,7 @@ import {
 import type { CreationImage } from '@/lib/creation-images'
 import { loadStoredImage } from '@/lib/library'
 import { AuthenticatedImage, forgetProtectedImage, loadProtectedImage } from './authenticated-image'
+import { handleImageUploadPaste, ImageUpload, ImageUploadDropArea } from './image-upload'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
 
 const errorText = (error: unknown) =>
@@ -63,7 +63,6 @@ export function PromptReverseDialog({
 }) {
   const router = useRouter()
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
   const previousFocus = useRef<HTMLElement | null>(null)
   const requestNonce = useRef<{ signature: string; id: string } | null>(null)
   const submitting = useRef(false)
@@ -289,22 +288,6 @@ export function PromptReverseDialog({
     }
   }, [open, active, task?.id])
 
-  useEffect(() => {
-    if (!open) return
-    const paste = (event: ClipboardEvent) => {
-      if (active || busy) return
-      const image = Array.from(event.clipboardData?.items ?? [])
-        .find((item) => item.kind === 'file' && item.type.startsWith('image/'))
-        ?.getAsFile()
-      if (image) {
-        event.preventDefault()
-        chooseFile(image)
-      }
-    }
-    dialogRef.current?.addEventListener('paste', paste)
-    return () => dialogRef.current?.removeEventListener('paste', paste)
-  }, [open, active, busy])
-
   function chooseFile(next: File) {
     try {
       validateReverseFile(next)
@@ -323,6 +306,11 @@ export function PromptReverseDialog({
     setNotice('')
     setCopied(false)
     setConfirmRerun(false)
+  }
+
+  function chooseImage(files: File[]) {
+    const next = files[0]
+    if (next) chooseFile(next)
   }
 
   async function analyze() {
@@ -493,6 +481,9 @@ export function PromptReverseDialog({
       ref={dialogRef}
       className="prompt-reverse-dialog"
       aria-labelledby="reverse-title"
+      onPaste={(event) => {
+        if (open && loggedIn && !active && !busy) handleImageUploadPaste(event, chooseImage)
+      }}
       onCancel={(event) => {
         event.preventDefault()
         onClose()
@@ -558,64 +549,44 @@ export function PromptReverseDialog({
                   <div className="reverse-section-head">
                     <h3>参考图片</h3>
                   </div>
-                  <div
+                  <ImageUploadDropArea
                     className={`reverse-image${!localURL && !sourcePath ? ' is-empty' : ''}`}
-                    onDragOver={(event) => {
-                      if (!active && !busy) event.preventDefault()
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault()
-                      if (!active && !busy && event.dataTransfer.files[0])
-                        chooseFile(event.dataTransfer.files[0])
-                    }}
+                    disabled={active || !!busy}
+                    onFiles={chooseImage}
                   >
                     {localURL ? (
                       <img src={localURL} alt="上传的参考图片" />
                     ) : sourcePath ? (
                       <AuthenticatedImage key={sourcePath} path={sourcePath} alt="分析的参考图片" />
                     ) : (
-                      <button
-                        type="button"
+                      <ImageUpload
                         className="reverse-upload"
-                        aria-describedby="reverse-upload-help"
-                        disabled={!!busy || loading}
-                        onClick={() => inputRef.current?.click()}
-                      >
-                        <ImagePlus size={32} aria-hidden="true" />
-                        <strong>添加参考图片</strong>
-                        <span>点击上传、拖入或粘贴图片</span>
-                      </button>
+                        inputLabel="上传反推参考图片"
+                        label="添加参考图片"
+                        hint="点击上传、拖入或粘贴图片"
+                        describedBy="reverse-upload-help"
+                        disabled={active || !!busy || loading}
+                        allowDrop={false}
+                        onFiles={chooseImage}
+                      />
                     )}
-                  </div>
+                  </ImageUploadDropArea>
                   {!localURL && !sourcePath && (
                     <p className="reverse-upload-help" id="reverse-upload-help">
                       JPG / PNG / WebP · 最多 10 MB
                     </p>
                   )}
-                  <input
-                    ref={inputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    className="sr-only"
-                    tabIndex={-1}
-                    aria-label="上传反推参考图片"
-                    onChange={(event) => {
-                      const selected = event.target.files?.[0]
-                      if (selected) chooseFile(selected)
-                      event.target.value = ''
-                    }}
-                  />
                   {(localURL || sourcePath) && (
                     <div className="reverse-image-meta">
                       <span title={previewName}>{previewName}</span>
-                      <button
-                        type="button"
-                        className="settings-command"
+                      <ImageUpload
+                        variant="button"
+                        className="reverse-image-replace"
+                        inputLabel="上传反推参考图片"
+                        label="替换图片"
                         disabled={active || !!busy}
-                        onClick={() => inputRef.current?.click()}
-                      >
-                        替换图片
-                      </button>
+                        onFiles={chooseImage}
+                      />
                       {task && !active && (
                         <button
                           type="button"

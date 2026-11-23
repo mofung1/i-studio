@@ -1,9 +1,11 @@
 .reverse-settings {
-  --reverse-inset: clamp(1rem, 2.4vw, 1.5rem);
+  --reverse-inset: var(--admin-panel-padding);
   container-type: inline-size;
+  width: 100%;
   min-width: 0;
+  max-width: 68rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--admin-panel-radius);
   background: var(--card);
   color: var(--card-foreground);
 }
@@ -28,9 +30,9 @@
 
 .reverse-config-section {
   display: grid;
-  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
   align-items: start;
-  gap: 1rem 2rem;
+  gap: var(--admin-field-gap) var(--admin-section-gap);
   padding: var(--reverse-inset);
 }
 
@@ -62,13 +64,8 @@
 .reverse-service-unavailable {
   display: flex;
   align-items: flex-start;
-  gap: 0.625rem;
-  margin-top: 0.625rem;
-  padding: 0.75rem;
-  border: 1px solid var(--admin-success-line);
-  border-radius: var(--radius);
-  background: var(--admin-success-soft);
-  color: var(--admin-success-text);
+  gap: var(--admin-control-gap);
+  margin-top: var(--admin-control-gap);
   font-size: 0.8125rem;
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -77,10 +74,18 @@
 .reverse-service-summary {
   align-items: center;
   flex-wrap: wrap;
+  padding-block: 4px;
+  color: var(--muted-foreground);
+}
+
+.reverse-service-summary strong {
+  color: var(--foreground);
 }
 
 .reverse-service-unavailable {
-  border-color: var(--admin-warning-line);
+  padding: 8px 12px;
+  border: 1px solid var(--admin-warning-line);
+  border-radius: var(--admin-control-radius);
   background: var(--admin-warning-soft);
   color: var(--admin-warning-text);
 }
@@ -146,9 +151,9 @@
   flex-direction: column;
   align-items: stretch;
   gap: 0.375rem;
-  padding: 0.75rem;
+  padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--admin-control-radius);
   background: var(--background);
   text-align: start;
 }
@@ -218,9 +223,9 @@
 .reverse-number-control {
   display: flex;
   align-items: center;
-  min-height: 2.5rem;
+  min-height: max(36px, var(--admin-control-height));
   border: 1px solid var(--input);
-  border-radius: var(--radius);
+  border-radius: var(--admin-control-radius);
   background: var(--background);
 }
 
@@ -262,6 +267,7 @@
 }
 
 .reverse-config-footer {
+  padding-block: 12px;
   border-top: 1px solid var(--border);
 }
 

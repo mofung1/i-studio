@@ -197,7 +197,8 @@ it('keeps pagination in the library layout and applies page size and search to t
   await act(async () => new Promise((resolve) => window.setTimeout(resolve, 400)))
   expect(list.querySelectorAll('tbody > tr')).toHaveLength(1)
   expect(list.textContent).toContain('提示词-61')
-  expect(pagination.textContent).toContain('第 1 / 1 页')
+  expect(container.querySelector('[aria-label="提示词分页"]')).toBeNull()
+  expect(container.textContent).toContain('共 1 条')
 })
 
 it('manages categories in a modal and makes new categories available in the prompt editor', async () => {
@@ -205,7 +206,13 @@ it('manages categories in a modal and makes new categories available in the prom
   await click('分类管理')
   const dialog = container.querySelector<HTMLDialogElement>('.inspiration-category-dialog')!
   expect(dialog.open).toBe(true)
-  const menu = await openSelect('每页分类条数')
+  expect(dialog.querySelector('[aria-label="分类分页"]')).toBeNull()
+  await act(async () => {
+    button('灵感分类列表显示设置', dialog).dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+    )
+  })
+  const menu = document.querySelector<HTMLElement>('[role="menu"]')!
   expect(menu.closest('dialog')).toBe(dialog)
   await act(async () =>
     menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),

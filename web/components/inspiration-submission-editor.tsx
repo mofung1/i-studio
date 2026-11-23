@@ -11,6 +11,7 @@ import { AssetPicker } from './workbench/asset-picker'
 import { AuthenticatedImage } from './authenticated-image'
 import { InspirationSubmissionCover } from './inspiration-submission-cover'
 import { DialogActions } from './dialog-actions'
+import { ImageUploadButton } from './image-upload'
 
 export interface SubmissionSeed {
   id: string
@@ -237,9 +238,11 @@ export function InspirationSubmissionEditor({
               ) : item ? (
                 <InspirationSubmissionCover path={item.coverPath} title={item.title} />
               ) : null}
-              <button type="button" className="studio-secondary" onClick={() => setPicker(true)}>
-                {cover || item ? '更换封面' : '选择或上传封面'}
-              </button>
+              <ImageUploadButton
+                variant="button"
+                label={cover || item ? '更换封面' : '选择或上传封面'}
+                onClick={() => setPicker(true)}
+              />
               <small>选择自己的生成作品或上传图片；请确保封面与提示词效果相符。</small>
             </Field>
             <Field>

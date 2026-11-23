@@ -31,7 +31,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: var(--layout-gap);
 }
 .library-count {
   color: var(--foreground-3);
@@ -40,7 +40,7 @@
 .asset-manager-layout {
   display: grid;
   grid-template-columns: 168px minmax(0, 1fr);
-  gap: 22px;
+  gap: var(--layout-gap);
   flex: 1;
   min-height: 0;
   align-items: stretch;
@@ -981,7 +981,6 @@
   .asset-manager-layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
-    gap: 16px;
   }
   .asset-projects {
     display: flex;
@@ -1091,7 +1090,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: var(--layout-gap);
 }
 .personal-library-head .library-views {
   margin: 0;
@@ -1101,7 +1100,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: var(--layout-gap);
 }
 .personal-library-toolbar .select-trigger {
   background: var(--surface);
@@ -1877,41 +1876,15 @@
   min-width: 0;
 }
 .asset-picker-upload {
-  display: flex;
   flex: 0 0 var(--material-size);
   margin-top: 6px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
   width: var(--material-size);
   height: var(--material-size);
-  padding: 8px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 12px;
-  color: var(--foreground-2);
-  background: var(--surface-subtle);
-  text-align: center;
-  font: inherit;
-  cursor: pointer;
 }
-.asset-picker-upload:hover:not(:disabled),
-.asset-picker.is-dragging .asset-picker-upload {
+.asset-picker.is-dragging .asset-picker-upload:not(:disabled) {
   border-color: var(--foreground);
   color: var(--foreground);
   background: var(--control-bg);
-}
-.asset-picker-upload:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.asset-picker-upload strong {
-  font-size: 12px;
-  font-weight: 550;
-}
-.asset-picker-upload small {
-  font-size: 10px;
-  color: var(--foreground-3);
 }
 .asset-picker-filters {
   display: grid;

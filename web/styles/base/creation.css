@@ -970,14 +970,19 @@
   display: block;
 }
 
-.add-thumb:hover {
+.add-thumb:hover:not(:disabled) {
   color: var(--foreground);
   background: var(--surface-subtle);
   border-color: var(--line-strong);
 }
 
-.add-thumb:hover .add-thumb-icon {
+.add-thumb:hover:not(:disabled) .add-thumb-icon {
   background: var(--primary-soft);
+}
+
+.add-thumb:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .add-thumb:focus-within {
@@ -1032,13 +1037,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
-}
-
-.add-thumb input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
 }
 
 .insight-chips {

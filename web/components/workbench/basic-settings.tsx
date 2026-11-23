@@ -1,16 +1,15 @@
 'use client'
 
-import { ChevronDown, Image as ImageIcon, RefreshCw, Sparkles, X } from 'lucide-react'
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { RefreshCw, Sparkles } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
 import type { CommerceTaskType } from '@/lib/contracts'
 import type { PublicImageModel } from '@/lib/generation-models'
+import { ImageParameters, ImageSizeFields } from './image-parameters'
 import { ModelGuidance } from './model-guidance'
+import { ProductPlatformSelector } from './product-platform-selector'
 import {
   generalCountOptions,
   languageOptions,
-  ratioOptions,
-  resolutionOptions,
   styleOptions,
   type GeneralStyle,
   type ReferenceStrength,
@@ -32,6 +31,8 @@ interface BasicSettingsProps {
   onSetResolution: (resolution: string) => void
   onSetCount: (count: number) => void
   outputSummary: string
+  platform: string
+  onSetPlatform: (platform: string) => void
   outputLanguage: string
   onSetOutputLanguage: (language: string) => void
   onSetAspectRatio: (ratio: string) => void
@@ -39,119 +40,6 @@ interface BasicSettingsProps {
   referenceStrength: ReferenceStrength
   onSetStyle: (style: GeneralStyle) => void
   onSetReferenceStrength: (strength: ReferenceStrength) => void
-}
-
-function GeneralParameterPopover({
-  aspectRatio,
-  resolution,
-  count,
-  style,
-  referenceStrength,
-  onSetResolution,
-  onSetCount,
-  onSetAspectRatio,
-  onSetStyle,
-  onSetReferenceStrength,
-  portalContainer,
-  capabilities,
-}: Pick<
-  BasicSettingsProps,
-  | 'aspectRatio'
-  | 'resolution'
-  | 'count'
-  | 'style'
-  | 'referenceStrength'
-  | 'onSetResolution'
-  | 'onSetCount'
-  | 'onSetAspectRatio'
-  | 'onSetStyle'
-  | 'onSetReferenceStrength'
-> & { portalContainer: HTMLElement | null; capabilities: PublicImageModel['capabilities'] }) {
-  return (
-    <div className="basic-settings-popover-grid">
-      <label className="settings-field">
-        <span>创作风格</span>
-        <Select value={style} onValueChange={(value) => onSetStyle(value as GeneralStyle)}>
-          <SelectTrigger aria-label="创作风格">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent portalContainer={portalContainer}>
-            {styleOptions.map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </label>
-      <label className="settings-field">
-        <span>参考强度</span>
-        <Select
-          value={referenceStrength}
-          onValueChange={(value) => onSetReferenceStrength(value as ReferenceStrength)}
-        >
-          <SelectTrigger aria-label="参考强度">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent portalContainer={portalContainer}>
-            <SelectItem value="low">低</SelectItem>
-            <SelectItem value="medium">中</SelectItem>
-            <SelectItem value="high">高</SelectItem>
-          </SelectContent>
-        </Select>
-      </label>
-      <label className="settings-field">
-        <span>尺寸比例</span>
-        <Select value={aspectRatio} onValueChange={onSetAspectRatio}>
-          <SelectTrigger aria-label="尺寸比例">
-            <ImageIcon size={14} aria-hidden="true" />
-            <SelectValue>{aspectRatio}</SelectValue>
-          </SelectTrigger>
-          <SelectContent portalContainer={portalContainer}>
-            {ratioOptions
-              .filter(([value]) => !capabilities || capabilities.aspectRatios.includes(value))
-              .map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-      </label>
-      <label className="settings-field">
-        <span>清晰度</span>
-        <Select value={resolution} onValueChange={onSetResolution}>
-          <SelectTrigger aria-label="清晰度">
-            <SelectValue>{resolution}</SelectValue>
-          </SelectTrigger>
-          <SelectContent portalContainer={portalContainer}>
-            {resolutionOptions
-              .filter(([value]) => !capabilities || capabilities.resolutions.includes(value))
-              .map(([value, label]) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-          </SelectContent>
-        </Select>
-      </label>
-      <label className="settings-field">
-        <span>生成数量</span>
-        <Select value={String(count)} onValueChange={(value) => onSetCount(Number(value))}>
-          <SelectTrigger aria-label="生成数量">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent portalContainer={portalContainer}>
-            {generalCountOptions.map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </label>
-    </div>
-  )
 }
 
 export function BasicSettings(props: BasicSettingsProps) {
@@ -167,6 +55,8 @@ export function BasicSettings(props: BasicSettingsProps) {
     onSetResolution,
     onSetCount,
     outputSummary,
+    platform,
+    onSetPlatform,
     outputLanguage,
     onSetOutputLanguage,
     onSetAspectRatio,
@@ -178,220 +68,31 @@ export function BasicSettings(props: BasicSettingsProps) {
     modelsError = '',
     onReloadModels,
   } = props
-  const [paramsOpen, setParamsOpen] = useState(false)
-  const [position, setPosition] = useState<{ top: number; left: number; maxHeight: number } | null>(
-    null,
-  )
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const popoverRef = useRef<HTMLDivElement>(null)
-  const popoverId = useId()
-  const capabilities = imageEndpoints.find((endpoint) => endpoint.id === endpointId)?.capabilities
-
-  useEffect(() => {
-    if (mode !== 'general') setParamsOpen(false)
-  }, [mode])
-
-  useLayoutEffect(() => {
-    if (!paramsOpen || mode !== 'general') return
-    const trigger = triggerRef.current
-    const popover = popoverRef.current
-    if (!trigger || !popover) return
-    const updatePosition = () => {
-      const rect = trigger.getBoundingClientRect()
-      const gap = 10
-      const gutter = 12
-      const viewportSpace = Math.max(64, window.innerHeight - gutter * 2)
-      const availableAbove = Math.max(0, Math.min(rect.top - gap - gutter, viewportSpace))
-      const availableBelow = Math.max(
-        0,
-        Math.min(window.innerHeight - rect.bottom - gap - gutter, viewportSpace),
-      )
-      const above = availableAbove >= availableBelow
-      const maxHeight = Math.max(64, above ? availableAbove : availableBelow)
-      const height = Math.min(popover.scrollHeight + 2, maxHeight)
-      const left = Math.max(
-        gutter,
-        Math.min(rect.left, window.innerWidth - popover.offsetWidth - gutter),
-      )
-      const idealTop = above ? rect.top - gap - height : rect.bottom + gap
-      const top = Math.max(gutter, Math.min(idealTop, window.innerHeight - gutter - height))
-      setPosition((previous) =>
-        previous?.top === top && previous.left === left && previous.maxHeight === maxHeight
-          ? previous
-          : { top, left, maxHeight },
-      )
-    }
-    const onScroll = (event: Event) => {
-      if (!(event.target instanceof Node) || !popover.contains(event.target)) updatePosition()
-    }
-    updatePosition()
-    const focusFrame = requestAnimationFrame(() =>
-      popover.querySelector<HTMLButtonElement>('[role="combobox"]')?.focus({ preventScroll: true }),
-    )
-    const observer = new ResizeObserver(updatePosition)
-    observer.observe(popover)
-    observer.observe(trigger)
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', onScroll, true)
-    return () => {
-      cancelAnimationFrame(focusFrame)
-      observer.disconnect()
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', onScroll, true)
-    }
-  }, [paramsOpen, mode])
-
-  if (mode === 'general') {
-    const selected = imageEndpoints.find((endpoint) => endpoint.id === endpointId)
-    const modelPlaceholder = modelsLoading
-      ? '正在读取模型…'
-      : !imageEndpoints.length
-        ? '暂无可用模型'
-        : '请选择模型'
-    return (
-      <section
-        className={`basic-settings compact-basic-settings ${paramsOpen ? 'is-open' : ''}`}
-        aria-label="生成参数"
-      >
-        <div className="compact-settings-row">
-          <div className="settings-model-control">
-            <span className="settings-control-label">生成模型</span>
-            <Select
-              value={selected?.id ?? ''}
-              onValueChange={onSetEndpoint}
-              disabled={modelsLoading || !imageEndpoints.length}
-            >
-              <SelectTrigger
-                className="settings-chip settings-chip-model"
-                aria-label="模型选择"
-                title={selected?.name ?? modelPlaceholder}
-              >
-                <Sparkles size={14} aria-hidden="true" />
-                <SelectValue placeholder={modelPlaceholder}>{selected?.name}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {imageEndpoints.map((endpoint) => (
-                  <SelectItem key={endpoint.id} value={endpoint.id}>
-                    {endpoint.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {onReloadModels && (modelsError || (!modelsLoading && !imageEndpoints.length)) && (
-            <button
-              type="button"
-              className="settings-chip model-reload"
-              aria-label="重新加载模型列表"
-              title="重新加载模型列表"
-              disabled={modelsLoading}
-              onClick={onReloadModels}
-            >
-              <RefreshCw size={15} aria-hidden="true" />
-              重新加载
-            </button>
-          )}
-          <div className="settings-output-control">
-            <span className="settings-control-label">画面参数</span>
-            <button
-              ref={triggerRef}
-              type="button"
-              className="settings-chip settings-chip-output"
-              aria-label="图片参数配置"
-              aria-haspopup="dialog"
-              aria-expanded={paramsOpen}
-              aria-controls={popoverId}
-              popoverTarget={popoverId}
-            >
-              <span>
-                {aspectRatio} · {resolution} · {count} 张
-              </span>
-              <ChevronDown size={13} aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-        <ModelGuidance model={imageEndpoints.find((endpoint) => endpoint.id === endpointId)} />
-        {!modelsLoading && (modelsError || !imageEndpoints.length) && (
-          <p className="model-availability-note" role={modelsError ? 'alert' : 'status'}>
-            {modelsError || '暂无可用生图模型，请联系网站管理员启用。'}
-          </p>
-        )}
-        <div
-          ref={popoverRef}
-          id={popoverId}
-          popover="auto"
-          role="dialog"
-          aria-label="图片参数"
-          className="basic-settings-popover general-parameter-popover"
-          data-positioned={position ? '' : undefined}
-          style={{
-            top: position?.top ?? 0,
-            left: position?.left ?? 0,
-            maxHeight: position?.maxHeight,
-            visibility: position ? 'visible' : 'hidden',
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== 'Escape' || (event.target as HTMLElement).closest('.select-content'))
-              return
-            event.preventDefault()
-            popoverRef.current?.hidePopover()
-            triggerRef.current?.focus({ preventScroll: true })
-          }}
-          onToggle={(event) => {
-            const open = event.newState === 'open'
-            setParamsOpen(open)
-            if (!open) setPosition(null)
-          }}
-        >
-          <header className="general-parameter-head">
-            <strong>图片参数</strong>
-            <button
-              type="button"
-              aria-label="关闭图片参数"
-              onClick={() => {
-                popoverRef.current?.hidePopover()
-                triggerRef.current?.focus({ preventScroll: true })
-              }}
-            >
-              <X size={16} aria-hidden="true" />
-            </button>
-          </header>
-          <GeneralParameterPopover
-            {...{
-              aspectRatio,
-              resolution,
-              count,
-              style,
-              referenceStrength,
-              onSetResolution,
-              onSetCount,
-              onSetAspectRatio,
-              onSetStyle,
-              onSetReferenceStrength,
-            }}
-            portalContainer={popoverRef.current}
-            capabilities={capabilities}
-          />
-        </div>
-      </section>
-    )
-  }
+  const isGeneral = mode === 'general'
+  const selected = imageEndpoints.find((endpoint) => endpoint.id === endpointId)
+  const modelPlaceholder = modelsLoading
+    ? '正在读取模型…'
+    : !imageEndpoints.length
+      ? '暂无可用模型'
+      : '请选择模型'
 
   return (
-    <fieldset className="form-section config-card basic-settings">
-      <div className="field-heading">
-        <legend>生成参数</legend>
-      </div>
-      <div className="settings-grid">
-        <label className="settings-field model-field">
-          <span>生图模型</span>
+    <section className="basic-settings compact-basic-settings" aria-label="生成参数">
+      <div className="compact-settings-row">
+        <div className="settings-model-control">
+          <span className="settings-control-label">生成模型</span>
           <Select
-            value={imageEndpoints.some((endpoint) => endpoint.id === endpointId) ? endpointId : ''}
+            value={selected?.id ?? ''}
             onValueChange={onSetEndpoint}
             disabled={modelsLoading || !imageEndpoints.length}
           >
-            <SelectTrigger aria-label="生图模型">
-              <SelectValue placeholder={modelsLoading ? '正在读取模型…' : '暂无可用模型'} />
+            <SelectTrigger
+              className="settings-chip settings-chip-model"
+              aria-label={isGeneral ? '模型选择' : '生图模型'}
+              title={selected?.name ?? modelPlaceholder}
+            >
+              <Sparkles size={14} aria-hidden="true" />
+              <SelectValue placeholder={modelPlaceholder}>{selected?.name}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {imageEndpoints.map((endpoint) => (
@@ -401,71 +102,130 @@ export function BasicSettings(props: BasicSettingsProps) {
               ))}
             </SelectContent>
           </Select>
-        </label>
-        <label className="settings-field">
-          <span>尺寸比例</span>
-          <Select value={aspectRatio} onValueChange={onSetAspectRatio}>
-            <SelectTrigger aria-label="尺寸比例">
-              <SelectValue>{aspectRatio}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {ratioOptions
-                .filter(([value]) => !capabilities || capabilities.aspectRatios.includes(value))
-                .map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </label>
-        <label className="settings-field">
-          <span>清晰度</span>
-          <Select value={resolution} onValueChange={onSetResolution}>
-            <SelectTrigger aria-label="清晰度">
-              <SelectValue>{resolution}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {resolutionOptions
-                .filter(([value]) => !capabilities || capabilities.resolutions.includes(value))
-                .map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-        </label>
-        {mode === 'commerce' && task !== 'product-retouch' ? (
-          <div className="settings-field commerce-output-field">
-            <span>预计出图</span>
-            <div className="commerce-output-controls">
-              <Select value={outputLanguage} onValueChange={onSetOutputLanguage}>
-                <SelectTrigger
-                  aria-label="目标语言"
-                  title={languageOptions.find(([value]) => value === outputLanguage)?.[1]}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {languageOptions.map(([value, label]) => (
-                    <SelectItem key={value} value={value} title={label}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="settings-value">{outputSummary}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="settings-field">
-            <span>预计出图</span>
-            <span className="settings-value">{outputSummary}</span>
-          </div>
+        </div>
+        {onReloadModels && (modelsError || (!modelsLoading && !imageEndpoints.length)) && (
+          <button
+            type="button"
+            className="settings-chip model-reload studio-secondary"
+            aria-label="重新加载模型列表"
+            title="重新加载模型列表"
+            disabled={modelsLoading}
+            onClick={onReloadModels}
+          >
+            <RefreshCw size={15} aria-hidden="true" />
+            重新加载
+          </button>
         )}
+        <ImageParameters
+          summary={`${aspectRatio} · ${resolution} · ${outputSummary}`}
+          context={isGeneral ? mode : task}
+        >
+          {(portalContainer) => (
+            <>
+              {isGeneral && (
+                <>
+                  <label className="settings-field">
+                    <span>创作风格</span>
+                    <Select
+                      value={style}
+                      onValueChange={(value) => onSetStyle(value as GeneralStyle)}
+                    >
+                      <SelectTrigger aria-label="创作风格">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent portalContainer={portalContainer}>
+                        {styleOptions.map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  <label className="settings-field">
+                    <span>参考强度</span>
+                    <Select
+                      value={referenceStrength}
+                      onValueChange={(value) => onSetReferenceStrength(value as ReferenceStrength)}
+                    >
+                      <SelectTrigger aria-label="参考强度">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent portalContainer={portalContainer}>
+                        <SelectItem value="low">低</SelectItem>
+                        <SelectItem value="medium">中</SelectItem>
+                        <SelectItem value="high">高</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </label>
+                </>
+              )}
+              <ImageSizeFields
+                aspectRatio={aspectRatio}
+                resolution={resolution}
+                onSetAspectRatio={onSetAspectRatio}
+                onSetResolution={onSetResolution}
+                portalContainer={portalContainer}
+                capabilities={selected?.capabilities}
+              />
+              {!isGeneral && (
+                <label className="settings-field image-parameters-wide">
+                  <span>目标平台</span>
+                  <ProductPlatformSelector
+                    value={platform}
+                    onChange={onSetPlatform}
+                    portalContainer={portalContainer}
+                  />
+                </label>
+              )}
+              {isGeneral ? (
+                <label className="settings-field image-parameters-wide">
+                  <span>生成数量</span>
+                  <Select
+                    value={String(count)}
+                    onValueChange={(value) => onSetCount(Number(value))}
+                  >
+                    <SelectTrigger aria-label="生成数量">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent portalContainer={portalContainer}>
+                      {generalCountOptions.map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+              ) : (
+                task !== 'product-retouch' && (
+                  <label className="settings-field image-parameters-wide">
+                    <span>目标语言</span>
+                    <Select value={outputLanguage} onValueChange={onSetOutputLanguage}>
+                      <SelectTrigger aria-label="目标语言">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent portalContainer={portalContainer}>
+                        {languageOptions.map(([value, label]) => (
+                          <SelectItem key={value} value={value} title={label}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                )
+              )}
+            </>
+          )}
+        </ImageParameters>
       </div>
-      <ModelGuidance model={imageEndpoints.find((endpoint) => endpoint.id === endpointId)} />
-    </fieldset>
+      <ModelGuidance model={selected} />
+      {!modelsLoading && (modelsError || !imageEndpoints.length) && (
+        <p className="model-availability-note" role={modelsError ? 'alert' : 'status'}>
+          {modelsError || '暂无可用生图模型，请联系网站管理员启用。'}
+        </p>
+      )}
+    </section>
   )
 }

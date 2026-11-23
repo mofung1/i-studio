@@ -223,7 +223,7 @@
   place-items: center;
   padding: 20px;
   background: rgba(17, 17, 17, 0.4);
-  animation: backdrop-in 140ms ease-out;
+  animation: backdrop-in var(--admin-motion-fast) var(--admin-motion-ease);
 }
 
 @keyframes backdrop-in {
@@ -248,13 +248,13 @@
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.32);
   /* 弹窗自己一套动画：只做透明度 + 轻微上移。
      之前复用底部输入条的 dock-in（带 translate(-50%)），会让居中的弹窗先偏左再跳回中间 */
-  animation: dialog-in 160ms ease-out;
+  animation: dialog-in var(--admin-motion-panel) var(--admin-motion-ease);
 }
 
 @keyframes dialog-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(5px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -527,6 +527,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dialog-backdrop,
+  .confirm-dialog {
+    animation: none;
+  }
   *,
   *::before,
   *::after {

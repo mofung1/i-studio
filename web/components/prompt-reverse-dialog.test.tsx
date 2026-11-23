@@ -94,6 +94,104 @@ it('shows a user-facing unavailable message without asking for administrator log
   expect(container.querySelector('[role="alert"]')).toBeNull()
 })
 
+it('keeps one file chooser for adding and replacing a validated reference', async () => {
+  vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static createObjectURL = vi.fn(() => 'blob:reverse-preview')
+      static revokeObjectURL = vi.fn()
+    },
+  )
+  const fetch = vi.fn(async (url: string) =>
+    Response.json(
+      new URL(url).pathname.endsWith('/capabilities')
+        ? { available: true, reason: '', imageDetail: 'high' }
+        : { tasks: [] },
+    ),
+  )
+  vi.stubGlobal('fetch', fetch)
+  await act(async () =>
+    root.render(<PromptReverseDialog open request={{ revision: 1 }} onClose={() => {}} />),
+  )
+
+  async function choose(file: File) {
+    const inputs = container.querySelectorAll<HTMLInputElement>('input[type="file"]')
+    expect(inputs).toHaveLength(1)
+    const input = inputs[0]!
+    expect(input.getAttribute('aria-label')).toBe('上传反推参考图片')
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] })
+    await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })))
+  }
+
+  await choose(new File(['gif'], 'wrong.gif', { type: 'image/gif' }))
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain(
+    '请选择 JPG、PNG 或 WebP',
+  )
+  await choose(new File(['first'], 'first.png', { type: 'image/png' }))
+  expect(container.querySelector('.reverse-image img')?.getAttribute('src')).toBe(
+    'blob:reverse-preview',
+  )
+  expect(container.querySelector('button[aria-label="替换图片"]')).not.toBeNull()
+  await choose(new File(['next'], 'next.webp', { type: 'image/webp' }))
+  expect(container.querySelector('.reverse-image-meta > span')?.textContent).toBe('next.webp')
+  expect(container.querySelector('[role="alert"]')).toBeNull()
+  expect(fetch).toHaveBeenCalledTimes(2)
+})
+
+it('accepts dropped and pasted reference images without consuming text or outside paste', async () => {
+  vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static createObjectURL = vi.fn(() => 'blob:reverse-preview')
+      static revokeObjectURL = vi.fn()
+    },
+  )
+  const fetch = vi.fn(async (url: string) =>
+    Response.json(
+      new URL(url).pathname.endsWith('/capabilities')
+        ? { available: true, reason: '', imageDetail: 'high' }
+        : { tasks: [] },
+    ),
+  )
+  vi.stubGlobal('fetch', fetch)
+  await act(async () =>
+    root.render(<PromptReverseDialog open request={{ revision: 1 }} onClose={() => {}} />),
+  )
+
+  const drop = new Event('drop', { bubbles: true, cancelable: true })
+  Object.defineProperty(drop, 'dataTransfer', {
+    value: {
+      types: ['Files'],
+      files: [new File(['dropped'], 'dropped.png', { type: 'image/png' })],
+    },
+  })
+  await act(async () => container.querySelector('.reverse-image')!.dispatchEvent(drop))
+  expect(drop.defaultPrevented).toBe(true)
+  expect(container.querySelector('.reverse-image-meta > span')?.textContent).toBe('dropped.png')
+
+  async function paste(target: Element, image?: File) {
+    const event = new Event('paste', { bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'clipboardData', {
+      value: {
+        items: image
+          ? [{ kind: 'file', type: image.type, getAsFile: () => image }]
+          : [{ kind: 'string', type: 'text/plain' }],
+      },
+    })
+    await act(async () => target.dispatchEvent(event))
+    return event.defaultPrevented
+  }
+
+  const requirements = container.querySelector('textarea')!
+  const image = new File(['pasted'], 'pasted.webp', { type: 'image/webp' })
+  expect(await paste(container, image)).toBe(false)
+  expect(await paste(requirements)).toBe(false)
+  expect(container.querySelector('.reverse-image-meta > span')?.textContent).toBe('dropped.png')
+  expect(await paste(requirements, image)).toBe(true)
+  expect(container.querySelector('.reverse-image-meta > span')?.textContent).toBe('pasted.webp')
+  expect(fetch).toHaveBeenCalledTimes(2)
+})
+
 it('restores result actions with a completed analysis and keeps editing and rerun confirmation', async () => {
   const task: ReverseTask = {
     id: 'completed-analysis',

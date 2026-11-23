@@ -28,7 +28,6 @@ import { AdvancedSettings } from './advanced-settings'
 import { BasicSettings } from './basic-settings'
 import { GenerateBar } from './generate-bar'
 import type { CreditHelpNavigation } from '../generation-cost'
-import { ProductPlatformSelector } from './product-platform-selector'
 import { PromptEditor } from './prompt-editor'
 import { ReferenceUploader } from './reference-uploader'
 import {
@@ -192,7 +191,8 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
       : undefined
 
   const isGeneral = mode === 'general'
-  const SettingsGroup = props.recipeTitle ? 'details' : Fragment
+  const recipeSettingsCollapsible = Boolean(props.recipeTitle) && task !== 'product-main'
+  const SettingsGroup = recipeSettingsCollapsible ? 'details' : Fragment
   const { openReverse } = usePromptReverse()
   const [reverseUndo, setReverseUndo] = useState<{
     before: string
@@ -211,16 +211,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
   const assetFiles = isGeneral ? referenceFiles : productFiles
   const maxFiles = referenceLimit(mode, task)
   const needsSingleReference = !isGeneral && task === 'viral-recreate'
-  const moduleTotal = Object.values(moduleCounts).reduce((total, value) => total + value, 0)
-  const outputSummary = isGeneral
-    ? `${count} 张`
-    : task === 'product-main' || task === 'detail-page'
-      ? moduleMode === 'custom'
-        ? moduleTotal > 0
-          ? `${moduleTotal} 张`
-          : '未选模块'
-        : '智能生成'
-      : '1 张'
+  const outputSummary = expectedCount > 0 ? `${expectedCount} 张` : '未选模块'
 
   // 主图 / 详情页是按模块成套产出的，把用户选中的模块（含张数）交给 AI，
   // 否则详情页只能拿到一段与详情页无关的通用商品图描述。
@@ -235,12 +226,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
         .filter((key) => (moduleCounts[key] ?? 0) > 0)
         .map((key) => ({ key, label: moduleLabel(task, key), count: moduleCounts[key] }))
     : []
-
-  const advancedSummary = [
-    `${resolution}`,
-    isGeneral ? `${count} 张` : outputSummary,
-    optionLabel(modelOptions, model),
-  ].join(' · ')
 
   const requirementsLabel =
     task === 'product-main' ? '主图需求' : task === 'detail-page' ? '详情图需求' : '补充要求'
@@ -308,6 +293,34 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
     return result.text
   }
 
+  const parameterSettings = (
+    <BasicSettings
+      mode={mode}
+      task={task}
+      resolution={resolution}
+      count={count}
+      imageEndpoints={props.imageEndpoints}
+      modelsLoading={props.modelsLoading}
+      modelsError={props.modelsError}
+      onReloadModels={props.onReloadModels}
+      endpointId={props.endpointId}
+      onSetEndpoint={props.onSetEndpoint}
+      onSetResolution={onSetResolution}
+      onSetCount={onSetCount}
+      aspectRatio={aspectRatio}
+      outputSummary={outputSummary}
+      platform={platform}
+      onSetPlatform={onSetPlatform}
+      outputLanguage={outputLanguage}
+      onSetOutputLanguage={onSetOutputLanguage}
+      onSetAspectRatio={onSetAspectRatio}
+      style={style}
+      referenceStrength={referenceStrength}
+      onSetStyle={onSetStyle}
+      onSetReferenceStrength={onSetReferenceStrength}
+    />
+  )
+
   return (
     <CreatorPanel
       className={isGeneral ? 'general-composer' : 'commerce-settings'}
@@ -340,7 +353,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
           </div>
 
           {props.templateNotice}
-          {props.recipeTitle && (
+          {props.recipeTitle && task !== 'product-main' && (
             <section className={noticeStyles.notice} aria-label="同款套图配置">
               <strong>{props.recipeTitle}</strong>
               <p>
@@ -498,7 +511,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
               </div>
               <ReferenceUploader
                 collapseAt={2}
-                directLocalSelection={Boolean(props.recipeTitle)}
                 disabledReason={referenceDisabledReason}
                 files={productFiles}
                 max={maxFiles}
@@ -538,23 +550,16 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
             </fieldset>
           )}
 
+          {props.recipeTitle && parameterSettings}
+
           <SettingsGroup>
-            {props.recipeTitle && (
+            {recipeSettingsCollapsible && (
               <summary className="recipe-settings-summary">
                 调整套图设置
                 {(compatibilityIssue || props.modelsError || aiEnabled === false) &&
                   '（查看模型设置）'}
               </summary>
             )}
-            {!isGeneral && (
-              <fieldset className="form-section config-card">
-                <div className="field-heading">
-                  <legend>目标平台</legend>
-                </div>
-                <ProductPlatformSelector value={platform} onChange={onSetPlatform} />
-              </fieldset>
-            )}
-
             {!isGeneral && (
               <fieldset className="form-section config-card config-card-prompt">
                 <legend className="sr-only">{requirementsLabel}</legend>
@@ -586,29 +591,7 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
             )}
 
             <div className="composer-control-row">
-              <BasicSettings
-                mode={mode}
-                task={task}
-                resolution={resolution}
-                count={count}
-                imageEndpoints={props.imageEndpoints}
-                modelsLoading={props.modelsLoading}
-                modelsError={props.modelsError}
-                onReloadModels={props.onReloadModels}
-                endpointId={props.endpointId}
-                onSetEndpoint={props.onSetEndpoint}
-                onSetResolution={onSetResolution}
-                onSetCount={onSetCount}
-                aspectRatio={aspectRatio}
-                outputSummary={outputSummary}
-                outputLanguage={outputLanguage}
-                onSetOutputLanguage={onSetOutputLanguage}
-                onSetAspectRatio={onSetAspectRatio}
-                style={style}
-                referenceStrength={referenceStrength}
-                onSetStyle={onSetStyle}
-                onSetReferenceStrength={onSetReferenceStrength}
-              />
+              {!props.recipeTitle && parameterSettings}
 
               {!isGeneral && (
                 <AdvancedSettings
@@ -627,7 +610,6 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
                   moduleCounts={moduleCounts}
                   recreateStrength={recreateStrength}
                   enhancements={enhancements}
-                  summary={advancedSummary}
                   onSetReferenceStrength={onSetReferenceStrength}
                   onSetResolution={onSetResolution}
                   onSetCount={onSetCount}

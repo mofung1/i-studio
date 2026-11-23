@@ -2,6 +2,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { Info } from 'lucide-react'
+import { Popover } from 'radix-ui'
 import { getAccessToken } from '@/lib/api'
 import { frontendRequest } from '@/lib/frontend-request'
 import { accountRevisionKey, formatCredits, type GenerationQuote } from '@/lib/credits'
@@ -125,6 +127,8 @@ export interface CreditHelpNavigation {
   saveDraft: () => Promise<void>
 }
 
+type AvailableBalance = Pick<GenerationQuote, 'availableMinor' | 'creditName'>
+
 function DraftCreditLink({ href, saveDraft }: CreditHelpNavigation) {
   const router = useRouter()
   const link = useRef<HTMLAnchorElement>(null)
@@ -179,85 +183,118 @@ export function GenerationCost({
   pending,
   unavailableReason,
   retry,
-  compact = false,
-  totalInButton = false,
+  fallbackBalance,
   creditHelp,
+  popoverContainer,
 }: ReturnType<typeof useGenerationCost> & {
-  compact?: boolean
-  totalInButton?: boolean
+  fallbackBalance?: AvailableBalance
   creditHelp?: CreditHelpNavigation
+  popoverContainer?: HTMLElement | null
 }) {
+  const trigger = useRef<HTMLButtonElement>(null)
+  const [dialogContainer, setDialogContainer] = useState<HTMLElement | null>(null)
+  const className = 'creation-credit-estimate creation-credit-estimate--summary'
   if (loading)
     return (
-      <div className="creation-credit-estimate" role="status">
+      <div className={className} role="status">
         正在读取账户信息…
       </div>
     )
   if (!authenticated)
     return (
-      <div className="creation-credit-estimate">
+      <div className={className}>
         <LoginLink>登录后查看余额与费用</LoginLink>
       </div>
     )
-  if (error)
-    return (
-      <div className="creation-credit-estimate" role="status">
-        <span>{error}</span>
-        <button type="button" className="credit-estimate-retry" onClick={retry}>
-          重新计算
-        </button>
-      </div>
-    )
+  const errorNotice = error && (
+    <>
+      <span>{error}</span>
+      <button type="button" className="credit-estimate-retry" onClick={retry}>
+        重新计算
+      </button>
+    </>
+  )
+  const pendingNotice = pending ? '正在计算费用…' : unavailableReason || '费用暂不可用'
   const unitPrice = quote
     ? `单价 ${formatCredits(quote.unitPriceMinor)} ${quote.creditName}/张 × ${quote.quantity} 张`
     : ''
+  const creditLink =
+    quote &&
+    !quote.canAfford &&
+    (creditHelp ? (
+      <DraftCreditLink {...creditHelp} />
+    ) : (
+      <Link
+        href="/account#credits"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="余额不足，获取积分（在新窗口打开）"
+      >
+        余额不足 · 获取积分
+      </Link>
+    ))
+  const balance = quote ?? fallbackBalance
   return (
-    <div className="creation-credit-estimate" aria-live="polite">
-      {quote ? (
-        <>
-          {!totalInButton && (
+    <div className={className} aria-live="polite">
+      <div className="credit-estimate-summary">
+        {quote ? (
+          <span className="credit-estimate-reserved">
             <span>
               预计预留{' '}
               <strong>
                 {formatCredits(quote.totalMinor)} {quote.creditName}
               </strong>
             </span>
-          )}
-          <span>
-            可用余额{' '}
-            <strong>
-              {formatCredits(quote.availableMinor)} {quote.creditName}
-            </strong>
-            {!quote.canAfford && (
-              <>
-                {' '}
-                ·{' '}
-                {creditHelp ? (
-                  <DraftCreditLink {...creditHelp} />
-                ) : (
-                  <Link
-                    href="/account#credits"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="余额不足，获取积分（在新窗口打开）"
-                  >
-                    余额不足 · 获取积分
-                  </Link>
-                )}
-              </>
-            )}
+            <Popover.Root
+              onOpenChange={(open) => {
+                if (open && !popoverContainer) {
+                  setDialogContainer(
+                    trigger.current?.closest<HTMLElement>(
+                      'dialog[open], [role="dialog"][aria-modal="true"]',
+                    ) ?? null,
+                  )
+                }
+              }}
+            >
+              <Popover.Trigger asChild>
+                <button
+                  ref={trigger}
+                  type="button"
+                  className="credit-estimate-info"
+                  aria-label="查看费用明细"
+                >
+                  <Info size={14} aria-hidden="true" />
+                </button>
+              </Popover.Trigger>
+              <Popover.Portal container={popoverContainer ?? dialogContainer}>
+                <Popover.Content
+                  className="credit-estimate-popover"
+                  aria-label="费用明细"
+                  side="top"
+                  align="start"
+                  sideOffset={6}
+                  collisionPadding={12}
+                  hideWhenDetached
+                >
+                  {unitPrice}
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
           </span>
-          {compact ? (
-            <details className="credit-estimate-details">
-              <summary>费用明细</summary>
-              <span className="credit-unit-price">{unitPrice}</span>
-            </details>
-          ) : (
-            <span className="credit-unit-price">{unitPrice}</span>
-          )}
-        </>
-      ) : (
-        <span>{pending ? '正在计算费用…' : unavailableReason || '费用暂不可用'}</span>
+        ) : (
+          <span>{error ? '预计预留 —' : pendingNotice}</span>
+        )}
+        {balance && (
+          <span className="credit-estimate-available">
+            可用{' '}
+            <span>
+              {formatCredits(balance.availableMinor)} {balance.creditName}
+            </span>
+          </span>
+        )}
+      </div>
+      {(errorNotice || creditLink) && (
+        <div className="credit-estimate-status">{errorNotice || creditLink}</div>
       )}
     </div>
   )

@@ -1,18 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import {
-  Check,
-  Download,
-  ImagePlus,
-  LoaderCircle,
-  RefreshCw,
-  SlidersHorizontal,
-  Sparkles,
-} from 'lucide-react'
+import { Check, Download, ImagePlus, RefreshCw, SlidersHorizontal } from 'lucide-react'
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
-import { GenerationCost, useGenerationCost } from '@/components/generation-cost'
 import { useAccount } from '@/components/account-provider'
+import { useGenerationCost } from '@/components/generation-cost'
+import { GenerationFooter } from '@/components/generation-footer'
 import { ImageComparisonDialog } from '@/components/image-comparison-dialog'
 import {
   generationStatusLabels,
@@ -308,52 +301,47 @@ export function ProductCreation({
             </select>
           </label>
         </div>
-        {blocked && (
-          <p role="status" className={styles.hint}>
-            {blocked}
-          </p>
-        )}
-        <div className={styles.generateFooter}>
-          <GenerationCost {...cost} />
-          <button
-            className="studio-primary"
-            type="button"
-            disabled={
-              Boolean(blocked) || pending || editorBusy || !cost.quote?.canAfford || cost.pending
+        <footer className={styles.generateFooter}>
+          <GenerationFooter
+            cost={cost}
+            label={
+              generation.isSubmitting
+                ? '正在提交…'
+                : generation.isGenerating
+                  ? '正在生成…'
+                  : `生成${productPurposeLabel(purpose)}`
             }
-            onClick={() => void submit()}
+            busy={pending}
+            disabled={Boolean(blocked) || pending || editorBusy}
+            onSubmit={() => void submit()}
           >
-            {pending ? (
-              <LoaderCircle className={styles.spinner} size={17} />
-            ) : (
-              <Sparkles size={17} />
+            {blocked && (
+              <p role="status" className={styles.hint}>
+                {blocked}
+              </p>
             )}
-            {generation.isSubmitting
-              ? '正在提交…'
-              : generation.isGenerating
-                ? '正在生成…'
-                : `生成${productPurposeLabel(purpose)}`}
-          </button>
-        </div>
-        {pending && (
-          <p className={styles.taskStatus} role="status">
-            {generationStatusLabels[generation.generationTask?.status ?? ''] || '正在提交生成任务'}
-            。离开页面后任务仍会继续。
-          </p>
-        )}
-        {generation.notice && (
-          <p
-            role={generation.notice.kind === 'error' ? 'alert' : 'status'}
-            className={generation.notice.kind === 'error' ? styles.error : styles.notice}
-          >
-            {generation.notice.message}
-          </p>
-        )}
-        {generation.generationTask?.errorMessage && !pending && (
-          <p className={styles.error} role="alert">
-            {generation.generationTask.errorMessage}
-          </p>
-        )}
+            {pending && (
+              <p className={styles.hint} role="status">
+                {generationStatusLabels[generation.generationTask?.status ?? ''] ||
+                  '正在提交生成任务'}
+                。离开页面后任务仍会继续。
+              </p>
+            )}
+            {generation.notice && (
+              <p
+                role={generation.notice.kind === 'error' ? 'alert' : 'status'}
+                className={generation.notice.kind === 'error' ? styles.error : styles.notice}
+              >
+                {generation.notice.message}
+              </p>
+            )}
+            {generation.generationTask?.errorMessage && !pending && (
+              <p className={styles.error} role="alert">
+                {generation.generationTask.errorMessage}
+              </p>
+            )}
+          </GenerationFooter>
+        </footer>
       </section>
       <section className={styles.versions} aria-label="商品图片版本">
         <div className={styles.sectionHead}>

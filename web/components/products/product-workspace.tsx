@@ -19,7 +19,7 @@ export function ProductWorkspace({ initialProjectId = '' }: { initialProjectId?:
   return (
     <AccountBoundary
       section="products"
-      title="商品工作室"
+      title="商品管理"
       description="保存商品档案，制作并管理商品图片。"
       returnTo={`/products${initialProjectId ? `?${new URLSearchParams({ projectId: initialProjectId })}` : ''}`}
     >
@@ -152,7 +152,7 @@ function ProductWorkspaceContent({
   return (
     <StudioShell
       section="products"
-      title="商品工作室"
+      title="商品管理"
       projectId={selected?.projectId || initialProjectId}
       actions={
         <button className="studio-primary" disabled={editorBusy} onClick={() => choose(null)}>

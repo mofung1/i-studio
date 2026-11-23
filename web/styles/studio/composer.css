@@ -127,49 +127,6 @@
 .mode-general .settings-chip-output {
   max-width: 190px;
 }
-.mode-general .basic-settings-popover {
-  position: absolute;
-  z-index: 45;
-  left: 0;
-  bottom: calc(100% + 12px);
-  width: min(520px, calc(100vw - 48px));
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid #dfe3e8;
-  border-radius: 12px;
-  box-shadow:
-    0 18px 48px rgba(17, 19, 24, 0.12),
-    0 3px 9px rgba(17, 19, 24, 0.05);
-}
-.mode-general .basic-settings-popover-head {
-  display: grid;
-  gap: 3px;
-  margin-bottom: 14px;
-}
-.mode-general .basic-settings-popover-head strong {
-  color: var(--foreground);
-  font-size: var(--text-ui);
-  font-weight: 650;
-}
-.mode-general .basic-settings-popover-head span {
-  color: var(--muted);
-  font-size: var(--text-caption);
-}
-.mode-general .basic-settings-popover-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-.mode-general .basic-settings-popover .settings-field > span {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: var(--text-caption);
-}
-.mode-general .basic-settings-popover .settings-field .select-trigger {
-  width: 100%;
-  min-width: 0;
-}
 
 @media (max-width: 780px) {
   .mode-general .composer-input-grid {
@@ -199,14 +156,6 @@
     flex: 1 1 auto;
     max-width: none;
   }
-  .mode-general .basic-settings-popover {
-    right: 0;
-    left: auto;
-    width: min(420px, calc(100vw - 36px));
-  }
-  .mode-general .basic-settings-popover-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 /* Keep model and image parameters as two independent controls. */
@@ -218,7 +167,7 @@
 .mode-general .settings-chip-output {
   flex: 0 1 auto;
 }
-.mode-general .model-availability-note {
+.compact-basic-settings .model-availability-note {
   margin: 6px 0 0;
   color: var(--foreground-3);
   font-size: var(--text-small);
@@ -227,9 +176,6 @@
 }
 .mode-general .model-reload {
   flex: 0 0 auto;
-}
-.mode-general .basic-settings-popover-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 @media (max-width: 780px) {
@@ -240,18 +186,8 @@
   .mode-general .settings-chip-output {
     flex: 1 1 auto;
   }
-  .mode-general .basic-settings-popover-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
-@media (max-width: 780px) {
-  .mode-general .basic-settings-popover {
-    left: 0;
-    right: auto;
-    width: min(420px, calc(100vw - 36px));
-  }
-}
 
 /* The composer media column grows with uploaded thumbnails instead of reserving a fixed gap. */
 .mode-general .composer-input-grid {
@@ -419,28 +355,6 @@
   color: var(--foreground);
   background: var(--surface-2);
 }
-.reference-source-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.reference-source-actions > button {
-  min-height: 44px;
-}
-.reference-source-actions > .studio-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.reference-uploader:has(.upload-list) .reference-source-actions {
-  margin-top: 8px;
-}
-.floating-workbench .composer-media .reference-uploader.is-direct-selection.is-stackable {
-  width: 100%;
-  padding-top: calc(var(--reference-size) + 14px);
-}
-.floating-workbench .composer-media .is-direct-selection .reference-stack-toggle {
-  width: calc(var(--reference-size) + var(--reference-stack-offset));
-}
 .floating-workbench .composer-media .uploaded-thumb:is(:hover, :focus-within) .thumb-label {
   visibility: hidden;
 }
@@ -500,37 +414,6 @@
   }
 }
 
-/* Make the parameter popover legible without an explanatory subtitle. */
-.mode-general .basic-settings-popover {
-  width: min(620px, calc(100vw - 48px));
-  padding: 18px;
-}
-.mode-general .basic-settings-popover-head {
-  margin-bottom: 16px;
-}
-.mode-general .basic-settings-popover-head strong {
-  font-size: 15px;
-  letter-spacing: -0.1px;
-}
-.mode-general .basic-settings-popover-grid {
-  gap: 12px;
-}
-.mode-general .basic-settings-popover .settings-field > span {
-  margin-bottom: 7px;
-  font-size: var(--text-small);
-}
-@media (max-width: 780px) {
-  .mode-general .basic-settings-popover {
-    width: min(440px, calc(100vw - 36px));
-    padding: 16px;
-  }
-  .mode-general .basic-settings-popover-head strong {
-    font-size: 14px;
-  }
-  .mode-general .basic-settings-popover .settings-field > span {
-    font-size: var(--text-small);
-  }
-}
 
 /* The arrow sits on the rail edge so it remains visible in both expanded states. */
 .workbench-rail {
@@ -740,17 +623,6 @@
   color: var(--foreground);
   background: var(--control-hover);
   border-color: transparent;
-}
-.mode-general .basic-settings-popover {
-  border-color: var(--border-soft);
-  border-radius: 12px;
-}
-.mode-general .basic-settings-popover .settings-field > span {
-  font-size: var(--text-small);
-}
-.mode-general .configuration-footer .generate-button {
-  min-height: 40px;
-  font-size: var(--text-ui);
 }
 .mode-general .creation-canvas,
 .mode-general.config-right .creation-canvas {

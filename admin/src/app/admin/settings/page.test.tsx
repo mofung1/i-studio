@@ -177,6 +177,16 @@ it('distinguishes connection checks from paid generation and reports failures on
   expect(service().textContent).toContain('Mock 渠道连接失败')
 })
 
+it('keeps the full API address available in the collapsed connection details', async () => {
+  await act(async () => root.render(<Page />))
+  const details = service().querySelector('details')!
+  expect(details.open).toBe(false)
+  expect(details.querySelector('code')?.textContent).toBe(endpoint.baseUrl)
+  await expandDetails(service())
+  expect(details.open).toBe(true)
+  expect(details.querySelector('code')?.textContent).toBe(endpoint.baseUrl)
+})
+
 it('keeps an undisclosed stored key blank when editing and carries the concurrency timestamp', async () => {
   await act(async () => root.render(<Page />))
   await act(async () => button('编辑', service()).click())
@@ -234,6 +244,7 @@ it('allows the first tab click while a channel connection check is pending', asy
       }),
   )
   await act(async () => button('测试连接').click())
+  expect(service().querySelector('[role="status"]')?.textContent).toBe('正在测试连接…')
   const reverse = button('图片反推')
   expect(reverse.disabled).toBe(false)
   await act(async () => {
@@ -266,7 +277,7 @@ it('shows a retryable loading failure instead of an empty channel list', async (
   await act(async () => root.render(<Page />))
   expect(container.querySelector('[role="alert"]')?.textContent).toContain('无法读取渠道配置')
   expect(container.querySelector('[aria-label="生图渠道列表"]')).toBeNull()
-  expect(container.textContent).not.toContain('从连接第一个生图渠道开始')
+  expect(container.textContent).not.toContain('暂无生图渠道')
   expect(button('添加生图渠道')).toBeUndefined()
   await act(async () => button('重新读取').click())
   expect(service()).toBeDefined()

@@ -94,8 +94,8 @@ export function AiEndpointEditor({
                 </DialogTitle>
                 <DialogDescription>
                   {isImage
-                    ? '先连接供应商，再到「模型与定价」绑定并上架模型。'
-                    : '连接用于 AI 帮写和图片识别的模型，再设置使用方式。'}
+                    ? '验证连接后，在「模型与定价」绑定并上架模型。'
+                    : '为 AI 帮写和图片识别配置上游服务。'}
                 </DialogDescription>
               </DialogHeader>
               <Button
@@ -147,12 +147,7 @@ export function AiEndpointEditor({
               )}
 
               <FieldSet className={styles.section} disabled={busy}>
-                <FieldLegend className={styles.legend}>
-                  <span aria-hidden="true">1</span>连接服务
-                </FieldLegend>
-                <p className={styles.sectionHint}>
-                  从供应商获取接口地址与 API Key，名称由你自行命名。
-                </p>
+                <FieldLegend className={styles.legend}>连接服务</FieldLegend>
                 <div className={styles.connectionGrid}>
                   <Field className={styles.field}>
                     <FieldLabel htmlFor={`${prefix}-name`}>
@@ -252,7 +247,6 @@ export function AiEndpointEditor({
 
               <FieldSet className={styles.section} disabled={busy}>
                 <FieldLegend className={styles.legend}>
-                  <span aria-hidden="true">2</span>
                   {isImage ? '启用渠道' : '选择模型与用途'}
                 </FieldLegend>
                 {!isImage && (
@@ -387,11 +381,6 @@ export function AiEndpointEditor({
             </div>
 
             <footer className={styles.footer}>
-              <p>
-                {isImage
-                  ? '保存后：测试连接 → 绑定模型 → 上架'
-                  : '保存后可测试连接，再检查默认服务与识图设置。'}
-              </p>
               <DialogActions className={styles.actions}>
                 <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
                   取消

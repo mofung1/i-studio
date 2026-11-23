@@ -8,8 +8,8 @@
 .maskDialog button {
   cursor: pointer;
 }
-.workspace button:disabled,
-.maskDialog button:disabled {
+.workspace button:disabled:not(:global(.generate-button)),
+.maskDialog button:disabled:not(:global(.generate-button)) {
   cursor: not-allowed;
   opacity: 0.55;
 }
@@ -316,31 +316,9 @@
   background: var(--surface);
   color: var(--foreground);
 }
-.workspace .uploadButton {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
+.imageStrip .uploadButton {
   width: 76px;
   height: 86px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  cursor: pointer;
-  overflow: hidden;
-}
-.uploadButton input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.uploadButton:focus-within {
-  outline: 2px solid var(--line-strong);
-  outline-offset: 3px;
 }
 .formToolbar {
   display: flex;
@@ -458,31 +436,21 @@
   gap: 12px;
 }
 .generateFooter {
-  margin-top: 22px;
-  border-top: 1px solid var(--border);
-  padding-top: 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
+  margin-top: 16px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 12px;
 }
-.generateFooter > button {
-  min-height: 42px;
-}
-.generateFooter :global(.creation-credit-estimate) {
+.generateFooter :is(.hint, .error, .notice),
+.dialogFooter .error {
   margin: 0;
-  font-size: 12px;
 }
-.hint,
-.taskStatus {
+.hint {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.7;
   background: var(--surface-subtle);
   padding: 10px 12px;
   border-radius: 7px;
-  margin-top: 14px;
 }
 .error {
   color: var(--danger);
@@ -700,9 +668,6 @@
   padding: 0;
   accent-color: var(--foreground);
 }
-.maskControls :global(.creation-credit-estimate) {
-  font-size: 12px;
-}
 .maskControls .actions button {
   min-height: 34px;
   font-size: 12px;
@@ -735,16 +700,20 @@
 }
 .dialogFooter {
   flex-shrink: 0;
-  padding: 16px 24px;
-  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 8px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border-soft);
+}
+.dialogFooterTools {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 8px;
 }
-.dialogFooter > span {
+.dialogFooterTools > span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-caption);
 }
 .spinner {
   animation: spin 1s linear infinite;
@@ -823,11 +792,6 @@
     padding: 16px;
   }
 }
-@media (max-width: 780px) {
-  .workspace {
-    --workspace-gap: 10px;
-  }
-}
 @media (max-width: 620px) {
   .catalog {
     padding: 14px;
@@ -888,9 +852,6 @@
     width: 100%;
     justify-content: flex-end;
   }
-  .generateFooter > button {
-    width: 100%;
-  }
   .steps {
     gap: 5px;
     font-size: 11px;
@@ -938,9 +899,5 @@
   }
   .dialogFooter {
     padding: 12px 16px;
-    flex-wrap: wrap;
-  }
-  .dialogFooter > .actions {
-    margin-inline-start: auto;
   }
 }

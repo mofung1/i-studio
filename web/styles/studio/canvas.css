@@ -326,18 +326,6 @@
   font-weight: 500;
   cursor: pointer;
 }
-.mode-general .basic-settings-popover {
-  position: static;
-  width: 100%;
-  max-width: 100%;
-  max-height: none;
-  margin-top: 12px;
-  padding: 12px;
-  box-shadow: none;
-}
-.mode-general .basic-settings-popover-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
 @media (min-width: 781px) {
   .workbench-shell.floating-workbench.creator-config-collapsed .configuration-panel {
     position: absolute;
@@ -435,10 +423,10 @@
   .workbench-shell[data-commerce-recipe] .creation-canvas {
     order: 3;
   }
-  .mode-commerce:not(.clothing-workbench) .workbench-nav {
+  .mode-commerce .workbench-nav {
     flex-wrap: wrap;
   }
-  .mode-commerce:not(.clothing-workbench) .workbench-nav-actions {
+  .mode-commerce .workbench-nav-actions {
     flex: 1 1 auto;
     max-width: 100%;
     flex-wrap: wrap;
@@ -482,9 +470,6 @@
   .mode-general .configuration-footer {
     position: static;
     bottom: auto;
-  }
-  .mode-general .basic-settings-popover-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -891,7 +876,7 @@
 }
 
 /* Native top-layer placement keeps image parameters above the clipped composer. */
-.mode-general .basic-settings-popover.general-parameter-popover {
+.image-parameters-popover {
   position: fixed;
   inset: auto;
   width: min(460px, calc(100vw - 24px));
@@ -909,29 +894,33 @@
     0 12px 40px rgba(0, 0, 0, 0.14),
     0 2px 8px rgba(0, 0, 0, 0.05);
 }
+.image-parameters-popover:not([data-positioned]) {
+  opacity: 0;
+  pointer-events: none;
+}
 @media (prefers-reduced-motion: no-preference) {
   /* Keep the Popper containing block stable while the native popover appears. */
-  .mode-general .general-parameter-popover:popover-open[data-positioned] {
-    animation: general-parameter-in var(--motion-feedback) var(--motion-ease-out);
+  .image-parameters-popover:popover-open[data-positioned] {
+    animation: image-parameters-in var(--motion-feedback) var(--motion-ease-out);
   }
 }
-@keyframes general-parameter-in {
+@keyframes image-parameters-in {
   from {
     opacity: 0;
   }
 }
-.mode-general .general-parameter-popover .general-parameter-head {
+.image-parameters-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
 }
-.mode-general .general-parameter-head strong {
+.image-parameters-head strong {
   font-size: var(--text-ui);
   font-weight: 550;
 }
-.mode-general .general-parameter-head button {
+.image-parameters-head button {
   display: grid;
   place-items: center;
   width: 32px;
@@ -943,29 +932,36 @@
   background: var(--control-bg);
   cursor: pointer;
 }
-.mode-general .general-parameter-head button:hover {
+.image-parameters-head button:hover {
   color: var(--foreground);
   background: var(--control-hover);
 }
-.mode-general .general-parameter-popover .basic-settings-popover-grid {
+.image-parameters-grid {
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 16px;
 }
-.mode-general .general-parameter-popover .settings-field {
+.image-parameters-popover .settings-field {
   width: auto;
   min-width: 0;
   margin: 0;
 }
-.mode-general .general-parameter-popover .settings-field:last-child {
+.image-parameters-grid > .image-parameters-wide {
   grid-column: 1 / -1;
 }
-.mode-general .general-parameter-popover .settings-field > span {
+.image-parameters-popover .settings-field > span {
+  display: block;
   margin-bottom: 6px;
+  color: var(--muted);
   font-size: var(--text-small);
   font-weight: 450;
 }
+.image-parameters-grid .select-trigger {
+  width: 100%;
+  min-width: 0;
+}
 @media (max-width: 780px) {
-  .mode-general .general-parameter-head button {
+  .image-parameters-head button {
     width: 40px;
     height: 40px;
   }

@@ -86,15 +86,14 @@ it('does not introduce a project into ordinary commerce browsing', async () => {
   expect(host.querySelector('[aria-label="查看当前项目的素材与作品"]')).toBeNull()
 })
 it.each(['assets', 'history'] as const)(
-  'keeps one general generation link in the %s navigation',
+  'offers a new creation from the %s sidebar',
   async (section) => {
     await act(async () => root.render(<WorkbenchRail section={section} />))
-    const links = host.querySelectorAll('a[href="/studio?mode=general"]')
-    expect(links).toHaveLength(1)
-    expect(links[0]?.getAttribute('aria-label')).toBe('AI 生图')
-
-    await act(async () => root.render(<WorkbenchRail section="general" />))
-    expect(host.querySelector('a[aria-label="新建创作"]')).not.toBeNull()
+    const create = host.querySelector('a[aria-label="新建创作"]')
+    expect(create?.getAttribute('href')).toBe('/studio?mode=general')
+    expect(host.querySelector('a[aria-current="page"]')?.getAttribute('aria-label')).toBe(
+      '我的资产',
+    )
   },
 )
 it('links to the focusable settings region on mobile and keeps the desktop disclosure', async () => {

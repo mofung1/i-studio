@@ -13,6 +13,7 @@ it('matches the most specific admin page and keeps every navigation destination 
   )
   expect(new Set(adminPages.map((item) => item.href)).size).toBe(adminPages.length)
   expect(currentAdminPage('/admin/settings')?.group).toBe('AI 配置')
+  expect(currentAdminPage('/admin/monitoring')).toMatchObject({ title: '运行监控', group: '日常运营' })
   expect(currentAdminPage('/admin/submissions')?.group).toBe('内容管理')
   expect(adminPages.every((page) => page.description.length > 0)).toBe(true)
 })

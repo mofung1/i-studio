@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { CheckCircle2, ImagePlus, X } from 'lucide-react'
+import { CheckCircle2, X } from 'lucide-react'
 import { useAccount } from './account-provider'
 import { AccountAccess } from './account-access'
 import { LibraryDialog } from './library-controls'
 import { DialogActions } from './dialog-actions'
+import { ImageUpload } from './image-upload'
 import { Field, FieldGroup, FieldLabel } from './ui/form-field'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 import { feedbackFilesError } from '@/lib/feedback'
@@ -46,6 +47,17 @@ export function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClos
   function changed() {
     requestKey.current = crypto.randomUUID()
     setError('')
+  }
+  function addImages(selected: File[]) {
+    if (pending.current || !selected.length) return
+    const next = [...files, ...selected]
+    const problem = feedbackFilesError(next)
+    if (problem) {
+      setError(problem)
+      return
+    }
+    setFiles(next)
+    changed()
   }
   function close() {
     if (!pending.current) onClose()
@@ -154,8 +166,10 @@ export function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClos
               />
               <small className="feedback-count">{Array.from(content).length} / 2000</small>
             </Field>
-            <Field>
-              <FieldLabel htmlFor={imagesId}>上传图片（选填）</FieldLabel>
+            <Field aria-labelledby={imagesId}>
+              <span className="submission-field-label" id={imagesId}>
+                上传图片（选填）
+              </span>
               <div className="feedback-images">
                 {files.map((file, index) => (
                   <div
@@ -177,35 +191,17 @@ export function FeedbackDialog({ pagePath, onClose }: { pagePath: string; onClos
                   </div>
                 ))}
                 {files.length < 3 && (
-                  <label
-                    className={`feedback-upload${busy ? ' is-disabled' : ''}`}
-                    htmlFor={imagesId}
-                  >
-                    <ImagePlus size={24} aria-hidden="true" />
-                    <span>添加图片</span>
-                  </label>
+                  <ImageUpload
+                    variant="tile"
+                    className="feedback-upload"
+                    inputLabel="选择反馈图片"
+                    label="添加图片"
+                    disabled={busy}
+                    multiple
+                    onFiles={addImages}
+                  />
                 )}
               </div>
-              <input
-                id={imagesId}
-                className="feedback-file-input"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                disabled={busy || files.length >= 3}
-                aria-label="选择反馈图片"
-                onChange={(event) => {
-                  const next = [...files, ...Array.from(event.target.files ?? [])]
-                  const problem = feedbackFilesError(next)
-                  event.target.value = ''
-                  if (problem) {
-                    setError(problem)
-                    return
-                  }
-                  setFiles(next)
-                  changed()
-                }}
-              />
               <small>最多 3 张，支持 JPG、PNG、WebP，每张不超过 5MB。</small>
             </Field>
           </FieldGroup>

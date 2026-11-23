@@ -54,8 +54,6 @@ interface AdvancedSettingsProps {
   moduleCounts: Record<string, number>
   recreateStrength: 'style' | 'high'
   enhancements: string[]
-  /** 折叠时展示的当前取值摘要 */
-  summary: string
   onSetReferenceStrength: (strength: ReferenceStrength) => void
   onSetResolution: (resolution: string) => void
   onSetCount: (count: number) => void
@@ -76,7 +74,6 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
     moduleCounts,
     recreateStrength,
     enhancements,
-    summary,
     onSetReferenceStrength,
     onSetModuleMode,
     onSetModuleCounts,
@@ -113,9 +110,7 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
       aria-label="更多参数"
       ref={panelRef}
     >
-      {mode === 'commerce' ? (
-        <h3 className="advanced-heading">更多设置</h3>
-      ) : (
+      {mode === 'general' && (
         <button
           className="advanced-toggle"
           type="button"
@@ -125,7 +120,6 @@ export function AdvancedSettings(props: AdvancedSettingsProps) {
         >
           <SlidersHorizontal size={15} aria-hidden="true" />
           <span>更多参数</span>
-          {mode !== 'general' && <small>{summary}</small>}
         </button>
       )}
 

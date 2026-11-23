@@ -28,7 +28,8 @@ import {
 import { ConfirmDialog } from './confirm-dialog'
 import { InspirationCategoryDialog } from './inspiration-category-dialog'
 import { AdminPagination } from './admin/pagination'
-import { AdminDataTable, type AdminColumn } from './admin/data-table'
+import { AdminCellText, AdminDataTable, type AdminColumn } from './admin/data-table'
+import { Button } from './admin/ui/button'
 import { AdminStatusBadge } from './admin/status-badge'
 import type { InspirationCategory } from '@/lib/inspiration-settings'
 import {
@@ -258,11 +259,7 @@ export function InspirationPromptManager() {
       id: 'prompt',
       header: '提示词',
       size: 270,
-      cell: (item) => (
-        <p className="admin-prompt-excerpt" title={item.prompt}>
-          {item.prompt}
-        </p>
-      ),
+      cell: (item) => <AdminCellText value={item.prompt} previewLimit={56} />,
     },
     { id: 'source', header: '来源', size: 130, cell: (item) => item.source || '—' },
     {
@@ -335,107 +332,114 @@ export function InspirationPromptManager() {
       </div>
     )
 
+  const filtered = !!filters.query || !!filters.category || filters.status !== 'all'
+  function clearFilters() {
+    setSearch('')
+    setFilters({ query: '', category: '', status: 'all', page: 1 })
+  }
+  const filterControls = (
+    <div className="admin-content-filters" role="search" aria-label="搜索与筛选提示词">
+      <label className="inspiration-manager-search">
+        <Search size={17} aria-hidden="true" />
+        <input
+          type="search"
+          aria-label="搜索管理提示词"
+          placeholder="搜索标题、提示词或来源"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </label>
+      <Select
+        value={filters.category ? `category:${filters.category}` : 'all'}
+        onValueChange={(value) =>
+          setFilters((previous) => ({
+            ...previous,
+            category: value === 'all' ? '' : value.slice('category:'.length),
+            page: 1,
+          }))
+        }
+      >
+        <SelectTrigger
+          size="lg"
+          className="inspiration-manager-category"
+          aria-label="提示词分类筛选"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="all">全部分类</SelectItem>
+            {Array.from(
+              new Set([
+                ...categories.map((item) => item.category),
+                ...(filters.category ? [filters.category] : []),
+              ]),
+            ).map((category) => (
+              <SelectItem key={category} value={`category:${category}`}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      <Select
+        value={filters.status}
+        onValueChange={(status) => setFilters((previous) => ({ ...previous, status, page: 1 }))}
+      >
+        <SelectTrigger
+          size="lg"
+          className="inspiration-manager-status"
+          aria-label="提示词状态筛选"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value="all">全部状态</SelectItem>
+            <SelectItem value="enabled">已启用</SelectItem>
+            <SelectItem value="disabled">未启用</SelectItem>
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </div>
+  )
+  const tableActions = (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        aria-label="刷新提示词列表"
+        title="刷新提示词列表"
+        disabled={loading}
+        onClick={() => {
+          setNotice('')
+          setRefresh((value) => value + 1)
+        }}
+      >
+        <RefreshCw size={16} aria-hidden="true" />
+        刷新
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        aria-haspopup="dialog"
+        onClick={() => setCategoryManagerOpen(true)}
+      >
+        <Folder size={16} aria-hidden="true" />
+        分类管理
+      </Button>
+      <Button ref={addRef} type="button" onClick={() => edit()}>
+        <Plus size={17} aria-hidden="true" />
+        新增提示词
+      </Button>
+    </>
+  )
   return (
     <main className="inspiration-manager admin-list-page">
       <AdminPageHeader title="公共灵感库" />
-      <div className="inspiration-manager-toolbar" role="search" aria-label="搜索与筛选提示词">
-        <label className="inspiration-manager-search">
-          <Search size={17} aria-hidden="true" />
-          <input
-            type="search"
-            aria-label="搜索管理提示词"
-            placeholder="搜索标题、提示词或来源"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </label>
-        <Select
-          value={filters.category ? `category:${filters.category}` : 'all'}
-          onValueChange={(value) =>
-            setFilters((previous) => ({
-              ...previous,
-              category: value === 'all' ? '' : value.slice('category:'.length),
-              page: 1,
-            }))
-          }
-        >
-          <SelectTrigger
-            size="lg"
-            className="inspiration-manager-category"
-            aria-label="提示词分类筛选"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="all">全部分类</SelectItem>
-              {Array.from(
-                new Set([
-                  ...categories.map((item) => item.category),
-                  ...(filters.category ? [filters.category] : []),
-                ]),
-              ).map((category) => (
-                <SelectItem key={category} value={`category:${category}`}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <Select
-          value={filters.status}
-          onValueChange={(status) => setFilters((previous) => ({ ...previous, status, page: 1 }))}
-        >
-          <SelectTrigger
-            size="lg"
-            className="inspiration-manager-status"
-            aria-label="提示词状态筛选"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="all">全部状态</SelectItem>
-              <SelectItem value="enabled">已启用</SelectItem>
-              <SelectItem value="disabled">未启用</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <button
-          type="button"
-          className="settings-command"
-          aria-label="刷新提示词列表"
-          disabled={loading}
-          onClick={() => {
-            setNotice('')
-            setRefresh((value) => value + 1)
-          }}
-        >
-          <RefreshCw size={16} aria-hidden="true" />
-          刷新
-        </button>
-        <button
-          type="button"
-          className="settings-command"
-          aria-haspopup="dialog"
-          onClick={() => setCategoryManagerOpen(true)}
-        >
-          <Folder size={16} aria-hidden="true" />
-          分类管理
-        </button>
-        <button ref={addRef} type="button" className="settings-primary" onClick={() => edit()}>
-          <Plus size={17} aria-hidden="true" />
-          新增提示词
-        </button>
-      </div>
       {notice && (
         <p className="settings-saved" role="status">
           {notice}
-        </p>
-      )}
-      {error && (
-        <p className="settings-error" role="alert">
-          {error}
         </p>
       )}
       <AdminDataTable
@@ -446,14 +450,18 @@ export function InspirationPromptManager() {
         getRowId={(item) => item.id}
         loading={loading}
         scrollKey={`${filters.page}:${filters.query}:${filters.category}:${filters.status}:${pageSize}`}
-        emptyTitle={error ? '列表暂时无法读取' : '暂无灵感提示词'}
-        emptyDescription={
-          error ? '点击刷新后重试。' : '调整筛选条件，或点击「新增提示词」添加内容。'
-        }
+        loadError={error}
+        total={total}
+        toolbar={{ filters: filterControls, actions: tableActions }}
+        emptyTitle={filtered ? '没有匹配的提示词' : '暂无灵感提示词'}
+        emptyAction={filtered && (
+          <Button variant="outline" size="sm" onClick={clearFilters}>清除筛选</Button>
+        )}
       />
       {!error && (
         <AdminPagination
           label="提示词"
+          showTotal={false}
           page={filters.page}
           pageSize={pageSize}
           total={total}

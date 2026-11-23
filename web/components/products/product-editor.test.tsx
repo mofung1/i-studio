@@ -154,6 +154,9 @@ it('inherits the entry project and refuses too many references before uploading 
   await act(async () => root.render(<Harness isNew />))
   expect(input('所属项目').value).toBe('project-1')
   const picker = container.querySelector<HTMLInputElement>('input[aria-label="上传商品原图"]')!
+  const openPicker = vi.spyOn(picker, 'click')
+  await act(async () => button('添加原图').click())
+  expect(openPicker).toHaveBeenCalledOnce()
   Object.defineProperty(picker, 'files', {
     configurable: true,
     value: Array.from(

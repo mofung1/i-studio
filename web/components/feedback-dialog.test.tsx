@@ -93,7 +93,14 @@ it('rejects excess, unsupported or oversized images and supports removal', async
   Object.defineProperty(large, 'size', { value: 5 * 1024 * 1024 + 1 })
   await selectFiles([large])
   expect(document.querySelector('[role="alert"]')?.textContent).toContain('5MB')
-  await selectFiles([image, image, image])
+  const drop = new Event('drop', { bubbles: true, cancelable: true })
+  Object.defineProperty(drop, 'dataTransfer', {
+    value: { types: ['Files'], files: [image, image, image] },
+  })
+  await act(async () =>
+    document.querySelector<HTMLButtonElement>('button[aria-label="添加图片"]')!.dispatchEvent(drop),
+  )
+  expect(drop.defaultPrevented).toBe(true)
   await act(async () =>
     document.querySelector<HTMLButtonElement>('[aria-label="移除第 2 张图片"]')!.click(),
   )

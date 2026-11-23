@@ -4,9 +4,14 @@ import { Button } from '@/components/admin/ui/button'
 import { formatCredits } from '@/lib/credits'
 import { imageProtocolLabels, type AIEndpoint } from '@/lib/ai-settings'
 import type { AdminModel as Model } from '@/lib/admin'
-import { AdminDataTable, type AdminColumn, type AdminSortProps } from './data-table'
+import {
+  AdminDataTable,
+  type AdminColumn,
+  type AdminSortProps,
+  type AdminTableToolbarProps,
+} from './data-table'
 import Link from '@/routing/link'
-import { Pencil } from 'lucide-react'
+import { CircleAlert, Pencil } from 'lucide-react'
 import { AdminStatusBadge } from './status-badge'
 import { Badge } from './ui/badge'
 export function AdminModelList({
@@ -17,13 +22,15 @@ export function AdminModelList({
   loading = false,
   sorting,
   onSortingChange,
+  ...tableProps
 }: {
   models: Model[]
   endpoints: AIEndpoint[]
   unit: string
   onEdit: (model: Model) => void
   loading?: boolean
-} & AdminSortProps) {
+} & AdminSortProps &
+  AdminTableToolbarProps) {
   const columns: AdminColumn<Model>[] = [
     {
       id: 'name',
@@ -87,7 +94,7 @@ export function AdminModelList({
       size: 100,
       pin: 'right',
       cell: (model) => (
-        <Button size="sm" variant="outline" disabled={loading} onClick={() => onEdit(model)}>
+        <Button size="sm" variant="ghost" disabled={loading} onClick={() => onEdit(model)}>
           <Pencil data-icon="inline-start" />
           编辑
         </Button>
@@ -97,11 +104,15 @@ export function AdminModelList({
   return (
     <>
       {!loading && !endpoints.length && models.length > 0 && (
-        <p className="ops-empty">
-          请先<Link href="/admin/settings?tab=image">添加生图渠道</Link>，再为模型绑定主渠道。
+        <p className="admin-data-note">
+          <CircleAlert size={16} aria-hidden="true" />
+          <span>
+            请先<Link href="/admin/settings?tab=image">添加生图渠道</Link>，再为模型绑定主渠道。
+          </span>
         </p>
       )}
       <AdminDataTable
+        {...tableProps}
         title="模型列表"
         hideTitle
         columns={columns}

@@ -329,9 +329,14 @@ it.each(commerceTrioCases)(
       container.querySelector('.config-card-assets .field-heading span')?.textContent
     expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 3 张')
     expect(container.querySelector('.generate-meta')?.textContent).toContain(aspectRatio)
-    const summary = container.querySelector('[aria-label="同款套图配置"]')?.textContent
-    expect(summary).toContain(title)
-    for (const label of labels) expect(summary).toContain(`${label} × 1`)
+    const summary = container.querySelector('[aria-label="同款套图配置"]')
+    if (task === 'product-main') {
+      expect(summary).toBeNull()
+    } else {
+      expect(summary?.textContent).toContain(title)
+      for (const label of labels) expect(summary?.textContent).toContain(`${label} × 1`)
+    }
+    expect(container.querySelector('.config-card-assets .reference-dropzone')).not.toBeNull()
     expect(container.textContent).toContain('3.75 创作点')
     expect(selectionCount()).toBe('1–6 张')
     expect(submitButton().textContent).toContain('请先选择商品原图')
@@ -347,11 +352,11 @@ it.each(commerceTrioCases)(
     await waitForQuote()
     expect(container.textContent).toContain('余额不足')
     const cost = container.querySelector('.generate-bar .creation-credit-estimate')!
-    expect(cost.textContent).not.toContain('预计预留')
-    const details = cost.querySelector<HTMLDetailsElement>('details')!
-    expect(details.querySelector('summary')?.textContent).toBe('费用明细')
-    expect(details.open).toBe(false)
-    expect(details.textContent).toContain('单价 1.25 创作点/张 × 3 张')
+    expect(cost.textContent).toContain('预计预留 3.75 创作点')
+    expect(cost.textContent).not.toContain('单价')
+    expect(cost.querySelector('[aria-label="查看费用明细"]')?.getAttribute('aria-expanded')).toBe(
+      'false',
+    )
     const creditHelp = cost.querySelector<HTMLAnchorElement>('a')!
     expect(creditHelp.target).toBe('')
     const backToDraft = new URL(creditHelp.href).searchParams.get('returnTo')
@@ -365,7 +370,7 @@ it.each(commerceTrioCases)(
     balance = 5000
     await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
     await waitForQuote()
-    expect(submitButton().textContent).toMatch(/确认.*3\.75\s*创作点.*生成.*3\s*张/)
+    expect(submitButton().textContent).toBe('确认生成 3 张')
     expect(submitButton().disabled).toBe(false)
     expect(generation.submit).not.toHaveBeenCalled()
     await act(async () => submitButton().click())
@@ -428,7 +433,10 @@ it('uses only the selected garment for two modeled views after confirming their 
   expect(confirm().disabled).toBe(true)
   await waitForQuote()
   expect(confirm().disabled).toBe(false)
-  expect(confirm().textContent).toMatch(/确认.*4\s*创作点.*生成.*2\s*张/)
+  expect(confirm().textContent).toBe('确认生成 2 张')
+  expect(container.querySelector('.credit-estimate-summary')?.textContent).toContain(
+    '预计预留 4 创作点',
+  )
   expect(generation.submit).not.toHaveBeenCalled()
   await act(async () => confirm().click())
   expect(generation.submit).toHaveBeenCalledTimes(1)
@@ -507,7 +515,8 @@ it('restores an outfit’s garment and edited shot from history and waits for a 
   expect(generation.submit).not.toHaveBeenCalled()
   const confirm = container.querySelector<HTMLButtonElement>('button.generate-button')!
   expect(confirm.disabled).toBe(false)
-  expect(confirm.textContent).toMatch(/确认.*2\.5.*生成.*2\s*张/)
+  expect(confirm.textContent).toBe('确认生成 2 张')
+  expect(container.querySelector('.credit-estimate-summary')?.textContent).toContain('预计预留 2.5')
   await act(async () => confirm.click())
   const submission = generation.submit.mock.calls[0]![0] as SubmitParams
   expect(submission.productFiles).toMatchObject([{ kind: 'asset', assetId: 'saved-shirt' }])
@@ -580,6 +589,8 @@ it.each(commerceTrioCases)(
     await openStudio(ordinary)
     expect(casePreviewLabels()).toEqual([])
     expect(container.querySelector('.recipe-settings-summary')).toBeNull()
+    expect(container.textContent).not.toContain('更多设置')
+    expect(container.querySelector('[aria-label="图片模块模式"]')).not.toBeNull()
     expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 1 张')
     await dropProduct('ordinary-product.png')
     await saveRequirements('普通草稿有独立的拍摄要求')
@@ -588,12 +599,19 @@ it.each(commerceTrioCases)(
     expect(container.querySelector('.uploaded-thumb')).toBeNull()
     expect(container.querySelector('.generate-meta')?.textContent).toContain('预计产出 3 张')
     await dropProduct('trio-product.png')
-    const settings = requirements().closest('details')!
-    const summary = settings.querySelector('summary')!
-    expect(settings.open).toBe(false)
-    expect(summary.textContent).toContain('调整套图设置')
-    await act(async () => summary.click())
-    expect(settings.open).toBe(true)
+    const settings = requirements().closest('details')
+    const modulePicker = container.querySelector('.module-picker')
+    expect(modulePicker).not.toBeNull()
+    if (task === 'product-main') {
+      expect(settings).toBeNull()
+      expect(modulePicker?.closest('details')).toBeNull()
+    } else {
+      expect(settings?.open).toBe(false)
+      const summary = settings!.querySelector('summary')!
+      expect(summary.textContent).toContain('调整套图设置')
+      await act(async () => summary.click())
+      expect(settings?.open).toBe(true)
+    }
     await saveRequirements('同款套图保留瓶身图案')
     await openStudio(ordinary)
     expect(requirements().value).toBe('普通草稿有独立的拍摄要求')

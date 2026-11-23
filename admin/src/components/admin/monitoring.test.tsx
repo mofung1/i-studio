@@ -3,7 +3,8 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { adminRequest, type OperationalMonitoring } from '@/lib/admin'
-import { AdminMonitoring, useAdminMonitoring } from './monitoring'
+import { useAdminMonitoring } from '@/hooks/use-admin-monitoring'
+import { AdminMonitoring } from './monitoring'
 
 vi.mock('@/routing/link', () => ({ default: 'a' }))
 vi.mock('@/lib/admin', async (original) => ({

@@ -4,15 +4,16 @@ import type { CreationImage } from '@/lib/creation-images'
 import type { PublicImageModel } from '@/lib/generation-models'
 import { ModelGuidance } from './model-guidance'
 
-import { Shirt, UserRound } from 'lucide-react'
+import { Shirt, Sparkles, UserRound } from 'lucide-react'
 import { Fragment } from 'react'
 import type { ClothingMode, ClothingShot, ClothingStyle } from '@/lib/contracts'
 import noticeStyles from '../inspiration-template.module.css'
 import { clothingProductModules, clothingStyles } from '@/lib/clothing'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
+import { ImageParameters, ImageSizeFields } from './image-parameters'
 import { ReferenceUploader } from './reference-uploader'
 import { ProductPlatformSelector } from './product-platform-selector'
-import { languageOptions, ratioOptions, resolutionOptions } from './shared'
+import { languageOptions } from './shared'
 
 export interface ClothingSettingsValue {
   mode: ClothingMode
@@ -36,16 +37,18 @@ export function ClothingSettings({
   value,
   onChange,
   endpoints,
+  expectedCount,
   recipeTitle,
 }: {
   value: ClothingSettingsValue
   onChange: (patch: Partial<ClothingSettingsValue>) => void
   endpoints: PublicImageModel[]
+  expectedCount: number
   recipeTitle?: string
 }) {
   const SettingsGroup = recipeTitle ? 'details' : Fragment
-  const total = Object.values(value.counts).reduce((sum, count) => sum + count, 0)
-  const capabilities = endpoints.find((endpoint) => endpoint.id === value.endpointId)?.capabilities
+  const model = endpoints.find((endpoint) => endpoint.id === value.endpointId)
+  const capabilities = model?.capabilities
   const referenceDisabledReason =
     capabilities?.referenceImages === false
       ? '服装工具需要图片输入，请选择支持参考图片的模型；已有素材仍会保留。'
@@ -56,6 +59,127 @@ export function ClothingSettings({
     else delete counts[key]
     onChange({ counts })
   }
+
+  const generationSettings = (
+    <section className="basic-settings compact-basic-settings" aria-label="生成参数">
+      <div className="compact-settings-row">
+        <div className="settings-model-control">
+          <span className="settings-control-label">生成模型</span>
+          <Select
+            value={model?.id ?? ''}
+            disabled={!endpoints.length}
+            onValueChange={(id) => {
+              const endpoint = endpoints.find((item) => item.id === id)
+              if (endpoint) onChange({ endpointId: id, model: endpoint.model })
+            }}
+          >
+            <SelectTrigger
+              className="settings-chip settings-chip-model"
+              aria-label="服装生图模型"
+              title={model?.name}
+            >
+              <Sparkles size={14} aria-hidden="true" />
+              <SelectValue placeholder={endpoints.length ? '请选择模型' : '暂无可用模型'}>
+                {model?.name}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {endpoints.map((endpoint) => (
+                <SelectItem key={endpoint.id} value={endpoint.id}>
+                  {endpoint.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <ImageParameters
+          context={recipeTitle ?? value.mode}
+          summary={`${value.aspectRatio} · ${value.resolution} · ${expectedCount} 张`}
+        >
+          {(portalContainer) => (
+            <>
+              <label className="settings-field">
+                <span>拍摄风格</span>
+                <Select
+                  value={value.style}
+                  onValueChange={(style) => onChange({ style: style as ClothingStyle })}
+                >
+                  <SelectTrigger aria-label="拍摄风格">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent portalContainer={portalContainer}>
+                    {clothingStyles.map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="settings-field">
+                <span>画面文字</span>
+                <Select
+                  value={value.outputLanguage}
+                  onValueChange={(outputLanguage) => onChange({ outputLanguage })}
+                >
+                  <SelectTrigger aria-label="画面文字">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent portalContainer={portalContainer}>
+                    {languageOptions.map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {key === 'none' ? '不新增文字' : label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <ImageSizeFields
+                aspectRatio={value.aspectRatio}
+                resolution={value.resolution}
+                onSetAspectRatio={(aspectRatio) => onChange({ aspectRatio })}
+                onSetResolution={(resolution) => onChange({ resolution })}
+                capabilities={capabilities}
+                portalContainer={portalContainer}
+                ratioLabel="服装画面比例"
+                resolutionLabel="服装清晰度"
+              />
+              <label className="settings-field">
+                <span>目标平台</span>
+                <ProductPlatformSelector
+                  value={value.platform}
+                  onChange={(platform) => onChange({ platform })}
+                  portalContainer={portalContainer}
+                />
+              </label>
+              {!recipeTitle && value.mode === 'model' && (
+                <label className="settings-field">
+                  <span>生成张数</span>
+                  <Select
+                    value={String(value.modelCount)}
+                    onValueChange={(number) => onChange({ modelCount: Number(number) })}
+                  >
+                    <SelectTrigger aria-label="模特图片张数">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent portalContainer={portalContainer}>
+                      {[1, 2, 3, 4].map((number) => (
+                        <SelectItem key={number} value={String(number)}>
+                          {number} 张
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </label>
+              )}
+            </>
+          )}
+        </ImageParameters>
+      </div>
+      <ModelGuidance model={model} />
+    </section>
+  )
+
   return (
     <>
       {recipeTitle ? (
@@ -91,7 +215,6 @@ export function ClothingSettings({
           </span>
         </div>
         <ReferenceUploader
-          directLocalSelection={Boolean(recipeTitle)}
           disabledReason={referenceDisabledReason}
           collapseAt={2}
           files={value.garments}
@@ -110,6 +233,7 @@ export function ClothingSettings({
           </p>
         )}
       </fieldset>
+      {recipeTitle && generationSettings}
       <SettingsGroup>
         {recipeTitle && <summary className="recipe-settings-summary">调整套图设置</summary>}
         {!recipeTitle && value.mode === 'model' && (
@@ -171,70 +295,49 @@ export function ClothingSettings({
               </label>
             ))}
           </fieldset>
-        ) : (
+        ) : value.mode === 'product' ? (
           <fieldset className="form-section config-card clothing-output-settings">
             <div className="field-heading">
-              <legend>{value.mode === 'product' ? '选择图种' : '上身图片'}</legend>
-              <span>预计 {value.mode === 'product' ? total : value.modelCount} 张</span>
+              <legend>选择图种</legend>
+              <span>预计 {expectedCount} 张</span>
             </div>
-            {value.mode === 'product' ? (
-              <div className="clothing-module-list">
-                {clothingProductModules.map(([key, label, hint]) => (
-                  <div
-                    className={`clothing-module${value.counts[key] ? ' is-selected' : ''}`}
-                    key={key}
-                  >
-                    <label>
-                      <input
-                        type="checkbox"
-                        aria-label={`选择${label}`}
-                        checked={!!value.counts[key]}
-                        onChange={(event) => count(key, event.target.checked ? 1 : 0)}
-                      />
-                      <span>
-                        <strong>{label}</strong>
-                        <small>{hint}</small>
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      aria-label={`${label}张数`}
-                      min={0}
-                      max={4}
-                      step={1}
-                      value={value.counts[key] ?? 0}
-                      onChange={(event) => count(key, Number(event.target.value))}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <label className="settings-field">
-                <span>生成张数</span>
-                <Select
-                  value={String(value.modelCount)}
-                  onValueChange={(number) => onChange({ modelCount: Number(number) })}
+            <div className="clothing-module-list">
+              {clothingProductModules.map(([key, label, hint]) => (
+                <div
+                  className={`clothing-module${value.counts[key] ? ' is-selected' : ''}`}
+                  key={key}
                 >
-                  <SelectTrigger aria-label="模特图片张数">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4].map((number) => (
-                      <SelectItem key={number} value={String(number)}>
-                        {number} 张
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </label>
-            )}
-            {value.mode === 'product' && total > 16 && (
+                  <label>
+                    <input
+                      type="checkbox"
+                      aria-label={`选择${label}`}
+                      checked={!!value.counts[key]}
+                      onChange={(event) => count(key, event.target.checked ? 1 : 0)}
+                    />
+                    <span>
+                      <strong>{label}</strong>
+                      <small>{hint}</small>
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    aria-label={`${label}张数`}
+                    min={0}
+                    max={4}
+                    step={1}
+                    value={value.counts[key] ?? 0}
+                    onChange={(event) => count(key, Number(event.target.value))}
+                  />
+                </div>
+              ))}
+            </div>
+            {expectedCount > 16 && (
               <p className="form-notice error" role="alert">
                 一次最多生成 16 张，请减少张数。
               </p>
             )}
           </fieldset>
-        )}
+        ) : null}
         <fieldset className="form-section config-card">
           <div className="field-heading">
             <legend>拍摄要求</legend>
@@ -251,128 +354,8 @@ export function ClothingSettings({
             onChange={(event) => onChange({ requirements: event.target.value })}
             placeholder="例如：突出领口与袖口工艺、柔和自然光。面料成分与尺码请填写真实资料。"
           />
-          <div className="clothing-parameter-grid">
-            <label className="settings-field">
-              <span>拍摄风格</span>
-              <Select
-                value={value.style}
-                onValueChange={(style) => onChange({ style: style as ClothingStyle })}
-              >
-                <SelectTrigger aria-label="拍摄风格">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {clothingStyles.map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-            <label className="settings-field">
-              <span>画面文字</span>
-              <Select
-                value={value.outputLanguage}
-                onValueChange={(outputLanguage) => onChange({ outputLanguage })}
-              >
-                <SelectTrigger aria-label="画面文字">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {languageOptions.map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {key === 'none' ? '不新增文字' : label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-          </div>
         </fieldset>
-        <fieldset className="form-section config-card">
-          <div className="field-heading">
-            <legend>生成参数</legend>
-          </div>
-          <div className="clothing-parameter-grid">
-            <label className="settings-field clothing-model-field">
-              <span>模型</span>
-              <Select
-                value={
-                  endpoints.some((endpoint) => endpoint.id === value.endpointId)
-                    ? value.endpointId
-                    : ''
-                }
-                disabled={!endpoints.length}
-                onValueChange={(id) => {
-                  const endpoint = endpoints.find((endpoint) => endpoint.id === id)
-                  if (endpoint) onChange({ endpointId: id, model: endpoint.model })
-                }}
-              >
-                <SelectTrigger aria-label="服装生图模型">
-                  <SelectValue placeholder="暂无可用模型" />
-                </SelectTrigger>
-                <SelectContent>
-                  {endpoints.map((endpoint) => (
-                    <SelectItem key={endpoint.id} value={endpoint.id}>
-                      {endpoint.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-            <label className="settings-field">
-              <span>画面比例</span>
-              <Select
-                value={value.aspectRatio}
-                onValueChange={(aspectRatio) => onChange({ aspectRatio })}
-              >
-                <SelectTrigger aria-label="服装画面比例">
-                  <SelectValue>{value.aspectRatio}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {ratioOptions
-                    .filter(([key]) => !capabilities || capabilities.aspectRatios.includes(key))
-                    .map(([key, label]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </label>
-            <label className="settings-field">
-              <span>清晰度</span>
-              <Select
-                value={value.resolution}
-                onValueChange={(resolution) => onChange({ resolution })}
-              >
-                <SelectTrigger aria-label="服装清晰度">
-                  <SelectValue>{value.resolution}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {resolutionOptions
-                    .filter(([key]) => !capabilities || capabilities.resolutions.includes(key))
-                    .map(([key, label]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </label>
-          </div>
-        </fieldset>
-        <ModelGuidance model={endpoints.find((endpoint) => endpoint.id === value.endpointId)} />
-        <fieldset className="form-section config-card">
-          <div className="field-heading">
-            <legend>目标平台</legend>
-          </div>
-          <ProductPlatformSelector
-            value={value.platform}
-            onChange={(platform) => onChange({ platform })}
-          />
-        </fieldset>
+        {!recipeTitle && generationSettings}
       </SettingsGroup>
     </>
   )

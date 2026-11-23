@@ -319,14 +319,15 @@ export function ClothingWorkbench({
     function controls() {
       return Array.from(
         panel?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), textarea, input:not([hidden]), [tabindex="0"]',
+          'button:not(:disabled), a[href], textarea, input:not([hidden]), [tabindex="0"]',
         ) ?? [],
       ).filter((element) => element.getClientRects().length > 0)
     }
     controls()[0]?.focus()
     function keyboard(event: KeyboardEvent) {
-      if (document.querySelector('dialog[open]')) return
+      if (event.defaultPrevented || document.querySelector('dialog[open]')) return
       if (event.key === 'Escape') {
+        if (panel?.querySelector('.settings-chip-output[aria-expanded="true"]')) return
         event.preventDefault()
         setPanelOpen(false)
       }
@@ -817,6 +818,7 @@ export function ClothingWorkbench({
               value={settings}
               onChange={change}
               endpoints={endpoints}
+              expectedCount={expectedCount}
             />
             <ModelCompatibilityNotice
               model={selectedModel}

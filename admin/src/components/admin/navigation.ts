@@ -1,4 +1,5 @@
 import {
+  Activity,
   BookOpen,
   Cloud,
   FileText,
@@ -22,6 +23,12 @@ export const adminNavigation = [
         title: '运营概览',
         description: '查看今日任务、额度使用和需要关注的运行情况。',
         icon: LayoutDashboard,
+      },
+      {
+        href: '/admin/monitoring',
+        title: '运行监控',
+        description: '查看任务积压、异常预留、存储失败与诊断记录。',
+        icon: Activity,
       },
       {
         href: '/admin/users',

@@ -452,18 +452,6 @@
   line-height: 1.8;
   resize: vertical;
 }
-.clothing-parameter-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px;
-  margin-top: 14px;
-}
-.clothing-parameter-grid > .settings-field {
-  margin: 0;
-}
-.clothing-model-field {
-  grid-column: 1 / -1;
-}
 .clothing-panel-backdrop {
   display: none;
 }
@@ -577,11 +565,7 @@
   color: var(--foreground);
   background: var(--surface);
 }
-.clothing-plan-dialog .settings-primary {
-  min-height: 44px;
-  color: var(--primary-foreground);
-}
-.clothing-plan-dialog button:disabled {
+.clothing-plan-dialog button:disabled:not(.generate-button) {
   opacity: 0.45;
   cursor: default;
 }
@@ -654,21 +638,11 @@
 }
 .clothing-plan-footer {
   display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 16px 24px;
+  gap: 8px;
+  padding: 12px 24px;
   border-top: 1px solid var(--border-soft);
-}
-.clothing-plan-footer > span {
-  color: var(--muted);
-  font-size: var(--text-caption);
-}
-.clothing-plan-footer > div {
-  display: flex;
-  gap: 10px;
 }
 @media (max-width: 780px) {
   .workbench-shell.floating-workbench.clothing-workbench .configuration-panel {
@@ -738,14 +712,7 @@
     gap: 8px;
   }
   .clothing-plan-footer {
-    padding: 14px 16px;
-  }
-  .clothing-plan-footer > div {
-    width: 100%;
-  }
-  .clothing-plan-footer button {
-    flex: 1;
-    justify-content: center;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   }
 }
 
@@ -778,7 +745,7 @@
 }
 .mode-general .prompt-field-label,
 .floating-workbench .composer-media-heading,
-.mode-general .settings-control-label {
+.compact-basic-settings .settings-control-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -913,33 +880,36 @@
   padding-top: 12px;
   background: transparent;
 }
-.mode-general .compact-settings-row {
+.compact-basic-settings .compact-settings-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
-.mode-general :is(.settings-model-control, .settings-output-control) {
+.compact-basic-settings :is(.settings-model-control, .settings-output-control) {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   gap: 12px;
 }
-.mode-general .settings-control-label {
+.compact-basic-settings .settings-control-label {
   margin: 0;
 }
-.mode-general .compact-settings-row .model-reload {
+.compact-basic-settings .compact-settings-row .model-reload {
   justify-self: end;
 }
-.mode-general .settings-chip-model {
+.compact-basic-settings .settings-chip-model {
   --select-control-height: 44px;
   width: 100%;
   max-width: none;
 }
-.mode-general .settings-chip-model > svg {
+.compact-basic-settings .settings-chip-model > svg {
   flex-shrink: 0;
 }
-.mode-general .settings-chip-output:not(.select-trigger) {
+.compact-basic-settings .settings-chip-output:not(.select-trigger) {
+  display: inline-flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 8px;
   width: 100%;
   max-width: none;
   height: 44px;
@@ -951,77 +921,46 @@
   background: var(--control-bg);
   font-size: var(--text-ui);
   line-height: 1.4;
+  cursor: pointer;
 }
-.mode-general .settings-chip-output > svg:last-child {
+.compact-basic-settings .settings-chip-output > svg:last-child {
   flex-shrink: 0;
   color: var(--muted);
+}
+.compact-basic-settings .settings-chip-output:is(:hover, [aria-expanded='true']) {
+  background: var(--control-hover);
+}
+.compact-basic-settings .settings-chip-output > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .floating-workbench .configuration-footer {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
   margin: 0;
-  padding: 16px 20px 20px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
   border: 0;
   border-top: 1px solid var(--border-soft);
   background: var(--surface);
 }
+.floating-workbench.mode-general .configuration-footer {
+  padding-inline: var(--creator-panel-inset);
+}
 .floating-workbench .configuration-footer .generate-meta {
   display: none;
 }
-.floating-workbench .configuration-footer .creation-credit-estimate {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  font-size: var(--text-caption);
-  font-variant-numeric: tabular-nums;
+.floating-workbench[aria-busy='true'] .configuration-footer > .skeleton-line {
+  margin-block: 8px;
 }
-.floating-workbench .creation-credit-estimate > span {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px;
-}
-.floating-workbench .configuration-footer .generate-button {
-  width: 100%;
-  min-height: 46px;
+.floating-workbench[aria-busy='true'] .configuration-footer > .ws-button {
+  height: 46px;
   border-radius: 10px;
-}
-.floating-workbench.mode-general .configuration-footer {
-  padding: 12px var(--creator-panel-inset) var(--creator-panel-inset);
-}
-.mode-general .configuration-footer .creation-credit-estimate {
-  gap: 4px;
-  color: var(--foreground-2);
-  font-size: var(--text-small);
-}
-.mode-general
-  .configuration-footer
-  .creation-credit-estimate:has(> .credit-unit-price):not(:has(a)) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 12px;
-}
-.mode-general .configuration-footer .creation-credit-estimate strong {
-  font-size: var(--text-ui);
-}
-.mode-general .configuration-footer .credit-unit-price {
-  grid-column: 1 / -1;
-  color: var(--foreground-3);
-}
-.mode-general .configuration-footer .generate-button {
-  font-size: 15px;
-}
-.mode-general .configuration-footer .generate-button:not(:disabled) {
-  color: var(--primary-foreground);
-}
-.mode-general .configuration-footer .generate-button:hover:not(:disabled) {
-  background: var(--primary-hover);
 }
 @media (min-width: 781px) and (max-height: 760px) {
   .mode-general .composer-control-row {
@@ -1034,13 +973,6 @@
   }
   .mode-general .composer-control-row {
     padding-top: 14px;
-  }
-  .floating-workbench .configuration-footer {
-    padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
-  }
-  .floating-workbench.mode-general .configuration-footer {
-    gap: 10px;
-    padding: 10px var(--creator-panel-inset) calc(12px + env(safe-area-inset-bottom));
   }
 }
 .result-workspace .result-body {

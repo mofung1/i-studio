@@ -138,21 +138,32 @@
   min-height: 0;
   max-height: min(440px, 48dvh);
 }
-.admin-app .inspiration-manager-toolbar {
+.admin-app .admin-content-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: var(--admin-control-gap);
+  min-width: 0;
+}
+.admin-app .admin-content-filters > [data-slot='input'],
+.admin-app .inspiration-manager-search {
+  width: 224px;
+  max-width: 100%;
+}
+.admin-app .admin-content-filters > [data-slot='select-trigger'] {
+  width: 138px;
+  max-width: 100%;
+  min-width: 0;
 }
 .admin-app .inspiration-manager-search {
   display: flex;
-  flex: 1 1 200px;
   align-items: center;
-  gap: 8px;
+  gap: var(--admin-control-gap);
   min-width: 0;
-  min-height: 40px;
-  padding-inline: 12px;
+  min-height: var(--admin-control-height);
+  padding-inline: 10px;
   border: 1px solid var(--input);
-  border-radius: var(--radius-md);
+  border-radius: var(--admin-control-radius);
   background: var(--card);
 }
 .admin-app .inspiration-manager-search > svg {
@@ -161,11 +172,8 @@
 .admin-app .inspiration-manager-search input[type='search'] {
   width: 100%;
   min-width: 0;
-  height: 38px;
+  height: calc(var(--admin-control-height) - 2px);
   color: var(--foreground);
-}
-.admin-app .inspiration-manager-toolbar > :is(button.settings-command, button.settings-primary) {
-  min-height: 40px;
 }
 .admin-app .inspiration-category-manager {
   gap: 12px;
@@ -253,11 +261,24 @@
   flex: 0 0 auto;
   color: var(--muted-foreground);
 }
-.admin-app :is(.admin-prompt-excerpt, .admin-feedback-excerpt) {
+.admin-app .admin-feedback-excerpt {
   max-width: 36ch;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.admin-app .admin-content-path {
+  overflow-wrap: anywhere;
+}
+.admin-app .admin-content-state {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.admin-app .admin-content-state > :not(.admin-status) {
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 
 .admin-app .submission-rules {
@@ -291,9 +312,10 @@
 .admin-app .submission-rules > summary > svg {
   flex: 0 0 auto;
   color: var(--muted-foreground);
+  transition: rotate var(--admin-motion-fast) var(--admin-motion-ease);
 }
 .admin-app .submission-rules[open] > summary > svg {
-  transform: rotate(180deg);
+  rotate: 180deg;
 }
 .admin-app .submission-rules .submission-settings {
   border: 0;
@@ -353,22 +375,15 @@
   margin-top: 12px;
 }
 
-@media (min-width: 768px) and (max-width: 960px) {
-  .admin-app .inspiration-manager-toolbar {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(3, auto);
-  }
-  .admin-app .inspiration-manager-toolbar .inspiration-manager-search {
-    grid-column: 1 / -1;
-  }
-  .admin-app .inspiration-manager-toolbar :is(.inspiration-manager-category, .inspiration-manager-status) {
+@media (max-width: 767px) {
+  .admin-app .admin-data-toolbar-main:has(.admin-content-filters),
+  .admin-app .admin-data-filters:has(.admin-content-filters),
+  .admin-app .admin-content-filters,
+  .admin-app .admin-content-filters > :is([data-slot='input'], .inspiration-manager-search) {
     width: 100%;
   }
-}
-
-@media (max-width: 767px) {
-  .admin-app .inspiration-manager-toolbar {
-    display: grid;
+  .admin-app .admin-content-filters > [data-slot='select-trigger'] {
+    flex: 1 1 126px;
   }
   .admin-app :is(.settings-switch, .settings-checks label, .submission-check) {
     min-height: 44px;

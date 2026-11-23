@@ -2,6 +2,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import type { GenerationQuote } from '@/lib/credits'
 import { GenerationCost, useGenerationCost } from './generation-cost'
 
 const session = vi.hoisted(() => ({ authenticated: true, available: 2000, loading: false }))
@@ -13,9 +14,14 @@ let root: Root
 let container: HTMLDivElement
 const fetcher = vi.fn<typeof fetch>()
 function Harness({ modelId = '', count = 1 }: { modelId?: string; count?: number }) {
-  return <GenerationCost {...useGenerationCost(modelId, count)} />
+  return (
+    <GenerationCost
+      {...useGenerationCost(modelId, count)}
+      fallbackBalance={{ availableMinor: session.available, creditName: '积分' }}
+    />
+  )
 }
-function quote(modelId: string, totalMinor = 125) {
+function quote(modelId: string, totalMinor = 125, overrides: Partial<GenerationQuote> = {}) {
   return new Response(
     JSON.stringify({
       modelId,
@@ -27,6 +33,7 @@ function quote(modelId: string, totalMinor = 125) {
       heldMinor: 0,
       creditName: '积分',
       creditScale: 100,
+      ...overrides,
     }),
   )
 }
@@ -82,7 +89,9 @@ it('offers a credit acquisition path without discarding the current workbench an
   const link = container.querySelector<HTMLAnchorElement>('a[href="/account#credits"]')!
   expect(link.textContent).toContain('获取积分')
   expect(link.target).toBe('_blank')
-  expect(container.textContent).toContain('1.25 积分/张 × 2 张')
+  expect(container.textContent).toContain('预计预留 2.5 积分')
+  expect(container.textContent).not.toContain('单价')
+  expect(container.querySelector('[aria-label="查看费用明细"]')).not.toBeNull()
   balance = 500
   await act(async () => window.dispatchEvent(new Event('istudio-account-refresh')))
   await advance()
@@ -118,6 +127,36 @@ it('shows pending only while quoting, including valid zero-cost models', async (
   await advance()
   expect(container.textContent).toContain('0 积分')
   expect(container.textContent).not.toContain('正在计算费用')
+})
+
+it('keeps the summary balance visible while replacing stale totals after a count change', async () => {
+  const creditName = '工作室创作点'
+  fetcher.mockResolvedValueOnce(quote('model-a', 125, { availableMinor: 94100, creditName }))
+  fetcher.mockResolvedValueOnce(
+    quote('model-a', 250, {
+      quantity: 2,
+      unitPriceMinor: 125,
+      availableMinor: 199,
+      canAfford: false,
+      creditName,
+    }),
+  )
+  await render('model-a', 1)
+  await advance()
+  const summary = () => container.querySelector('.credit-estimate-summary')?.textContent
+  expect(summary()).toContain('预计预留 1.25 工作室创作点')
+  expect(summary()).toContain('可用 941 工作室创作点')
+  expect(container.querySelector('button[aria-label="查看费用明细"]')).not.toBeNull()
+  expect(container.textContent).not.toContain('单价')
+
+  await render('model-a', 2)
+  expect(summary()).toContain('正在计算费用…')
+  expect(summary()).toContain('可用 20 积分')
+  expect(summary()).not.toContain('1.25')
+  await advance()
+  expect(summary()).toContain('预计预留 2.5 工作室创作点')
+  expect(summary()).toContain('可用 1.99 工作室创作点')
+  expect(container.querySelector('.credit-estimate-status a')?.textContent).toContain('获取积分')
 })
 
 it('ignores an older model response after switching models', async () => {

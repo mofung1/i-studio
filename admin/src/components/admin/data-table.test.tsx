@@ -3,7 +3,12 @@ import { Button } from '@/components/admin/ui/button'
 import { act, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
-import { AdminDataTable, type AdminColumn, type AdminSorting } from './data-table'
+import {
+  AdminDataTable,
+  type AdminColumn,
+  type AdminSorting,
+  type AdminTableToolbarProps,
+} from './data-table'
 
 type Item = { id: string; name: string; amount: number }
 const items: Item[] = [
@@ -52,15 +57,17 @@ function Fixture({
   loading = false,
   page = 1,
   emptyAction,
+  ...tableProps
 }: {
   data?: Item[]
   loading?: boolean
   page?: number
   emptyAction?: ReactNode
-}) {
+} & AdminTableToolbarProps) {
   const [sorting, setSorting] = useState<AdminSorting>([])
   return (
     <AdminDataTable
+      {...tableProps}
       title="测试列表"
       columns={columns}
       data={data}
@@ -146,11 +153,20 @@ it('lets users hide optional columns and restore them while preserving fixed ide
 it('keeps rows and scroll position while refreshing, and resets scrolling on a different page', async () => {
   await render()
   const scroll = container.querySelector<HTMLElement>('.admin-data-scroll')!
+  const sort = heading().querySelector('button')!
+  sort.focus()
   scroll.scrollTop = 200
   await render({ loading: true })
   expect(scroll.scrollTop).toBe(200)
   expect(container.querySelectorAll('tbody tr')).toHaveLength(2)
-  expect(heading().querySelector('button')!.disabled).toBe(true)
+  expect(sort.getAttribute('aria-disabled')).toBe('true')
+  expect(document.activeElement).toBe(sort)
+  await act(async () =>
+    sort.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+    ),
+  )
+  expect(sort.getAttribute('aria-expanded')).toBe('false')
   await render({ page: 2 })
   expect(scroll.scrollTop).toBe(0)
   await render({ data: [], loading: true })
@@ -158,6 +174,19 @@ it('keeps rows and scroll position while refreshing, and resets scrolling on a d
   expect(container.querySelectorAll('.admin-data-skeleton-row')).toHaveLength(5)
   await render({ data: [] })
   expect(container.querySelector('[role="status"]')?.textContent).toContain('暂无记录')
+})
+
+it('distinguishes a failed request from an empty list and keeps refresh available', async () => {
+  const toolbar = { actions: <Button>刷新列表</Button> }
+  await render({ loadError: '网络错误', total: 26, toolbar })
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('当前显示上次读取的记录')
+  expect(container.querySelector('.admin-data-meta')?.textContent).toContain('共 26 条')
+  expect(container.querySelectorAll('tbody tr')).toHaveLength(2)
+
+  await render({ loadError: '网络错误', data: [], total: 0, toolbar })
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('读取失败')
+  expect(container.querySelector('.admin-data-empty')?.textContent).not.toContain('暂无记录')
+  expect(container.querySelector('.admin-data-tools')?.textContent).toContain('刷新列表')
 })
 
 async function openColumns() {

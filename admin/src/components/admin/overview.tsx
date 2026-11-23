@@ -1,6 +1,7 @@
 'use client'
 
 import Link from '@/routing/link'
+import type { ReactNode } from 'react'
 import {
   ArrowUpRight,
   ChevronDown,
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react'
 import { formatCredits } from '@/lib/credits'
 import type { AdminOverviewData } from '@/lib/admin'
-import { AdminMonitoring, useAdminMonitoring } from './monitoring'
+import { useAdminMonitoring } from '@/hooks/use-admin-monitoring'
 import { QueueSnapshot, TaskTrendChart } from './overview-charts'
 import styles from './overview.module.css'
 
@@ -67,9 +68,11 @@ function Quota({
 export function AdminOverview({
   overview,
   unit,
+  actions,
 }: {
   overview: AdminOverviewData
   unit: string
+  actions?: ReactNode
 }) {
   const monitoring = useAdminMonitoring()
   const number = (value: number | undefined) => value?.toLocaleString('zh-CN') ?? '—'
@@ -79,7 +82,7 @@ export function AdminOverview({
     {
       title: '今日提交任务',
       value: number(latestDay?.submitted ?? overview.todayTasks),
-      description: '北京时间今日',
+      description: '查看任务记录',
       icon: Images,
       href: '/admin/tasks',
     },
@@ -153,7 +156,14 @@ export function AdminOverview({
 
   return (
     <div className={styles.overview}>
-      <section aria-label="今日运营数据">
+      <section aria-labelledby="overview-today-title">
+        <header className={styles.summaryHeading}>
+          <div>
+            <h2 id="overview-today-title">今日运营数据</h2>
+            <span>北京时间</span>
+          </div>
+          {actions}
+        </header>
         <dl className={styles.metrics}>
           {stats.map((stat) => (
             <div key={stat.title} className={styles.metric} data-warning={stat.warning}>
@@ -287,8 +297,6 @@ export function AdminOverview({
         </dl>
         <p>预留积分在任务结束后结算；存储包含暂存及历史引用。以上为站内统计，不代表供应商账单。</p>
       </section>
-
-      <AdminMonitoring {...monitoring} unit={unit} />
 
       <details className={styles.setup}>
         <summary>

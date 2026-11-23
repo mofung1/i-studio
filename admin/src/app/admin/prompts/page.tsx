@@ -139,7 +139,7 @@ export default function AdminPromptsPage() {
         <section id="prompts-panel" className={`prompt-settings ${styles.promptLayout}`}>
           <div className={styles.promptSidebar}>
             <h2>功能模板</h2>
-            <p>切换模板保留草稿。保存仅更新当前模板。</p>
+            <p>切换模板时保留草稿。</p>
             <PromptTemplateBrowser
               templates={templates}
               selectedKey={selectedKey}
@@ -221,9 +221,9 @@ export default function AdminPromptsPage() {
               <pre>{promptDefault}</pre>
             </details>
             <div className={styles.promptFooter}>
-              <p role="status">
+              <p id="prompt-save-scope">
                 {promptDraft.length.toLocaleString()} / 20,000 字符
-                {promptDirty ? ' · 当前模板未保存' : ' · 当前模板已同步'}
+                {' · 保存仅更新当前模板'}
               </p>
               <div className="settings-form-actions">
                 <Button
@@ -240,6 +240,7 @@ export default function AdminPromptsPage() {
                 </Button>
                 <Button
                   disabled={!!busy || !promptDirty || !promptDraft.trim()}
+                  aria-describedby="prompt-save-scope"
                   onClick={() => savePrompt()}
                 >
                   <Save data-icon="inline-start" />

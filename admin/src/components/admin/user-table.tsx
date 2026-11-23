@@ -12,7 +12,12 @@ import { useRef } from 'react'
 
 import type { AdminMember } from '@/lib/admin'
 import { formatCredits } from '@/lib/credits'
-import { AdminDataTable, type AdminColumn, type AdminSortProps } from './data-table'
+import {
+  AdminDataTable,
+  type AdminColumn,
+  type AdminSortProps,
+  type AdminTableToolbarProps,
+} from './data-table'
 import { AdminStatusBadge } from './status-badge'
 
 function MemberStatusMenu({
@@ -35,6 +40,7 @@ function MemberStatusMenu({
           variant="ghost"
           size="icon-sm"
           aria-label={`${member.username}的更多操作`}
+          title="更多操作"
           disabled={disabled}
         >
           <Ellipsis aria-hidden="true" />
@@ -74,14 +80,20 @@ export function AdminUserTable({
   onToggle,
   sorting,
   onSortingChange,
+  searchActive,
+  onClearSearch,
+  ...tableProps
 }: {
   members: AdminMember[]
   unit: string
   loading: boolean
   busy: boolean
+  searchActive?: boolean
+  onClearSearch?: () => void
   onAdjust: (member: AdminMember) => void
   onToggle: (member: AdminMember) => void
-} & AdminSortProps) {
+} & AdminSortProps &
+  AdminTableToolbarProps) {
   const columns: AdminColumn<AdminMember>[] = [
     {
       id: 'username',
@@ -130,7 +142,7 @@ export function AdminUserTable({
         <div className="ops-row-actions">
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             disabled={loading || busy}
             onClick={() => onAdjust(member)}
           >
@@ -143,6 +155,7 @@ export function AdminUserTable({
   ]
   return (
     <AdminDataTable
+      {...tableProps}
       title="用户列表"
       hideTitle
       columns={columns}
@@ -151,7 +164,18 @@ export function AdminUserTable({
       loading={loading}
       sorting={sorting}
       onSortingChange={onSortingChange}
-      emptyDescription="没有符合搜索条件的用户，试试其他用户名。"
+      emptyTitle={searchActive ? '没有匹配的账号' : '暂无用户'}
+      emptyDescription={
+        searchActive ? '试试其他用户名，或查看全部用户。' : '用户注册后将在这里显示。'
+      }
+      emptyAction={
+        searchActive &&
+        onClearSearch && (
+          <Button variant="outline" size="sm" onClick={onClearSearch}>
+            清空搜索
+          </Button>
+        )
+      }
     />
   )
 }

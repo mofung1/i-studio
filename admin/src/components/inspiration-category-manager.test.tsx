@@ -72,7 +72,8 @@ it('paginates categories, resets scrolling on page changes and searches all cate
   })
   expect(list.querySelectorAll('tbody > tr')).toHaveLength(1)
   expect(list.textContent).toContain('分类-51')
-  expect(container.textContent).toContain('第 1 / 1 页')
+  expect(container.querySelector('[aria-label="分类分页"]')).toBeNull()
+  expect(container.textContent).toContain('共 1 条')
 })
 
 it('sorts the complete category collection before selecting a page', async () => {

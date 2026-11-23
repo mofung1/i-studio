@@ -54,6 +54,7 @@ import {
   MoveHorizontal,
   LoaderCircle,
   Table2,
+  CircleAlert,
 } from 'lucide-react'
 
 export type AdminSorting = SortingState
@@ -71,6 +72,32 @@ export interface AdminSortProps {
   sorting?: AdminSorting
   onSortingChange?: (sorting: AdminSorting) => void
 }
+export interface AdminTableToolbarProps {
+  toolbar?: { filters?: ReactNode; actions?: ReactNode }
+  total?: number
+  loadError?: string
+}
+
+export function AdminCellText({
+  value,
+  previewLimit = 100,
+}: {
+  value: string
+  previewLimit?: number
+}) {
+  const preview = value.trim().replace(/\s+/g, ' ')
+  if (preview.length <= previewLimit) {
+    return <span className="admin-cell-message">{value}</span>
+  }
+
+  return (
+    <details className="admin-cell-disclosure">
+      <summary>{preview.slice(0, previewLimit).trimEnd()}…</summary>
+      <div className="admin-cell-message">{value}</div>
+    </details>
+  )
+}
+
 const noSorting: AdminSorting = []
 function pinnedStyle<T>(column: Column<T>): CSSProperties {
   if (!column.getIsPinned()) return {}
@@ -103,7 +130,15 @@ function SortableHeader<T>({
           className="admin-data-sort-trigger"
           variant="ghost"
           size="sm"
-          disabled={loading}
+          aria-disabled={loading || undefined}
+          onPointerDown={(event) => {
+            if (loading) event.preventDefault()
+          }}
+          onKeyDown={(event) => {
+            if (loading && ['Enter', ' ', 'ArrowDown'].includes(event.key)) {
+              event.preventDefault()
+            }
+          }}
           type="button"
         >
           <span className="truncate">{title}</span>
@@ -115,16 +150,16 @@ function SortableHeader<T>({
         portalContainer={portalContainer}
       >
         <DropdownMenuGroup>
-          <DropdownMenuItem onSelect={() => column.toggleSorting(false)}>
+          <DropdownMenuItem disabled={loading} onSelect={() => column.toggleSorting(false)}>
             <ArrowUp aria-hidden="true" />
             升序排列
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => column.toggleSorting(true)}>
+          <DropdownMenuItem disabled={loading} onSelect={() => column.toggleSorting(true)}>
             <ArrowDown aria-hidden="true" />
             降序排列
           </DropdownMenuItem>
           {order && (
-            <DropdownMenuItem onSelect={() => column.clearSorting()}>
+            <DropdownMenuItem disabled={loading} onSelect={() => column.clearSorting()}>
               <RotateCcw aria-hidden="true" />
               清除排序
             </DropdownMenuItem>
@@ -156,9 +191,12 @@ export function AdminDataTable<T>({
   sorting = noSorting,
   onSortingChange,
   emptyTitle = '暂无记录',
-  emptyDescription = '当前没有可显示的内容。',
+  emptyDescription,
   emptyAction,
   scrollKey,
+  toolbar,
+  total,
+  loadError,
 }: {
   title: string
   hideTitle?: boolean
@@ -170,7 +208,8 @@ export function AdminDataTable<T>({
   emptyDescription?: string
   emptyAction?: ReactNode
   scrollKey?: string | number
-} & AdminSortProps) {
+} & AdminSortProps &
+  AdminTableToolbarProps) {
   const titleId = useId()
   const scrollHelpId = useId()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -310,30 +349,34 @@ export function AdminDataTable<T>({
       className="admin-data-table"
       data-density={density}
       aria-labelledby={titleId}
-      aria-busy={loading}
     >
       <div className="admin-data-toolbar">
-        <div className="admin-data-heading">
-          <h2 id={titleId} className={hideTitle ? 'sr-only' : undefined}>
-            {title}
-          </h2>
-          <div className="admin-data-meta">
-            <span role={loading ? 'status' : undefined}>
-              {loading ? (
-                <>
-                  <LoaderCircle size={13} className="settings-spinner" aria-hidden="true" />
-                  {data.length ? '正在更新' : '正在读取'}
-                </>
-              ) : (
-                `本页 ${data.length} 条`
-              )}
-            </span>
-            {sortLabel && (
-              <span aria-live="polite">
-                按{sortLabel}
-                {activeSort?.desc ? '降序' : '升序'}排列
+        <div className="admin-data-toolbar-main">
+          {toolbar?.filters && <div className="admin-data-filters">{toolbar.filters}</div>}
+          <div className="admin-data-heading">
+            <h2 id={titleId} className={hideTitle ? 'sr-only' : undefined}>
+              {title}
+            </h2>
+            <div className="admin-data-meta">
+              <span role={loading ? 'status' : undefined}>
+                {loading ? (
+                  <>
+                    <LoaderCircle size={13} className="settings-spinner" aria-hidden="true" />
+                    {data.length ? '正在更新' : '正在读取'}
+                  </>
+                ) : total === undefined ? (
+                  `本页 ${data.length} 条`
+                ) : (
+                  `共 ${total} 条`
+                )}
               </span>
-            )}
+              {sortLabel && (
+                <span aria-live="polite">
+                  按{sortLabel}
+                  {activeSort?.desc ? '降序' : '升序'}排列
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="admin-data-tools">
@@ -407,8 +450,15 @@ export function AdminDataTable<T>({
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+          {toolbar?.actions}
         </div>
       </div>
+      {loadError && !isEmpty && !loading && (
+        <p className="admin-data-load-error" role="alert">
+          <CircleAlert size={16} aria-hidden="true" />
+          <span>{loadError} · 当前显示上次读取的记录</span>
+        </p>
+      )}
       {viewport.overflow && data.length > 0 && (
         <div className="admin-data-scroll-help" id={scrollHelpId}>
           <span>
@@ -443,6 +493,7 @@ export function AdminDataTable<T>({
         tabIndex={0}
         role="region"
         aria-label={`${title}内容`}
+        aria-busy={loading}
         aria-describedby={viewport.overflow && data.length > 0 ? scrollHelpId : undefined}
         data-empty={isEmpty || undefined}
         onScroll={measureViewport}
@@ -534,15 +585,15 @@ export function AdminDataTable<T>({
           </TableBody>
         </Table>
         {isEmpty && (
-          <Empty className="admin-data-empty" role="status">
+          <Empty className="admin-data-empty" role={loadError ? 'alert' : 'status'}>
             <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Table2 />
-              </EmptyMedia>
-              <EmptyTitle>{emptyTitle}</EmptyTitle>
-              <EmptyDescription>{emptyDescription}</EmptyDescription>
+              <EmptyMedia variant="icon">{loadError ? <CircleAlert /> : <Table2 />}</EmptyMedia>
+              <EmptyTitle>{loadError ? '读取失败' : emptyTitle}</EmptyTitle>
+              {(loadError || emptyDescription) && (
+                <EmptyDescription>{loadError || emptyDescription}</EmptyDescription>
+              )}
             </EmptyHeader>
-            {emptyAction && <EmptyContent>{emptyAction}</EmptyContent>}
+            {emptyAction && !loadError && <EmptyContent>{emptyAction}</EmptyContent>}
           </Empty>
         )}
       </div>

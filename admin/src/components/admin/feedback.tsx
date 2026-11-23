@@ -240,8 +240,13 @@ function FeedbackList() {
       ),
     },
     { id: 'username', header: '提交用户', size: 130, cell: (item) => item.username },
-    { id: 'images', header: '图片', size: 80, cell: (item) => `${item.imageCount} 张` },
-    { id: 'page', header: '来源页面', size: 160, cell: (item) => item.pagePath },
+    { id: 'images', header: '图片', size: 80, align: 'right', cell: (item) => `${item.imageCount} 张` },
+    {
+      id: 'page',
+      header: '来源页面',
+      size: 160,
+      cell: (item) => <span className="admin-content-path">{item.pagePath}</span>,
+    },
     {
       id: 'status',
       header: '状态',
@@ -264,7 +269,7 @@ function FeedbackList() {
       size: 100,
       pin: 'right',
       cell: (item) => (
-        <Button variant="outline" size="sm" onClick={() => setSelected(item.id)}>
+        <Button variant="ghost" size="sm" onClick={() => setSelected(item.id)}>
           查看反馈
         </Button>
       ),
@@ -274,44 +279,40 @@ function FeedbackList() {
     event.preventDefault()
     setFilters({ ...filters, q: search.trim(), page: 1 })
   }
+  function clearFilters() {
+    setSearch('')
+    setFilters({ ...filters, q: '', status: 'all', page: 1 })
+  }
+  const filtered = !!filters.q || filters.status !== 'all'
+  const emptyTitle = filters.q
+    ? '没有匹配的反馈'
+    : filters.status === 'pending'
+      ? '暂无待处理反馈'
+      : filtered ? '暂无已处理反馈' : '暂无反馈'
+  const searchForm = (
+    <form className="admin-content-filters" onSubmit={submitSearch} role="search" aria-label="搜索与筛选反馈">
+      <Input
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder="搜索内容、编号或用户名"
+        aria-label="搜索反馈"
+      />
+      <LibrarySelect
+        label="反馈处理状态"
+        value={filters.status}
+        options={[
+          ['all', '全部状态'],
+          ['pending', '待处理'],
+          ['handled', '已处理'],
+        ]}
+        onChange={(status) => setFilters({ ...filters, status, page: 1 })}
+      />
+      <Button type="submit" variant="outline">搜索</Button>
+    </form>
+  )
   return (
     <main className="admin-list-page">
       <AdminPageHeader title="意见反馈" />
-      <form
-        className="feedback-toolbar"
-        onSubmit={submitSearch}
-        role="search"
-        aria-label="搜索与筛选反馈"
-      >
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="搜索反馈内容、编号或用户名"
-          aria-label="搜索反馈"
-        />
-        <LibrarySelect
-          label="反馈处理状态"
-          value={filters.status}
-          options={[
-            ['all', '全部状态'],
-            ['pending', '待处理'],
-            ['handled', '已处理'],
-          ]}
-          onChange={(status) => setFilters({ ...filters, status, page: 1 })}
-        />
-        <Button type="submit" variant="outline">
-          搜索
-        </Button>
-        <Button type="button" variant="outline" onClick={() => setRefresh((n) => n + 1)}>
-          <RefreshCw aria-hidden="true" />
-          刷新
-        </Button>
-      </form>
-      {error && (
-        <p className="settings-error" role="alert">
-          {error}
-        </p>
-      )}
       <AdminDataTable
         title="反馈列表"
         hideTitle
@@ -319,14 +320,34 @@ function FeedbackList() {
         data={data.feedback}
         getRowId={(item) => item.id}
         loading={loading}
-        emptyTitle={error ? '反馈读取失败' : '暂无匹配的反馈'}
-        emptyDescription={error ? '点击刷新后重试。' : '用户提交的反馈会在这里显示。'}
+        loadError={error}
+        total={data.total}
+        toolbar={{
+          filters: searchForm,
+          actions: (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading}
+              onClick={() => setRefresh((previous) => previous + 1)}
+            >
+              <RefreshCw aria-hidden="true" />
+              刷新
+            </Button>
+          ),
+        }}
+        emptyTitle={emptyTitle}
+        emptyDescription={filtered ? undefined : '用户提交反馈后会在这里显示。'}
+        emptyAction={filtered && (
+          <Button variant="outline" size="sm" onClick={clearFilters}>查看全部反馈</Button>
+        )}
         scrollKey={`${data.page}:${filters.q}:${filters.status}`}
       />
       <AdminPagination
         {...data}
         loading={loading}
         label="反馈"
+        showTotal={false}
         onPageChange={(page) => setFilters({ ...filters, page })}
         onPageSizeChange={(pageSize) => setFilters({ ...filters, pageSize, page: 1 })}
       />

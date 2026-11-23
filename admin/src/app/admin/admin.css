@@ -13,10 +13,14 @@
   --admin-warning-text: #925a0b;
   --admin-warning-soft: #fffbeb;
   --admin-warning-line: #efdab0;
-  --admin-page-gutter: 24px;
-  --admin-panel-padding: 24px;
-  --admin-section-gap: 24px;
-  --admin-field-gap: 20px;
+  --admin-page-gutter: 20px;
+  --admin-panel-padding: 20px;
+  --admin-section-gap: 18px;
+  --admin-field-gap: 16px;
+  --admin-control-height: 34px;
+  --admin-control-gap: 8px;
+  --admin-panel-radius: 12px;
+  --admin-control-radius: 8px;
 }
 .admin-shell .admin-content {
   min-height: 0;
@@ -68,7 +72,7 @@ html[data-theme='dark'] .admin-shell {
   align-items: center;
   gap: 6px;
   width: fit-content;
-  padding: 4px 8px;
+  padding: 2px 7px;
   border: 1px solid var(--admin-tone-line);
   border-radius: 6px;
   background: var(--admin-tone-soft);
@@ -861,6 +865,7 @@ html[data-theme='dark'] .admin-shell {
   overscroll-behavior: contain;
   padding: var(--admin-panel-padding);
   gap: var(--admin-section-gap);
+  border-radius: var(--admin-panel-radius);
 }
 .admin-shell .admin-editor-dialog .ops-editor {
   padding: 0;
@@ -920,8 +925,8 @@ html[data-theme='dark'] .admin-shell {
   width: 100%;
 }
 .admin-shell .ops-card {
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgb(15 23 42 / 4%);
+  border-radius: var(--admin-panel-radius);
+  box-shadow: none;
 }
 .admin-shell .admin-overview-stats {
   display: grid;
@@ -1008,10 +1013,10 @@ html[data-theme='dark'] .admin-shell {
 }
 @media (max-width: 767px) {
   .admin-shell {
-    --admin-page-gutter: 16px;
+    --admin-page-gutter: 14px;
     --admin-panel-padding: 16px;
-    --admin-section-gap: 20px;
-    --admin-field-gap: 16px;
+    --admin-section-gap: 16px;
+    --admin-control-height: 40px;
   }
   .admin-shell .admin-header {
     padding: 0 16px;
@@ -1020,9 +1025,6 @@ html[data-theme='dark'] .admin-shell {
   }
   .admin-shell .admin-header-actions {
     gap: 6px;
-  }
-  .admin-shell .admin-content {
-    padding: 16px;
   }
   .admin-shell .admin-overview-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1169,8 +1171,7 @@ html[data-theme='dark'] .admin-shell {
   justify-content: space-between;
   gap: 12px 24px;
   min-width: 0;
-  min-height: 36px;
-  margin-bottom: var(--admin-section-gap);
+  margin-bottom: 12px;
 }
 .admin-shell .admin-page-description {
   max-width: 72ch;
@@ -1195,8 +1196,8 @@ html[data-theme='dark'] .admin-shell {
   margin: 0;
 }
 .admin-shell .admin-page-controls .ops-search input {
-  min-height: 36px;
-  height: 36px;
+  min-height: var(--admin-control-height);
+  height: var(--admin-control-height);
   padding: 6px 12px;
 }
 .admin-shell .admin-list-page > .admin-page-header {
@@ -1356,9 +1357,6 @@ html[data-theme='dark'] .admin-shell {
 .admin-shell .storage-profile-list {
   gap: 16px;
 }
-.admin-shell .inspiration-manager-toolbar {
-  margin-bottom: 16px;
-}
 .admin-shell .storage-profile {
   padding: var(--admin-panel-padding);
   gap: 16px;
@@ -1391,7 +1389,7 @@ html[data-theme='dark'] .admin-shell {
   font-size: 13px;
 }
 .admin-shell .admin-editor-dialog > [data-slot='dialog-header'] {
-  padding-right: 28px;
+  padding-inline-end: var(--admin-control-height);
 }
 .admin-shell .endpoint-dialog {
   padding: var(--admin-panel-padding);
@@ -1418,25 +1416,6 @@ html[data-theme='dark'] .admin-shell {
 @media (max-width: 767px) {
   .admin-shell .ops-form {
     gap: 24px;
-  }
-  .admin-shell .inspiration-manager-toolbar {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .admin-shell .inspiration-manager-search {
-    grid-column: 1 / -1;
-  }
-  .admin-shell :is(.inspiration-manager-category, .inspiration-manager-status) {
-    grid-column: span 3;
-    width: 100%;
-  }
-  .admin-shell .inspiration-manager-toolbar > button:not(.select-trigger) {
-    grid-column: span 2;
-    justify-content: center;
-    min-width: 0;
-    padding-inline: 8px;
-    font-size: 12px;
   }
   .admin-shell .admin-page-controls {
     row-gap: 12px;
@@ -1516,29 +1495,13 @@ html[data-theme='dark'] .admin-shell {
   flex: 0 0 88px;
   width: 88px;
 }
-.admin-shell .submission-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 156px auto auto;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
 .admin-shell .select-chevron {
   color: var(--muted-foreground);
 }
-.admin-shell .submission-toolbar > .select-trigger {
-  width: 100%;
-  min-width: 0;
-}
-.admin-shell .submission-toolbar > [data-slot='button'] {
-  white-space: nowrap;
-}
-.admin-shell :is(.submission-toolbar, .submission-settings) > [data-slot='button'],
-.admin-shell .submission-toolbar > [data-slot='input'],
-.admin-shell .submission-toolbar > .select-trigger,
+.admin-shell .submission-settings > [data-slot='button'],
 .admin-shell .submission-setting-limit > [data-slot='input'] {
-  height: 40px;
-  min-height: 40px;
+  height: var(--admin-control-height);
+  min-height: var(--admin-control-height);
 }
 @media (max-width: 767px) {
   .admin-shell .submission-settings {
@@ -1555,19 +1518,6 @@ html[data-theme='dark'] .admin-shell {
   }
   .admin-shell .submission-settings > [data-slot='button'] {
     justify-self: end;
-  }
-  .admin-shell .submission-toolbar {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-  }
-  .admin-shell .submission-toolbar > [data-slot='input'] {
-    grid-column: 1 / -1;
-  }
-  .admin-shell :is(.submission-toolbar, .submission-settings) > [data-slot='button'],
-  .admin-shell .submission-toolbar > [data-slot='input'],
-  .admin-shell .submission-toolbar > .select-trigger,
-  .admin-shell .submission-setting-limit > [data-slot='input'] {
-    height: 44px;
-    min-height: 44px;
   }
   .admin-shell .submission-setting-toggle .submission-check {
     min-height: 44px;
@@ -1586,37 +1536,6 @@ html[data-theme='dark'] .admin-shell {
   ) {
   color: var(--muted-foreground);
 }
-.admin-shell .inspiration-manager-toolbar {
-  gap: 8px;
-}
-.admin-shell .inspiration-manager-search {
-  flex-basis: 200px;
-}
-.admin-shell .inspiration-manager-category {
-  flex-basis: 156px;
-  width: 156px;
-}
-.admin-shell .inspiration-manager-status {
-  flex-basis: 128px;
-  width: 128px;
-}
-.admin-shell .inspiration-manager-toolbar > button:not(.select-trigger) {
-  white-space: nowrap;
-}
-@media (max-width: 767px) {
-  .admin-shell .inspiration-manager-toolbar > button:not(.select-trigger) {
-    min-height: 44px;
-  }
-  .admin-shell .inspiration-manager-toolbar > button:not(.select-trigger) > svg {
-    display: none;
-  }
-  .admin-shell :is(.inspiration-manager-category, .inspiration-manager-status) {
-    width: 100%;
-    min-width: 0;
-    flex-basis: auto;
-  }
-}
-
 /* Storage settings are a full page rather than the legacy compact dialog. */
 .admin-shell .storage-admin {
   max-width: 1180px;
@@ -1624,18 +1543,18 @@ html[data-theme='dark'] .admin-shell {
 .admin-shell .storage-config-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   margin: 0;
   min-width: 0;
 }
 .admin-shell .storage-config-container {
   min-width: 0;
-  gap: 20px;
+  gap: 16px;
 }
 .admin-shell .storage-config-panels {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: 20px;
+  gap: 16px;
   align-items: start;
   min-width: 0;
 }

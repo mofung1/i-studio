@@ -3,7 +3,13 @@
 import { formatCredits } from '@/lib/credits'
 
 import type { AdminTask as Task } from '@/lib/admin'
-import { AdminDataTable, type AdminColumn, type AdminSortProps } from './data-table'
+import {
+  AdminCellText,
+  AdminDataTable,
+  type AdminColumn,
+  type AdminSortProps,
+  type AdminTableToolbarProps,
+} from './data-table'
 import { AdminStatusBadge, type AdminTone } from './status-badge'
 const statusTones: Record<string, AdminTone> = {
   queued: 'warning',
@@ -23,12 +29,39 @@ const statusLabels: Record<string, string> = {
   cancelled: '已取消',
   expired: '已过期',
 }
+
+function OutputSummary({ details }: { details: Task['resultDetails'] }) {
+  const first = details?.[0]
+  if (!details || !first) return <span className="admin-cell-secondary">暂无可交付图片</span>
+
+  const describe = (item: NonNullable<Task['resultDetails']>[number]) =>
+    `${item.width} × ${item.height} px${item.elapsedMs === null ? '' : ` · ${(item.elapsedMs / 1000).toFixed(1)} 秒`}`
+
+  if (details.length === 1) {
+    return <span className="admin-cell-secondary">实际 {describe(first)}</span>
+  }
+
+  return (
+    <details className="admin-cell-disclosure admin-cell-secondary">
+      <summary>
+        实际 {details.length} 张 · {first.width} × {first.height} px
+      </summary>
+      <ol className="admin-cell-output-list">
+        {details.map((item, index) => (
+          <li key={index}>{describe(item)}</li>
+        ))}
+      </ol>
+    </details>
+  )
+}
+
 export function AdminTaskTable({
   tasks,
   loading = false,
   sorting,
   onSortingChange,
-}: { tasks: Task[]; loading?: boolean } & AdminSortProps) {
+  ...tableProps
+}: { tasks: Task[]; loading?: boolean } & AdminSortProps & AdminTableToolbarProps) {
   const columns: AdminColumn<Task>[] = [
     {
       id: 'createdAt',
@@ -39,9 +72,9 @@ export function AdminTaskTable({
       cell: (task) => (
         <div className="admin-cell-stack">
           <span>{new Date(task.createdAt).toLocaleString('zh-CN')}</span>
-          <span className="admin-cell-secondary" title={task.id}>
-            {task.id.slice(0, 12)}
-          </span>
+          <div className="admin-cell-secondary">
+            <AdminCellText value={task.id} previewLimit={12} />
+          </div>
         </div>
       ),
     },
@@ -55,9 +88,20 @@ export function AdminTaskTable({
           <AdminStatusBadge tone={statusTones[task.status] ?? 'neutral'}>
             {statusLabels[task.status] ?? task.status}
           </AdminStatusBadge>
+          {task.errorMessage && (
+            <div className="admin-cell-secondary admin-task-compact-error">
+              <AdminCellText value={task.errorMessage} previewLimit={20} />
+            </div>
+          )}
           {!task.settled && <span className="admin-cell-secondary">等待结算</span>}
         </div>
       ),
+    },
+    {
+      id: 'message',
+      header: '失败原因 / 说明',
+      size: 224,
+      cell: (task) => <AdminCellText value={task.errorMessage || '—'} />,
     },
     {
       id: 'username',
@@ -80,16 +124,7 @@ export function AdminTaskTable({
           <span>
             请求 {task.aspectRatio || '未知'} / {task.resolution || '未知'}
           </span>
-          {task.resultDetails?.length ? (
-            task.resultDetails.map((item, index) => (
-              <span className="admin-cell-secondary" key={index}>
-                实际 {item.width} × {item.height} px
-                {item.elapsedMs !== null && ` · ${(item.elapsedMs / 1000).toFixed(1)} 秒`}
-              </span>
-            ))
-          ) : (
-            <span className="admin-cell-secondary">暂无可交付图片</span>
-          )}
+          <OutputSummary details={task.resultDetails} />
         </div>
       ),
     },
@@ -101,15 +136,10 @@ export function AdminTaskTable({
       sortable: true,
       cell: (task: Task) => <span className="admin-cell-number">{formatCredits(task[id])}</span>,
     })),
-    {
-      id: 'message',
-      header: '说明',
-      size: 270,
-      cell: (task) => <span className="admin-cell-message">{task.errorMessage || '—'}</span>,
-    },
   ]
   return (
     <AdminDataTable
+      {...tableProps}
       title="生成任务列表"
       hideTitle
       columns={columns}

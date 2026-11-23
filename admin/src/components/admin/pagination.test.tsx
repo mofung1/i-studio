@@ -53,11 +53,9 @@ it('shows the actual record range and jumps only to valid different pages', asyn
   for (const invalid of ['0', '7', '1.5', '', '6']) await jump(invalid)
   expect(changed).not.toHaveBeenCalled()
 })
-it('keeps an empty list at page one without a usable jump control', async () => {
-  await act(async () => root.render(<Fixture total={0} />))
-  expect(host.textContent).toContain('暂无任务记录')
-  expect(host.querySelector('input[name="page"]')).toBeNull()
-  expect(host.querySelector<HTMLButtonElement>('[aria-label="下一页任务"]')!.disabled).toBe(true)
+it.each([0, 3])('hides the pagination for %i records on a single page', async (total) => {
+  await act(async () => root.render(<Fixture total={total} />))
+  expect(host.querySelector('nav')).toBeNull()
 })
 
 it('supports fixed-size endpoints without showing a page-size selector', async () => {

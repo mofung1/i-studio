@@ -1,8 +1,9 @@
+import Link from '@/routing/link'
 import { useState } from 'react'
-import { Activity, ArrowDown, ChartNoAxesColumnIncreasing } from 'lucide-react'
+import { Activity, ArrowUpRight, ChartNoAxesColumnIncreasing } from 'lucide-react'
 import type { AdminTrendDay, OperationalMonitoring } from '@/lib/admin'
 import { creditScale, formatCredits } from '@/lib/credits'
-import { monitoringDuration } from './monitoring'
+import { monitoringDuration } from '@/hooks/use-admin-monitoring'
 import styles from './overview.module.css'
 
 const wholeNumber = new Intl.NumberFormat('zh-CN')
@@ -217,9 +218,9 @@ export function QueueSnapshot({ data, error }: { data: OperationalMonitoring | n
           </dl>
         </>
       ) : <p className={styles.queuePending} role="status">{error ? '暂无法读取队列' : '正在读取队列…'}</p>}
-      <a className={styles.queueLink} href="#admin-monitor-title">
-        查看运行监控 <ArrowDown size={14} aria-hidden="true" />
-      </a>
+      <Link className={styles.queueLink} href="/admin/monitoring">
+        查看运行监控 <ArrowUpRight size={14} aria-hidden="true" />
+      </Link>
     </section>
   )
 }

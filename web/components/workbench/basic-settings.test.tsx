@@ -41,6 +41,8 @@ function Harness({
       onSetResolution={() => {}}
       onSetCount={() => {}}
       outputSummary="1 张"
+      platform="smart"
+      onSetPlatform={() => {}}
       outputLanguage="none"
       onSetOutputLanguage={() => {}}
       onSetAspectRatio={() => {}}
@@ -91,6 +93,7 @@ it('shows an explicit empty model state instead of opening an empty selector', a
   expect(trigger().disabled).toBe(true)
   expect(trigger().textContent).toContain('暂无可用模型')
   expect(container.textContent).toContain('请联系网站管理员启用')
+  expect(container.querySelector('[aria-label="目标平台"]')).toBeNull()
   await act(async () =>
     container.querySelector<HTMLButtonElement>('[aria-label="重新加载模型列表"]')!.click(),
   )
@@ -144,6 +147,14 @@ it('filters commerce parameter options when a model has narrower capabilities wh
     ),
   )
   const ratio = container.querySelector<HTMLButtonElement>('[aria-label="尺寸比例"]')!
+  const parameters = container.querySelector('[aria-label="图片参数"]')
+  expect(parameters?.contains(ratio)).toBe(true)
+  expect(parameters?.querySelector('[aria-label="目标平台"]')?.textContent).toBe('智能匹配')
+  expect(parameters?.querySelector('[aria-label="目标语言"]')).not.toBeNull()
+  expect(parameters?.querySelector('[aria-label="生图模型"]')).toBeNull()
+  expect(container.querySelector('[aria-label="图片参数配置"]')?.textContent).toContain(
+    '1:1 · 2K · 1 张',
+  )
   expect(ratio.textContent).toContain('1:1')
   await act(async () =>
     ratio.dispatchEvent(
@@ -188,6 +199,7 @@ it('uses the same model constraints for clothing without silently replacing rest
     root.render(
       <ClothingSettings
         value={value}
+        expectedCount={1}
         onChange={onChange}
         endpoints={[
           {
@@ -207,6 +219,11 @@ it('uses the same model constraints for clothing without silently replacing rest
   )
   const ratio = container.querySelector<HTMLButtonElement>('[aria-label="服装画面比例"]')!
   expect(ratio.textContent).toBe('3:4')
+  const parameters = container.querySelector('[aria-label="图片参数"]')
+  expect(parameters?.contains(ratio)).toBe(true)
+  expect(parameters?.querySelector('[aria-label="目标平台"]')?.textContent).toBe('智能匹配')
+  expect(parameters?.querySelector('[aria-label="拍摄风格"]')).not.toBeNull()
+  expect(parameters?.querySelector('[aria-label="画面文字"]')).not.toBeNull()
   await act(async () =>
     ratio.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),

@@ -7,7 +7,8 @@ import {
   type CreationImage,
 } from '@/lib/creation-images'
 
-import { ChevronLeft, ImagePlus, Images, Plus, Upload } from 'lucide-react'
+import { ChevronLeft, Plus } from 'lucide-react'
+import { ImageUploadButton, ImageUploadDropArea } from '@/components/image-upload'
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 
 import { AssetPicker } from './asset-picker'
@@ -26,7 +27,6 @@ interface ReferenceUploaderProps {
   collapseAt?: number
   /** Prevent new selections without removing existing materials or their remove controls. */
   disabledReason?: string
-  directLocalSelection?: boolean
 }
 
 const fileKeys = new WeakMap<CreationImage, number>()
@@ -51,14 +51,12 @@ export function ReferenceUploader({
   acceptedHint,
   collapseAt,
   disabledReason,
-  directLocalSelection = false,
 }: ReferenceUploaderProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [pickerOpen, setPickerOpen] = useState(false)
   const uploaderRef = useRef<HTMLDivElement>(null)
-  const localInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const pendingThumbnailFocus = useRef<number | null>(null)
   const stackToggleRef = useRef<HTMLButtonElement>(null)
@@ -101,23 +99,18 @@ export function ReferenceUploader({
   const full = files.length >= max
 
   function accept(selected: File[]) {
-    if (disabledReason || selected.length === 0) return
+    if (full) {
+      setError(`最多 ${max} 张，请先删掉一张再添加。`)
+      return
+    }
     const images = selected.filter(
-      (file) =>
-        creationImageTypes.includes(file.type) &&
-        (!directLocalSelection || file.size <= maxCreationImageSize),
+      (file) => creationImageTypes.includes(file.type) && file.size <= maxCreationImageSize,
     )
     const room = max - files.length
     const next = [...files, ...images].slice(0, max)
-    if (directLocalSelection) applyPickerSelection(next, files.length)
-    else onChange(next)
+    applyPickerSelection(next, files.length)
 
-    if (selected.length !== images.length)
-      setError(
-        directLocalSelection
-          ? '仅支持 JPG / PNG / WebP，单张不超过 10 MB。'
-          : '仅支持 JPG / PNG / WebP 格式的图片。',
-      )
+    if (selected.length !== images.length) setError('仅支持 JPG / PNG / WebP，单张不超过 10 MB。')
     else if (images.length > room) setError(`最多 ${max} 张，超出的图片已忽略。`)
     else setError('')
   }
@@ -219,20 +212,17 @@ export function ReferenceUploader({
     sortRef.current = { index, startX: event.clientX, startY: event.clientY, active: false }
   }
 
-  /** 只有从系统拖入文件时才显示整块覆盖层，避免盖住缩略图之间的排序拖放 */
-  function isExternalFileDrag(event: React.DragEvent) {
-    const types = event.dataTransfer?.types
-    return draggingIndex === null && !!types && Array.from(types).includes('Files')
-  }
-
   return (
-    <div
+    <ImageUploadDropArea
       ref={uploaderRef}
-      className={`reference-uploader ${directLocalSelection ? 'is-direct-selection' : ''} ${collapseAt ? 'is-compact' : ''} ${isDraggingOver ? 'is-dragging-over' : ''} ${shouldCollapse ? 'is-stackable' : ''} ${shouldCollapse && !expanded ? 'is-collapsed' : ''}`}
+      className={`reference-uploader ${collapseAt ? 'is-compact' : ''} ${isDraggingOver ? 'is-dragging-over' : ''} ${shouldCollapse ? 'is-stackable' : ''} ${shouldCollapse && !expanded ? 'is-collapsed' : ''}`}
+      disabled={Boolean(disabledReason) || draggingIndex !== null}
+      onDraggingChange={(dragging) => setIsDraggingOver(dragging && !full)}
+      onFiles={accept}
       style={
         collapseAt
           ? ({
-              '--reference-slots': files.length + (full || directLocalSelection ? 0 : 1),
+              '--reference-slots': files.length + (full || disabledReason ? 0 : 1),
               '--reference-stack-offset': `${Math.min(Math.max(files.length - 1, 0), 2) * 14}px`,
               '--reference-available-width': availableWidth ? `${availableWidth}px` : '100%',
             } as CSSProperties)
@@ -268,45 +258,16 @@ export function ReferenceUploader({
           requestAnimationFrame(() => stackToggleRef.current?.focus())
         }
       }}
-      onDragOver={(event) => {
-        if (!isExternalFileDrag(event)) return
-        event.preventDefault()
-        if (!full && !disabledReason) setIsDraggingOver(true)
-      }}
-      onDragLeave={(event) => {
-        if (event.currentTarget.contains(event.relatedTarget as Node)) return
-        setIsDraggingOver(false)
-        if (disabledReason) return
-      }}
-      onDrop={(event) => {
-        if (!isExternalFileDrag(event)) return
-        event.preventDefault()
-        setIsDraggingOver(false)
-        if (full) {
-          setError(`最多 ${max} 张，请先删掉一张再添加。`)
-          return
-        }
-        accept(Array.from(event.dataTransfer.files ?? []))
-      }}
     >
       {files.length === 0 ? (
-        !directLocalSelection && (
-          <button
-            type="button"
-            className="reference-dropzone"
-            aria-label={emptyTitle}
-            title={disabledReason || acceptedHint}
-            disabled={Boolean(disabledReason)}
-            onClick={() => setPickerOpen(true)}
-          >
-            <span className="reference-dropzone-icon">
-              <ImagePlus size={22} aria-hidden="true" />
-            </span>
-            <strong>{emptyTitle}</strong>
-            <span>{emptyHint}</span>
-            <span className="reference-dropzone-hint">{acceptedHint}</span>
-          </button>
-        )
+        <ImageUploadButton
+          label={emptyTitle}
+          hint={emptyHint}
+          acceptedHint={acceptedHint}
+          title={disabledReason || acceptedHint}
+          disabled={Boolean(disabledReason)}
+          onClick={() => setPickerOpen(true)}
+        />
       ) : (
         <>
           <div ref={listRef} className="upload-list" id={listId} aria-label="已上传图片">
@@ -348,27 +309,17 @@ export function ReferenceUploader({
                 thumbnail
               )
             })}
-            {!full && !disabledReason && !directLocalSelection && (
-              <button
-                type="button"
-                className="add-thumb"
-                aria-label="添加图片"
+            {!full && !disabledReason && (
+              <ImageUploadButton
+                variant="tile"
+                label="添加图片"
                 title={acceptedHint}
                 tabIndex={shouldCollapse && !expanded ? -1 : undefined}
                 style={
                   collapseAt ? ({ '--reference-index': files.length } as CSSProperties) : undefined
                 }
                 onClick={() => setPickerOpen(true)}
-              >
-                <span className="add-thumb-icon">
-                  {collapseAt ? (
-                    <Plus size={18} aria-hidden="true" />
-                  ) : (
-                    <Upload size={16} aria-hidden="true" />
-                  )}
-                </span>
-                <span>添加图片</span>
-              </button>
+              />
             )}
             {shouldCollapse && expanded && (
               <button
@@ -403,58 +354,20 @@ export function ReferenceUploader({
               }}
             >
               <span className="reference-stack-count">{files.length}</span>
-              {!full && !directLocalSelection && (
+              {!full && !disabledReason && (
                 <span className="reference-stack-plus" aria-hidden="true">
                   <Plus size={14} />
                 </span>
               )}
             </button>
           )}
-          {!directLocalSelection && (
-            <p className="reference-meta">
-              <span>
-                {files.length}/{max} 张
-              </span>
-              <span>可拖动排序</span>
-            </p>
-          )}
+          <p className="reference-meta">
+            <span>
+              {files.length}/{max} 张
+            </span>
+            {files.length > 1 && <span>可拖动排序</span>}
+          </p>
         </>
-      )}
-      {directLocalSelection && !full && (
-        <div className="reference-source-actions">
-          <input
-            ref={localInputRef}
-            type="file"
-            hidden
-            accept={creationImageTypes.join(',')}
-            multiple={max - files.length > 1}
-            aria-label="选择本地图片"
-            disabled={Boolean(disabledReason)}
-            onChange={(event) => {
-              accept(Array.from(event.currentTarget.files ?? []))
-              event.currentTarget.value = ''
-            }}
-          />
-          <button
-            type="button"
-            className={files.length === 0 ? 'studio-primary' : 'studio-secondary'}
-            title={disabledReason || acceptedHint}
-            disabled={Boolean(disabledReason)}
-            onClick={() => localInputRef.current?.click()}
-          >
-            <ImagePlus size={17} aria-hidden="true" />
-            从本机选图
-          </button>
-          <button
-            type="button"
-            className="studio-secondary"
-            disabled={Boolean(disabledReason)}
-            onClick={() => setPickerOpen(true)}
-          >
-            <Images size={17} aria-hidden="true" />
-            从素材库选
-          </button>
-        </div>
       )}
       {pickerOpen && !disabledReason && (
         <AssetPicker
@@ -482,6 +395,6 @@ export function ReferenceUploader({
           {disabledReason}
         </p>
       )}
-    </div>
+    </ImageUploadDropArea>
   )
 }

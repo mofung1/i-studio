@@ -214,24 +214,29 @@ export default function StoragePage() {
         </p>
       )}
       {loading && <p role="status">正在加载存储配置…</p>}
-      <form className="storage-config-form" onSubmit={(event) => void save(event)}>
+      <form
+        className={`storage-config-form ${styles.storageForm}`}
+        onSubmit={(event) => void save(event)}
+      >
         <FieldSet disabled={busy || !ready} className="storage-config-container">
           <Card className="storage-intro-card">
             <CardHeader>
-              <CardTitle>图片保存位置</CardTitle>
+              <CardTitle>
+                <h2>图片保存位置</h2>
+              </CardTitle>
               <CardDescription>
                 公共提示词库封面、用户上传、AI 生成图片和网站图片共用此配置。
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className={styles.storageModeRow}>
               <div className={styles.storageMode}>
                 {enabled ? (
-                  <Cloud size={22} aria-hidden="true" />
+                  <Cloud size={18} aria-hidden="true" />
                 ) : (
-                  <HardDrive size={22} aria-hidden="true" />
+                  <HardDrive size={18} aria-hidden="true" />
                 )}
                 <div>
-                  <strong>{enabled ? '云存储，同时保留本地副本' : '本地存储'}</strong>
+                  <strong>{enabled ? '云存储与本地副本' : '本地存储'}</strong>
                   <p>
                     {enabled
                       ? '填写下方连接信息和密钥。检查连接、同步历史图片后，再保存启用。'
@@ -260,7 +265,9 @@ export default function StoragePage() {
           >
             <Card className="storage-connection-card">
               <CardHeader>
-                <CardTitle>1. 存储连接</CardTitle>
+                <CardTitle>
+                  <h2>存储连接</h2>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <FieldGroup className="storage-config-grid">
@@ -350,7 +357,9 @@ export default function StoragePage() {
             </Card>
             <Card className="storage-credentials-card">
               <CardHeader>
-                <CardTitle>2. 访问密钥</CardTitle>
+                <CardTitle>
+                  <h2>访问密钥</h2>
+                </CardTitle>
                 <CardDescription>
                   已保存的密钥在此显示。
                 </CardDescription>
@@ -382,7 +391,9 @@ export default function StoragePage() {
             </Card>
             <Card className="storage-cdn-card">
               <CardHeader>
-                <CardTitle>3. 图片访问与 CDN</CardTitle>
+                <CardTitle>
+                  <h2>图片访问与 CDN</h2>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <FieldGroup className="storage-config-grid">
@@ -462,22 +473,22 @@ export default function StoragePage() {
               type="button"
               disabled={busy || !enabled || !ready}
               onClick={(event) => {
-                if (event.currentTarget.form?.reportValidity()) void sync()
+                if (event.currentTarget.form?.reportValidity()) void check()
               }}
             >
-              <Upload data-icon="inline-start" />
-              同步本地图片
+              <ShieldCheck data-icon="inline-start" />
+              检查连接
             </Button>
             <Button
               variant="outline"
               type="button"
               disabled={busy || !enabled || !ready}
               onClick={(event) => {
-                if (event.currentTarget.form?.reportValidity()) void check()
+                if (event.currentTarget.form?.reportValidity()) void sync()
               }}
             >
-              <ShieldCheck data-icon="inline-start" />
-              检查连接
+              <Upload data-icon="inline-start" />
+              同步本地图片
             </Button>
             <Button type="submit" disabled={busy || !ready}>
               <Save data-icon="inline-start" />

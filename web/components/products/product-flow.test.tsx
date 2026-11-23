@@ -8,7 +8,12 @@ import type { PublicImageModel } from '@/lib/generation-models'
 
 vi.mock('@/components/account-provider', () => ({
   useAccount: () => ({
-    account: { authenticated: true, user: { id: 'customer-1' }, available: 5000 },
+    account: {
+      authenticated: true,
+      user: { id: 'customer-1' },
+      available: 5000,
+      creditName: '积分',
+    },
     loading: false,
   }),
 }))
@@ -207,8 +212,13 @@ it('generates from the saved product, edits a selected version with an alpha mas
   await act(async () => root.render(<Harness />))
   await settle()
   await fill('补充要求', '浅灰色背景，柔和侧光')
-  expect(button('生成商品主图').disabled).toBe(false)
-  await act(async () => button('生成商品主图').click())
+  const generationFooter = container.querySelector('[aria-label="选择用途与生成"] footer')!
+  expect(generationFooter.textContent).toContain('预计预留 1 积分')
+  expect(generationFooter.textContent).toContain('可用 50 积分')
+  expect(button('查看费用明细', generationFooter)).toBeDefined()
+  expect(generationFooter.textContent).not.toContain('单价')
+  expect(button('生成商品主图', generationFooter).disabled).toBe(false)
+  await act(async () => button('生成商品主图', generationFooter).click())
   expect(submissions[0]).toMatchObject({
     productId: 'product-1',
     productVersion: 3,
@@ -230,7 +240,12 @@ it('generates from the saved product, edits a selected version with an alpha mas
   })
   await fill('修改说明', '将选中区域改为浅灰色桌面', dialog)
   await settle()
-  await act(async () => button('生成修改版本', dialog).click())
+  const maskFooter = dialog.querySelector('footer')!
+  expect(maskFooter.textContent).toContain('预计预留 1 积分')
+  expect(maskFooter.textContent).toContain('可用 50 积分')
+  expect(button('查看费用明细', maskFooter)).toBeDefined()
+  expect(button('取消', maskFooter)).toBeDefined()
+  await act(async () => button('生成修改版本', maskFooter).click())
   expect(maskFiles).toHaveLength(1)
   expect(maskFiles[0]).toMatchObject({ name: 'product-edit-mask.png', type: 'image/png' })
   expect(submissions[1]).toMatchObject({

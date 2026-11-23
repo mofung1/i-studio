@@ -2,7 +2,7 @@
 import { useTransientMessage } from '@/hooks/use-transient-message'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, RefreshCw } from 'lucide-react'
 import { useAdminAccount } from '@/components/account-provider'
 import { adminRequest, adminFetch } from '@/lib/admin'
 import { getAdminAccessToken } from '@/lib/api'
@@ -25,7 +25,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Field, FieldGroup, FieldLabel } from './ui/field'
 import { AdminPageHeader } from './page-header'
-import { AdminDataTable, type AdminColumn } from './data-table'
+import { AdminCellText, AdminDataTable, type AdminColumn } from './data-table'
 import { AdminPagination } from './pagination'
 import { AdminStatusBadge } from './status-badge'
 
@@ -279,6 +279,7 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
   const [revision, setRevision] = useState(0)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [loadError, setLoadError] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useTransientMessage()
   const [detail, setDetail] = useState<SubmissionDetail | null>(null)
@@ -294,7 +295,7 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
     const controller = new AbortController()
     const token = getAdminAccessToken()
     setLoading(true)
-    setError('')
+    setLoadError('')
     Promise.all([
       adminRequest<SubmissionPage>(
         `inspiration-submissions?page=${page}&status=${status}&q=${encodeURIComponent(query)}`,
@@ -326,7 +327,8 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
         }
       })
       .catch((failure) => {
-        if (!controller.signal.aborted && token === getAdminAccessToken()) setError(failure.message)
+        if (!controller.signal.aborted && token === getAdminAccessToken())
+          setLoadError(failure instanceof Error ? failure.message : '读取投稿失败，请刷新重试。')
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
@@ -405,19 +407,24 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
     {
       id: 'status',
       header: '审核状态',
-      size: 160,
+      size: 190,
       cell: (item) => (
-        <AdminStatusBadge
-          tone={
-            item.status === 'pending'
-              ? 'warning'
-              : item.status === 'approved' && item.published
-                ? 'success'
-                : 'neutral'
-          }
-        >
-          {submissionStatus(item)}
-        </AdminStatusBadge>
+        <div className="admin-content-state">
+          <AdminStatusBadge
+            tone={
+              item.status === 'pending'
+                ? 'warning'
+                : item.status === 'rejected'
+                  ? 'danger'
+                  : item.status === 'approved' && item.published
+                    ? 'success'
+                    : 'neutral'
+            }
+          >
+            {submissionStatus(item)}
+          </AdminStatusBadge>
+          {item.reviewReason && <AdminCellText value={item.reviewReason} previewLimit={36} />}
+        </div>
       ),
     },
     {
@@ -445,7 +452,7 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
       cell: (item) => (
         <Button
           type="button"
-          variant="outline"
+          variant={item.status === 'pending' ? 'outline' : 'ghost'}
           size="sm"
           disabled={busy}
           onClick={() => void inspect(item.id)}
@@ -455,6 +462,47 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
       ),
     },
   ]
+  function clearFilters() {
+    setSearch('')
+    setQuery('')
+    setStatus('all')
+    setPage(1)
+  }
+  const filtered = !!query || status !== 'all'
+  const emptyTitle = query
+    ? '没有匹配的投稿'
+    : status === 'pending'
+      ? '暂无待审核投稿'
+      : filtered ? '暂无此状态的投稿' : '暂无用户投稿'
+  const searchForm = (
+    <form
+      className="admin-content-filters"
+      role="search"
+      aria-label="筛选用户投稿"
+      onSubmit={(event) => {
+        event.preventDefault()
+        setPage(1)
+        setQuery(search.trim())
+      }}
+    >
+      <Input
+        aria-label="搜索投稿"
+        placeholder="搜索标题、编号或用户名"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
+      <LibrarySelect
+        label="筛选审核状态"
+        value={status}
+        options={submissionStatuses}
+        onChange={(value) => {
+          setPage(1)
+          setStatus(value)
+        }}
+      />
+      <Button type="submit" variant="outline">搜索</Button>
+    </form>
+  )
   return (
     <main className="submission-admin admin-list-page">
       <AdminPageHeader title="用户投稿审核" />
@@ -512,42 +560,6 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
           </form>
         </details>
       )}
-      <form
-        className="submission-toolbar"
-        aria-label="筛选用户投稿"
-        onSubmit={(event) => {
-          event.preventDefault()
-          setPage(1)
-          setQuery(search.trim())
-        }}
-      >
-        <Input
-          aria-label="搜索投稿"
-          placeholder="搜索标题、投稿编号或用户名"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <LibrarySelect
-          label="筛选审核状态"
-          value={status}
-          options={submissionStatuses}
-          onChange={(value) => {
-            setPage(1)
-            setStatus(value)
-          }}
-        />
-        <Button type="submit" variant="outline">
-          搜索
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={loading}
-          onClick={() => setRevision((value) => value + 1)}
-        >
-          刷新
-        </Button>
-      </form>
       {error && (
         <p className="settings-error" role="alert">
           {error}
@@ -565,14 +577,27 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
         data={data?.submissions ?? []}
         getRowId={(item) => item.id}
         loading={loading}
-        emptyTitle={error ? '投稿读取失败' : '没有匹配的投稿'}
-        emptyDescription={
-          error
-            ? '请刷新后重试，当前筛选条件会保留。'
-            : status === 'pending'
-              ? '当前没有待审核投稿，可切换状态查看已有记录。'
-              : '尝试切换审核状态或搜索其他关键词。'
-        }
+        loadError={loadError}
+        total={data?.total}
+        toolbar={{
+          filters: searchForm,
+          actions: (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading}
+              onClick={() => setRevision((previous) => previous + 1)}
+            >
+              <RefreshCw aria-hidden="true" />
+              刷新
+            </Button>
+          ),
+        }}
+        emptyTitle={emptyTitle}
+        emptyDescription={filtered ? undefined : '用户提交投稿后会在这里显示。'}
+        emptyAction={filtered && (
+          <Button variant="outline" size="sm" onClick={clearFilters}>查看全部投稿</Button>
+        )}
         scrollKey={`${data?.page}:${status}:${query}`}
       />
       {data && (
@@ -580,6 +605,7 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
           {...data}
           pageSize={20}
           label="投稿"
+          showTotal={false}
           loading={loading || busy}
           onPageChange={setPage}
         />

@@ -20,46 +20,6 @@
   border-radius: 50%;
 }
 
-.generate-button {
-  width: 100%;
-  min-height: 46px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--background);
-  background: linear-gradient(180deg, #262626 0%, var(--primary) 100%);
-  border: 1px solid var(--primary);
-  border-radius: 11px;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 5px 12px rgba(23, 23, 23, 0.12);
-  cursor: pointer;
-  transition:
-    background 150ms ease,
-    box-shadow 150ms ease,
-    transform 150ms ease;
-}
-
-.generate-button:hover:not(:disabled) {
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
-  box-shadow: 0 8px 18px rgba(23, 23, 23, 0.18);
-  transform: translateY(-1px);
-}
-
-.generate-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-.generate-button:disabled {
-  color: var(--background);
-  background: var(--placeholder);
-  border-color: var(--placeholder);
-  box-shadow: none;
-  cursor: not-allowed;
-}
-
 .form-notice {
   grid-column: 1;
   display: flex;

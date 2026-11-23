@@ -459,8 +459,9 @@
   gap: 10px;
 }
 
-/* 用两段选择器提高优先级：`.form-section label` 会把 label 强制成 block */
-.reference-uploader .reference-dropzone {
+.reference-dropzone {
+  width: 100%;
+  min-width: 0;
   min-height: 136px;
   display: flex;
   flex-direction: column;
@@ -481,7 +482,7 @@
     border-color 150ms ease;
 }
 
-.reference-uploader .reference-dropzone strong {
+.reference-dropzone strong {
   color: var(--foreground);
   font-size: 13px;
 }
@@ -490,7 +491,7 @@
   color: var(--foreground-3);
 }
 
-.reference-dropzone:hover,
+.reference-dropzone:hover:not(:disabled),
 .reference-uploader.is-dragging-over .reference-dropzone {
   color: var(--foreground-2);
   background: var(--surface);
@@ -507,13 +508,6 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-}
-
-.reference-dropzone input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
 }
 
 .reference-meta {
