@@ -78,6 +78,5 @@ it('uses the customer session for product saves and adoption without crossing ad
   )
   expect(JSON.parse(fetcher.mock.calls[0]![1].body).version).toBe(2)
   expect(JSON.parse(fetcher.mock.calls[1]![1].body)).toEqual({ assetId: 'a-1' })
-  expect(() => assertRequestScope('commerce/products', 'admin')).toThrow()
-  expect(() => assertRequestScope('commerce/../admin/models', 'frontend')).toThrow()
+  expect(() => assertRequestScope('commerce/../admin/models')).toThrow()
 })

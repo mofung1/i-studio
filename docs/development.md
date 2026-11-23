@@ -9,10 +9,10 @@
 | Go | 以 `server/go.mod` 为准，当前 toolchain 为 1.27.3 |
 | Node.js | 22.12.0 或更新版本 |
 | pnpm | 10.12.1，与 `web/package.json` 一致 |
-| Docker / Compose | 运行本地 PostgreSQL、Redis 或镜像验收 |
+| Docker / Compose | 构建并运行开发服务，执行完整镜像验收 |
 | Python | Python 3，用于公共库和运维工具的测试 |
 
-开发脚本使用 Bash、`lsof`、`curl`，适合 macOS / Linux；Windows 可在 WSL 中运行。
+使用 Compose 启动整套开发服务只需 Docker 和 Compose。在宿主机运行单元测试时，按对应模块安装上表中的工具。
 
 ## 按业务查找代码
 
@@ -36,35 +36,38 @@
 | 启动方式 | `/admin` 由谁提供 |
 | --- | --- |
 | 根目录 [compose.yml](../compose.yml) | [镜像内 Caddy](../docker/Caddyfile.image)提供 `admin/` 构建的静态页面。后台与网站共用端口，默认 8080。 |
-| [本地开发 Compose](../docker/docker-compose.yml) | 独立后台默认在 33001，前台默认在 33000，前台端口上的 `/admin` 仍由 [Next.js 后台](../web/app/admin)处理。 |
-| [分服务生产](../docker/Caddyfile)与[宝塔部署](../docker/Caddyfile.internal) | 网关将 `/admin` 转发给 `web:3000`，使用 Next.js 后台。 |
-| [dev.sh](../dev.sh) | 脚本启动 API 与 Next.js。联调独立后台时另行启动 [admin 开发服务](../admin/README.md)，将 `ADMIN_API_PROXY` 指向脚本启动的 API，默认 `http://127.0.0.1:4000`。 |
+| [本地开发 Compose](../docker/docker-compose.yml) | 从网站端口 33000 访问 `/admin/login`。Next.js 将后台请求转给 `admin:8080`，将同源 `/v1` 请求转给 Go API。原有 33001 端口也可直接访问。 |
+| [分服务生产](../docker/Caddyfile)与[宝塔部署](../docker/Caddyfile.internal) | Caddy 网关镜像内含独立后台，在站点域名下直接提供页面和静态资源。普通页面继续转给 Next.js。已有宝塔站点的镜像升级步骤见[运维说明](operations.md#宝塔离线更新运营后台)。 |
 
 ## 启动开发服务
 
-首次创建配置，已有文件请保留：
+首次使用时，在仓库根目录创建开发配置。
 
 ```sh
 test -f server/.env || cp server/.env.example server/.env
-cd web
-pnpm install --frozen-lockfile
-cd ..
-./dev.sh --infra
 ```
 
-脚本启动本地 PostgreSQL / Redis、编译 Go API 并启动 Next.js 开发服务。默认前端为 <http://127.0.0.1:3000>，API 为 <http://127.0.0.1:4000/v1/health>；数据库、Redis 端口分别为 55432、56379。示例中的数据库密码仅用于本地开发，不用于公网部署。
-
-API 读取 `server/.env`；AI 渠道、密钥和模型在管理员后台配置。需要后台账号时自行填写 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 并重启开发进程，详见 [管理员说明](administrator.md)。数据库是必选依赖；Redis 不可用时任务仍保存于 PostgreSQL，但开发时建议一起启动。
-
-更换端口可运行 `./dev.sh --web-port 3100 --api-port 4100`。Ctrl+C 停止脚本启动的 API 与前端，保留数据库容器与数据。若已运行开发 Compose 的 `api` 服务，先停掉它，避免两个 API 共用队列。根目录安装配置、开发 Compose 及生产配置使用不同端口，勿混用命令。
-
-源码开发进程不会自动导入内置灵感库。在全新的开发数据库中需要示例内容时，另开终端执行：
+需要登录后台时，在 `server/.env` 填写 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD`。下面的命令会启动网站、运营后台、Go API、PostgreSQL 和 Redis。
 
 ```sh
-cd server
-go run ./cmd/server bootstrap-inspiration \
-  --catalog seed/inspiration-catalog.json \
-  --images storage/uploads/inspiration
+docker compose -f docker/docker-compose.yml up -d --build --wait
+```
+
+网站默认在 <http://127.0.0.1:33000>，后台登录为 <http://127.0.0.1:33000/admin/login>，API 健康检查为 <http://127.0.0.1:44000/v1/health>。宿主机端口可通过 `WEB_PORT`、`ADMIN_PORT` 和 `API_PORT` 调整。AI 渠道、密钥和模型在后台配置。更改 `server/.env` 中的管理员凭据后，运行 `docker compose -f docker/docker-compose.yml up -d --wait api` 让 API 读取新值。账号规则见[管理员说明](administrator.md)。
+
+源码变更后，再次执行上述启动命令即可重新构建。只改了后台时，可在已启动的环境中单独重建后台服务。
+
+```sh
+docker compose -f docker/docker-compose.yml up -d --no-deps --build --wait admin
+```
+
+查看日志可运行 `docker compose -f docker/docker-compose.yml logs -f admin api`。调试结束后用 `docker compose -f docker/docker-compose.yml down` 停止环境，数据库和 Redis 的命名卷会保留。
+
+全新的开发数据库使用空公共库起步。需要内置示例时，从仓库根目录将清单传给正在运行的 API 容器。
+
+```sh
+docker compose -f docker/docker-compose.yml exec -T api istudio-server bootstrap-inspiration \
+  --catalog /dev/stdin --images /data/uploads/inspiration < server/seed/inspiration-catalog.json
 ```
 
 命令只对尚未初始化的空公共库安装一次；已有库及管理员编辑会保留。完整应用镜像的入口脚本会执行这一步，通常无需手工调用。

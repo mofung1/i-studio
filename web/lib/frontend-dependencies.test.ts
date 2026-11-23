@@ -34,8 +34,8 @@ const managementModules = new Set([
 ])
 
 it('keeps operator requests and management components out of every frontend route dependency graph', () => {
-  const entries = sourceFiles(join(root, 'app')).filter(
-    (file) => /\/(page|layout)\.tsx$/.test(file) && !relative(root, file).startsWith('app/admin/'),
+  const entries = sourceFiles(join(root, 'app')).filter((file) =>
+    /\/(page|layout)\.tsx$/.test(file),
   )
   const seen = new Set<string>()
   const violations: string[] = []
@@ -70,7 +70,6 @@ it('keeps operator requests and management components out of every frontend rout
         )
           return
         if (
-          name !== 'components/account-provider.tsx' &&
           bindings &&
           ts.isNamedImports(bindings) &&
           bindings.elements.some(

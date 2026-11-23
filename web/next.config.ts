@@ -6,6 +6,19 @@ const nextConfig: NextConfig = {
     qualities: [75, 85],
     unoptimized: process.env.NEXT_IMAGE_UNOPTIMIZED === '1',
   },
+  async rewrites() {
+    const admin = (process.env.ADMIN_INTERNAL_BASE_URL || 'http://127.0.0.1:33001').replace(
+      /\/+$/,
+      '',
+    )
+    const api = (process.env.API_INTERNAL_BASE_URL || 'http://127.0.0.1:4000').replace(/\/+$/, '')
+    return [
+      // Next canonicalizes /admin/ to /admin, while the SPA is mounted at /admin/.
+      { source: '/admin', destination: `${admin}/admin/` },
+      { source: '/admin/:path+', destination: `${admin}/admin/:path+` },
+      { source: '/v1/:path*', destination: `${api}/v1/:path*` },
+    ]
+  },
   async headers() {
     return [
       {

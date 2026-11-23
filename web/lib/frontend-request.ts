@@ -15,7 +15,7 @@ export async function frontendRequest<T>(
   options: RequestInit = {},
   fallback = '操作失败，请重试',
 ): Promise<T> {
-  assertRequestScope(path, 'frontend')
+  assertRequestScope(path)
   const token = getAccessToken()
   if (!token) throw new FrontendRequestError('请先登录', 401)
   const headers = new Headers(options.headers)

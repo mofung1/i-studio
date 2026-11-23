@@ -2,12 +2,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import {
-  AccountProvider,
-  AdminAccountProvider,
-  useAccount,
-  useAdminAccount,
-} from './account-provider'
+import { AccountProvider, useAccount } from './account-provider'
 
 let root: Root
 let container: HTMLDivElement
@@ -41,14 +36,10 @@ afterEach(async () => {
 })
 function View() {
   const web = useAccount()
-  const admin = useAdminAccount()
   return (
-    <>
-      <output data-web>
-        {web.account.user?.username ?? 'signed-out'}:{web.account.available}
-      </output>
-      <output data-admin>{admin.account.user?.username ?? 'signed-out'}</output>
-    </>
+    <output data-web>
+      {web.account.user?.username ?? 'signed-out'}:{web.account.available}
+    </output>
   )
 }
 async function resolve(index: number, username: string, available = 0) {
@@ -72,24 +63,19 @@ it('keeps frontend and administrator credentials in independent sessions', async
   await act(async () =>
     root.render(
       <AccountProvider>
-        <AdminAccountProvider>
-          <View />
-        </AdminAccountProvider>
+        <View />
       </AccountProvider>,
     ),
   )
   const webIndex = pending.findIndex((item) => item.url.endsWith('/v1/auth/me'))
-  const adminIndex = pending.findIndex((item) => item.url.endsWith('/v1/admin/auth/me'))
+  expect(pending).toHaveLength(1)
   expect(pending[webIndex]!.token).toBe('Bearer web-token')
-  expect(pending[adminIndex]!.token).toBe('Bearer admin-token')
   await resolve(webIndex, 'customer', 1200)
-  await resolve(adminIndex, 'operator')
   await act(async () => {
     localStorage.removeItem('istudio-access-token')
     window.dispatchEvent(new Event('istudio-account-refresh'))
   })
   expect(container.querySelector('[data-web]')?.textContent).toBe('signed-out:0')
-  expect(container.querySelector('[data-admin]')?.textContent).toBe('operator')
   expect(localStorage.getItem('istudio-admin-token')).toBe('admin-token')
 })
 it('ignores an old account response after switching accounts or logging out', async () => {

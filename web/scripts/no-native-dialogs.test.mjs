@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import ts from 'typescript'
 import { expect, it } from 'vitest'
@@ -15,7 +15,9 @@ function sourceFiles(directory) {
 }
 it('keeps native alert/confirm/prompt and unload interception out of product flows', () => {
   const failures = []
-  for (const file of ['app', 'components', 'lib', 'hooks'].flatMap(sourceFiles)) {
+  for (const file of ['app', 'components', 'lib', 'hooks']
+    .filter(existsSync)
+    .flatMap(sourceFiles)) {
     const source = ts.createSourceFile(
       file,
       readFileSync(file, 'utf8'),

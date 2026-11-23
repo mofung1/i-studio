@@ -11,10 +11,6 @@ export function getAccessToken() {
   return window.localStorage.getItem('istudio-access-token') ?? ''
 }
 
-export function getAdminAccessToken() {
-  return window.localStorage.getItem('istudio-admin-token') ?? ''
-}
-
 export async function readApiError(response: Response, fallback: string) {
   try {
     const payload = (await response.json()) as ApiErrorPayload

@@ -8,7 +8,9 @@ x-service-defaults: &service-defaults
       max-size: "5m"
       max-file: "2"
 
-# Load the prepared amd64 images first. Only the loopback gateway is published.
+# Load the prepared amd64 images first. Build the API and admin gateway from
+# the same checkout and tag both with BAOTA_APP_TAG before transferring them.
+# Only the loopback gateway is published.
 # These limits are for a private, low-concurrency trial on a shared small host.
 services:
   postgres:
@@ -47,7 +49,7 @@ services:
 
   api:
     <<: *service-defaults
-    image: istudio-api:admin-six-amd64
+    image: istudio-api:${BAOTA_APP_TAG:-standalone-amd64}
     pull_policy: never
     mem_limit: 224m
     working_dir: /run/istudio
@@ -106,7 +108,7 @@ services:
 
   gateway:
     <<: *service-defaults
-    image: istudio-caddy:2-amd64
+    image: istudio-admin:${BAOTA_APP_TAG:-standalone-amd64}
     pull_policy: never
     mem_limit: 48m
     environment:

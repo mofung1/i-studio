@@ -101,7 +101,9 @@ services:
 
   caddy:
     <<: *service-defaults
-    image: caddy:2-alpine
+    build:
+      context: ..
+      dockerfile: docker/admin.Dockerfile
     environment:
       APP_DOMAIN: ${APP_DOMAIN:?Set your public domain}
     ports:

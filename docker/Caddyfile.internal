@@ -11,6 +11,7 @@ http://:8080 {
 	handle @api {
 		reverse_proxy api:4000
 	}
+	import /etc/caddy/admin-routes.caddy
 	handle {
 		reverse_proxy web:3000
 	}

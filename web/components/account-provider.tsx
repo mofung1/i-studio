@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { apiBaseUrl, getAccessToken, getAdminAccessToken } from '@/lib/api'
+import { apiBaseUrl, getAccessToken } from '@/lib/api'
 import { accountRevisionKey } from '@/lib/credits'
 
 export interface AccountState {
@@ -25,20 +25,7 @@ const AccountContext = createContext<{
   error: string
   refresh: () => void
 }>({ account: empty, loading: true, error: '', refresh: () => {} })
-const AdminAccountContext = createContext({
-  account: empty,
-  loading: true,
-  error: '',
-  refresh: () => {},
-})
-
 export function AccountProvider({ children }: { children: ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>
-}
-export function AdminAccountProvider({ children }: { children: ReactNode }) {
-  return <SessionProvider admin>{children}</SessionProvider>
-}
-function SessionProvider({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
   const [account, setAccount] = useState(empty)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -46,8 +33,7 @@ function SessionProvider({ children, admin = false }: { children: ReactNode; adm
   const controller = useRef<AbortController | null>(null)
   const lastToken = useRef('')
   const refresh = useCallback(() => {
-    const readToken = admin ? getAdminAccessToken : getAccessToken
-    const token = readToken()
+    const token = getAccessToken()
     const requestVersion = ++version.current
     controller.current?.abort()
     if (token !== lastToken.current) {
@@ -63,8 +49,8 @@ function SessionProvider({ children, admin = false }: { children: ReactNode; adm
     }
     const pending = new AbortController()
     controller.current = pending
-    const current = () => version.current === requestVersion && readToken() === token
-    fetch(`${apiBaseUrl}/v1/${admin ? 'admin/auth/me' : 'auth/me'}`, {
+    const current = () => version.current === requestVersion && getAccessToken() === token
+    fetch(`${apiBaseUrl}/v1/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',
       signal: pending.signal,
@@ -78,7 +64,7 @@ function SessionProvider({ children, admin = false }: { children: ReactNode; adm
         if (!current()) return
         setAccount(data.authenticated ? { ...empty, ...data } : empty)
         if (!data.authenticated) {
-          window.localStorage.removeItem(admin ? 'istudio-admin-token' : 'istudio-access-token')
+          window.localStorage.removeItem('istudio-access-token')
           lastToken.current = ''
         }
         setError('')
@@ -89,16 +75,12 @@ function SessionProvider({ children, admin = false }: { children: ReactNode; adm
       .finally(() => {
         if (current()) setLoading(false)
       })
-  }, [admin])
+  }, [])
   useEffect(() => {
-    const tokenKey = admin ? 'istudio-admin-token' : 'istudio-access-token'
-    const refreshEvent = admin ? 'istudio-admin-refresh' : 'istudio-account-refresh'
+    const tokenKey = 'istudio-access-token'
+    const refreshEvent = 'istudio-account-refresh'
     const storageChanged = (event: StorageEvent) => {
-      if (
-        event.key === tokenKey ||
-        event.key === null ||
-        (!admin && event.key === accountRevisionKey)
-      )
+      if (event.key === tokenKey || event.key === null || event.key === accountRevisionKey)
         refresh()
     }
     refresh()
@@ -112,16 +94,13 @@ function SessionProvider({ children, admin = false }: { children: ReactNode; adm
       window.removeEventListener(refreshEvent, refresh)
       window.removeEventListener('storage', storageChanged)
     }
-  }, [refresh, admin])
-  const Context = admin ? AdminAccountContext : AccountContext
+  }, [refresh])
   return (
-    <Context.Provider value={{ account, loading, error, refresh }}>{children}</Context.Provider>
+    <AccountContext.Provider value={{ account, loading, error, refresh }}>
+      {children}
+    </AccountContext.Provider>
   )
 }
 export function useAccount() {
   return useContext(AccountContext)
-}
-
-export function useAdminAccount() {
-  return useContext(AdminAccountContext)
 }

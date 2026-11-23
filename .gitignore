@@ -51,6 +51,7 @@ docker/data/
 /test/backups/
 
 # Local development helpers and historical artifacts
+/scripts/clean-docker-cache.local.sh
 /.claude/
 /.codex/
 /.agents/

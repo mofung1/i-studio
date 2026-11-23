@@ -35,6 +35,33 @@ docker compose up -d --no-deps --force-recreate --wait --wait-timeout 180 app
 
 保留原 `.env`，其中 `ISTUDIO_IMAGE` 应为 `istudio:local`。更新时不重新执行 `setup > .env`。
 
+### 分服务生产部署更新运营后台
+
+使用 `docker/compose.production.yml` 的站点更新源码后，从仓库根目录运行以下命令。网关镜像在构建时打包后台静态文件。
+
+```sh
+docker compose --env-file docker/.env.production -f docker/compose.production.yml up -d --build --wait
+```
+
+### 宝塔离线更新运营后台
+
+宝塔网关从本地镜像提供后台。首次从旧版切换时，在构建机的同一份源码中构建对应的 Go API 和后台网关，打包供服务器导入。
+
+```sh
+docker buildx build --platform linux/amd64 -f docker/api.Dockerfile -t istudio-api:standalone-amd64 --load .
+docker buildx build --platform linux/amd64 -f docker/admin.Dockerfile -t istudio-admin:standalone-amd64 --load .
+docker save -o istudio-admin-upgrade.tar istudio-api:standalone-amd64 istudio-admin:standalone-amd64
+```
+
+等在途任务完成，备份现有宝塔站点的 `docker/.env.baota`、数据库与 `docker/data/uploads`。把镜像包以及本版 `docker/compose.baota.yml`、`docker/Caddyfile.internal` 复制到服务器原部署目录的相应位置。保留原来的 Compose 项目名，从项目根目录执行以下命令。
+
+```sh
+docker load -i istudio-admin-upgrade.tar
+docker compose --env-file docker/.env.baota -f docker/compose.baota.yml up -d --wait api gateway
+```
+
+若自行指定版本，请给两个镜像使用相同标签，并在原 `docker/.env.baota` 中设置 `BAOTA_APP_TAG`。更新后用原域名打开 `/admin/login`，登录后直接刷新 `/admin/models` 和 `/admin/submissions` 确认页面可用。
+
 ## 备份
 
 至少备份配置、数据库和 uploads。先等待进行中的任务结束，暂停应用写入，再执行：

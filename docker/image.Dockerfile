@@ -61,6 +61,7 @@ COPY server/seed/handraw/LICENSE /opt/istudio/licenses/handraw-LICENSE
 COPY server/seed/evolink/README.md /opt/istudio/licenses/evolink-README.md
 COPY server/seed/handraw/README.md /opt/istudio/licenses/handraw-README.md
 COPY docker/Caddyfile.image /etc/caddy/Caddyfile
+COPY docker/admin-routes.caddy /etc/caddy/admin-routes.caddy
 COPY docker/image-entrypoint.mjs docker/image-healthcheck.mjs /opt/istudio/
 COPY compose.yml /opt/istudio/compose.yml
 EXPOSE 8080

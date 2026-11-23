@@ -10,7 +10,7 @@ import { apiBaseUrl } from '@/lib/api'
 import { safeReturnPath } from '@/lib/navigation'
 import { formatCredits } from '@/lib/credits'
 
-export function LoginForm({ admin = false }: { admin?: boolean }) {
+export function LoginForm() {
   const searchParams = useSearchParams()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +21,6 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
   const [signupGift, setSignupGift] = useState(0)
   const [creditName, setCreditName] = useState('积分')
   useEffect(() => {
-    if (admin) return
     fetch(`${apiBaseUrl}/v1/operation-settings`)
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then((data) => {
@@ -31,7 +30,7 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
         setCreditName(data.creditName || '积分')
       })
       .catch(() => setRegistrationEnabled(false))
-  }, [admin])
+  }, [])
   const [register, setRegister] = useState(false)
   const [notice, setNotice] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -44,28 +43,16 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
     setIsSubmitting(true)
     setNotice('')
     try {
-      const response = await fetch(
-        `${apiBaseUrl}/v1/${admin ? 'admin/auth/login' : `auth/${register ? 'register' : 'login'}`}`,
-        {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ username, password, ...(register ? { inviteCode } : {}) }),
-        },
-      )
+      const response = await fetch(`${apiBaseUrl}/v1/auth/${register ? 'register' : 'login'}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username, password, ...(register ? { inviteCode } : {}) }),
+      })
       const data = (await response.json()) as { accessToken?: string; message?: string }
       if (!response.ok || !data.accessToken) throw new Error(data.message ?? '登录失败')
-      window.localStorage.setItem(
-        admin ? 'istudio-admin-token' : 'istudio-access-token',
-        data.accessToken,
-      )
+      window.localStorage.setItem('istudio-access-token', data.accessToken)
       const next = safeReturnPath(searchParams.get('next'))
-      window.location.href = admin
-        ? (next === '/admin' || next.startsWith('/admin/')) && next !== '/admin/login'
-          ? next
-          : '/admin'
-        : next.startsWith('/admin')
-          ? '/'
-          : next
+      window.location.href = next.startsWith('/admin') ? '/' : next
     } catch (error) {
       setNotice(error instanceof Error ? error.message : '请求失败，请稍后重试')
     } finally {
@@ -75,7 +62,7 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
   }
 
   return (
-    <main className={`auth-page${admin ? '' : ' auth-page-public'}`}>
+    <main className="auth-page auth-page-public">
       <ThemeToggle />
       <form className="auth-card" onSubmit={submit} aria-busy={isSubmitting}>
         <Link href="/" className="auth-back">
@@ -85,14 +72,8 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
         <div className="auth-mark">
           <UserRound size={20} aria-hidden="true" />
         </div>
-        <h1>{admin ? '运营后台登录' : register ? '创建账号' : '欢迎回来'}</h1>
-        <p>
-          {admin
-            ? '使用独立管理员账号登录。'
-            : register
-              ? '使用账号密码开始创作。'
-              : '登录后继续你的创作。'}
-        </p>
+        <h1>{register ? '创建账号' : '欢迎回来'}</h1>
+        <p>{register ? '使用账号密码开始创作。' : '登录后继续你的创作。'}</p>
         {register && signupGift > 0 && (
           <p className="auth-gift">
             新账号注册赠送 {formatCredits(signupGift)} {creditName}，成功注册后自动到账。
@@ -103,7 +84,7 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
           <div className="auth-input">
             <UserRound size={17} aria-hidden="true" />
             <input
-              name={admin ? 'admin-username' : 'username'}
+              name="username"
               autoComplete="username"
               spellCheck={false}
               required
@@ -118,38 +99,36 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
           </div>
         </label>
         <div className="auth-password-field">
-          <label htmlFor={admin ? 'admin-password' : 'password'}>密码</label>
+          <label htmlFor="password">密码</label>
           <div className="auth-input">
             <LockKeyhole size={17} aria-hidden="true" />
             <input
-              id={admin ? 'admin-password' : 'password'}
-              name={admin ? 'admin-password' : 'password'}
-              type={!admin && passwordVisible ? 'text' : 'password'}
+              id="password"
+              name="password"
+              type={passwordVisible ? 'text' : 'password'}
               autoComplete={register ? 'new-password' : 'current-password'}
               required
-              minLength={admin ? 6 : 8}
+              minLength={8}
               maxLength={128}
               disabled={isSubmitting}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder={admin ? '6–128 位' : '8–128 位'}
+              placeholder="8–128 位"
             />
-            {!admin && (
-              <button
-                className="auth-password-toggle"
-                type="button"
-                aria-label={passwordVisible ? '隐藏密码' : '显示密码'}
-                aria-pressed={passwordVisible}
-                disabled={isSubmitting}
-                onClick={() => setPasswordVisible((visible) => !visible)}
-              >
-                {passwordVisible ? (
-                  <EyeOff size={17} aria-hidden="true" />
-                ) : (
-                  <Eye size={17} aria-hidden="true" />
-                )}
-              </button>
-            )}
+            <button
+              className="auth-password-toggle"
+              type="button"
+              aria-label={passwordVisible ? '隐藏密码' : '显示密码'}
+              aria-pressed={passwordVisible}
+              disabled={isSubmitting}
+              onClick={() => setPasswordVisible((visible) => !visible)}
+            >
+              {passwordVisible ? (
+                <EyeOff size={17} aria-hidden="true" />
+              ) : (
+                <Eye size={17} aria-hidden="true" />
+              )}
+            </button>
           </div>
         </div>
         {register && inviteRequired && (
@@ -178,23 +157,22 @@ export function LoginForm({ admin = false }: { admin?: boolean }) {
         <button className="auth-submit" type="submit" disabled={isSubmitting}>
           {isSubmitting ? '提交中…' : register ? '创建并登录' : '登录'}
         </button>
-        {!admin &&
-          (registrationEnabled ? (
-            <button
-              className="auth-switch"
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => {
-                setRegister(!register)
-                setPasswordVisible(false)
-                setNotice('')
-              }}
-            >
-              {register ? '已有账号？登录' : '没有账号？创建账号'}
-            </button>
-          ) : (
-            <p className="auth-registration-closed">暂未开放注册</p>
-          ))}
+        {registrationEnabled ? (
+          <button
+            className="auth-switch"
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => {
+              setRegister(!register)
+              setPasswordVisible(false)
+              setNotice('')
+            }}
+          >
+            {register ? '已有账号？登录' : '没有账号？创建账号'}
+          </button>
+        ) : (
+          <p className="auth-registration-closed">暂未开放注册</p>
+        )}
       </form>
     </main>
   )

@@ -3,7 +3,6 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useActionConfirmation } from './use-action-confirmation'
-import { Dialog, DialogContent, DialogTitle } from './admin/ui/dialog'
 let root: Root, host: HTMLDivElement
 const action = vi.fn()
 let session = 'admin-one'
@@ -83,29 +82,5 @@ it('does not execute a pending operation after its account changes or owner unmo
   expect(action).not.toHaveBeenCalled()
   await click('开始操作')
   await act(async () => root.render(<div />))
-  expect(action).not.toHaveBeenCalled()
-})
-
-it('closes only the nested confirmation and restores focus inside the editor', async () => {
-  await act(async () =>
-    root.render(
-      <Dialog open>
-        <DialogContent aria-describedby={undefined}>
-          <DialogTitle>编辑模型</DialogTitle>
-          <Fixture />
-        </DialogContent>
-      </Dialog>,
-    ),
-  )
-  await click('开始操作')
-  expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(2)
-  await act(async () =>
-    document.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-    ),
-  )
-  await act(async () => new Promise((resolve) => window.setTimeout(resolve, 0)))
-  expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
-  expect(document.activeElement?.textContent).toBe('开始操作')
   expect(action).not.toHaveBeenCalled()
 })

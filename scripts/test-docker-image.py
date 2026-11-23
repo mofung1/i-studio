@@ -11,6 +11,7 @@ import secrets
 import subprocess
 import tempfile
 import time
+import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,14 +65,21 @@ def main():
                 with urllib.request.urlopen(req, timeout=20) as response:
                     return response.status, response.headers, response.read()
 
-            pages = ['/', '/studio', '/inspiration', '/admin/login', '/admin/operations',
-                     '/robots.txt', '/sitemap.xml']
+            pages = ['/', '/studio', '/inspiration', '/robots.txt', '/sitemap.xml']
             for path in pages:
                 assert request(path)[0] == 200, path
             _, admin_headers, admin_html = request('/admin/login')
             assert b'id="root"' in admin_html, 'Standalone admin was not served'
             assert admin_headers.get('Cache-Control') == 'no-cache'
-            assert request('/admin/operations')[2] == admin_html, 'Admin deep links must use the SPA'
+            for path in ['/admin', '/admin/', '/admin/operations', '/admin/models?page=2',
+                         '/admin/inspiration/categories', '/admin/submissions?id=example']:
+                assert request(path)[2] == admin_html, f'{path} must load the same admin application'
+            try:
+                request('/admin/assets/missing-entry.js')
+            except urllib.error.HTTPError as error:
+                assert error.code == 404, error.code
+            else:
+                raise AssertionError('A missing admin bundle must return 404')
             admin_assets = re.findall(rb'(?:src|href)="(/admin/assets/[^"]+)"', admin_html)
             assert any(asset.endswith(b'.js') for asset in admin_assets)
             assert any(asset.endswith(b'.css') for asset in admin_assets)
