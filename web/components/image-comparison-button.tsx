@@ -13,10 +13,12 @@ export function ImageComparisonButton({
   candidates,
   initialLeft,
   initialRight,
+  disabled = false,
 }: {
   candidates: ComparisonImage[]
   initialLeft?: string
   initialRight?: string
+  disabled?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const items = comparisonCandidates(candidates)
@@ -28,6 +30,7 @@ export function ImageComparisonButton({
         className="studio-secondary result-compare-trigger"
         aria-label="对比生成图片"
         title="对比图片"
+        disabled={disabled}
         onClick={() => setOpen(true)}
       >
         <Columns2 size={15} />

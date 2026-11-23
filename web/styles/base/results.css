@@ -413,6 +413,10 @@
   cursor: zoom-in;
 }
 
+.result-hero-open:disabled {
+  cursor: default;
+}
+
 .result-hero-image {
   width: auto;
   height: auto;
@@ -421,20 +425,44 @@
   object-fit: contain;
 }
 
+.result-hero-image.is-preloading {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+
 /* 主图就绪前的画框：尺寸与结果图一致，生成完成时不会塌陷或跳动 */
 .result-hero-pending {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
+  color: var(--foreground);
   background: var(--surface-subtle);
+  font-size: 12px;
 }
 
-.result-hero-pending.is-failed {
-  color: var(--muted);
+.result-hero-pending.is-switching {
+  place-items: end center;
+  padding: 10px;
+  background: transparent;
+  pointer-events: none;
 }
 
-.result-hero-pending > button {
+.result-hero-pending > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.result-hero-pending.is-switching > span {
+  padding: 5px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.result-hero-pending button {
   display: grid;
   place-items: center;
   width: 32px;
@@ -450,7 +478,7 @@
     border-color 150ms ease;
 }
 
-.result-hero-pending > button:hover {
+.result-hero-pending button:hover {
   background: var(--primary-soft);
   border-color: var(--line-strong);
 }

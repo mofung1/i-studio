@@ -98,6 +98,17 @@ interface RedoSelection {
   label: string
 }
 
+interface PreviewImage {
+  group: string
+  path: string
+  source: string
+}
+
+interface LoadedPreview extends PreviewImage {
+  width: number
+  height: number
+}
+
 /** 右侧结果工作区：当前任务结果 + 历史记录抽屉 + 图片查看/裁剪。 */
 export function ResultWorkspace({
   mode,
@@ -147,11 +158,8 @@ export function ResultWorkspace({
   const [redoOriginError, setRedoOriginError] = useState('')
   const redoOriginRequest = useRef<AbortController | null>(null)
   const resultHeader = useRef<HTMLElement>(null)
-  const [naturalImage, setNaturalImage] = useState<{
-    path: string
-    width: number
-    height: number
-  } | null>(null)
+  const [loadedPreview, setLoadedPreview] = useState<LoadedPreview | null>(null)
+  const [failedPreview, setFailedPreview] = useState<PreviewImage | null>(null)
 
   const isHistoryView = Boolean(historyTask)
   const displayTask = historyTask ?? (isGenerating ? generationTask : activeResult)
@@ -167,21 +175,40 @@ export function ResultWorkspace({
   const displayInput = displayTask?.input
   const displayRatio = displayInput?.aspectRatio ?? aspectRatio
   const displayResolution = displayInput?.resolution ?? resolution
-  // 主图走缓存：同一组结果内左右切换时保留上一张直到新图就绪，不会闪白；
-  // 换组（新的一次生成 / 另一条历史记录）则重新显示占位，避免显示过期画面。
   const heroGroup = displayTaskId ?? 'current'
   const {
     source: heroSource,
+    resolvedPath,
     state: heroState,
     retry: retryHero,
   } = useProtectedImageUrl(heroImage, heroGroup)
-  const heroReady = heroState === 'loaded' && heroSource !== ''
-  const heroFailed = heroState === 'failed'
-  // 加载占位按当前比例铺开，尺寸与生成后的图片一致
+  const selectedPreview =
+    heroState === 'loaded' && resolvedPath === heroImage && heroSource
+      ? { group: heroGroup, path: heroImage, source: heroSource }
+      : null
+  // 保留已完成浏览器加载的旧图，等新图触发 load 后再把同一个节点切到前台。
+  const visiblePreview =
+    loadedPreview?.group === heroGroup && images.includes(loadedPreview.path) ? loadedPreview : null
+  if (loadedPreview && !visiblePreview) setLoadedPreview(null)
+  const heroFailed =
+    heroState === 'failed' ||
+    (selectedPreview !== null &&
+      failedPreview?.group === heroGroup &&
+      failedPreview.path === selectedPreview.path &&
+      failedPreview.source === selectedPreview.source)
+  const heroReady =
+    !heroFailed &&
+    selectedPreview !== null &&
+    visiblePreview?.path === selectedPreview.path &&
+    visiblePreview.source === selectedPreview.source
+  const previews: PreviewImage[] = visiblePreview ? [visiblePreview] : []
+  if (selectedPreview && !heroReady && !heroFailed) previews.push(selectedPreview)
+  const visibleIndex =
+    visiblePreview && !heroFailed ? images.indexOf(visiblePreview.path) : safeIndex
+
   const [ratioWidth, ratioHeight] = displayRatio.split(':').map(Number)
   const heroRatio = ratioWidth && ratioHeight ? ratioWidth / ratioHeight : 1
-  const currentImageSize = naturalImage?.path === heroImage ? naturalImage : null
-  const imageRatio = currentImageSize ? currentImageSize.width / currentImageSize.height : heroRatio
+  const imageRatio = visiblePreview ? visiblePreview.width / visiblePreview.height : heroRatio
   const generatingImages = Math.min(Math.max(generationTotal, 1), MAX_SKELETONS)
   const failureMessage =
     generationTask && !isGenerating && generationTask.status !== 'succeeded'
@@ -293,7 +320,7 @@ export function ResultWorkspace({
   }, [generationTask?.id, generationTask?.status, isGenerating])
 
   function downloadCurrent() {
-    if (!heroImage) return
+    if (!heroReady) return
     const prefix = displayTaskId?.slice(0, 8)
     downloadImage(heroImage, `istudio-${prefix ?? 'result'}-${safeIndex + 1}.png`)
   }
@@ -565,14 +592,14 @@ export function ResultWorkspace({
               <div className="result-image-toolbar" role="group" aria-label="图片查看操作">
                 <span className="result-image-info" aria-live="polite">
                   <strong>
-                    {safeIndex + 1} / {images.length}
+                    {visibleIndex + 1} / {images.length}
                   </strong>
-                  {heroReady && currentImageSize && (
+                  {heroReady && (
                     <span>
-                      实际 {currentImageSize.width} × {currentImageSize.height} px
+                      实际 {visiblePreview.width} × {visiblePreview.height} px
                     </span>
                   )}
-                  {actualDetail?.elapsedMs != null && (
+                  {heroReady && actualDetail?.elapsedMs != null && (
                     <span>生成耗时 {(actualDetail.elapsedMs / 1000).toFixed(1)} 秒</span>
                   )}
                 </span>
@@ -606,7 +633,7 @@ export function ResultWorkspace({
                     <button
                       type="button"
                       className="studio-secondary"
-                      disabled={isGenerating || isSubmitting}
+                      disabled={!heroReady || isGenerating || isSubmitting}
                       onClick={() => setRedoSelection(redoCandidate)}
                     >
                       <RotateCcw size={15} aria-hidden="true" />
@@ -636,6 +663,7 @@ export function ResultWorkspace({
                     candidates={comparisonImages}
                     initialLeft={productOriginal?.path ?? heroImage}
                     initialRight={productOriginal ? heroImage : undefined}
+                    disabled={!heroReady}
                   />
                 </div>
               </div>
@@ -653,49 +681,72 @@ export function ResultWorkspace({
                   }}
                 >
                   <ImageViewport aspectRatio={imageRatio}>
-                    {heroReady ? (
+                    {previews.length > 0 && (
                       <button
+                        key={heroGroup}
                         type="button"
                         className="result-hero-open"
-                        aria-label={`放大查看第 ${safeIndex + 1} 张`}
-                        title="点击查看大图"
+                        disabled={!heroReady}
+                        aria-label={heroReady ? `放大查看第 ${safeIndex + 1} 张` : undefined}
+                        title={heroReady ? '点击查看大图' : undefined}
                         onClick={() => setLightboxOpen(true)}
                       >
-                        <img
-                          className="result-hero-image"
-                          src={heroSource}
-                          alt={`AI 生成结果 ${safeIndex + 1}`}
-                          onLoad={(event) => {
-                            const image = event.currentTarget
-                            if (image.naturalWidth > 0 && image.naturalHeight > 0)
-                              setNaturalImage({
-                                path: heroImage,
-                                width: image.naturalWidth,
-                                height: image.naturalHeight,
-                              })
-                          }}
-                        />
+                        {previews.map((preview) => {
+                          const show = preview === visiblePreview && !heroFailed
+                          const selected =
+                            preview.path === selectedPreview?.path &&
+                            preview.source === selectedPreview.source
+                          return (
+                            <img
+                              key={JSON.stringify([preview.path, preview.source])}
+                              className={`result-hero-image${show ? '' : ' is-preloading'}`}
+                              src={preview.source}
+                              alt={show ? `AI 生成结果 ${visibleIndex + 1}` : ''}
+                              onLoad={({ currentTarget: image }) => {
+                                if (selected && image.naturalWidth > 0 && image.naturalHeight > 0)
+                                  setLoadedPreview({
+                                    ...preview,
+                                    width: image.naturalWidth,
+                                    height: image.naturalHeight,
+                                  })
+                              }}
+                              onError={() => {
+                                if (selected) setFailedPreview(preview)
+                              }}
+                            />
+                          )
+                        })}
                       </button>
-                    ) : (
+                    )}
+                    {!heroReady && (
                       <div
-                        className={`result-hero-pending${heroFailed ? ' is-failed' : ''}`}
+                        className={`result-hero-pending${visiblePreview && !heroFailed ? ' is-switching' : ''}`}
                         role={heroFailed ? 'alert' : 'status'}
-                        aria-label={heroFailed ? '结果图加载失败' : '结果图加载中'}
                       >
-                        {heroFailed && (
-                          <button
-                            type="button"
-                            onClick={retryHero}
-                            title="重新加载"
-                            aria-label="重新加载结果图"
-                          >
-                            <RefreshCw size={16} />
-                          </button>
-                        )}
+                        <span>
+                          {heroFailed
+                            ? '图片加载失败'
+                            : visiblePreview
+                              ? '正在切换图片…'
+                              : '正在加载图片…'}
+                          {heroFailed && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFailedPreview(null)
+                                retryHero()
+                              }}
+                              title="重新加载"
+                              aria-label="重新加载结果图"
+                            >
+                              <RefreshCw size={16} aria-hidden="true" />
+                            </button>
+                          )}
+                        </span>
                       </div>
                     )}
 
-                    {imageLabel && <span className="module-badge">{imageLabel}</span>}
+                    {heroReady && imageLabel && <span className="module-badge">{imageLabel}</span>}
                   </ImageViewport>
                   {images.length > 1 && (
                     <>

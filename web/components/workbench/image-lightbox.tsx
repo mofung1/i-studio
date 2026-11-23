@@ -35,6 +35,7 @@ interface ImageLightboxProps {
 
 type CropBox = { x: number; y: number; w: number; h: number }
 type DragMode = 'move' | 'nw' | 'ne' | 'sw' | 'se'
+type ImageLoadState = 'loading' | 'loaded' | 'failed'
 
 const MIN_CROP = 0.05
 const ZOOM_STEPS = [1, 1.5, 2, 3, 4, 6]
@@ -75,7 +76,20 @@ export function ImageLightbox({
   onClose,
   fullscreen = false,
 }: ImageLightboxProps) {
-  const { source, state, retry } = useProtectedImageUrl(path, path)
+  const { source, resolvedPath, state, retry } = useProtectedImageUrl(path, path)
+  const imageSource = state === 'loaded' && resolvedPath === path ? source : ''
+  const [imageLoad, setImageLoad] = useState({
+    path,
+    source: imageSource,
+    revision: 0,
+    state: 'loading' as ImageLoadState,
+  })
+  // A new keyed element can't keep showing the previous image while it decodes.
+  if (imageLoad.path !== path || imageLoad.source !== imageSource) {
+    setImageLoad({ path, source: imageSource, revision: imageLoad.revision + 1, state: 'loading' })
+  }
+  const imageReady = imageLoad.state === 'loaded'
+  const imageFailed = state === 'failed' || imageLoad.state === 'failed'
   const [mode, setMode] = useState<'view' | 'crop'>('view')
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -182,7 +196,13 @@ export function ImageLightbox({
   }, [])
 
   function startPan(event: React.PointerEvent<HTMLDivElement>) {
-    if (mode !== 'view' || zoom <= 1 || (event.target as HTMLElement).closest('button')) return
+    if (
+      !imageReady ||
+      mode !== 'view' ||
+      zoom <= 1 ||
+      (event.target as HTMLElement).closest('button')
+    )
+      return
     panRef.current = { x: event.clientX, y: event.clientY, offsetX: offset.x, offsetY: offset.y }
   }
 
@@ -271,7 +291,7 @@ export function ImageLightbox({
 
   async function cropAndDownload() {
     const image = imageRef.current
-    if (!image || state !== 'loaded') return
+    if (!image || !imageReady) return
     const naturalWidth = image.naturalWidth
     const naturalHeight = image.naturalHeight
     if (!naturalWidth || !naturalHeight) return
@@ -323,7 +343,7 @@ export function ImageLightbox({
                   type="button"
                   aria-label="下载原图"
                   title="下载原图"
-                  disabled={state !== 'loaded' || isSaving}
+                  disabled={!imageReady || isSaving}
                   onClick={async () => {
                     setIsSaving(true)
                     setStatus('')
@@ -345,7 +365,7 @@ export function ImageLightbox({
                   type="button"
                   aria-label="缩小"
                   title="缩小"
-                  disabled={zoom <= 1}
+                  disabled={!imageReady || zoom <= 1}
                   onClick={() => stepZoom(-1)}
                 >
                   <ZoomOut size={16} />
@@ -355,12 +375,18 @@ export function ImageLightbox({
                   type="button"
                   aria-label="放大"
                   title="放大"
-                  disabled={zoom >= 6}
+                  disabled={!imageReady || zoom >= 6}
                   onClick={() => stepZoom(1)}
                 >
                   <ZoomIn size={16} />
                 </button>
-                <button type="button" aria-label="适应窗口" title="适应窗口" onClick={resetView}>
+                <button
+                  type="button"
+                  aria-label="适应窗口"
+                  title="适应窗口"
+                  disabled={!imageReady}
+                  onClick={resetView}
+                >
                   <Maximize size={16} />
                 </button>
                 <button
@@ -368,6 +394,7 @@ export function ImageLightbox({
                   className="lightbox-primary"
                   aria-label="裁剪"
                   title="裁剪后下载到本地"
+                  disabled={!imageReady}
                   onClick={() => {
                     setMode('crop')
                     setCrop({ x: 0, y: 0, w: 1, h: 1 })
@@ -397,7 +424,7 @@ export function ImageLightbox({
                   type="button"
                   className="lightbox-primary"
                   aria-label="裁剪并下载"
-                  disabled={isSaving}
+                  disabled={!imageReady || isSaving}
                   onClick={() => void cropAndDownload()}
                 >
                   {isSaving ? (
@@ -423,12 +450,12 @@ export function ImageLightbox({
           ref={stageRef}
           onPointerDown={startPan}
           onWheel={(event) => {
-            if (mode !== 'view') return
+            if (!imageReady || mode !== 'view') return
             event.preventDefault()
             stepZoom(event.deltaY < 0 ? 1 : -1)
           }}
           onDoubleClick={(event) => {
-            if ((event.target as HTMLElement).closest('button')) return
+            if (!imageReady || (event.target as HTMLElement).closest('button')) return
             if (mode === 'view') zoom > 1 ? resetView() : setZoom(2)
           }}
         >
@@ -461,35 +488,44 @@ export function ImageLightbox({
               )}
             </>
           )}
-          {state === 'failed' && (
-            <div className="lightbox-fallback">
+          {imageFailed && (
+            <div className="lightbox-fallback" role="alert">
               <span>图片加载失败</span>
               <button type="button" onClick={retry}>
                 重新加载
               </button>
             </div>
           )}
-          {state !== 'failed' && !source && (
-            <div className="lightbox-fallback">
+          {!imageFailed && !imageReady && (
+            <div className="lightbox-fallback" role="status">
               <Loader2 size={18} className="animate-spin" />
               <span>图片加载中…</span>
             </div>
           )}
-          {source && state !== 'failed' && (
+          {imageSource && !imageFailed && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
+                key={imageLoad.revision}
                 ref={imageRef}
                 className="lightbox-image"
-                src={source}
+                src={imageSource}
                 alt={alt}
                 draggable={false}
+                hidden={!imageReady}
                 style={
                   mode === 'view'
                     ? { transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }
                     : undefined
                 }
-                onLoad={() => window.requestAnimationFrame(measureImage)}
+                onLoad={(event) => {
+                  const image = event.currentTarget
+                  if (image.naturalWidth && image.naturalHeight) {
+                    setImageLoad({ ...imageLoad, state: 'loaded' })
+                    window.requestAnimationFrame(measureImage)
+                  }
+                }}
+                onError={() => setImageLoad({ ...imageLoad, state: 'failed' })}
               />
               {mode === 'crop' && imageRect && (
                 <div

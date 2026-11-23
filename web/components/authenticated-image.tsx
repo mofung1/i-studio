@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 
 import { apiBaseUrl, getAccessToken } from '@/lib/api'
@@ -12,6 +12,18 @@ interface AuthenticatedImageProps {
 }
 
 type LoadState = 'loading' | 'loaded' | 'failed'
+
+interface ImageRequest {
+  path: string
+  resetKey?: string
+  retryToken: number
+}
+
+interface ImageLoad {
+  request: ImageRequest
+  state: LoadState
+  image: { path: string; source: string } | null
+}
 
 interface CacheEntry {
   url: string
@@ -109,51 +121,39 @@ export async function loadProtectedImage(path: string): Promise<CacheEntry> {
  */
 export function useProtectedImageUrl(path: string, resetKey?: string) {
   ensureImageCacheSession()
-  const cached = path.startsWith('/') ? imageCache.get(path) : { url: path, blob: new Blob() }
-  const [source, setSource] = useState(cached?.url ?? '')
-  const [state, setState] = useState<LoadState>(
-    cached ? 'loaded' : path.startsWith('/') ? 'loading' : 'loaded',
-  )
   const [retryToken, setRetryToken] = useState(0)
-  const hasSource = useRef(Boolean(cached?.url || !path.startsWith('/')))
-  const activeGroup = useRef(resetKey)
+  const [load, setLoad] = useState<ImageLoad>(() => {
+    const source = path.startsWith('/') ? imageCache.get(path)?.url : path
+    return {
+      request: { path, resetKey, retryToken },
+      state: source === undefined ? 'loading' : 'loaded',
+      image: source ? { path, source } : null,
+    }
+  })
 
   useEffect(() => {
     let active = true
+    const request = { path, resetKey, retryToken }
+    const loaded = (source: string) =>
+      setLoad({ request, state: 'loaded', image: source ? { path, source } : null })
 
-    if (resetKey !== undefined && activeGroup.current !== resetKey) {
-      activeGroup.current = resetKey
-      hasSource.current = false
-      setSource('')
-      setState('loading')
-    }
-
-    if (!path.startsWith('/')) {
-      hasSource.current = true
-      setSource(path)
-      setState('loaded')
+    const source = path.startsWith('/') ? imageCache.get(path)?.url : path
+    if (source !== undefined) {
+      loaded(source)
       return
     }
-
-    const hit = retryToken === 0 ? imageCache.get(path) : undefined
-    if (hit) {
-      hasSource.current = true
-      setSource(hit.url)
-      setState('loaded')
-      return
-    }
-    // 关键：不清空 source，让上一张图继续显示，避免中间出现空白帧
-    if (!hasSource.current) setState('loading')
 
     loadProtectedImage(path)
       .then((entry) => {
-        if (!active) return
-        hasSource.current = true
-        setSource(entry.url)
-        setState('loaded')
+        if (active) loaded(entry.url)
       })
       .catch(() => {
-        if (active) setState('failed')
+        if (active)
+          setLoad((previous) => ({
+            request,
+            state: 'failed',
+            image: previous.request.resetKey === resetKey ? previous.image : null,
+          }))
       })
 
     return () => {
@@ -162,11 +162,20 @@ export function useProtectedImageUrl(path: string, resetKey?: string) {
   }, [path, resetKey, retryToken])
 
   const retry = () => {
-    if (path.startsWith('/')) imageCache.delete(path)
+    if (path.startsWith('/')) forgetProtectedImage(path)
     setRetryToken((token) => token + 1)
   }
 
-  return { source, state, retry }
+  const sameGroup = load.request.resetKey === resetKey
+  const matchingRequest =
+    sameGroup && load.request.path === path && load.request.retryToken === retryToken
+  const image = sameGroup ? load.image : null
+  return {
+    source: image?.source ?? '',
+    resolvedPath: image?.path ?? null,
+    state: matchingRequest ? load.state : ('loading' as const),
+    retry,
+  }
 }
 
 export function AuthenticatedImage({ path, alt, className }: AuthenticatedImageProps) {
