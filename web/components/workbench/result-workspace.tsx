@@ -22,7 +22,7 @@ import {
 import { ImageComparisonButton } from '@/components/image-comparison-button'
 import { apiBaseUrl, getAccessToken, readApiError } from '@/lib/api'
 import { clothingModelRecipe, detailPageRecipe, productMainRecipe } from '@/lib/commerce-recipe'
-import { frontendRequest } from '@/lib/frontend-request'
+import { FrontendRequestError, frontendRequest } from '@/lib/frontend-request'
 import { comparisonCandidates, comparisonReferences } from '@/lib/image-comparison'
 
 import type { CommerceTaskType } from '@/lib/contracts'
@@ -151,7 +151,7 @@ export function ResultWorkspace({
 
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   // 从「最近生成」里指定了具体某张图时，切版本后要落在这张图上而不是第一张
-  const pendingImageRef = useRef<number | null>(null)
+  const pendingImageRef = useRef<{ taskId: string; index: number } | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [downloadError, setDownloadError] = useState<{ taskId?: string; message: string } | null>(
@@ -160,6 +160,7 @@ export function ResultWorkspace({
   const [downloadGroupBusy, setDownloadGroupBusy] = useState(false)
   const [archiveDownload, setArchiveDownload] = useState<ArchiveDownload | null>(null)
   const [redoSelection, setRedoSelection] = useState<RedoSelection | null>(null)
+  const [dismissedFailedRedoId, setDismissedFailedRedoId] = useState<string | null>(null)
   const [redoOriginBusy, setRedoOriginBusy] = useState(false)
   const [redoOriginError, setRedoOriginError] = useState('')
   const redoOriginRequest = useRef<AbortController | null>(null)
@@ -168,7 +169,16 @@ export function ResultWorkspace({
   const [failedPreview, setFailedPreview] = useState<PreviewImage | null>(null)
 
   const isHistoryView = Boolean(historyTask)
-  const displayTask = historyTask ?? (isGenerating ? generationTask : activeResult)
+  const failedGeneration =
+    !isGenerating && generationTask?.status !== 'succeeded' ? generationTask : null
+  // 无成片的重做有自己的失败界面。主动选中旧成片时才离开这次重做。
+  const failedRedo =
+    failedGeneration?.input?.redoSourceTaskId &&
+    !failedGeneration.resultImages?.length &&
+    failedGeneration.id !== dismissedFailedRedoId
+      ? failedGeneration
+      : null
+  const displayTask = historyTask ?? (isGenerating ? generationTask : (failedRedo ?? activeResult))
   const displayTaskId = displayTask?.id
   const images = displayTask?.resultImages ?? []
   const displayModules = displayTask?.resultModules
@@ -216,10 +226,17 @@ export function ResultWorkspace({
   const heroRatio = ratioWidth && ratioHeight ? ratioWidth / ratioHeight : 1
   const imageRatio = visiblePreview ? visiblePreview.width / visiblePreview.height : heroRatio
   const generatingImages = Math.min(Math.max(generationTotal, 1), MAX_SKELETONS)
-  const failureMessage =
-    generationTask && !isGenerating && generationTask.status !== 'succeeded'
-      ? generationTask.errorMessage || '供应商未返回错误详情，请重试。'
-      : ''
+  const displayedFailure =
+    displayTask && displayTask.status !== 'succeeded' && !activeTaskStatuses.has(displayTask.status)
+      ? displayTask
+      : null
+  const failureTask =
+    displayedFailure ??
+    (!isHistoryView && !failedGeneration?.input?.redoSourceTaskId ? failedGeneration : null)
+  const failureMessage = failureTask
+    ? failureTask.errorMessage || '供应商未返回错误详情，请重试。'
+    : ''
+  const redoInput = displayInput?.redoSourceTaskId ? displayInput : undefined
 
   // 跨工具历史重做生成的任务仍归属于原电商工具。
   const imageSource: ImageSource =
@@ -318,14 +335,9 @@ export function ResultWorkspace({
       isGeneratedClothing)
       ? { taskId: displayTaskId, assetId: redoAssetId, modelId: redoModelId, label: imageLabel }
       : null
-  const failedRedoInput =
-    !isHistoryView && failureMessage && !generationTask?.resultImages?.length
-      ? generationTask?.input
-      : undefined
-  const redoInput = failedRedoInput?.redoSourceTaskId ? failedRedoInput : displayInput
-
   useEffect(() => {
-    setActiveImageIndex(pendingImageRef.current ?? 0)
+    const pending = pendingImageRef.current
+    setActiveImageIndex(pending && pending.taskId === displayTaskId ? pending.index : 0)
     pendingImageRef.current = null
     setLightboxOpen(false)
   }, [displayTaskId])
@@ -334,7 +346,7 @@ export function ResultWorkspace({
     setRedoOriginBusy(false)
     setRedoOriginError('')
     return () => redoOriginRequest.current?.abort()
-  }, [displayTaskId])
+  }, [displayTaskId, isHistoryView])
 
   // 生成完成后刷新历史抽屉，新结果会立刻出现在记录里
   useEffect(() => {
@@ -399,6 +411,8 @@ export function ResultWorkspace({
   async function openRedoOrigin() {
     const id = redoInput?.redoSourceTaskId
     if (!id || redoOriginBusy) return
+    const originalAssetId = redoInput.redoSourceAssetId
+    const unavailableMessage = '原版图片已删除或不可用'
     redoOriginRequest.current?.abort()
     const controller = new AbortController()
     redoOriginRequest.current = controller
@@ -411,21 +425,39 @@ export function ResultWorkspace({
         '原版读取失败，请重试',
       )
       if (controller.signal.aborted) return
-      const originalIndex = Math.max(
-        0,
-        origin.resultImages?.findIndex(
-          (path) => path === `/v1/assets/${redoInput.redoSourceAssetId}/content`,
-        ) ?? 0,
-      )
+      const originalImages = origin.resultImages ?? []
+      const originalIndex = originalAssetId
+        ? originalImages.indexOf(`/v1/assets/${originalAssetId}/content`)
+        : originalImages.length === 1 && (origin.input?.count ?? 1) === 1
+          ? 0
+          : -1
+      if (originalIndex < 0) {
+        setRedoOriginError(unavailableMessage)
+        return
+      }
       if (origin.id === displayTaskId) setActiveImageIndex(originalIndex)
-      else pendingImageRef.current = originalIndex
+      else pendingImageRef.current = { taskId: origin.id, index: originalIndex }
       onSelectHistory(origin)
     } catch (reason) {
-      if (!controller.signal.aborted)
+      if (controller.signal.aborted) return
+      if (reason instanceof FrontendRequestError && reason.status === 404) {
+        setRedoOriginError(unavailableMessage)
+      } else {
         setRedoOriginError(reason instanceof Error ? reason.message : '原版读取失败，请重试')
+      }
     } finally {
-      if (!controller.signal.aborted) setRedoOriginBusy(false)
+      if (!controller.signal.aborted) {
+        redoOriginRequest.current = null
+        setRedoOriginBusy(false)
+      }
     }
+  }
+
+  function cancelRedoOrigin() {
+    redoOriginRequest.current?.abort()
+    redoOriginRequest.current = null
+    setRedoOriginBusy(false)
+    setRedoOriginError('')
   }
 
   function step(direction: -1 | 1) {
@@ -440,20 +472,20 @@ export function ResultWorkspace({
         placement="filmstrip"
         onViewAll={onToggleHistory}
         items={resultHistory}
-        activeIndex={isHistoryView ? -1 : activeResultIndex}
+        activeIndex={isHistoryView || failedRedo ? -1 : activeResultIndex}
         activeImageIndex={safeIndex}
         onSelect={(resultIndex, imageIndex) => {
-          pendingImageRef.current = imageIndex
-          if (isHistoryView) {
-            onExitHistoryView()
-            onSetActiveResultIndex(() => resultIndex)
-            return
-          }
-          if (resultIndex === activeResultIndex) {
+          const result = resultHistory[resultIndex]
+          if (!result) return
+          cancelRedoOrigin()
+          if (failedRedo) setDismissedFailedRedoId(failedRedo.id)
+          if (result.id === displayTaskId) {
             setActiveImageIndex(imageIndex)
             pendingImageRef.current = null
-            return
+          } else {
+            pendingImageRef.current = { taskId: result.id, index: imageIndex }
           }
+          if (isHistoryView) onExitHistoryView()
           onSetActiveResultIndex(() => resultIndex)
         }}
         onDownload={downloadImage}
@@ -484,7 +516,14 @@ export function ResultWorkspace({
                 )}
                 重新生成
               </button>
-              <button type="button" className="meta-action" onClick={onExitHistoryView}>
+              <button
+                type="button"
+                className="meta-action"
+                onClick={() => {
+                  cancelRedoOrigin()
+                  onExitHistoryView()
+                }}
+              >
                 回到当前任务
               </button>
             </>
@@ -493,7 +532,7 @@ export function ResultWorkspace({
               {hasResults && !isGenerating && (
                 <span className="meta-chip is-status">
                   <Check size={12} aria-hidden="true" />
-                  {activeResult?.status === 'succeeded' ? '生成完成' : '部分完成'}
+                  {displayTask?.status === 'succeeded' ? '生成完成' : '部分完成'}
                 </span>
               )}
               {isGenerating && (
@@ -580,7 +619,16 @@ export function ResultWorkspace({
           {!isGenerating && !hasResults && !isHistoryView && (
             <div className="result-empty">
               {failureMessage ? (
-                <FailureNotice message={failureMessage} />
+                <FailureNotice
+                  message={failureMessage}
+                  title={
+                    failedRedo
+                      ? failedRedo.status === 'failed'
+                        ? '单张重做失败'
+                        : '单张重做未完成'
+                      : undefined
+                  }
+                />
               ) : starter ? (
                 starter
               ) : (
@@ -593,7 +641,7 @@ export function ResultWorkspace({
                   draggable={false}
                 />
               )}
-              {onConfigure && (
+              {onConfigure && !failedRedo && (
                 <button type="button" className="studio-secondary" onClick={onConfigure}>
                   上传服装，开始规划
                 </button>
@@ -602,20 +650,26 @@ export function ResultWorkspace({
           )}
 
           {/* 历史查看态但这条记录没有产出图片（例如生成失败）：给出原因，而不是留白 */}
-          {isHistoryView && !hasResults && !isGenerating && (
+          {isHistoryView && !hasResults && (
             <div className="result-empty">
               <span className="result-empty-icon">
                 <AlertTriangle size={22} aria-hidden="true" />
               </span>
               <h2>
-                {historyTask?.status === 'failed' ? '这条记录生成失败' : '这条记录还没有生成结果'}
+                {historyTask?.status === 'failed'
+                  ? redoInput
+                    ? '单张重做失败'
+                    : '这条记录生成失败'
+                  : '这条记录还没有生成结果'}
               </h2>
               <p>
                 {historyTask?.status === 'failed'
                   ? '失败原因如下，可以回到当前任务调整后重新生成。'
                   : '任务可能还在进行中，稍后刷新历史记录再看。'}
               </p>
-              {historyTask?.errorMessage && <FailureNotice message={historyTask.errorMessage} />}
+              {historyTask?.errorMessage && (
+                <FailureNotice message={historyTask.errorMessage} compact={Boolean(redoInput)} />
+              )}
             </div>
           )}
 
@@ -854,7 +908,10 @@ export function ResultWorkspace({
         loadingConfigId={loadingHistoryConfigId}
         refreshKey={refreshKey}
         onClose={onToggleHistory}
-        onSelect={onSelectHistory}
+        onSelect={(record) => {
+          cancelRedoOrigin()
+          onSelectHistory(record)
+        }}
         onDownload={downloadImage}
         onUseAsReference={onUseImageAsReference}
         onLoadConfig={onLoadHistoryConfig}

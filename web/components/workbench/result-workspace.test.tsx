@@ -28,7 +28,6 @@ vi.mock('@/components/image-comparison-button', () => ({
   },
 }))
 vi.mock('./history-drawer', () => ({ HistoryDrawer: () => null }))
-vi.mock('./generation-history', () => ({ GenerationHistory: () => <div aria-label="最近生成" /> }))
 let root: Root
 let container: HTMLDivElement
 const noop = () => {}
@@ -367,6 +366,153 @@ it('shows only saved images from the running task and keeps them downloadable be
   )
   expect(container.querySelector('.result-hero-image')).toBeNull()
   expect(container.querySelector('.result-generating')).not.toBeNull()
+})
+
+it('separates a failed single-image redo from the previous successful suite', async () => {
+  const source = {
+    ...result,
+    input: generationInputSchema.parse({
+      mode: 'commerce',
+      taskType: 'product-main',
+      count: 3,
+      productAssetIds: ['original-product'],
+    }),
+  }
+  const failedRedo = {
+    id: 'failed-redo',
+    status: 'failed',
+    input: {
+      ...source.input,
+      count: 1,
+      redoSourceTaskId: source.id,
+      redoSourceAssetId: 'source-image',
+    },
+    resultImages: [],
+    errorMessage: 'AI 服务暂时无法重做这张图',
+  }
+  await act(async () =>
+    root.render(
+      <ResultWorkspace
+        {...props}
+        mode="commerce"
+        resultHistory={[source]}
+        activeResult={source}
+        generationTask={failedRedo}
+      />,
+    ),
+  )
+  expect(container.textContent).toContain('单张重做失败')
+  expect(container.textContent).toContain(failedRedo.errorMessage)
+  expect(container.textContent).toContain('查看原版')
+  expect(container.textContent).not.toContain('生成完成')
+  expect(container.querySelector('.result-hero-image')).toBeNull()
+
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('button[aria-label="展开最近生成"]')!.click(),
+  )
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('button[aria-label="查看第 1 个版本的第 2 张"]')!
+      .click(),
+  )
+  await loadResultImage()
+  expect(container.textContent).toContain('生成完成')
+  expect(container.textContent).not.toContain(failedRedo.errorMessage)
+  expect(container.textContent).not.toContain('查看原版')
+  expect(container.querySelector('.result-hero-image')?.getAttribute('src')).toBe(
+    source.resultImages[1],
+  )
+})
+
+it('shows the selected failed redo history even while a different task is generating', async () => {
+  const redoHistory = {
+    ...history,
+    status: 'failed',
+    resultImages: [],
+    input: {
+      ...history.input,
+      redoSourceTaskId: 'source-task',
+      redoSourceAssetId: 'source-image',
+    },
+    errorMessage: '历史重做任务的失败原因',
+  }
+  await act(async () =>
+    root.render(
+      <ResultWorkspace
+        {...props}
+        isGenerating
+        generationTask={{ id: 'unrelated-running-task', status: 'processing' }}
+        historyTask={redoHistory}
+      />,
+    ),
+  )
+  expect(container.textContent).toContain('单张重做失败')
+  expect(container.textContent).toContain(redoHistory.errorMessage)
+  expect(container.textContent).toContain('查看原版')
+  expect(container.querySelector('.result-generating')).toBeNull()
+})
+
+it('keeps the redo selected when the original is unavailable and opens the exact image when found', async () => {
+  const sourcePath = '/v1/assets/source-image/content'
+  const redoImagePath = '/v1/assets/redo-image/content'
+  const origin = {
+    ...history,
+    id: 'source-task',
+    resultImages: [history.resultImages[0], sourcePath],
+  }
+  const redo = {
+    ...history,
+    id: 'redo-task',
+    input: { ...history.input, redoSourceTaskId: origin.id, redoSourceAssetId: 'source-image' },
+    resultImages: [redoImagePath],
+  }
+  const selectHistory = vi.fn()
+  const fetchOrigin = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(
+      Response.json({ task: { ...origin, resultImages: [history.resultImages[0]] } }),
+    )
+    .mockResolvedValueOnce(Response.json({ message: '生成任务不存在' }, { status: 404 }))
+    .mockResolvedValueOnce(Response.json({ task: origin }))
+  vi.stubGlobal('fetch', fetchOrigin)
+  const tokenKey = 'istudio-access-token'
+  const previousToken = localStorage.getItem(tokenKey)
+  localStorage.setItem(tokenKey, 'original-lookup-token')
+
+  try {
+    const render = (historyTask: typeof history) =>
+      act(async () =>
+        root.render(
+          <ResultWorkspace {...props} historyTask={historyTask} onSelectHistory={selectHistory} />,
+        ),
+      )
+    await render(redo)
+    await loadResultImage()
+    const originalButton = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent === '查看原版',
+    )!
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await act(async () => originalButton.click())
+      expect(container.querySelector('[role="alert"]')?.textContent).toBe('原版图片已删除或不可用')
+      expect(container.querySelector('.result-hero-image')?.getAttribute('src')).toBe(redoImagePath)
+      expect(selectHistory).not.toHaveBeenCalled()
+    }
+    await act(async () => originalButton.click())
+    expect(selectHistory).toHaveBeenCalledExactlyOnceWith(origin)
+    expect(fetchOrigin.mock.calls.map(([url]) => new URL(String(url)).pathname)).toEqual(
+      Array(3).fill('/v1/generation/tasks/source-task'),
+    )
+
+    await render(origin)
+    await loadResultImage()
+    expect(container.querySelector('[role="alert"]')).toBeNull()
+    expect(container.querySelector('.result-hero-image')?.getAttribute('src')).toBe(sourcePath)
+    expect(container.querySelector('.result-image-info')?.textContent).toContain('2 / 2')
+  } finally {
+    if (previousToken === null) localStorage.removeItem(tokenKey)
+    else localStorage.setItem(tokenKey, previousToken)
+  }
 })
 
 it('downloads the displayed task group from the workbench and distinguishes partial archives', async () => {

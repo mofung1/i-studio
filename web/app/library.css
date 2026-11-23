@@ -1625,6 +1625,7 @@
 .comparison-overlay-front {
   position: absolute;
   inset: 0;
+  background-color: inherit;
   pointer-events: none;
 }
 .comparison-divider {
@@ -1780,6 +1781,36 @@
   }
   .comparison-footer span:last-child {
     display: none;
+  }
+}
+
+@media (max-height: 480px) {
+  .comparison-dialog:has(.comparison-workspace) {
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+  .comparison-dialog:has(.comparison-workspace) .comparison-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding-block: 8px;
+    background: var(--surface);
+  }
+  .comparison-header p,
+  .comparison-sync {
+    display: none;
+  }
+  .comparison-toolbar {
+    padding-block: 6px;
+  }
+  .comparison-workspace {
+    flex: 1 0 auto;
+  }
+  .comparison-stages {
+    min-height: 200px;
+  }
+  .comparison-stages:not(.is-zoomed) .comparison-stage {
+    touch-action: pan-y;
   }
 }
 
