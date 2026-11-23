@@ -264,7 +264,7 @@ function ProductWorkspaceContent({
               defaultProjectId={initialProjectId}
               product={selected ?? undefined}
               visionEnabled={visionEnabled}
-              workflowHeader={<ProductWorkflowHeader saved={Boolean(selected)} />}
+              workflowHeader={selected ? undefined : <NewProductWorkflow />}
               onSaved={saved}
               onDirty={setDirty}
               onBusy={setEditorBusy}
@@ -286,28 +286,20 @@ function ProductWorkspaceContent({
   )
 }
 
-function ProductWorkflowHeader({ saved }: { saved: boolean }) {
+function NewProductWorkflow() {
   return (
     <header className={styles.workflowHeader}>
-      <ol className={styles.steps} aria-label="商品创作流程">
-        <li aria-current={saved ? undefined : 'step'}>
-          <span>商品档案</span>
+      <ol className={styles.steps} role="list" aria-label="商品创作流程">
+        <li aria-current="step">
+          <span>建立档案</span>
         </li>
-        <li aria-current={saved ? 'step' : undefined}>
-          <span>选择用途与生成</span>
+        <li>
+          <span>选择用途并生成</span>
         </li>
         <li>
           <span>修改与采用</span>
         </li>
       </ol>
-      <div className={styles.workflowHint}>
-        <strong>{saved ? '选择图片用途，开始生成' : '保存档案后，开始制作商品图片'}</strong>
-        <p>
-          {saved
-            ? '生成后可局部修改，再选一张作为该用途的采用版本。'
-            : '选择主图、场景、细节或卖点配图，再从生成结果中选出采用版本。'}
-        </p>
-      </div>
     </header>
   )
 }

@@ -57,6 +57,7 @@ import {
   type LibraryAsset,
   type LibraryProject,
 } from '@/lib/library'
+import { studioToolUrl } from '@/lib/studio-navigation'
 
 const toolOptions: Array<[string, string]> = [
   ['all', '全部工具'],
@@ -557,13 +558,21 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       title="我的资产"
       backToTop="asset-records"
       actions={
-        <Link
-          className="studio-secondary"
-          href={`/studio?mode=general${currentProject && !currentProject.archived ? `&projectId=${encodeURIComponent(currentProject.id)}` : ''}`}
-        >
-          <Plus size={16} />
-          {currentProject && !currentProject.archived ? '在项目中创作' : '开始创作'}
-        </Link>
+        currentProject && !currentProject.archived ? (
+          <Link
+            className="studio-secondary"
+            href={studioToolUrl(
+              'general',
+              undefined,
+              new URLSearchParams({ projectId: currentProject.id }),
+            )}
+          >
+            <Plus size={16} aria-hidden="true" />
+            在项目中创作
+          </Link>
+        ) : (
+          false
+        )
       }
     >
       <main className="asset-manager">
@@ -919,7 +928,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                       清除筛选
                     </button>
                   ) : (
-                    <Link className="studio-primary" href="/studio?mode=general">
+                    <Link className="studio-primary" href={studioToolUrl('general')}>
                       开始创作
                     </Link>
                   )}

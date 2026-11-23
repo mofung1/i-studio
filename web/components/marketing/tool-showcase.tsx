@@ -6,10 +6,8 @@ import { productComparison } from '@/lib/marketing-assets'
 import { ProductComparison } from './product-comparison'
 import {
   ToolShowcaseAnchors,
-  ToolShowcaseChoice,
+  ToolShowcaseCard,
   ToolShowcaseInteraction,
-  ToolShowcasePanel,
-  ToolShowcaseVisual,
 } from './tool-showcase-interaction'
 
 function ToolArtwork({ tool }: { tool: ShowcaseTool }) {
@@ -19,7 +17,7 @@ function ToolArtwork({ tool }: { tool: ShowcaseTool }) {
         src={tool.asset.src}
         alt={tool.asset.alt}
         fill
-        sizes="(max-width: 760px) calc(100vw - 40px), (max-width: 999px) 85vw, 740px"
+        sizes="(max-width: 760px) 92px, (max-width: 999px) 85vw, 740px"
       />
       {tool.visual === 'prompt' && (
         <div className="tool-showcase-prompt">
@@ -66,39 +64,9 @@ export function ToolShowcase() {
       >
         <ToolShowcaseAnchors />
         {showcaseTools.map((tool, index) => (
-          <div className="tool-showcase-item" key={tool.id} data-tool={tool.id}>
-            <ToolShowcaseChoice index={index} anchor={tool.anchor}>
-              <div className="tool-showcase-choice-heading">
-                <h3>
-                  <Link id={`showcase-${tool.id}`} href={tool.studioHref}>
-                    <span className="tool-showcase-name">{tool.name}</span>
-                    <span className="tool-showcase-link-arrow" aria-hidden="true">
-                      <ArrowUpRight size={19} strokeWidth={1.5} />
-                    </span>
-                  </Link>
-                </h3>
-              </div>
-              <p className="tool-showcase-choice-description">{tool.description}</p>
-            </ToolShowcaseChoice>
-            <ToolShowcasePanel index={index}>
-              <div role="group" aria-labelledby={`showcase-${tool.id}`}>
-                <ToolShowcaseVisual index={index}>
-                  <Link
-                    className="tool-showcase-artwork-link"
-                    href={tool.studioHref}
-                    aria-label={tool.cta}
-                  >
-                    <ToolArtwork tool={tool} />
-                  </Link>
-                </ToolShowcaseVisual>
-                <div className="tool-showcase-preview-copy">
-                  <Link className="marketing-text-link tool-showcase-cta" href={tool.studioHref}>
-                    {tool.cta} <ArrowUpRight size={17} aria-hidden="true" />
-                  </Link>
-                </div>
-              </div>
-            </ToolShowcasePanel>
-          </div>
+          <ToolShowcaseCard key={tool.id} index={index} tool={tool}>
+            <ToolArtwork tool={tool} />
+          </ToolShowcaseCard>
         ))}
       </ToolShowcaseInteraction>
       <section className="tool-showcase-result" aria-labelledby="commerce-showcase">

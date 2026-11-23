@@ -175,8 +175,6 @@
   margin: 0;
 }
 .workflowHeader {
-  display: grid;
-  gap: 12px;
   padding: 14px 16px;
   margin-bottom: var(--workspace-gap);
   border: 1px solid var(--border);
@@ -232,17 +230,6 @@
   color: var(--primary-foreground);
   background: var(--primary);
   border-color: var(--primary);
-}
-.workflowHint strong {
-  color: var(--foreground);
-  font-size: 14px;
-  font-weight: 650;
-}
-.workflowHint p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.65;
 }
 .editor,
 .creation {

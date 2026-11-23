@@ -78,7 +78,7 @@ export function ToolPage({ tool }: { tool: ToolContent }) {
           </div>
         </section>
       </main>
-      <BottomCta />
+      <BottomCta action={tool} />
     </>
   )
 }

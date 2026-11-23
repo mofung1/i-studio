@@ -148,15 +148,17 @@ export function WorkbenchRail({
           {collapsed ? '展开侧边栏' : '收起侧边栏'}
         </span>
       </button>
-      <a
-        className="studio-new"
-        href={studioToolUrl('general', undefined, project)}
-        aria-label="新建创作"
-        title="新建创作"
-      >
-        <Plus size={18} />
-        <span>新建创作</span>
-      </a>
+      {section !== 'assets' && section !== 'history' && (
+        <a
+          className="studio-new"
+          href={studioToolUrl('general', undefined, project)}
+          aria-label="新建创作"
+          title="新建创作"
+        >
+          <Plus size={18} />
+          <span>新建创作</span>
+        </a>
+      )}
       <nav
         id="studio-navigation"
         className="workbench-rail-nav"

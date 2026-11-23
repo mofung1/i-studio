@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { ArrowUpRight } from 'lucide-react'
 import {
   createContext,
   useCallback,
@@ -10,6 +12,7 @@ import {
   type ReactNode,
   type CSSProperties,
 } from 'react'
+import type { ShowcaseTool } from '@/lib/tool-showcase'
 
 type DisplayMode = 'pending' | 'desktop' | 'static'
 type PreviewContext = {
@@ -105,51 +108,61 @@ export function ToolShowcaseAnchors() {
   ) : null
 }
 
-export function ToolShowcaseChoice({
+export function ToolShowcaseCard({
   index,
-  anchor,
+  tool,
   children,
 }: {
   index: number
-  anchor?: string
+  tool: Pick<ShowcaseTool, 'id' | 'anchor' | 'name' | 'description' | 'studioHref' | 'cta'>
   children: ReactNode
 }) {
-  const { mode, requested, select } = usePreview()
+  const { mode, requested, displayed, select } = usePreview()
+  const hidden = mode === 'desktop' && displayed !== index
+  const id = `showcase-${tool.id}`
+
   return (
-    <div
-      className="tool-showcase-choice"
-      id={mode === 'desktop' ? undefined : anchor}
-      style={{ gridRow: index + 1 }}
+    <Link
+      className="tool-showcase-item"
+      id={id}
+      href={tool.studioHref}
+      aria-labelledby={`${id}-title`}
+      aria-describedby={`${id}-description`}
       data-selected={requested === index}
-      onPointerEnter={(event) => {
-        if (mode === 'desktop' && event.pointerType !== 'touch') select(index, 'pointer')
-      }}
-      onFocusCapture={() => {
+      onFocus={() => {
         if (mode === 'desktop') select(index, 'keyboard')
       }}
     >
-      {children}
-    </div>
+      <div
+        className="tool-showcase-choice"
+        id={mode === 'desktop' ? undefined : tool.anchor}
+        onPointerEnter={(event) => {
+          if (mode === 'desktop' && event.pointerType !== 'touch') select(index, 'pointer')
+        }}
+      >
+        <h3 id={`${id}-title`}>
+          <span className="tool-showcase-name">{tool.name}</span>
+          <span className="tool-showcase-link-arrow" aria-hidden="true">
+            <ArrowUpRight size={19} strokeWidth={1.5} />
+          </span>
+        </h3>
+        <p id={`${id}-description`} className="tool-showcase-choice-description">
+          {tool.description}
+        </p>
+      </div>
+      <div className="tool-showcase-panel" aria-hidden={hidden || undefined}>
+        <ToolShowcaseVisual index={index}>{children}</ToolShowcaseVisual>
+        <div className="tool-showcase-preview-copy" aria-hidden="true">
+          <span className="marketing-text-link tool-showcase-cta">
+            {tool.cta} <ArrowUpRight size={17} />
+          </span>
+        </div>
+      </div>
+    </Link>
   )
 }
 
-export function ToolShowcasePanel({ index, children }: { index: number; children: ReactNode }) {
-  const { mode, requested, displayed } = usePreview()
-  const hidden = mode === 'desktop' && requested !== index
-  return (
-    <div
-      className="tool-showcase-panel"
-      data-preview={displayed === index}
-      data-selected={requested === index}
-      aria-hidden={hidden || undefined}
-      inert={hidden || undefined}
-    >
-      {children}
-    </div>
-  )
-}
-
-export function ToolShowcaseVisual({ index, children }: { index: number; children: ReactNode }) {
+function ToolShowcaseVisual({ index, children }: { index: number; children: ReactNode }) {
   const { mode, requested, ready } = usePreview()
   const [loaded, setLoaded] = useState(index === 0)
   const [failed, setFailed] = useState(false)

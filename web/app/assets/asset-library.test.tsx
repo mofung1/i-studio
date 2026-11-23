@@ -7,16 +7,21 @@ import type { LibraryAsset } from '@/lib/library'
 import { downloadProtectedAsset } from '@/components/authenticated-image'
 import { AssetLibrary } from './asset-library'
 
-const router = vi.hoisted(() => ({ replace: vi.fn() }))
+const navigation = vi.hoisted(() => ({ router: { replace: vi.fn() }, query: '' }))
 vi.mock('next/navigation', () => ({
-  useRouter: () => router,
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => navigation.router,
+  useSearchParams: () => new URLSearchParams(navigation.query),
 }))
 vi.mock('@/components/account-access', () => ({
   AccountBoundary: ({ children }: { children: ReactNode }) => children,
 }))
 vi.mock('@/components/studio-shell', () => ({
-  StudioShell: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  StudioShell: ({ children, actions }: { children: ReactNode; actions?: ReactNode }) => (
+    <div>
+      <header>{actions ?? <a href="/studio?mode=general">开始创作</a>}</header>
+      {children}
+    </div>
+  ),
 }))
 vi.mock('@/components/prompt-reverse-provider', () => ({
   usePromptReverse: () => ({ openReverse: vi.fn() }),
@@ -66,6 +71,7 @@ const escape = async (target: EventTarget = document) =>
 const render = () => act(async () => root.render(<AssetLibrary view="images" />))
 const enterBatch = () => act(async () => button('批量管理').click())
 beforeEach(() => {
+  navigation.query = ''
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   vi.stubGlobal(
     'URL',
@@ -91,6 +97,7 @@ beforeEach(() => {
           projects: [
             { id: 'launch', name: '新品上架' },
             { id: 'summer', name: '夏季活动' },
+            { id: 'archived', name: '往期项目', archived: true },
           ],
         })
       if (method === 'PATCH') {
@@ -123,6 +130,37 @@ afterEach(async () => {
   localStorage.clear()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+})
+
+it('keeps the empty-state creation link and shows a header link only for an active project', async () => {
+  assets = []
+  await render()
+  const header = container.querySelector('header')!
+  expect(header.querySelector('a')).toBeNull()
+  const emptyLink = container.querySelector('.library-empty-state a')
+  expect(emptyLink?.textContent).toBe('开始创作')
+  expect(emptyLink?.getAttribute('href')).toBe('/studio?mode=general')
+
+  const projectButton = (name: string) =>
+    [...container.querySelectorAll<HTMLButtonElement>('.asset-projects button')].find(
+      (item) => item.querySelector('span')?.textContent === name,
+    )!
+  await act(async () => projectButton('新品上架').click())
+  expect(header.querySelector('a')?.textContent).toBe('在项目中创作')
+  expect(header.querySelector('a')?.getAttribute('href')).toBe(
+    '/studio?mode=general&projectId=launch',
+  )
+  expect(container.querySelector('.library-empty-state a')).toBeNull()
+  await act(async () => button('未分类').click())
+  expect(header.querySelector('a')).toBeNull()
+  await act(async () => projectButton('往期项目').click())
+  expect(header.querySelector('a')).toBeNull()
+})
+
+it('omits the project creation link for an unknown deep-linked project', async () => {
+  navigation.query = 'project=missing'
+  await render()
+  expect(container.querySelector('header a')).toBeNull()
 })
 
 describe('task progress in the asset library', () => {

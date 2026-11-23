@@ -2,6 +2,10 @@
 .tool-showcase-grid {
   position: relative;
 }
+.tool-showcase-item {
+  display: block;
+  min-width: 0;
+}
 .tool-showcase-item + .tool-showcase-item {
   margin-top: 38px;
 }
@@ -9,20 +13,13 @@
   position: relative;
 }
 .tool-showcase-choice h3 {
-  font-size: 24px;
-  font-weight: 500;
-}
-.tool-showcase-choice h3 a {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
   min-height: 44px;
-}
-.tool-showcase-choice h3 a::after {
-  content: '';
-  position: absolute;
-  inset: 0;
+  font-size: 24px;
+  font-weight: 500;
 }
 .tool-showcase-choice-description {
   margin-top: 8px !important;
@@ -41,10 +38,6 @@
   aspect-ratio: 4 / 3;
   background: var(--surface-2);
 }
-.tool-showcase-visual:has(:focus-visible) {
-  outline: 2px solid var(--foreground);
-  outline-offset: 5px;
-}
 .tool-showcase-placeholder {
   position: absolute;
   inset: 0;
@@ -61,12 +54,7 @@
   position: absolute;
   inset: 0;
 }
-.tool-showcase-artwork-link {
-  position: absolute;
-  inset: 0;
-  display: block;
-}
-.tool-showcase-artwork-link > img {
+.tool-showcase-artwork > img {
   object-fit: cover;
 }
 .tool-showcase-prompt {
@@ -144,18 +132,30 @@
 }
 @media (min-width: 1000px) and (hover: hover) and (pointer: fine) {
   .tool-showcase-grid[data-mode='desktop'] {
+    --tool-showcase-gap: 64px;
+    --tool-showcase-cta-space: 62px;
     display: grid;
     grid-template-columns: minmax(0, 36fr) minmax(0, 64fr);
     grid-template-rows: repeat(var(--tool-count), minmax(108px, auto));
-    column-gap: 64px;
+    column-gap: var(--tool-showcase-gap);
+  }
+  /* Reserve the shared preview area while each tool keeps its preview inside its link. */
+  .tool-showcase-grid[data-mode='desktop']::before {
+    content: '';
+    grid-column: 2;
+    grid-row: 1 / span var(--tool-count);
+    align-self: start;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    margin-bottom: var(--tool-showcase-cta-space);
+    pointer-events: none;
   }
   .tool-showcase-grid[data-mode='desktop'] .tool-showcase-item {
-    display: contents;
+    grid-column: 1;
+    margin-top: 0;
   }
   .tool-showcase-grid[data-mode='desktop'] .tool-showcase-choice {
-    grid-column: 1;
-    position: relative;
-    min-height: 108px;
+    height: 100%;
     border-bottom: 1px solid var(--border-soft);
   }
   .tool-showcase-grid[data-mode='desktop'] .tool-showcase-choice::after {
@@ -170,24 +170,24 @@
     transform-origin: left;
     transition: transform var(--duration-preview) var(--ease-out);
   }
-  .tool-showcase-grid[data-mode='desktop'] .tool-showcase-choice[data-selected='true']::after {
+  .tool-showcase-grid[data-mode='desktop']
+    .tool-showcase-item[data-selected='true']
+    .tool-showcase-choice::after {
     transform: scaleX(1);
   }
   .tool-showcase-grid[data-mode='desktop'] .tool-showcase-choice h3 {
+    min-height: 100%;
     font-size: clamp(19px, 1.8vw, 24px);
     color: var(--foreground-2);
-  }
-  .tool-showcase-grid[data-mode='desktop'] .tool-showcase-choice h3 a {
-    min-height: 108px;
   }
   .tool-showcase-grid[data-mode='desktop'] :is(.tool-showcase-name, .tool-showcase-link-arrow) {
     transition: transform var(--duration-preview) var(--ease-out);
   }
-  .tool-showcase-grid[data-mode='desktop'] .tool-showcase-choice[data-selected='true'] h3 {
+  .tool-showcase-grid[data-mode='desktop'] .tool-showcase-item[data-selected='true'] h3 {
     color: var(--foreground);
   }
   .tool-showcase-grid[data-mode='desktop']
-    .tool-showcase-choice[data-selected='true']
+    .tool-showcase-item[data-selected='true']
     :is(.tool-showcase-name, .tool-showcase-link-arrow) {
     transform: translate3d(0, -14px, 0);
   }
@@ -206,32 +206,34 @@
       transform var(--duration-preview) var(--ease-out);
   }
   .tool-showcase-grid[data-mode='desktop']
-    .tool-showcase-choice[data-selected='true']
+    .tool-showcase-item[data-selected='true']
     .tool-showcase-choice-description {
     opacity: 1;
     transform: translate3d(0, 0, 0);
   }
   .tool-showcase-grid[data-mode='desktop'] .tool-showcase-panel {
-    grid-column: 2;
-    grid-row: 1 / span var(--tool-count);
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: calc((100% - var(--tool-showcase-gap)) * 0.64);
     margin-top: 0;
+    visibility: hidden;
+    opacity: 0;
     pointer-events: none;
+    transition: opacity var(--duration-preview) var(--ease-out);
   }
-  .tool-showcase-grid[data-mode='desktop'] .tool-showcase-panel[data-selected='true'] {
+  .tool-showcase-grid[data-mode='desktop'] .tool-showcase-panel:not([aria-hidden]) {
+    visibility: visible;
+    opacity: 1;
     pointer-events: auto;
     z-index: 1;
   }
-  .tool-showcase-grid[data-mode='desktop'] :is(.tool-showcase-visual, .tool-showcase-preview-copy) {
-    opacity: 0;
-    transition: opacity var(--duration-preview) var(--ease-out);
-  }
   .tool-showcase-grid[data-mode='desktop']
-    .tool-showcase-panel[data-preview='true']
-    .tool-showcase-visual,
-  .tool-showcase-grid[data-mode='desktop']
-    .tool-showcase-panel[data-selected='true']
-    .tool-showcase-preview-copy {
-    opacity: 1;
+    .tool-showcase-item:focus-visible
+    .tool-showcase-panel:not([aria-hidden])
+    .tool-showcase-visual {
+    outline: 2px solid var(--foreground);
+    outline-offset: 5px;
   }
   .tool-showcase-grid[data-mode='desktop'][data-loading='true']::after {
     content: '正在载入';
@@ -250,22 +252,21 @@
     transition: transform var(--duration-preview) var(--ease-out);
   }
   .tool-showcase-grid[data-mode='desktop']
-    .tool-showcase-panel[data-preview='true']
+    .tool-showcase-panel:not([aria-hidden])
     .tool-showcase-artwork {
     transform: scale(1);
   }
-  .tool-showcase-choice h3 svg,
+  .tool-showcase-link-arrow svg,
   .tool-showcase-cta svg {
     transition: transform 180ms var(--ease-out);
   }
-  .tool-showcase-choice h3 a:hover svg,
-  .tool-showcase-cta:hover svg {
+  .tool-showcase-item:hover :is(.tool-showcase-link-arrow, .tool-showcase-cta) svg {
     transform: translate3d(2px, -2px, 0);
   }
 }
 @media (min-width: 1000px) and (max-width: 1199px) {
   .tool-showcase-grid[data-mode='desktop'] {
-    column-gap: 40px;
+    --tool-showcase-gap: 40px;
   }
 }
 /* Phones get a compact catalogue: one readable row and one thumbnail per tool. */
@@ -293,13 +294,11 @@
   }
   .tool-showcase-choice {
     grid-column: 1;
-    grid-row: 1 !important;
+    grid-row: 1;
     min-width: 0;
   }
   .tool-showcase-choice h3 {
     font-size: 18px;
-  }
-  .tool-showcase-choice h3 a {
     min-height: 36px;
     gap: 10px;
   }
@@ -329,33 +328,6 @@
     display: none;
   }
 }
-@media (max-width: 600px) {
-  .tool-showcase-choice h3 {
-    font-size: 18px;
-  }
-  .tool-showcase-choice-description {
-    font-size: 12px;
-  }
-  .tool-showcase-prompt {
-    width: 45%;
-    padding: 12px;
-    bottom: 12px;
-    right: 12px;
-  }
-  .tool-showcase-prompt p {
-    font-size: 12px;
-    line-height: 1.6;
-    margin-top: 6px !important;
-  }
-  .tool-showcase-prompt > span {
-    font-size: 10px;
-  }
-  .tool-showcase-source {
-    left: 12px;
-    bottom: 12px;
-    border-width: 2px;
-  }
-}
 .tool-showcase-grid[data-input='keyboard'] *,
 .tool-showcase-grid[data-input='keyboard'] *::after {
   transition: none !important;
@@ -368,8 +340,7 @@
   .tool-showcase-grid .tool-showcase-artwork {
     transform: none !important;
   }
-  .tool-showcase-choice h3 a:hover svg,
-  .tool-showcase-cta:hover svg {
+  .tool-showcase-item:hover :is(.tool-showcase-link-arrow, .tool-showcase-cta) svg {
     transform: none;
   }
 }

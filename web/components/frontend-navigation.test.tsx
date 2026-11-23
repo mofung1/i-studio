@@ -85,6 +85,18 @@ it('does not introduce a project into ordinary commerce browsing', async () => {
     expect(new URL(tool.href).searchParams.has('projectId')).toBe(false)
   expect(host.querySelector('[aria-label="查看当前项目的素材与作品"]')).toBeNull()
 })
+it.each(['assets', 'history'] as const)(
+  'keeps one general generation link in the %s navigation',
+  async (section) => {
+    await act(async () => root.render(<WorkbenchRail section={section} />))
+    const links = host.querySelectorAll('a[href="/studio?mode=general"]')
+    expect(links).toHaveLength(1)
+    expect(links[0]?.getAttribute('aria-label')).toBe('AI 生图')
+
+    await act(async () => root.render(<WorkbenchRail section="general" />))
+    expect(host.querySelector('a[aria-label="新建创作"]')).not.toBeNull()
+  },
+)
 it('links to the focusable settings region on mobile and keeps the desktop disclosure', async () => {
   const toggle = vi.fn()
   const render = (jumpToSettings: boolean) => (
