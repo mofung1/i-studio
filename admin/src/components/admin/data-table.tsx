@@ -148,6 +148,7 @@ function SortableHeader<T>({
 
 export function AdminDataTable<T>({
   title,
+  hideTitle = false,
   columns,
   data,
   getRowId,
@@ -160,6 +161,7 @@ export function AdminDataTable<T>({
   scrollKey,
 }: {
   title: string
+  hideTitle?: boolean
   columns: AdminColumn<T>[]
   data: T[]
   getRowId: (item: T) => string
@@ -312,7 +314,9 @@ export function AdminDataTable<T>({
     >
       <div className="admin-data-toolbar">
         <div className="admin-data-heading">
-          <h2 id={titleId}>{title}</h2>
+          <h2 id={titleId} className={hideTitle ? 'sr-only' : undefined}>
+            {title}
+          </h2>
           <div className="admin-data-meta">
             <span role={loading ? 'status' : undefined}>
               {loading ? (

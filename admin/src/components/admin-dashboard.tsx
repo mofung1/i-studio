@@ -314,23 +314,29 @@ export function AdminDashboard({
       audit: '操作日志',
     } as const
   )[view]
+  const operationsReady = view === 'operations' && !loading && ops !== null
+  const refreshAction = (
+    <Button type="button" variant="outline" disabled={busy || loading} onClick={() => void refresh()}>
+      <RefreshCw data-icon="inline-start" />
+      刷新
+    </Button>
+  )
   return (
     <main ref={editorHost} className={`ops-page${isList ? ' admin-list-page' : ''}`}>
       <AdminPageHeader
         title={title}
         actions={
-          <div className="ops-heading-actions">
-            {view === 'models' && (
-              <Button onClick={() => edit()} disabled={busy || !endpoints.length}>
-                <Plus data-icon="inline-start" />
-                添加模型
-              </Button>
-            )}
-            <Button variant="outline" disabled={busy || loading} onClick={() => void refresh()}>
-              <RefreshCw data-icon="inline-start" />
-              刷新
-            </Button>
-          </div>
+          operationsReady ? undefined : (
+            <div className="ops-heading-actions">
+              {view === 'models' && (
+                <Button onClick={() => edit()} disabled={busy || !endpoints.length}>
+                  <Plus data-icon="inline-start" />
+                  添加模型
+                </Button>
+              )}
+              {refreshAction}
+            </div>
+          )
         }
         tools={
           view === 'users' ? (
@@ -425,6 +431,7 @@ export function AdminDashboard({
             {view === 'operations' && ops && (
               <AdminOperationsForm
                 ops={ops}
+                toolbarAction={refreshAction}
                 gift={gift}
                 giftBudget={giftBudget}
                 checkinReward={checkinReward}

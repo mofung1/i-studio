@@ -7,6 +7,17 @@
   min-width: 0;
 }
 
+.operationsToolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.operationsToolbar > button {
+  margin-inline-start: auto;
+}
+
 .operationsTabs .operationsTabList {
   justify-content: flex-start;
   flex-wrap: wrap;
@@ -32,17 +43,23 @@
 }
 
 .operations .sectionHelp,
-.operationsFooter p {
+.operationsFooter > p {
   color: var(--muted-foreground);
   font-size: 13px;
   line-height: 1.7;
+}
+
+.fieldHelp {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.65;
 }
 
 .operationsFooter {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
@@ -280,16 +297,11 @@
   font-size: 12px;
   font-weight: 600;
 }
-.pendingDrafts > p {
-  margin: 6px 0;
-  font-size: 12px;
-  color: var(--muted-foreground);
-  line-height: 1.7;
-}
 .pendingDrafts > div {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 6px;
 }
 .pendingDrafts button {
   min-height: 32px;
@@ -318,6 +330,9 @@
   .operationsTabs .operationsTabList {
     width: 100%;
   }
+  .operationsToolbar > button {
+    min-height: 40px;
+  }
   .operationsTabList > [role="tab"] {
     min-height: 40px;
     padding-inline: 10px;
@@ -325,7 +340,6 @@
   }
   .operationsFooter > button {
     min-height: 44px;
-    margin-inline-start: auto;
   }
   .storageFooter {
     flex-direction: column;

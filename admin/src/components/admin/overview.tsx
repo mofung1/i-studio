@@ -231,10 +231,7 @@ export function AdminOverview({
         </section>
         <section className={styles.panel} aria-labelledby="overview-actions-title">
           <header className={styles.sectionHeading}>
-            <div>
-              <h2 id="overview-actions-title">常用操作</h2>
-              <p>处理内容、反馈与模型配置</p>
-            </div>
+            <h2 id="overview-actions-title">常用操作</h2>
           </header>
           <div className={styles.shortcuts}>
             {[

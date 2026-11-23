@@ -48,18 +48,11 @@ export function AiServiceList({
   const isImage = purpose === 'image'
   return (
     <section className={styles.services} aria-label={isImage ? '生图渠道列表' : '提示词服务列表'}>
+      <h2 className="sr-only">{isImage ? '生图渠道' : '提示词与识图服务'}</h2>
       <header className={styles.sectionHead}>
-        <div>
-          <h2>
-            {isImage ? '生图渠道' : '提示词与识图服务'}
-            <span>{endpoints.length}</span>
-          </h2>
-          <p>
-            {isImage
-              ? '管理供应商连接；同一渠道可以供多个前台模型使用。'
-              : '连接对话模型，用于 AI 帮写、服装规划和图片反推。'}
-          </p>
-        </div>
+        <p className={styles.serviceCount}>
+          {endpoints.length} {isImage ? '个渠道' : '个服务'}
+        </p>
         {canManage && (
           <Button onClick={onAdd} disabled={!!busy}>
             <Plus size={16} />

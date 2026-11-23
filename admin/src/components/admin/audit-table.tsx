@@ -81,6 +81,7 @@ export function AdminAuditTable({
   return (
     <AdminDataTable
       title="操作日志列表"
+      hideTitle
       columns={columns}
       data={audit}
       getRowId={(item) => String(item.id)}

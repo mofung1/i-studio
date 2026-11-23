@@ -8,7 +8,6 @@
   color: var(--card-foreground);
 }
 
-.reverse-settings-heading,
 .reverse-config-footer {
   display: flex;
   flex-wrap: wrap;
@@ -18,12 +17,6 @@
   padding: var(--reverse-inset);
 }
 
-.reverse-settings-heading h2 {
-  font-size: 1rem;
-  font-weight: 650;
-}
-
-.reverse-settings-heading p,
 .reverse-config-label p,
 .reverse-config-help,
 .reverse-number-row p {
@@ -39,7 +32,17 @@
   align-items: start;
   gap: 1rem 2rem;
   padding: var(--reverse-inset);
+}
+
+.reverse-config-section + .reverse-config-section {
   border-top: 1px solid var(--border);
+}
+
+.reverse-service-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.625rem;
 }
 
 .reverse-config-label h3,
@@ -258,8 +261,7 @@
   margin-top: 0.75rem;
 }
 
-.reverse-config-footer,
-.reverse-settings-load {
+.reverse-config-footer {
   border-top: 1px solid var(--border);
 }
 

@@ -246,21 +246,20 @@ export default function AISettingsPage() {
   const defaultPrompt = endpoints.find(
     (item) => item.purpose === 'prompt' && item.enabled && item.isDefault,
   )
+  const showTabs = loggedIn && !loading && loaded
+  const modelShortcut = (
+    <Button asChild variant="outline">
+      <Link href="/admin/models">
+        模型与定价
+        <ArrowUpRight data-icon="inline-end" aria-hidden="true" />
+      </Link>
+    </Button>
+  )
 
   return (
     <>
       <main className={`ai-settings ${styles.page}`}>
-        <AdminPageHeader
-          title="AI 服务"
-          actions={
-            <Button asChild variant="outline">
-              <Link href="/admin/models">
-                模型与定价
-                <ArrowUpRight data-icon="inline-end" aria-hidden="true" />
-              </Link>
-            </Button>
-          }
-        />
+        <AdminPageHeader title="AI 服务" actions={showTabs ? undefined : modelShortcut} />
         {!loggedIn ? (
           <p>
             请先<Link href="/admin/login?next=%2Fadmin%2Fsettings">登录</Link>后管理 AI 服务。
@@ -283,34 +282,37 @@ export default function AISettingsPage() {
             onValueChange={(value) => switchView(value as View)}
             className={styles.tabs}
           >
-            <TabsList aria-label="AI 服务用途" className={styles.tabList}>
-              <TabsTrigger
-                value="image"
-                disabled={reverseSaving}
-                onClick={() => switchView('image')}
-              >
-                <Images aria-hidden="true" />
-                生图渠道
-              </TabsTrigger>
-              <TabsTrigger
-                value="prompt"
-                disabled={reverseSaving}
-                onClick={() => switchView('prompt')}
-              >
-                <WandSparkles aria-hidden="true" />
-                提示词与识图
-              </TabsTrigger>
-              {canManage && (
+            <div className={styles.tabRow}>
+              <TabsList aria-label="AI 服务用途" className={styles.tabList}>
                 <TabsTrigger
-                  value="reverse"
+                  value="image"
                   disabled={reverseSaving}
-                  onClick={() => switchView('reverse')}
+                  onClick={() => switchView('image')}
                 >
-                  <ScanText aria-hidden="true" />
-                  图片反推
+                  <Images aria-hidden="true" />
+                  生图渠道
                 </TabsTrigger>
-              )}
-            </TabsList>
+                <TabsTrigger
+                  value="prompt"
+                  disabled={reverseSaving}
+                  onClick={() => switchView('prompt')}
+                >
+                  <WandSparkles aria-hidden="true" />
+                  提示词与识图
+                </TabsTrigger>
+                {canManage && (
+                  <TabsTrigger
+                    value="reverse"
+                    disabled={reverseSaving}
+                    onClick={() => switchView('reverse')}
+                  >
+                    <ScanText aria-hidden="true" />
+                    图片反推
+                  </TabsTrigger>
+                )}
+              </TabsList>
+              {modelShortcut}
+            </div>
             {message && !editing && (
               <Alert variant="destructive" role="alert">
                 <AlertDescription>{message}</AlertDescription>
@@ -323,45 +325,18 @@ export default function AISettingsPage() {
             )}
             {(['image', 'prompt'] as const).map((purpose) => (
               <TabsContent value={purpose} key={purpose}>
-                {purpose === 'image' ? (
-                  <ol className={styles.setupSteps} aria-label="生图配置顺序">
-                    <li>
-                      <span>1</span>
-                      <div>
-                        <strong>连接生图渠道</strong>
-                        <p>在此填写供应商地址与密钥。</p>
-                      </div>
-                    </li>
-                    <li>
-                      <span>2</span>
-                      <div>
-                        <Link href="/admin/models">
-                          发布前台模型
-                          <ArrowUpRight size={14} />
-                        </Link>
-                        <p>绑定渠道，填写上游 ID、积分价格并上架。</p>
-                      </div>
-                    </li>
-                    <li>
-                      <span>3</span>
-                      <div>
-                        <strong>验证生成效果</strong>
-                        <p>在模型编辑页测试实际使用的绑定与参数。</p>
-                      </div>
-                    </li>
-                  </ol>
-                ) : (
+                {purpose === 'prompt' && (
                   <div className={styles.promptSummary}>
                     <div>
                       <span>当前默认服务</span>
                       <strong>{defaultPrompt?.name ?? '尚未配置'}</strong>
                       <p>
                         {defaultPrompt
-                          ? `${defaultPrompt.model} · 用于 AI 帮写与服装规划`
-                          : '添加并启用服务后，首个可用服务会自动成为默认。'}
+                          ? `${defaultPrompt.model} · 用于 AI 帮写、商品分析与服装规划`
+                          : '首个启用的服务会成为默认。'}
                       </p>
                     </div>
-                    <p>识图需要模型本身支持图片输入。图片反推可单独指定服务，也可跟随默认服务。</p>
+                    <p>识图需支持图片输入。图片反推可指定服务或跟随默认。</p>
                   </div>
                 )}
                 <AiServiceList
@@ -410,22 +385,24 @@ export default function AISettingsPage() {
                       )
                   }}
                 />
-                <div className={styles.related}>
-                  <strong>
-                    {purpose === 'image'
-                      ? '渠道已保存，前台却没有模型？'
-                      : '想调整 AI 的回答方式？'}
-                  </strong>
-                  <p>
-                    {purpose === 'image'
-                      ? '还需要在「模型与定价」创建模型、选择已启用的主渠道并上架。渠道中的测试模型 ID 不用于正式任务。'
-                      : '在「系统提示词」调整各功能使用的指令。服务地址与密钥仍在此处管理。'}
-                  </p>
-                  <Link href={purpose === 'image' ? '/admin/models' : '/admin/prompts'}>
-                    {purpose === 'image' ? '前往模型与定价' : '前往系统提示词'}
-                    <ArrowUpRight size={14} />
+                {purpose === 'image' ? (
+                  <details className={styles.setupGuide}>
+                    <summary>生图配置顺序</summary>
+                    <ol aria-label="生图配置顺序">
+                      <li>连接生图渠道，填写供应商地址与密钥。一个渠道可供多个模型使用。</li>
+                      <li>
+                        <Link href="/admin/models">发布前台模型</Link>
+                        ，绑定已启用的主渠道，填写实际上游模型 ID 和积分单价，再上架。
+                      </li>
+                      <li>在模型编辑页测试正式绑定与参数。渠道里的测试模型 ID 仅用于测试。</li>
+                    </ol>
+                  </details>
+                ) : (
+                  <Link href="/admin/prompts" className={styles.relatedLink}>
+                    编辑系统提示词
+                    <ArrowUpRight size={14} aria-hidden="true" />
                   </Link>
-                </div>
+                )}
               </TabsContent>
             ))}
             {canManage && (

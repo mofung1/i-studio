@@ -111,6 +111,7 @@ export function AdminTaskTable({
   return (
     <AdminDataTable
       title="生成任务列表"
+      hideTitle
       columns={columns}
       data={tasks}
       getRowId={(task) => task.id}

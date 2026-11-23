@@ -138,8 +138,8 @@ export default function AdminPromptsPage() {
       ) : templates.length ? (
         <section id="prompts-panel" className={`prompt-settings ${styles.promptLayout}`}>
           <div className={styles.promptSidebar}>
-            <h2>选择功能模板</h2>
-            <p>在本页切换模板会保留输入；保存仅更新当前模板。</p>
+            <h2>功能模板</h2>
+            <p>切换模板保留草稿。保存仅更新当前模板。</p>
             <PromptTemplateBrowser
               templates={templates}
               selectedKey={selectedKey}
@@ -149,7 +149,6 @@ export default function AdminPromptsPage() {
             {dirtyTemplates.length > 0 && (
               <div className={styles.pendingDrafts}>
                 <strong>{dirtyTemplates.length} 个模板有未保存更改</strong>
-                <p>可返回对应模板继续编辑或保存。</p>
                 <div>
                   {dirtyTemplates.map((template) => (
                     <button

@@ -314,6 +314,7 @@ function FeedbackList() {
       )}
       <AdminDataTable
         title="反馈列表"
+        hideTitle
         columns={columns}
         data={data.feedback}
         getRowId={(item) => item.id}

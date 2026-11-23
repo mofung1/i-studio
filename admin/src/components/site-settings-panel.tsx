@@ -175,7 +175,7 @@ export function SiteSettingsPanel({
             <div className="site-settings-heading">
               <div>
                 <h2 id="site-brand-heading">网站品牌</h2>
-                <p>设置网站名称和 Logo，应用到全站导航、网页标题和浏览器图标。</p>
+                <p>名称与 Logo 用于全站导航、网页标题和浏览器图标。</p>
               </div>
               {dirty && <span className="prompt-dirty-status">未保存更改</span>}
             </div>
@@ -249,7 +249,7 @@ export function SiteSettingsPanel({
           </section>
           <section className={styles.siteSection} aria-labelledby="site-contact-heading">
             <h2 id="site-contact-heading">联系方式</h2>
-            <p>选择前台个人中心展示的联系入口，可使用文本或二维码。</p>
+            <p>联系方式显示在前台个人中心。</p>
             <SiteContactFields
               mode={contactMode}
               text={contactText}

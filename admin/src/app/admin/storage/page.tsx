@@ -220,8 +220,7 @@ export default function StoragePage() {
             <CardHeader>
               <CardTitle>图片保存位置</CardTitle>
               <CardDescription>
-                公共提示词库封面、用户上传、AI 生成图片和网站图片共用这一套配置。本地 uploads
-                同时保留完整副本。
+                公共提示词库封面、用户上传、AI 生成图片和网站图片共用此配置。
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -236,7 +235,7 @@ export default function StoragePage() {
                   <p>
                     {enabled
                       ? '填写下方连接信息和密钥。检查连接、同步历史图片后，再保存启用。'
-                      : '图片保存在服务器的 uploads 目录，无需配置云端地址或密钥。需要云存储时再打开下方开关。'}
+                      : '图片保存在服务器的 uploads 目录，无需配置云端地址或密钥。'}
                   </p>
                 </div>
               </div>
@@ -262,7 +261,6 @@ export default function StoragePage() {
             <Card className="storage-connection-card">
               <CardHeader>
                 <CardTitle>1. 存储连接</CardTitle>
-                <CardDescription>必填：选择平台，填写存储桶、区域及上传地址。</CardDescription>
               </CardHeader>
               <CardContent>
                 <FieldGroup className="storage-config-grid">
@@ -354,7 +352,7 @@ export default function StoragePage() {
               <CardHeader>
                 <CardTitle>2. 访问密钥</CardTitle>
                 <CardDescription>
-                  已保存的密钥在管理员后台直接显示，修改后保存生效。
+                  已保存的密钥在此显示。
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -385,9 +383,6 @@ export default function StoragePage() {
             <Card className="storage-cdn-card">
               <CardHeader>
                 <CardTitle>3. 图片访问与 CDN</CardTitle>
-                <CardDescription>
-                  设置图片的访问域名与鉴权；七牛公开直链需配置域名，其他情况可按需使用 CDN。
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <FieldGroup className="storage-config-grid">

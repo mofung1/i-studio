@@ -210,34 +210,7 @@ export function PromptReverseSettingsPanel({
 
   return (
     <section id="reverse-panel" aria-label="图片反推配置" className="reverse-settings">
-      <header className="reverse-settings-heading">
-        <div>
-          <h2>图片反推</h2>
-          <p>从参考图提取双语提示词，识图接口与密钥在「提示词与识图」中统一管理。</p>
-        </div>
-        {draft && (
-          <AdminStatusBadge
-            tone={
-              !serviceStatusPending &&
-              serviceReady &&
-              !configurationReason &&
-              draft.endpointId === original?.endpointId
-                ? 'success'
-                : 'warning'
-            }
-          >
-            {serviceStatusPending
-              ? checkingService
-                ? '正在更新服务状态'
-                : '服务状态待确认'
-              : serviceReady && !configurationReason
-                ? draft.endpointId !== original?.endpointId
-                  ? '服务待保存'
-                  : '服务已配置'
-                : '服务待配置'}
-          </AdminStatusBadge>
-        )}
-      </header>
+      <h2 className="sr-only">图片反推</h2>
       {!draft ? (
         <div className="reverse-settings-load" aria-live="polite">
           {loadError ? (
@@ -272,9 +245,28 @@ export function PromptReverseSettingsPanel({
           }}
         >
           <section className="reverse-config-section" aria-labelledby="reverse-service-title">
-            <div className="reverse-config-label">
+            <div className="reverse-config-label reverse-service-heading">
               <h3 id="reverse-service-title">识图服务</h3>
-              <p>选择实际支持图片输入的多模态模型，与生图服务分别配置。</p>
+              <AdminStatusBadge
+                tone={
+                  !serviceStatusPending &&
+                  serviceReady &&
+                  !configurationReason &&
+                  draft.endpointId === original?.endpointId
+                    ? 'success'
+                    : 'warning'
+                }
+              >
+                {serviceStatusPending
+                  ? checkingService
+                    ? '正在更新服务状态'
+                    : '服务状态待确认'
+                  : serviceReady && !configurationReason
+                    ? draft.endpointId !== original?.endpointId
+                      ? '服务待保存'
+                      : '服务已配置'
+                    : '服务待配置'}
+              </AdminStatusBadge>
             </div>
             <div className="reverse-config-controls">
               <Select
@@ -352,9 +344,9 @@ export function PromptReverseSettingsPanel({
               <div className="reverse-service-help" id="reverse-service-help">
                 <span>
                   {draft.endpointId
-                    ? '固定使用所选服务，不受默认提示词服务切换影响。'
-                    : '默认提示词服务也必须支持识图；更换默认服务后这里会同步跟随。'}
-                  列表仅显示已启用并勾选「支持图片识别」的服务。
+                    ? '固定使用所选服务。'
+                    : '跟随默认时，默认提示词服务也必须支持识图。'}
+                  列表仅显示已启用且标为支持识图的服务。
                 </span>
                 <Button
                   type="button"
@@ -369,7 +361,7 @@ export function PromptReverseSettingsPanel({
                 </Button>
               </div>
               <p className="reverse-config-help">
-                勾选识图能力不会改变模型本身的能力，请确认供应商支持图片输入。配置状态不代表实际接口连通性。
+                请确认模型支持图片输入。服务配置状态不代表接口连通性。
               </p>
             </div>
           </section>
@@ -377,7 +369,7 @@ export function PromptReverseSettingsPanel({
           <section className="reverse-config-section" aria-labelledby="reverse-analysis-title">
             <div className="reverse-config-label">
               <h3 id="reverse-analysis-title">分析偏好</h3>
-              <p>根据图片内容选择细节。每次分析同时返回中文与英文。</p>
+              <p>每次返回中英文提示词。</p>
             </div>
             <div className="reverse-config-controls">
               <div className="reverse-analysis-fields">

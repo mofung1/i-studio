@@ -144,6 +144,7 @@ export function AdminUserTable({
   return (
     <AdminDataTable
       title="用户列表"
+      hideTitle
       columns={columns}
       data={members}
       getRowId={(member) => member.id}

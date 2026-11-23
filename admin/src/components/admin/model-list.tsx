@@ -103,6 +103,7 @@ export function AdminModelList({
       )}
       <AdminDataTable
         title="模型列表"
+        hideTitle
         columns={columns}
         data={models}
         getRowId={(model) => model.id}

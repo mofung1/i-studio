@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { adminPages } from './navigation'
 
 export function AdminPageHeader({
   title,
@@ -12,13 +11,13 @@ export function AdminPageHeader({
   actions?: ReactNode
   tools?: ReactNode
 }) {
-  const help = description ?? adminPages.find((page) => page.title === title)?.description
+  const heading = <h1 className="sr-only">{title}</h1>
+  if (!description && !tools && !actions) return heading
+
   return (
     <header className="admin-page-header">
-      <div className="admin-page-heading">
-        <h1>{title}</h1>
-        {help && <p>{help}</p>}
-      </div>
+      {heading}
+      {description && <p className="admin-page-description">{description}</p>}
       {(tools || actions) && (
         <div className="admin-page-controls">
           {tools && <div className="admin-page-tools">{tools}</div>}

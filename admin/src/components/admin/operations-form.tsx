@@ -15,7 +15,13 @@ import {
   TabsTrigger,
 } from "@/components/admin/ui/tabs";
 
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Save } from "lucide-react";
 import type { AdminOperations as Operations } from "@/lib/admin";
 import styles from "./settings-forms.module.css";
@@ -42,6 +48,7 @@ export function AdminOperationsForm({
   onChange,
   onGiftChange,
   onSubmit,
+  toolbarAction,
 }: {
   ops: Operations;
   gift: string;
@@ -57,7 +64,9 @@ export function AdminOperationsForm({
   onChange: (value: Operations) => void;
   onGiftChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
+  toolbarAction?: ReactNode;
 }) {
+  const formId = useId();
   const [section, setSection] = useState<string>(operationSections[0][0]);
   const [fieldToReport, setFieldToReport] = useState<
     HTMLInputElement | HTMLTextAreaElement | null
@@ -105,16 +114,19 @@ export function AdminOperationsForm({
         onValueChange={setSection}
         className={styles.operationsTabs}
       >
-        <TabsList
-          aria-label="运营设置分组"
-          className={styles.operationsTabList}
-        >
-          {operationSections.map(([id, title]) => (
-            <TabsTrigger key={id} value={id} type="button">
-              {title}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        <div className={styles.operationsToolbar}>
+          <TabsList
+            aria-label="运营设置分组"
+            className={styles.operationsTabList}
+          >
+            {operationSections.map(([id, title]) => (
+              <TabsTrigger key={id} value={id} type="button">
+                {title}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {toolbarAction}
+        </div>
         <TabsContent
           value="account"
           forceMount
@@ -123,10 +135,7 @@ export function AdminOperationsForm({
           className={styles.operationsPanel}
         >
           <FieldSet className={styles.formSection} disabled={busy}>
-            <FieldLegend>账户与注册</FieldLegend>
-            <p className={styles.sectionHelp}>
-              决定谁能注册、注册时获得多少积分，以及前台显示的积分名称。
-            </p>
+            <FieldLegend className="sr-only">账户与注册</FieldLegend>
             <FieldGroup className="ops-form-grid">
               <Field>
                 <FieldLabel className="settings-field">
@@ -139,7 +148,7 @@ export function AdminOperationsForm({
                       onChange({ ...ops, creditName: event.target.value })
                     }
                   />
-                  <small>例如：积分、点数、创作币</small>
+                  <small>最多 12 字。</small>
                 </FieldLabel>
               </Field>
               <Field>
@@ -151,7 +160,7 @@ export function AdminOperationsForm({
                     value={gift}
                     onChange={(event) => onGiftChange(event.target.value)}
                   />
-                  <small>0 表示不赠送，最多保留两位小数</small>
+                  <small>0 关闭赠送，最多两位小数。</small>
                 </FieldLabel>
               </Field>
             </FieldGroup>
@@ -201,13 +210,12 @@ export function AdminOperationsForm({
                   }
                   placeholder={
                     ops.registrationInviteConfigured
-                      ? "已配置，留空保留原邀请码"
+                      ? "已配置"
                       : "尚未配置"
                   }
                 />
                 <small>
-                  8–64
-                  位字母、数字、下划线或短横线。保存后在管理员后台直接显示；旧版仅保存哈希的邀请码需重新填写一次才能显示。
+                  8–64 位字母、数字、下划线或短横线。留空保留已设的邀请码。旧码不可见时，重新填写并保存即可查看。
                 </small>
               </FieldLabel>
             </Field>
@@ -221,20 +229,23 @@ export function AdminOperationsForm({
           className={styles.operationsPanel}
         >
           <FieldSet className={styles.formSection} disabled={busy}>
-            <FieldLegend>每日签到</FieldLegend>
-            <p className={styles.sectionHelp}>
-              单次奖励与全平台每日预算分别设置，关闭签到后保留已填写的参数。
-            </p>
-            <label className="settings-switch">
-              <input
-                type="checkbox"
-                checked={ops.checkinEnabled ?? false}
-                onChange={(event) =>
-                  onChange({ ...ops, checkinEnabled: event.target.checked })
-                }
-              />
-              开启每日签到奖励
-            </label>
+            <FieldLegend className="sr-only">每日签到</FieldLegend>
+            <Field>
+              <label className="settings-switch">
+                <input
+                  type="checkbox"
+                  checked={ops.checkinEnabled ?? false}
+                  aria-describedby={`${formId}-checkin-help`}
+                  onChange={(event) =>
+                    onChange({ ...ops, checkinEnabled: event.target.checked })
+                  }
+                />
+                开启每日签到奖励
+              </label>
+              <small id={`${formId}-checkin-help`} className={styles.fieldHelp}>
+                关闭后保留奖励与预算设置。
+              </small>
+            </Field>
             <FieldGroup className="ops-form-grid">
               <Field>
                 <FieldLabel className="settings-field">
@@ -248,7 +259,7 @@ export function AdminOperationsForm({
                     }
                   />
                   <small>
-                    0 表示不发放，最多两位小数；每账号按北京时间每天领取一次。
+                    0 关闭发放，最多两位小数。每账号按北京时间每日领取一次。
                   </small>
                 </FieldLabel>
               </Field>
@@ -264,8 +275,7 @@ export function AdminOperationsForm({
                     }
                   />
                   <small>
-                    单位：{ops.creditName}。0
-                    或剩余额度不足时暂停领取，不影响已到账奖励。
+                    全站共用（{ops.creditName}）。预算为 0 或不足时暂停领取，已到账奖励保留。
                   </small>
                 </FieldLabel>
               </Field>
@@ -280,10 +290,7 @@ export function AdminOperationsForm({
           className={styles.operationsPanel}
         >
           <FieldSet className={styles.formSection} disabled={busy}>
-            <FieldLegend>网站公告</FieldLegend>
-            <p className={styles.sectionHelp}>
-              编辑面向前台用户的消息，勾选“发布公告”并保存后展示。
-            </p>
+            <FieldLegend className="sr-only">网站公告</FieldLegend>
             <label className="settings-switch">
               <input
                 type="checkbox"
@@ -330,7 +337,7 @@ export function AdminOperationsForm({
                     }
                   />
                   <small>
-                    纯文本显示，支持换行；发布后前台可查看，内容更新会重新提示。
+                    纯文本，可换行。开启发布并保存后在前台展示，内容更新会再次提示。
                   </small>
                 </FieldLabel>
               </Field>
@@ -345,16 +352,16 @@ export function AdminOperationsForm({
           className={styles.operationsPanel}
         >
           <FieldSet className={styles.formSection} disabled={busy}>
-            <FieldLegend>单用户使用上限</FieldLegend>
+            <FieldLegend className="sr-only">单用户上限</FieldLegend>
             <p className={styles.sectionHelp}>
-              限制每个账号的并发与请求频率。全平台共享额度可在「平台额度」中设置。
+              每个账号单独计数，每小时上限按最近 60 分钟计算。
             </p>
             <FieldGroup className="ops-form-grid">
               {(
                 [
                   ["maxConcurrentTasks", "同时生成任务数", 16],
                   ["generationRequestsPerHour", "每小时生成任务数", 1000],
-                  ["auxiliaryRequestsPerHour", "每小时提示词辅助次数", 1000],
+                  ["auxiliaryRequestsPerHour", "每小时辅助请求数", 1000],
                 ] as const
               ).map(([key, label, max]) => (
                 <Field key={key}>
@@ -366,17 +373,27 @@ export function AdminOperationsForm({
                       min={1}
                       max={max}
                       value={ops[key]}
+                      aria-describedby={
+                        key === "auxiliaryRequestsPerHour"
+                          ? `${formId}-auxiliary-help`
+                          : undefined
+                      }
                       onChange={(event) =>
                         onChange({ ...ops, [key]: Number(event.target.value) })
                       }
                     />
                   </FieldLabel>
+                  {key === "auxiliaryRequestsPerHour" && (
+                    <small
+                      id={`${formId}-auxiliary-help`}
+                      className={styles.fieldHelp}
+                    >
+                      提示词优化、图片反推、商品与服装分析共用上限，站内费用为 0 积分。
+                    </small>
+                  )}
                 </Field>
               ))}
             </FieldGroup>
-            <p>
-              提示词优化、图片反推和服装分析共用辅助次数上限，首版不另扣积分。
-            </p>
           </FieldSet>
         </TabsContent>
         <TabsContent
@@ -387,10 +404,7 @@ export function AdminOperationsForm({
           className={styles.operationsPanel}
         >
           <FieldSet className={styles.formSection} disabled={busy}>
-            <FieldLegend>平台额度与告警</FieldLegend>
-            <p className={styles.sectionHelp}>
-              区分平台请求上限、积分预算和告警阈值，避免将站内积分误认为供应商账单。
-            </p>
+            <FieldLegend className="sr-only">平台额度</FieldLegend>
             <FieldGroup className="ops-form-grid">
               {(
                 [
@@ -400,6 +414,7 @@ export function AdminOperationsForm({
                     1,
                     100,
                     4,
+                    "全站共用，已开始的请求可继续执行。",
                   ],
                   [
                     "platformAuxiliaryPerDay",
@@ -407,9 +422,10 @@ export function AdminOperationsForm({
                     1,
                     1000000,
                     1000,
+                    "按北京时间自然日统计。实际开始即计数，失败也计入。",
                   ],
                 ] as const
-              ).map(([key, label, min, max, fallback]) => (
+              ).map(([key, label, min, max, fallback, help]) => (
                 <Field key={key}>
                   <FieldLabel className="settings-field">
                     <span>{label}</span>
@@ -420,11 +436,18 @@ export function AdminOperationsForm({
                       max={max}
                       step={1}
                       value={ops[key] ?? fallback}
+                      aria-describedby={`${formId}-${key}-help`}
                       onChange={(event) =>
                         onChange({ ...ops, [key]: Number(event.target.value) })
                       }
                     />
                   </FieldLabel>
+                  <small
+                    id={`${formId}-${key}-help`}
+                    className={styles.fieldHelp}
+                  >
+                    {help}
+                  </small>
                 </Field>
               ))}
               <Field>
@@ -439,8 +462,7 @@ export function AdminOperationsForm({
                     }
                   />
                   <small>
-                    单位：{ops.creditName}。0
-                    表示没有赠送预算；不足以全额赠送时暂停新注册，不少发承诺数量。
+                    北京时间每日额度（{ops.creditName}），0 为无赠送预算。预算不足以全额赠送时暂停新注册。
                   </small>
                 </FieldLabel>
               </Field>
@@ -456,8 +478,7 @@ export function AdminOperationsForm({
                     }
                   />
                   <small>
-                    单位：{ops.creditName}。0
-                    关闭；达到阈值在运营概览提示，不中止已创建任务。
+                    按北京时间统计站内消耗（{ops.creditName}），0 关闭。达到阈值仅在运营概览提示，供应商费用以账单为准。
                   </small>
                 </FieldLabel>
               </Field>
@@ -482,22 +503,23 @@ export function AdminOperationsForm({
                     }
                   />
                   <small>
-                    包括作品、素材、仍被历史引用的图片及反推暂存。降低额度不删除已有内容。
+                    作品、素材、历史引用图片和反推暂存均计入。降低额度仅限制后续写入。
                   </small>
                 </FieldLabel>
               </Field>
             </FieldGroup>
-            <p>
-              每日额度按北京时间自然日计算。辅助额度按实际开始的请求计数，失败也占用次数；已创建任务继续完成。这里的积分和次数不代表供应商真实账单。
-            </p>
           </FieldSet>
         </TabsContent>
       </Tabs>
       <div className={styles.operationsFooter}>
-        <p>保存时会应用所有标签页的修改。</p>
-        <Button type="submit" disabled={busy}>
+        <p id={`${formId}-save-help`}>应用所有标签页的修改。</p>
+        <Button
+          type="submit"
+          disabled={busy}
+          aria-describedby={`${formId}-save-help`}
+        >
           <Save data-icon="inline-start" />
-          {busy ? "保存中…" : "保存设置"}
+          {busy ? "保存中…" : "保存全部设置"}
         </Button>
       </div>
     </form>

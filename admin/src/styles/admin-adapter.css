@@ -61,19 +61,12 @@ body {
 [data-mobile='true'][data-sidebar='sidebar'] [data-sidebar='menu-button'] {
   min-height: 40px;
 }
-.admin-app .admin-page-heading,
-.admin-app .admin-page-controls {
-  min-width: 0;
-}
 .admin-app :is(.admin-page-tools, .admin-page-actions) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
-}
-.admin-app .admin-page-heading > p {
-  max-width: 72ch;
 }
 @media (max-width: 767px) {
   .admin-topbar {

@@ -440,6 +440,7 @@ export function InspirationPromptManager() {
       )}
       <AdminDataTable
         title="灵感提示词列表"
+        hideTitle
         data={items}
         columns={columns}
         getRowId={(item) => item.id}

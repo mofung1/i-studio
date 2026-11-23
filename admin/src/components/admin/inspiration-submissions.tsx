@@ -560,6 +560,7 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
       )}
       <AdminDataTable
         title="用户投稿列表"
+        hideTitle
         columns={columns}
         data={data?.submissions ?? []}
         getRowId={(item) => item.id}

@@ -112,7 +112,7 @@ export function AdminMonitoring({
       <header className={styles.sectionHeading}>
         <div>
           <h2 id="admin-monitor-title">运行监控</h2>
-          <p>查看任务积压、异常预留与存储记录。页面可见时每 30 秒更新。</p>
+          <p>页面可见时每 30 秒更新。</p>
         </div>
         <Button variant="outline" size="sm" disabled={loading} onClick={() => void refresh()}>
           <RefreshCw size={14} aria-hidden="true" />

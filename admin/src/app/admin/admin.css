@@ -144,7 +144,6 @@ html[data-theme='dark'] .admin-shell {
   background: transparent;
 }
 .admin-shell .admin-service-heading p,
-.admin-shell .reverse-settings-heading p,
 .admin-field-hint {
   margin: 0;
   color: var(--foreground-3);
@@ -1173,27 +1172,23 @@ html[data-theme='dark'] .admin-shell {
   min-height: 36px;
   margin-bottom: var(--admin-section-gap);
 }
-.admin-shell .admin-page-header h1 {
-  min-width: 0;
+.admin-shell .admin-page-description {
+  max-width: 72ch;
   margin: 0;
-  color: var(--foreground);
-  font-size: clamp(22px, 2.2vw, 28px);
-  line-height: 1.25;
-  font-weight: 650;
-  letter-spacing: -0.025em;
-}
-.admin-shell .admin-page-heading > p {
-  margin-top: 5px;
   color: var(--muted-foreground);
   font-size: 14px;
   line-height: 1.55;
 }
 .admin-shell .admin-page-controls {
   display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   align-items: center;
-  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
+}
+.admin-shell .admin-page-actions {
+  margin-inline-start: auto;
 }
 .admin-shell .admin-page-controls .ops-search {
   width: 240px;
@@ -1214,7 +1209,6 @@ html[data-theme='dark'] .admin-shell {
   }
   .admin-shell .admin-page-controls {
     flex: 1 1 100%;
-    justify-content: flex-start;
   }
   .admin-shell .admin-page-controls .ops-search {
     width: min(240px, 100%);
