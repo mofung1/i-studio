@@ -2,7 +2,7 @@
 
 部署已发布镜像请看 [安装说明](docker-image.md)。本文面向修改代码的开发者，命令默认在仓库根目录执行。
 
-## 工具与目录
+## 开发工具
 
 | 工具 | 仓库要求 |
 | --- | --- |
@@ -14,12 +14,31 @@
 
 开发脚本使用 Bash、`lsof`、`curl`，适合 macOS / Linux；Windows 可在 WSL 中运行。
 
-- `web/`：Next.js 前端、组件、页面与前端测试。
-- `server/cmd/server/`：Go 入口；`server/internal/`：服务、业务、存储和数据库迁移。
-- `server/seed/`：随软件分发的公共灵感清单及来源记录。
-- `docker/`：开发和其他部署配置；根目录 `compose.yml` 用于应用镜像部署。
-- `scripts/`：公共库导出、镜像验收及开发数据维护工具。
-- `docs/`：安装、使用、运维及架构文档。
+## 按业务查找代码
+
+| 要改的功能 | 页面或前端代码 | 服务端代码 |
+| --- | --- | --- |
+| 官网与工具介绍 | [官网路由](../web/app/%28marketing%29)、[展示组件](../web/components/marketing) | [品牌与站点设置](../server/internal/studio/site_settings.go) |
+| 生图与电商工作台 | `/studio` 与 `/workbench` 共用[工作台](../web/components/workbench.tsx)，[任务提交与恢复](../web/components/workbench/use-generation-task.ts)管理报价、提交和轮询 | [任务接口](../server/internal/studio/generation_handlers.go)、[积分预留与结算](../server/internal/studio/credits.go)、[逐张交付](../server/internal/studio/generation_delivery.go) |
+| 商品档案与采用版本 | [商品工作室](../web/components/products)、[商品 API 与类型](../web/lib/products.ts) | [档案](../server/internal/studio/commerce_products.go)、[商品生成参数](../server/internal/studio/commerce_products_generation.go)、[版本与采用](../server/internal/studio/commerce_products_versions.go) |
+| 素材库、项目与任务记录 | [素材库页面](../web/app/assets/asset-library.tsx)承载素材和任务两种视图 | [素材查询](../server/internal/studio/asset_library.go)、[项目](../server/internal/studio/project_handlers.go)、[任务历史](../server/internal/studio/generation_history.go)、[图片存储](../server/internal/storage) |
+| 提示词、反推与公共灵感 | [个人提示词](../web/components/personal-prompt-library.tsx)、[图片反推](../web/components/prompt-reverse-dialog.tsx)、[灵感库](../web/components/inspiration-gallery.tsx) | [个人提示词](../server/internal/studio/personal_prompts.go)、[反推任务](../server/internal/studio/prompt_reverse_worker.go)、[投稿审核](../server/internal/studio/inspiration_submission_review.go)、[内置清单与来源](../server/seed) |
+| 账号与运营后台 | [用户会话](../web/components/account-provider.tsx)、[独立后台路由](../admin/src/main.tsx)、[后台页面](../admin/src/app/admin) | [用户登录](../server/internal/studio/auth_handlers.go)、[管理员登录](../server/internal/studio/admin_auth.go)、[后台 API 路由](../server/internal/httpapi/admin_routes.go) |
+
+追踪一个 API 请求时，从 [Gin 路由](../server/internal/httpapi/routes.go)找到路径，再看[路由绑定](../server/internal/studio/routes.go)对应的业务方法。进程启动、数据库迁移和 Worker 启动集中在 [app.go](../server/internal/app/app.go)，表结构变更按顺序放在[数据库迁移目录](../server/internal/database/migrations)。
+
+生图任务的状态和预留积分保存在 PostgreSQL。Redis 通知 [Worker](../server/internal/studio/queue.go) 领取任务，进程重启后由[恢复逻辑](../server/internal/studio/queue_recovery.go)重新扫描数据库。用户反馈“余额减少但还没看到图片”时，可沿同一任务 ID 核对预留记录、逐张交付记录和最终结算。
+
+安装、使用与运维手册汇总在[文档目录](README.md)。公共库导入导出、开发数据维护及镜像验收工具放在 [scripts](../scripts)。构建应用镜像从 [Dockerfile](../docker/image.Dockerfile) 开始，发布流程见 [GitHub Actions 工作流](../.github/workflows/docker-image.yml)。
+
+### 各部署方式的后台入口
+
+| 启动方式 | `/admin` 由谁提供 |
+| --- | --- |
+| 根目录 [compose.yml](../compose.yml) | [镜像内 Caddy](../docker/Caddyfile.image)提供 `admin/` 构建的静态页面。后台与网站共用端口，默认 8080。 |
+| [本地开发 Compose](../docker/docker-compose.yml) | 独立后台默认在 33001，前台默认在 33000，前台端口上的 `/admin` 仍由 [Next.js 后台](../web/app/admin)处理。 |
+| [分服务生产](../docker/Caddyfile)与[宝塔部署](../docker/Caddyfile.internal) | 网关将 `/admin` 转发给 `web:3000`，使用 Next.js 后台。 |
+| [dev.sh](../dev.sh) | 脚本启动 API 与 Next.js。联调独立后台时另行启动 [admin 开发服务](../admin/README.md)，将 `ADMIN_API_PROXY` 指向脚本启动的 API，默认 `http://127.0.0.1:4000`。 |
 
 ## 启动开发服务
 
@@ -62,6 +81,15 @@ pnpm build
 ```
 
 提交前用现有 Prettier 检查修改过的前端文件，例如 `pnpm exec prettier --check components/input.tsx`，将示例路径换成实际修改文件。
+
+独立后台使用自己的依赖与锁文件。在仓库根目录执行以下命令，`build` 包含 TypeScript 检查。
+
+```sh
+cd admin
+pnpm install --frozen-lockfile
+pnpm test
+pnpm build
+```
 
 后端：
 

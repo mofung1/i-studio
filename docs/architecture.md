@@ -1,19 +1,20 @@
 # 系统架构
 
-本文对应当前代码及根目录 `compose.yml` 的镜像安装方式。官网、工作台与后台共用 Next.js；后台账号、会话与权限独立。Go API 与异步 Worker 位于同一应用进程中。
+根目录 `compose.yml` 使用单个应用镜像。Next.js 提供官网和创作工作台，Caddy 在 `/admin/` 提供 Vite 构建的独立后台。后台使用独立的管理员账号和会话。Go API 与异步 Worker 共用一个进程。其他部署配置的差异见[后台入口对照](development.md#各部署方式的后台入口)。
 
 ## 部署视图
 
 ![部署与业务依赖](images/architecture.svg)
 
-可编辑图源：[Mermaid](diagrams/architecture.mmd)；导出版本：[SVG](images/architecture.svg)、[PNG](images/architecture.png)。
+上图概览运行进程与存储依赖。下图展开网关路由，可单独查看 [Mermaid 图源](diagrams/architecture.mmd)。
 
 ```mermaid
 flowchart TB
   browser[浏览器：官网 / 创作工作台 / 运营后台]
   subgraph image[应用镜像 mofugn1/istudio]
     gateway[Caddy :8080 · 同源入口]
-    web[Next.js :3000 · 页面与交互]
+    web[Next.js :3000 · 官网与创作工作台]
+    admin[Vite 后台 · 静态文件]
     api[Go / Gin :4000 · 业务 API]
     worker[进程内 Worker · 生图 / 分析 / 结算]
     seed[798 条提示词 + 798 张公共封面]
@@ -24,7 +25,8 @@ flowchart TB
   cloud[可选：OSS / Kodo / COS / S3 / CDN]
   provider[外部图片模型 / Prompt / Vision 服务]
   browser --> gateway
-  gateway -->|页面与静态资源| web
+  gateway -->|前台页面与资源| web
+  gateway -->|/admin 和 /admin/*| admin
   gateway -->|/v1/*| api
   web -.->|服务端公开品牌与 SEO 数据| api
   api --> postgres
@@ -49,7 +51,8 @@ Compose 只发布应用 8080 端口。Next.js 和 API 监听容器内回环地�
 | 组件               | 职责                                  |
 | ------------------ | ------------------------------------- |
 | Caddy              | 提供页面和 API 的同源入口             |
-| Next.js            | 官网、工作台、账号和运营后台界面      |
+| Next.js            | 官网、创作工作台与用户账号界面        |
+| Vite 后台          | 管理员登录、模型配置、内容审核与运营  |
 | Go API             | 鉴权、资产、模型配置、积分和业务操作  |
 | Worker             | 在 API 进程内执行异步生成、分析和结算 |
 | PostgreSQL         | 保存账号、任务、积分、配置和图片索引  |
