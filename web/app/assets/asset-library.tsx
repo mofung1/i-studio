@@ -67,6 +67,8 @@ const toolOptions: Array<[string, string]> = [
   ['product-retouch', '产品精修'],
   ['clothing-set', '服装组图'],
 ]
+const taskPollInterval = 5000
+const taskBatchSize = 100
 
 export function AssetLibrary({ view }: { view: 'images' | 'tasks' | 'uploads' }) {
   return (
@@ -115,7 +117,8 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     initialRight?: string
     projectId?: string
   } | null>(null)
-  const [detailTask, setDetailTask] = useState<HistoryTask | null>(null)
+  const [detailTaskId, setDetailTaskId] = useState<string | null>(null)
+  const detailTask = detailTaskId ? tasks.find((task) => task.id === detailTaskId) : undefined
   const [editing, setEditing] = useState<LibraryAsset | null>(null)
   const [titleDraft, setTitleDraft] = useState('')
   const [tagsDraft, setTagsDraft] = useState('')
@@ -155,7 +158,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
   }, [])
   const load = useCallback(
     async (next = '', append = false, signal?: AbortSignal) => {
-      const requestEpoch = epoch.current
+      const requestEpoch = append ? epoch.current : ++epoch.current
       const requestFilter = `${view}:${queryString}`
       const params = new URLSearchParams(queryString)
       if (view === 'tasks' && params.get('taskType') === 'general') {
@@ -216,11 +219,11 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
       router.replace(`/login?next=${encodeURIComponent(`/assets?view=${view}`)}`)
       return
     }
-    epoch.current += 1
     const controller = new AbortController()
     setLoading(true)
     setAssets([])
     setTasks([])
+    setDetailTaskId(null)
     setSelected([])
     setBatchMode(false)
     setCursor('')
@@ -234,32 +237,47 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
     if (getAccessToken()) void loadProjects().catch((reason) => setError(reason.message))
   }, [loadProjects])
   useEffect(() => {
-    const active = tasks.filter((item) => activeTaskStatuses.has(item.status))
-    if (!active.length) return
+    if (view !== 'tasks' || loading) return
+    const ids = tasks.filter((task) => activeTaskStatuses.has(task.status)).map((task) => task.id)
+    if (!ids.length) return
     const controller = new AbortController()
-    const timer = window.setInterval(() => {
-      void Promise.all(
-        active.map((item) =>
-          libraryRequest<{ task: HistoryTask }>(`generation/tasks/${item.id}`, {
+    let timer = window.setTimeout(refresh, taskPollInterval)
+
+    async function refresh() {
+      const requestEpoch = epoch.current
+      const updates = new Map<string, HistoryTask>()
+      const missing = new Set<string>()
+      for (let offset = 0; offset < ids.length; offset += taskBatchSize) {
+        const batch = ids.slice(offset, offset + taskBatchSize)
+        try {
+          const data = await libraryRequest<{ tasks: HistoryTask[] }>('generation/tasks/batch', {
+            method: 'POST',
+            body: JSON.stringify({ ids: batch }),
             signal: controller.signal,
-          }),
-        ),
-      )
-        .then((results) => {
-          if (!controller.signal.aborted)
-            setTasks((current) =>
-              current.map(
-                (item) => results.find((result) => result.task.id === item.id)?.task ?? item,
-              ),
-            )
-        })
-        .catch(() => {})
-    }, 5000)
+          })
+          for (const task of data.tasks) updates.set(task.id, task)
+          for (const id of batch) if (!updates.has(id)) missing.add(id)
+        } catch {
+          // Keep this batch on screen and retry it on the next poll.
+        }
+        if (controller.signal.aborted || currentFilter.current !== filterKey) return
+        if (requestEpoch !== epoch.current) break
+      }
+      if (requestEpoch === epoch.current && (updates.size || missing.size)) {
+        setTasks((current) =>
+          current
+            .filter((task) => !missing.has(task.id))
+            .map((task) => updates.get(task.id) ?? task),
+        )
+        if (missing.size) setTotal((current) => Math.max(0, current - missing.size))
+      }
+      timer = window.setTimeout(refresh, taskPollInterval)
+    }
     return () => {
       controller.abort()
-      window.clearInterval(timer)
+      window.clearTimeout(timer)
     }
-  }, [tasks])
+  }, [tasks, filterKey, loading, view])
 
   useEffect(() => {
     if (!batchMode || busy) return
@@ -846,7 +864,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
                 <TaskGrid
                   tasks={tasks}
                   density={density}
-                  onDetails={setDetailTask}
+                  onDetails={(task) => setDetailTaskId(task.id)}
                   onDelete={(task) => setConfirm({ task })}
                 />
               )}
@@ -1078,7 +1096,7 @@ function AssetLibraryContent({ view }: { view: 'images' | 'tasks' | 'uploads' })
         <InfoDialog
           title="创作记录"
           subtitle={`${taskModeLabel(detailTask.input)} · ${formatLibraryDate(detailTask.createdAt)}`}
-          onClose={() => setDetailTask(null)}
+          onClose={() => setDetailTaskId(null)}
           hideActions
         >
           {detailTask.errorMessage && <FailureNotice message={detailTask.errorMessage} compact />}

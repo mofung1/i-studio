@@ -53,6 +53,7 @@ func (s Handlers) registerGenerationRoutes(api *gin.RouterGroup) {
 	generation.POST("/validate", gin.WrapF(s.Validate))
 	generation.GET("/quote", gin.WrapF(s.GenerationQuote))
 	registerMethods(generation, "/tasks", s.TasksHandler, "GET", "POST")
+	generation.POST("/tasks/batch", gin.WrapF(s.TasksBatch))
 	registerMethods(generation, "/tasks/:id", s.TaskByID, "GET", "DELETE")
 	generation.GET("/tasks/:id/download", gin.WrapF(s.TaskByID))
 	generation.POST("/tasks/:id/retry", gin.WrapF(s.TaskByID))

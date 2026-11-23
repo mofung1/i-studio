@@ -77,6 +77,7 @@ func (s *Service) router() *gin.Engine {
 		SiteLogo:                     s.siteLogo,
 		SiteSettingsHandler:          s.siteSettingsHandler,
 		TaskByID:                     s.taskByID,
+		TasksBatch:                   s.tasksBatch,
 		TasksHandler:                 s.tasksHandler,
 		Validate:                     s.validate,
 	})

@@ -110,6 +110,39 @@ func TestLibraryPaginationAndOwnerIsolation(t *testing.T) {
 	}
 }
 
+func TestLibraryBatchTaskProgress(t *testing.T) {
+	s := testLibraryServer(t)
+	seedLibrary(t, s, 3)
+	if _, err := s.db.Exec(`UPDATE generation_tasks SET status='processing',result_modules='["main"]' WHERE id='lt-001';
+		UPDATE generation_tasks SET status='failed',error_message='timeout: private-provider-detail' WHERE id='lt-002';
+		INSERT INTO generation_tasks(id,user_id,status,input) VALUES('other','library-b','queued','{}');
+		INSERT INTO generation_deliveries(task_id,position,request_key,status,asset_id,elapsed_ms)
+		VALUES('lt-001',1,'delivery-1','saved','la-001',1200)`); err != nil {
+		t.Fatal(err)
+	}
+	w := libraryHTTP(t, s, "POST", "/v1/generation/tasks/batch", "library-a",
+		`{"ids":["lt-002","other","lt-001","missing","lt-002"]}`)
+	var result struct {
+		Tasks []domain.GenerationTask `json:"tasks"`
+	}
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &result) != nil || len(result.Tasks) != 2 {
+		t.Fatalf("unexpected batch: %d %s", w.Code, w.Body.String())
+	}
+	failed, partial := result.Tasks[0], result.Tasks[1]
+	if failed.ID != "lt-002" || failed.Status != "failed" || failed.ErrorMessage != publicGenerationError("timeout") {
+		t.Fatalf("incorrect terminal task: %+v", failed)
+	}
+	if partial.ID != "lt-001" || partial.Status != "processing" || len(partial.ResultModules) != 1 ||
+		partial.ResultModules[0] != "main" || len(partial.ResultImages) != 1 || len(partial.ResultDetails) != 1 {
+		t.Fatalf("missing partial delivery: %+v", partial)
+	}
+	detail := partial.ResultDetails[0]
+	if partial.ResultImages[0] != "/v1/assets/la-001/content" || detail.ContentPath != partial.ResultImages[0] ||
+		detail.Width != 800 || detail.ElapsedMS == nil || *detail.ElapsedMS != 1200 {
+		t.Fatalf("incorrect image detail: %+v", detail)
+	}
+}
+
 func TestLibraryMetadataIsAtomicAndPrivate(t *testing.T) {
 	s := testLibraryServer(t)
 	seedLibrary(t, s, 2)

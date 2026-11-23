@@ -68,6 +68,7 @@ type Handlers struct {
 	SiteLogo                       func(http.ResponseWriter, *http.Request)
 	SiteSettingsHandler            func(http.ResponseWriter, *http.Request)
 	TaskByID                       func(http.ResponseWriter, *http.Request)
+	TasksBatch                     func(http.ResponseWriter, *http.Request)
 	TasksHandler                   func(http.ResponseWriter, *http.Request)
 	Validate                       func(http.ResponseWriter, *http.Request)
 }

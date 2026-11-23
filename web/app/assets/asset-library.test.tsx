@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { HistoryTask } from '@/components/workbench/use-task-history'
 import type { LibraryAsset } from '@/lib/library'
 import { downloadProtectedAsset } from '@/components/authenticated-image'
 import { AssetLibrary } from './asset-library'
@@ -137,6 +138,159 @@ afterEach(async () => {
   localStorage.clear()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+})
+
+describe('task progress in the asset library', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  const task = (id: string, status: string): HistoryTask => ({
+    id,
+    status,
+    createdAt: '2026-10-18T00:00:00Z',
+    input: { prompt: id },
+  })
+  const showTasks = () => act(async () => root.render(<AssetLibrary view="tasks" />))
+  const advance = (ms = 5000) => act(async () => vi.advanceTimersByTimeAsync(ms))
+
+  function serveTasks(tasks: HistoryTask[]) {
+    const originalFetch = fetch
+    const batch =
+      vi.fn<
+        (ids: string[], signal: AbortSignal | null | undefined) => Response | Promise<Response>
+      >()
+    const unexpected: string[] = []
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input))
+      if (url.pathname === '/v1/generation/tasks' && (init?.method ?? 'GET') === 'GET') {
+        const offset = Number(url.searchParams.get('cursor') ?? 0)
+        const end = offset + Number(url.searchParams.get('limit'))
+        return Response.json({
+          tasks: tasks.slice(offset, end),
+          total: tasks.length,
+          nextCursor: end < tasks.length ? String(end) : '',
+        })
+      }
+      if (url.pathname === '/v1/generation/tasks/batch' && init?.method === 'POST') {
+        return batch(JSON.parse(String(init.body)).ids, init.signal)
+      }
+      if (url.pathname.startsWith('/v1/generation/tasks/')) unexpected.push(url.pathname)
+      return originalFetch(input, init)
+    })
+    return { batch, unexpected }
+  }
+
+  it('refreshes only active tasks in one request, merges by ID and stops at terminal states', async () => {
+    const { batch, unexpected } = serveTasks([
+      task('first', 'queued'),
+      task('second', 'waiting_provider'),
+      task('removed', 'processing'),
+      task('finished', 'succeeded'),
+    ])
+    batch
+      .mockReturnValueOnce(
+        Response.json({
+          tasks: [
+            task('second', 'processing'),
+            { ...task('first', 'succeeded'), resultImages: ['/v1/assets/a/content'] },
+          ],
+        }),
+      )
+      .mockReturnValueOnce(
+        Response.json({ tasks: [{ ...task('second', 'failed'), errorMessage: '服务超时' }] }),
+      )
+    await showTasks()
+    await advance()
+    expect(batch.mock.calls.map(([ids]) => ids)).toEqual([['first', 'second', 'removed']])
+    const cards = Array.from(container.querySelectorAll('.asset-card'))
+    expect(cards.map((card) => card.querySelector('strong')?.textContent)).toEqual([
+      'first',
+      'second',
+      'finished',
+    ])
+    expect(cards[0]?.textContent).toContain('1 张 · 生成完成')
+    expect(cards[1]?.textContent).toContain('正在生成')
+    expect(container.querySelector('.library-count')?.textContent).toBe('3 条记录')
+    await act(async () => button('查看任务参数', cards[1]!).click())
+    await advance()
+    expect(container.textContent).toContain('生成失败')
+    expect(document.querySelector('[role="dialog"] [role="alert"]')?.textContent).toContain(
+      '服务超时',
+    )
+    await advance(20000)
+    expect(batch.mock.calls.map(([ids]) => ids)).toEqual([
+      ['first', 'second', 'removed'],
+      ['second'],
+    ])
+    expect(unexpected).toEqual([])
+  })
+
+  it('waits for a slow batch and retries a failed refresh without dropping the card', async () => {
+    const { batch } = serveTasks([task('slow', 'queued')])
+    let finish!: (response: Response) => void
+    batch
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            finish = resolve
+          }),
+      )
+      .mockReturnValueOnce(Response.json({ tasks: [task('slow', 'succeeded')] }))
+    await showTasks()
+    await advance()
+    await advance(15000)
+    expect(batch).toHaveBeenCalledTimes(1)
+    await act(async () => finish(Response.json({ error: 'temporary' }, { status: 503 })))
+    expect(container.querySelector('.asset-card')?.textContent).toContain('排队中')
+    await advance()
+    expect(batch).toHaveBeenCalledTimes(2)
+    expect(container.querySelector('.asset-card')?.textContent).toContain('生成完成')
+  })
+
+  it('discards late responses after leaving and returning to task history', async () => {
+    const history = [task('same-id', 'processing')]
+    const { batch } = serveTasks(history)
+    let finish!: (response: Response) => void
+    batch.mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          finish = resolve
+        }),
+    )
+    await showTasks()
+    await advance()
+    const signal = batch.mock.calls[0]?.[1]
+    await render()
+    expect(signal?.aborted).toBe(true)
+    history[0] = task('same-id', 'succeeded')
+    await showTasks()
+    await act(async () => finish(Response.json({ tasks: [task('same-id', 'queued')] })))
+    await advance()
+    expect(container.querySelector('.asset-card')?.textContent).toContain('生成完成')
+    expect(batch).toHaveBeenCalledTimes(1)
+  })
+
+  it('includes all loaded pages within the batch limit and retries only the failed group', async () => {
+    const history = Array.from({ length: 105 }, (_, index) => task(`task-${index}`, 'processing'))
+    const { batch } = serveTasks(history)
+    batch
+      .mockReturnValueOnce(Response.json({}, { status: 503 }))
+      .mockImplementation((ids) => Response.json({ tasks: ids.map((id) => task(id, 'succeeded')) }))
+    await showTasks()
+    await act(async () => button('加载更多').click())
+    await act(async () => button('加载更多').click())
+    await advance()
+    const batches = batch.mock.calls.map(([ids]) => ids)
+    expect(batches).toHaveLength(2)
+    expect(batches.every((ids) => ids.length <= 100)).toBe(true)
+    expect(batches.flat().sort()).toEqual(history.map((record) => record.id).sort())
+    await advance()
+    expect(batch.mock.calls.slice(2).map(([ids]) => ids)).toEqual([batches[0]])
+  })
 })
 
 it('keeps normal browsing free of checkboxes and only enters selection on request', async () => {

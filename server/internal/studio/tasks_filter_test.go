@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/istudio/server/internal/domain"
@@ -81,6 +82,34 @@ func TestTaskListRequiresAuth(t *testing.T) {
 	s.router().ServeHTTP(recorder, request)
 	if recorder.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 without a token, got %d", recorder.Code)
+	}
+}
+
+func TestTaskBatchInputAndOwnership(t *testing.T) {
+	s, _ := newTaskListServer(t)
+	const path = "/v1/generation/tasks/batch"
+	const mixed = `{"ids":["general-1","other-1","missing","general-1"]}`
+	if w := libraryHTTP(t, s, "POST", path, "", mixed); w.Code != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated request got %d", w.Code)
+	}
+	w := libraryHTTP(t, s, "POST", path, "user-1", mixed)
+	var response struct {
+		Tasks []domain.GenerationTask `json:"tasks"`
+	}
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &response) != nil || len(response.Tasks) != 1 || response.Tasks[0].ID != "general-1" {
+		t.Fatalf("unexpected batch: %d %s", w.Code, w.Body.String())
+	}
+	for _, body := range []string{
+		`{}`, `{"ids":[]}`, `{"ids":[" "]}`, `{"ids":[12]}`,
+		`{"ids":[` + strings.Repeat(`"general-1",`, 100) + `"general-1"]}`,
+	} {
+		if w := libraryHTTP(t, s, "POST", path, "user-1", body); w.Code != http.StatusBadRequest {
+			t.Fatalf("invalid batch got %d: %s", w.Code, w.Body.String())
+		}
+	}
+	body := `{"ids":[` + strings.Repeat(`"missing",`, 99) + `"other-1"]}`
+	if w := libraryHTTP(t, s, "POST", path, "user-1", body); w.Code != 200 || strings.TrimSpace(w.Body.String()) != `{"tasks":[]}` {
+		t.Fatalf("empty result at maximum request size: %d %s", w.Code, w.Body.String())
 	}
 }
 
