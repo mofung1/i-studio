@@ -142,9 +142,9 @@ it('submits precise model pricing and clears the default flag when taking it off
   await act(async () => button('编辑').click())
   const editor = container.querySelector<HTMLElement>('[aria-label="编辑前台模型"]')!
   await change(editor.querySelector<HTMLInputElement>('input[inputmode="decimal"]')!, '2.35')
-  await act(async () => editor.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click())
-  const defaultCheckbox = editor.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[1]!
-  expect(defaultCheckbox.checked).toBe(false)
+  await act(async () => editor.querySelector<HTMLButtonElement>('[data-slot="checkbox"]')!.click())
+  const defaultCheckbox = editor.querySelectorAll<HTMLButtonElement>('[data-slot="checkbox"]')[1]!
+  expect(defaultCheckbox.getAttribute('aria-checked')).toBe('false')
   expect(defaultCheckbox.disabled).toBe(true)
   await submit(editor.querySelector('form')!)
   expect(request).toHaveBeenCalledWith('models/model-1', 'PUT', {

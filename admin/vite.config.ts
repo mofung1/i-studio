@@ -1,7 +1,8 @@
 import { fileURLToPath, URL } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv, type ViteDevServer } from "vite";
+import { defineConfig } from "vitest/config";
+import { loadEnv, type ViteDevServer } from "vite";
 
 function redirectAdminRoot({ middlewares }: Pick<ViteDevServer, "middlewares">) {
   middlewares.use((req, res, next) => {
@@ -36,5 +37,8 @@ export default defineConfig(({ mode }) => {
     },
     server: { proxy },
     preview: { proxy },
+    test: {
+      setupFiles: ["./src/test/setup.ts"],
+    },
   };
 });

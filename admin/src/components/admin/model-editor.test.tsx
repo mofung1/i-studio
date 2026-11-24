@@ -109,7 +109,7 @@ it('requires re-enabling mask editing after changing the active upstream model',
   await act(async () => root.render(<Editor />))
   const mask = Array.from(container.querySelectorAll<HTMLLabelElement>('label'))
     .find((label) => label.textContent?.includes('支持局部修改'))!
-    .querySelector<HTMLInputElement>('input')!
+    .querySelector<HTMLButtonElement>('[data-slot="checkbox"]')!
   await act(async () => mask.click())
   await save()
   expect(saved?.capabilities.maskEditing).toBe(true)
@@ -162,7 +162,7 @@ it('adds a second binding, switches the primary and keeps the public price', asy
     fields[1]!.dispatchEvent(new Event('input', { bubbles: true }))
   })
   await act(async () =>
-    container.querySelectorAll<HTMLInputElement>('input[type="radio"]')[1]!.click(),
+    container.querySelectorAll<HTMLButtonElement>('[data-slot="radio-group-item"]')[1]!.click(),
   )
   await save()
   expect(saved?.channels).toEqual([
@@ -177,12 +177,14 @@ it('clears an active binding when disabled and can remove it explicitly', async 
   const label = Array.from(container.querySelectorAll('label')).find(
     (label) => label.textContent === '启用绑定',
   )!
-  await act(async () => label.querySelector('input')!.click())
+  await act(async () =>
+    label.querySelector<HTMLButtonElement>('[data-slot="checkbox"]')!.click(),
+  )
   await save()
   expect(saved).toBeUndefined()
   expect(container.textContent).toContain('上架前请选择已启用的主渠道')
   await act(async () =>
-    container.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click(),
+    container.querySelector<HTMLButtonElement>('[data-slot="checkbox"]')!.click(),
   )
   await save()
   expect(saved?.channels[0]).toMatchObject({ enabled: false, isActive: false })

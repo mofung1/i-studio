@@ -3,6 +3,9 @@ import { DialogActions } from '@/components/dialog-actions'
 import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/admin/ui/field'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
+import { Checkbox } from '@/components/admin/ui/checkbox'
+import { RadioGroup, RadioGroupItem } from '@/components/admin/ui/radio-group'
+import { Textarea } from '@/components/admin/ui/textarea'
 
 import Link from '@/routing/link'
 import { useId, useRef, useState, type FormEvent } from 'react'
@@ -199,10 +202,9 @@ export function AdminModelEditor({
         </FieldGroup>
         <Field className="settings-field">
           <FieldLabel htmlFor={`${formId}-usage-hint`}>使用建议（可选）</FieldLabel>
-          <textarea
+          <Textarea
             id={`${formId}-usage-hint`}
             aria-describedby={`${formId}-usage-help`}
-            className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             rows={3}
             maxLength={200}
             value={editing.usageHint ?? ''}
@@ -216,26 +218,24 @@ export function AdminModelEditor({
         </Field>
         <div className={styles.checks} role="group" aria-label="前台发布状态">
           <label>
-            <input
-              type="checkbox"
+            <Checkbox
               disabled={locked}
               checked={editing.enabled}
-              onChange={(event) =>
+              onCheckedChange={(checked) =>
                 onChange({
                   ...editing,
-                  enabled: event.target.checked,
-                  isDefault: event.target.checked && editing.isDefault,
+                  enabled: checked === true,
+                  isDefault: checked === true && editing.isDefault,
                 })
               }
             />
             上架到前台
           </label>
           <label>
-            <input
-              type="checkbox"
+            <Checkbox
               disabled={locked || !editing.enabled}
               checked={editing.isDefault}
-              onChange={(event) => onChange({ ...editing, isDefault: event.target.checked })}
+              onCheckedChange={(checked) => onChange({ ...editing, isDefault: checked === true })}
             />
             默认模型
           </label>
@@ -308,153 +308,155 @@ export function AdminModelEditor({
                 <p>从下方选择已配置的生图渠道，同一模型可绑定多个渠道。</p>
               </div>
             )}
-            {channels.map((channel, index) => {
-              const endpoint = endpoints.find((item) => item.id === channel.endpointId)
-              const result = testResults[channel.endpointId]
-              const showResult = result?.model === channel.upstreamModelId.trim()
-              const stateLabel = channel.isActive
-                ? primaryChanged
-                  ? '保存后使用'
-                  : '当前使用'
-                : !channel.enabled
-                  ? '绑定已停用'
-                  : '备用渠道'
-              return (
-                <div
-                  key={channel.endpointId}
-                  className="model-channel-card"
-                  data-active={channel.isActive}
-                >
-                  <div className="model-channel-card-heading">
-                    <div>
-                      <strong>{endpoint?.name ?? '渠道已删除'}</strong>
-                      <span>
-                        {endpoint ? imageProtocolLabels[endpoint.protocol] : '请移除此绑定'}
-                        {endpoint && !endpoint.enabled && ' · 渠道已停用'}
+            <RadioGroup
+              value={primary?.endpointId ?? ''}
+              onValueChange={(endpointId) => {
+                if (!endpointId) return
+                onChange({
+                  ...editing,
+                  capabilities: { ...capabilities, maskEditing: false },
+                  channels: channels.map((item) => ({
+                    ...item,
+                    isActive: item.endpointId === endpointId,
+                  })),
+                })
+              }}
+            >
+              {channels.map((channel, index) => {
+                const endpoint = endpoints.find((item) => item.id === channel.endpointId)
+                const result = testResults[channel.endpointId]
+                const showResult = result?.model === channel.upstreamModelId.trim()
+                const stateLabel = channel.isActive
+                  ? primaryChanged
+                    ? '保存后使用'
+                    : '当前使用'
+                  : !channel.enabled
+                    ? '绑定已停用'
+                    : '备用渠道'
+                return (
+                  <div
+                    key={channel.endpointId}
+                    className="model-channel-card"
+                    data-active={channel.isActive}
+                  >
+                    <div className="model-channel-card-heading">
+                      <div>
+                        <strong>{endpoint?.name ?? '渠道已删除'}</strong>
+                        <span>
+                          {endpoint ? imageProtocolLabels[endpoint.protocol] : '请移除此绑定'}
+                          {endpoint && !endpoint.enabled && ' · 渠道已停用'}
+                        </span>
+                      </div>
+                      <span className="model-channel-state">
+                        {channel.isActive && <Check size={13} aria-hidden="true" />}
+                        {stateLabel}
                       </span>
                     </div>
-                    <span className="model-channel-state">
-                      {channel.isActive && <Check size={13} aria-hidden="true" />}
-                      {stateLabel}
-                    </span>
-                  </div>
-                  <Field>
-                    <FieldLabel className="settings-field" htmlFor={`${formId}-upstream-${index}`}>
-                      <span>上游模型 ID</span>
-                      <Input
-                        id={`${formId}-upstream-${index}`}
-                        required
-                        maxLength={200}
-                        value={channel.upstreamModelId}
-                        placeholder="填写此渠道实际支持的模型 ID"
-                        aria-invalid={submitted && !channel.upstreamModelId.trim()}
-                        onChange={(event) =>
-                          changeChannel(index, { upstreamModelId: event.target.value })
-                        }
-                      />
-                    </FieldLabel>
-                  </Field>
-                  <div className="model-channel-card-controls">
-                    <div className={styles.checks} role="group" aria-label="绑定状态">
-                      <label>
-                        <input
-                          type="radio"
-                          name={`${formId}-activeChannel`}
-                          checked={channel.isActive}
-                          disabled={!channel.enabled || !endpoint?.enabled}
-                          onChange={() =>
+                    <Field>
+                      <FieldLabel className="settings-field" htmlFor={`${formId}-upstream-${index}`}>
+                        <span>上游模型 ID</span>
+                        <Input
+                          id={`${formId}-upstream-${index}`}
+                          required
+                          maxLength={200}
+                          value={channel.upstreamModelId}
+                          placeholder="填写此渠道实际支持的模型 ID"
+                          aria-invalid={submitted && !channel.upstreamModelId.trim()}
+                          onChange={(event) =>
+                            changeChannel(index, { upstreamModelId: event.target.value })
+                          }
+                        />
+                      </FieldLabel>
+                    </Field>
+                    <div className="model-channel-card-controls">
+                      <div className={styles.checks} role="group" aria-label="绑定状态">
+                        <label>
+                          <RadioGroupItem
+                            value={channel.endpointId}
+                            disabled={!channel.enabled || !endpoint?.enabled}
+                          />
+                          {channel.isActive ? '已选为主渠道' : '设为主渠道'}
+                        </label>
+                        <label>
+                          <Checkbox
+                            checked={channel.enabled}
+                            onCheckedChange={(checked) =>
+                              changeChannel(index, {
+                                enabled: checked === true,
+                                isActive: checked === true && channel.isActive,
+                              })
+                            }
+                          />
+                          启用绑定
+                        </label>
+                      </div>
+                      <div className="model-channel-card-actions">
+                        <Button
+                          variant="outline"
+                          type="button"
+                          disabled={!endpoint?.enabled || !channel.upstreamModelId.trim()}
+                          onClick={() => void testChannel(channel)}
+                        >
+                          {testing === channel.endpointId ? (
+                            <LoaderCircle
+                              data-icon="inline-start"
+                              className="settings-spinner"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <Zap data-icon="inline-start" aria-hidden="true" />
+                          )}
+                          {testing === channel.endpointId
+                            ? '正在生成测试图…'
+                            : '真实生图测试（可能收费）'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          type="button"
+                          className="settings-command model-channel-remove"
+                          aria-label={`删除绑定 ${endpoint?.name ?? ''}`}
+                          onClick={() =>
                             onChange({
                               ...editing,
-                              capabilities: { ...capabilities, maskEditing: false },
-                              channels: channels.map((item, i) => ({
-                                ...item,
-                                isActive: i === index,
-                              })),
+                              capabilities: channel.isActive
+                                ? { ...capabilities, maskEditing: false }
+                                : capabilities,
+                              channels: channels.filter((_, i) => i !== index),
                             })
                           }
-                        />
-                        {channel.isActive ? '已选为主渠道' : '设为主渠道'}
-                      </label>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={channel.enabled}
-                          onChange={(event) =>
-                            changeChannel(index, {
-                              enabled: event.target.checked,
-                              isActive: event.target.checked && channel.isActive,
-                            })
-                          }
-                        />
-                        启用绑定
-                      </label>
+                        >
+                          <Trash2 data-icon="inline-start" aria-hidden="true" />
+                          删除绑定
+                        </Button>
+                      </div>
                     </div>
-                    <div className="model-channel-card-actions">
-                      <Button
-                        variant="outline"
-                        type="button"
-                        disabled={!endpoint?.enabled || !channel.upstreamModelId.trim()}
-                        onClick={() => void testChannel(channel)}
+                    {showResult && (
+                      <p
+                        className="model-channel-test"
+                        data-success={result.success}
+                        role={result.success ? 'status' : 'alert'}
                       >
-                        {testing === channel.endpointId ? (
-                          <LoaderCircle
-                            data-icon="inline-start"
-                            className="settings-spinner"
-                            aria-hidden="true"
-                          />
-                        ) : (
-                          <Zap data-icon="inline-start" aria-hidden="true" />
+                        <strong>{result.success ? '测试通过' : '测试失败'}</strong>
+                        <span>{result.message}</span>
+                        {result.measurement && (
+                          <span>
+                            请求 {result.measurement.aspectRatio} / {result.measurement.resolution}
+                            ；实际 {result.measurement.width} × {result.measurement.height} px ·{' '}
+                            {(result.measurement.elapsedMs ?? 0) / 1000} 秒。供应商费用待账单核对。
+                          </span>
                         )}
-                        {testing === channel.endpointId
-                          ? '正在生成测试图…'
-                          : '真实生图测试（可能收费）'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        type="button"
-                        className="settings-command model-channel-remove"
-                        aria-label={`删除绑定 ${endpoint?.name ?? ''}`}
-                        onClick={() =>
-                          onChange({
-                            ...editing,
-                            capabilities: channel.isActive
-                              ? { ...capabilities, maskEditing: false }
-                              : capabilities,
-                            channels: channels.filter((_, i) => i !== index),
-                          })
-                        }
-                      >
-                        <Trash2 data-icon="inline-start" aria-hidden="true" />
-                        删除绑定
-                      </Button>
-                    </div>
+                      </p>
+                    )}
+                    <ChannelMeasurements
+                      key={`${channel.endpointId}:${channel.upstreamModelId}`}
+                      endpointId={channel.endpointId}
+                      model={channel.upstreamModelId.trim()}
+                      revision={measurementRevision}
+                    />
                   </div>
-                  {showResult && (
-                    <p
-                      className="model-channel-test"
-                      data-success={result.success}
-                      role={result.success ? 'status' : 'alert'}
-                    >
-                      <strong>{result.success ? '测试通过' : '测试失败'}</strong>
-                      <span>{result.message}</span>
-                      {result.measurement && (
-                        <span>
-                          请求 {result.measurement.aspectRatio} / {result.measurement.resolution}
-                          ；实际 {result.measurement.width} × {result.measurement.height} px ·{' '}
-                          {(result.measurement.elapsedMs ?? 0) / 1000} 秒。供应商费用待账单核对。
-                        </span>
-                      )}
-                    </p>
-                  )}
-                  <ChannelMeasurements
-                    key={`${channel.endpointId}:${channel.upstreamModelId}`}
-                    endpointId={channel.endpointId}
-                    model={channel.upstreamModelId.trim()}
-                    revision={measurementRevision}
-                  />
-                </div>
-              )
-            })}
+                )
+              })}
+            </RadioGroup>
           </div>
           <Field>
             <FieldLabel className="settings-field model-channel-add">
@@ -517,16 +519,15 @@ export function AdminModelEditor({
           </p>
           <div className={styles.capabilityChecks}>
             <label className="model-reference-toggle">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={capabilities.referenceImages}
-                onChange={(event) =>
+                onCheckedChange={(checked) =>
                   onChange({
                     ...editing,
                     capabilities: {
                       ...capabilities,
-                      referenceImages: event.target.checked,
-                      maskEditing: event.target.checked ? capabilities.maskEditing : false,
+                      referenceImages: checked === true,
+                      maskEditing: checked === true ? capabilities.maskEditing : false,
                     },
                   })
                 }
@@ -534,16 +535,15 @@ export function AdminModelEditor({
               支持参考图
             </label>
             <label className="model-reference-toggle">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={capabilities.maskEditing ?? false}
                 disabled={
                   !capabilities.referenceImages || primaryEndpoint?.protocol !== 'openai_images'
                 }
-                onChange={(event) =>
+                onCheckedChange={(checked) =>
                   onChange({
                     ...editing,
-                    capabilities: { ...capabilities, maskEditing: event.target.checked },
+                    capabilities: { ...capabilities, maskEditing: checked === true },
                   })
                 }
               />
@@ -559,15 +559,14 @@ export function AdminModelEditor({
               <div className="model-capability-options">
                 {defaultModelCapabilities[field].map((value) => (
                   <label key={value} data-checked={capabilities[field].includes(value)}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={capabilities[field].includes(value)}
-                      onChange={(event) =>
+                      onCheckedChange={(checked) =>
                         onChange({
                           ...editing,
                           capabilities: {
                             ...capabilities,
-                            [field]: event.target.checked
+                            [field]: checked === true
                               ? [...capabilities[field], value]
                               : capabilities[field].filter((item) => item !== value),
                           },
