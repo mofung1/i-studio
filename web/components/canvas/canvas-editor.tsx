@@ -104,6 +104,8 @@ function CanvasEditorContent({ id }: { id: string }) {
     undo: [],
     redo: [],
   })
+  // 删除生成中节点时被取消的任务 ID；撤销恢复这类节点时清空其结果，避免续接已取消任务。
+  const cancelledTaskIdsRef = useRef<Set<string>>(new Set())
   // 选择状态同步镜像：供 focus 事件读取最新选择（避免闭包里的旧值）。
   const selectedIdsRef = useRef<string[]>([])
   // 节点 pointerdown 已处理选择后，抑制随后的 focus 事件重复改选。
@@ -256,14 +258,28 @@ function CanvasEditorContent({ id }: { id: string }) {
 
   const applySnapshot = useCallback(
     (snap: GraphSnapshot) => {
-      setNodes(snap.nodes)
-      setEdges(snap.edges)
       // 撤销/重做会整体替换图，丢弃未落定的编辑会话，避免残留快照污染历史。
       if (editTimerRef.current) {
         clearTimeout(editTimerRef.current)
         editTimerRef.current = null
       }
       pendingEditRef.current = null
+      // 恢复出的图像节点若其任务在删除时已被取消，则清空结果回到「未生成」，
+      // 而不是继续轮询一个已取消的任务并最终显示「已取消」。
+      const cancelled = cancelledTaskIdsRef.current
+      const nodes =
+        cancelled.size > 0
+          ? snap.nodes.map((n) => {
+              if (n.type !== 'image') return n
+              const result = imageNodeResult(n)
+              if (result?.taskId && cancelled.has(result.taskId)) {
+                return { ...n, result: null }
+              }
+              return n
+            })
+          : snap.nodes
+      setNodes(nodes)
+      setEdges(snap.edges)
       scheduleSave()
     },
     [scheduleSave],
@@ -508,13 +524,15 @@ function CanvasEditorContent({ id }: { id: string }) {
       if (ids.length === 0) return
       commitHistory()
       const removing = new Set(ids)
-      // 删除生成中的图像节点时，主动取消其服务端任务并退回冻结额度（fire-and-forget）。
+      // 删除生成中的图像节点时，主动取消其服务端任务并退回冻结额度（fire-and-forget）；
+      // 记录被取消的任务 ID，撤销恢复节点时据此清空其结果，而不是续接已取消任务。
       for (const id of ids) {
         const node = stateRef.current.nodes.find((n) => n.id === id)
         if (node && node.type === 'image') {
           const result = imageNodeResult(node)
           const active = result && ACTIVE_GENERATION_STATUSES.has(result.status)
           if (active && result.taskId) {
+            cancelledTaskIdsRef.current.add(result.taskId)
             void cancelGenerationTask(result.taskId).catch(() => {})
           }
         }
