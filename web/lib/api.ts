@@ -163,3 +163,41 @@ export async function enhancePrompt({
     throw new Error('AI 没有返回内容，请重试')
   return payload
 }
+
+export interface TextCompleteInput {
+  text: string
+  /** 可选任务说明，例如「改写得更口语化」「翻译成英文」；留空时默认润色。 */
+  instruction?: string
+}
+
+export interface TextCompleteResult {
+  text: string
+  model?: string
+}
+
+/** 画布文本节点「文生文」：按任务说明处理一段文本，返回生成结果。 */
+export async function completeText({
+  text,
+  instruction,
+}: TextCompleteInput): Promise<TextCompleteResult> {
+  const token = getAccessToken()
+  const response = await fetch(`${apiBaseUrl}/v1/text/complete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ text, instruction }),
+  })
+  if (response.status === 401) throw new Error('登录状态已失效，请重新登录')
+  if (!response.ok) throw new Error(await readApiError(response, '文本生成失败，请重试'))
+  let payload: TextCompleteResult
+  try {
+    payload = (await response.json()) as TextCompleteResult
+  } catch {
+    throw new Error('AI 返回的内容格式异常，请重试')
+  }
+  if (typeof payload?.text !== 'string' || !payload.text.trim())
+    throw new Error('AI 没有返回内容，请重试')
+  return payload
+}

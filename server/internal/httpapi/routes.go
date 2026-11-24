@@ -41,6 +41,7 @@ func NewRouter(s Handlers) *gin.Engine {
 	s.registerGenerationRoutes(api)
 	s.registerLibraryRoutes(api)
 	s.registerPromptRoutes(api)
+	api.POST("/text/complete", gin.WrapF(s.TextComplete))
 	s.registerSettingsRoutes(api)
 	s.registerInspirationRoutes(api)
 	s.registerAdminRoutes(api.Group("/admin", s.adminMiddleware()))

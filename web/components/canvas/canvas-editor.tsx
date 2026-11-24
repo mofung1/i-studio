@@ -5,8 +5,9 @@ import { Delete, Image as ImageIcon, Plus, Type, Video } from 'lucide-react'
 
 import { AccountBoundary } from '@/components/account-access'
 import { StudioShell } from '@/components/studio-shell'
+import { CanvasNodeCard } from './canvas-node-card'
+import { useCanvasCapabilities } from './use-canvas-capabilities'
 import {
-  canvasNodeDefaults,
   createCanvas,
   deleteCanvas,
   getCanvas,
@@ -89,6 +90,23 @@ function CanvasEditorContent() {
     }, SAVE_DEBOUNCE_MS)
   }, [])
 
+  const capabilities = useCanvasCapabilities()
+
+  const updateNode = useCallback(
+    (id: string, patch: Partial<CanvasNode>) => {
+      setNodes((current) =>
+        current.map((n) => {
+          if (n.id !== id) return n
+          const next = { ...n, ...patch }
+          if (patch.data) next.data = { ...n.data, ...patch.data }
+          return next
+        }),
+      )
+      scheduleSave()
+    },
+    [scheduleSave],
+  )
+
   useEffect(
     () => () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -141,6 +159,21 @@ function CanvasEditorContent() {
     const cy = (h / 2 - viewport.y) / viewport.zoom
     const offset = nodes.length * 24
     const node = newCanvasNode(type, cx - 160 + offset, cy - 130 + offset)
+    if (type === 'image') {
+      const fallback = capabilities.imageEndpoints[0]
+      node.data = {
+        prompt: '',
+        endpointId: fallback?.id ?? '',
+        model: fallback?.model ?? '',
+        aspectRatio: '1:1',
+        resolution: '2K',
+        count: 1,
+        style: 'unspecified',
+        referenceStrength: 'medium',
+      }
+    } else if (type === 'text') {
+      node.data = { prompt: '', instruction: '' }
+    }
     const next = [...nodes, node]
     setNodes(next)
     setSelectedId(node.id)
@@ -299,7 +332,12 @@ function CanvasEditorContent() {
   const onKeyDown = (event: React.KeyboardEvent) => {
     if ((event.key === 'Delete' || event.key === 'Backspace') && selectedId) {
       const target = event.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT'
+      )
+        return
       event.preventDefault()
       onDeleteSelected()
     }
@@ -408,9 +446,12 @@ function CanvasEditorContent() {
                 key={node.id}
                 node={node}
                 selected={node.id === selectedId}
+                imageEndpoints={capabilities.imageEndpoints}
+                promptEnhanceEnabled={capabilities.promptEnhanceEnabled}
                 onPointerDown={(event) => onNodePointerDown(event, node)}
                 onSelect={() => setSelectedId(node.id)}
                 onDelete={onDeleteSelected}
+                onUpdate={(patch) => updateNode(node.id, patch)}
               />
             ))}
           </div>
@@ -423,66 +464,5 @@ function CanvasEditorContent() {
         )}
       </div>
     </StudioShell>
-  )
-}
-
-function CanvasNodeCard({
-  node,
-  selected,
-  onPointerDown,
-  onSelect,
-  onDelete,
-}: {
-  node: CanvasNode
-  selected: boolean
-  onPointerDown: (event: React.PointerEvent) => void
-  onSelect: () => void
-  onDelete: () => void
-}) {
-  const label = canvasNodeDefaults[node.type].label
-  return (
-    <div
-      className={`canvas-node is-${node.type}${selected ? ' is-selected' : ''}`}
-      style={{ left: node.x, top: node.y, width: node.w, minHeight: node.h }}
-      onPointerDown={onPointerDown}
-      onFocus={onSelect}
-      role="group"
-      aria-label={`${label}节点`}
-      tabIndex={0}
-    >
-      <div className="canvas-node-head">
-        <span className="canvas-node-type">
-          {node.type === 'text' ? (
-            <Type size={13} aria-hidden="true" />
-          ) : node.type === 'image' ? (
-            <ImageIcon size={13} aria-hidden="true" />
-          ) : (
-            <Video size={13} aria-hidden="true" />
-          )}
-          {label}
-        </span>
-        <button
-          type="button"
-          className="canvas-node-delete"
-          onClick={(event) => {
-            event.stopPropagation()
-            onDelete()
-          }}
-          aria-label={`删除${label}节点`}
-          title="删除节点"
-        >
-          <Delete size={13} aria-hidden="true" />
-        </button>
-      </div>
-      <div className="canvas-node-body">
-        {node.type === 'text' ? (
-          <p className="canvas-node-placeholder">文本节点 · 文生文（下一步接入）</p>
-        ) : node.type === 'image' ? (
-          <p className="canvas-node-placeholder">图像节点 · 文生图 / 图生图（下一步接入）</p>
-        ) : (
-          <p className="canvas-node-placeholder">视频节点 · 预留类型</p>
-        )}
-      </div>
-    </div>
   )
 }

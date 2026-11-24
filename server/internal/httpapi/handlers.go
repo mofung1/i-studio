@@ -72,5 +72,6 @@ type Handlers struct {
 	TaskByID                       func(http.ResponseWriter, *http.Request)
 	TasksBatch                     func(http.ResponseWriter, *http.Request)
 	TasksHandler                   func(http.ResponseWriter, *http.Request)
+	TextComplete                   func(http.ResponseWriter, *http.Request)
 	Validate                       func(http.ResponseWriter, *http.Request)
 }

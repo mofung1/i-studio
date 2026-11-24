@@ -81,6 +81,7 @@ func (s *Service) router() *gin.Engine {
 		TaskByID:                     s.taskByID,
 		TasksBatch:                   s.tasksBatch,
 		TasksHandler:                 s.tasksHandler,
+		TextComplete:                 s.textComplete,
 		Validate:                     s.validate,
 	})
 }
