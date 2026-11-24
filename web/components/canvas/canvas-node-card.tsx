@@ -178,14 +178,21 @@ function TextNodeBody({
   const data = textNodeData(node)
   const result = node.result as CanvasTextNodeResult | null
 
+  // 与图像节点一致：支持 @图N 精确引用上游图片，去掉标记后作为正文。
+  const { referenceAssetIds, prompt: cleanedPrompt } = resolveReferenceImages(
+    data.prompt,
+    referenceImages,
+  )
+  const referenceCount = Math.min(referenceAssetIds.length, 4)
+
   // 上游文本作为上下文拼在输入之后；本节点自己的文本为空时也能用上游结果生成。
-  const effectiveText = [data.prompt, ...referenceTexts]
+  const effectiveText = [cleanedPrompt, ...referenceTexts]
     .map((value) => value.trim())
     .filter(Boolean)
     .join('\n\n')
 
   const run = async () => {
-    if (!effectiveText && referenceImages.length === 0) {
+    if (!effectiveText && referenceAssetIds.length === 0) {
       setError('请先输入文本或接入上游节点')
       return
     }
@@ -196,7 +203,7 @@ function TextNodeBody({
       const res = await completeText({
         text: effectiveText,
         instruction: data.instruction.trim(),
-        imageAssetIds: referenceImages.slice(0, 4),
+        imageAssetIds: referenceAssetIds.slice(0, 4),
       })
       onUpdate({ result: { text: res.text, model: res.model } })
     } catch (reason) {
@@ -212,16 +219,16 @@ function TextNodeBody({
         className="canvas-node-textarea"
         value={data.prompt}
         rows={3}
-        placeholder="输入要处理的文本，或直接引用上游图片做图生文"
+        placeholder="输入要处理的文本，可用 @图N 精确引用上游图片；或留空直接图生文"
         aria-label="文本内容"
         onPointerDown={stopPointer}
         onChange={(event) => onUpdate({ data: { prompt: event.target.value } })}
       />
-      {(referenceTexts.length > 0 || referenceImages.length > 0) && (
+      {(referenceTexts.length > 0 || referenceAssetIds.length > 0) && (
         <p className="canvas-node-ref-hint">
           <Link2 size={12} aria-hidden="true" />
           {referenceTexts.length > 0 && ` 上游文本 ×${referenceTexts.length}`}
-          {referenceImages.length > 0 && ` 参考图 ×${Math.min(referenceImages.length, 4)}`}
+          {referenceAssetIds.length > 0 && ` 参考图 ×${referenceCount}`}
         </p>
       )}
       <input
