@@ -211,12 +211,12 @@ export function WorkbenchRail({
         <Link
           href="/canvas"
           className={section === 'canvas' ? 'active' : ''}
-          aria-label="画布"
-          title="画布"
+          aria-label="无限画布"
+          title="无限画布"
           aria-current={section === 'canvas' ? 'page' : undefined}
         >
           <Frame size={18} />
-          <span>画布</span>
+          <span>无限画布</span>
         </Link>
         {inCommerce ? (
           <button
