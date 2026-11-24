@@ -105,6 +105,9 @@ function CanvasEditorContent({ id }: { id: string }) {
   const selectedIdsRef = useRef<string[]>([])
   // 节点 pointerdown 已处理选择后，抑制随后的 focus 事件重复改选。
   const suppressFocusSelectRef = useRef(false)
+  // 配置编辑会话：防抖合并，把「编辑前」快照延迟入撤销栈。
+  const editTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingEditRef = useRef<GraphSnapshot | null>(null)
 
   // 记录视口、节点与连线，供防抖保存读取最新值。
   const stateRef = useRef({ viewport, nodes, edges })
@@ -161,6 +164,11 @@ function CanvasEditorContent({ id }: { id: string }) {
 
   const updateNode = useCallback(
     (id: string, patch: Partial<CanvasNode>) => {
+      // 配置（data）编辑用防抖合并成单个撤销步：只在首个变更前记一次快照，停顿后入栈。
+      // 结果（result）回填不入这里，改由生成前的快照负责撤销。
+      if (patch.data && !pendingEditRef.current) {
+        pendingEditRef.current = { nodes: stateRef.current.nodes, edges: stateRef.current.edges }
+      }
       setNodes((current) =>
         current.map((n) => {
           if (n.id !== id) return n
@@ -170,6 +178,17 @@ function CanvasEditorContent({ id }: { id: string }) {
         }),
       )
       scheduleSave()
+      if (patch.data) {
+        if (editTimerRef.current) clearTimeout(editTimerRef.current)
+        editTimerRef.current = setTimeout(() => {
+          const before = pendingEditRef.current
+          pendingEditRef.current = null
+          if (!before) return
+          historyRef.current.undo.push(before)
+          if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
+          historyRef.current.redo = []
+        }, 800)
+      }
     },
     [scheduleSave],
   )
@@ -182,8 +201,18 @@ function CanvasEditorContent({ id }: { id: string }) {
     })
   }, [])
 
-  // 撤销/重做：记录离散的图变更（增删节点/连线、节点落定、复制粘贴），不记录打字与结果回填。
+  // 撤销/重做：记录离散的图变更（增删节点/连线、节点落定、复制粘贴）与生成前状态；
+  // 打字与结果回填分别走编辑会话防抖、生成前快照。
   const commitHistory = useCallback(() => {
+    // 先落定未提交的配置编辑会话，保证编辑快照排在结构/生成快照之前。
+    if (pendingEditRef.current) {
+      historyRef.current.undo.push(pendingEditRef.current)
+      pendingEditRef.current = null
+      if (editTimerRef.current) {
+        clearTimeout(editTimerRef.current)
+        editTimerRef.current = null
+      }
+    }
     const { nodes: nds, edges: eds } = stateRef.current
     historyRef.current.undo.push({ nodes: nds, edges: eds })
     if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
@@ -194,6 +223,12 @@ function CanvasEditorContent({ id }: { id: string }) {
     (snap: GraphSnapshot) => {
       setNodes(snap.nodes)
       setEdges(snap.edges)
+      // 撤销/重做会整体替换图，丢弃未落定的编辑会话，避免残留快照污染历史。
+      if (editTimerRef.current) {
+        clearTimeout(editTimerRef.current)
+        editTimerRef.current = null
+      }
+      pendingEditRef.current = null
       scheduleSave()
     },
     [scheduleSave],
@@ -259,6 +294,7 @@ function CanvasEditorContent({ id }: { id: string }) {
   useEffect(
     () => () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
+      if (editTimerRef.current) clearTimeout(editTimerRef.current)
     },
     [],
   )
@@ -442,6 +478,11 @@ function CanvasEditorContent({ id }: { id: string }) {
     },
     [applySelection, commitHistory, scheduleSave],
   )
+
+  // 生成前记录快照：撤销可回到「未生成」状态。
+  const onBeforeGenerate = useCallback(() => {
+    commitHistory()
+  }, [commitHistory])
 
   const onDeleteEdge = () => {
     if (!selectedEdgeId) return
@@ -880,6 +921,7 @@ function CanvasEditorContent({ id }: { id: string }) {
                     }}
                     onDelete={() => deleteNodes([node.id])}
                     onDuplicate={() => duplicateNodes([node.id])}
+                    onBeforeGenerate={onBeforeGenerate}
                     onUpdate={(patch) => updateNode(node.id, patch)}
                     onSize={onNodeSize}
                   />

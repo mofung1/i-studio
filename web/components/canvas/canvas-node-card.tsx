@@ -1,7 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Copy, Delete, Download, Image as ImageIcon, Link2, Loader2, Type, Video, Wand2 } from 'lucide-react'
+import {
+  Copy,
+  Delete,
+  Download,
+  Image as ImageIcon,
+  Link2,
+  Loader2,
+  Type,
+  Video,
+  Wand2,
+} from 'lucide-react'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
 import { completeText } from '@/lib/api'
@@ -34,6 +44,7 @@ interface CanvasNodeCardProps {
   onSelect: () => void
   onDelete: () => void
   onDuplicate: () => void
+  onBeforeGenerate: () => void
   onUpdate: (patch: Partial<CanvasNode>) => void
   onSize: (id: string, width: number, height: number) => void
 }
@@ -49,6 +60,7 @@ export function CanvasNodeCard({
   onSelect,
   onDelete,
   onDuplicate,
+  onBeforeGenerate,
   onUpdate,
   onSize,
 }: CanvasNodeCardProps) {
@@ -121,6 +133,7 @@ export function CanvasNodeCard({
             promptEnhanceEnabled={promptEnhanceEnabled}
             referenceImages={referenceImages}
             referenceTexts={referenceTexts}
+            onBeforeGenerate={onBeforeGenerate}
             onUpdate={onUpdate}
           />
         ) : node.type === 'image' ? (
@@ -129,6 +142,7 @@ export function CanvasNodeCard({
             imageEndpoints={imageEndpoints}
             referenceImages={referenceImages}
             referenceTexts={referenceTexts}
+            onBeforeGenerate={onBeforeGenerate}
             onUpdate={onUpdate}
           />
         ) : (
@@ -148,12 +162,14 @@ function TextNodeBody({
   promptEnhanceEnabled,
   referenceImages,
   referenceTexts,
+  onBeforeGenerate,
   onUpdate,
 }: {
   node: CanvasNode
   promptEnhanceEnabled: boolean
   referenceImages: string[]
   referenceTexts: string[]
+  onBeforeGenerate: () => void
   onUpdate: (patch: Partial<CanvasNode>) => void
 }) {
   const [busy, setBusy] = useState(false)
@@ -172,6 +188,7 @@ function TextNodeBody({
       setError('请先输入文本或接入上游节点')
       return
     }
+    onBeforeGenerate()
     setBusy(true)
     setError('')
     try {
@@ -251,12 +268,14 @@ function ImageNodeBody({
   imageEndpoints,
   referenceImages,
   referenceTexts,
+  onBeforeGenerate,
   onUpdate,
 }: {
   node: CanvasNode
   imageEndpoints: PublicImageModel[]
   referenceImages: string[]
   referenceTexts: string[]
+  onBeforeGenerate: () => void
   onUpdate: (patch: Partial<CanvasNode>) => void
 }) {
   const data = imageNodeData(node)
@@ -288,6 +307,7 @@ function ImageNodeBody({
       onUpdate({ result: { status: 'failed', images: [], error: '请选择可用的生图模型' } })
       return
     }
+    onBeforeGenerate()
     void generate({
       mode: 'general',
       prompt: effectivePrompt,
