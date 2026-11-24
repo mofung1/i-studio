@@ -664,23 +664,30 @@ function CanvasEditorContent({ id }: { id: string }) {
     scheduleSave()
   }
 
-  const onWheel = (event: React.WheelEvent) => {
+  // 滚轮缩放走原生非 passive 监听器：React 的 onWheel 是 passive，无法 preventDefault，
+  // 这里既要阻止页面/父容器随滚轮滚动，也要缩放锚定鼠标位置。
+  useEffect(() => {
     const surface = surfaceRef.current
     if (!surface) return
-    const rect = surface.getBoundingClientRect()
-    const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1
-    const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, viewport.zoom * factor))
-    if (nextZoom === viewport.zoom) return
-    // 缩放锚定鼠标位置：鼠标下的世界坐标保持不变。
-    const worldX = (event.clientX - rect.left - viewport.x) / viewport.zoom
-    const worldY = (event.clientY - rect.top - viewport.y) / viewport.zoom
-    setViewport({
-      zoom: nextZoom,
-      x: event.clientX - rect.left - worldX * nextZoom,
-      y: event.clientY - rect.top - worldY * nextZoom,
-    })
-    scheduleSave()
-  }
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      const vp = stateRef.current.viewport
+      const rect = surface.getBoundingClientRect()
+      const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1
+      const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, vp.zoom * factor))
+      if (nextZoom === vp.zoom) return
+      const worldX = (event.clientX - rect.left - vp.x) / vp.zoom
+      const worldY = (event.clientY - rect.top - vp.y) / vp.zoom
+      setViewport({
+        zoom: nextZoom,
+        x: event.clientX - rect.left - worldX * nextZoom,
+        y: event.clientY - rect.top - worldY * nextZoom,
+      })
+      scheduleSave()
+    }
+    surface.addEventListener('wheel', handleWheel, { passive: false })
+    return () => surface.removeEventListener('wheel', handleWheel)
+  }, [scheduleSave])
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     const target = event.target as HTMLElement
@@ -833,7 +840,6 @@ function CanvasEditorContent({ id }: { id: string }) {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
-            onWheel={onWheel}
           >
             <div
               className="canvas-world"
