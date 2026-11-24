@@ -1,13 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Delete, Image as ImageIcon, Link2, Loader2, Type, Video, Wand2 } from 'lucide-react'
+import { Copy, Delete, Download, Image as ImageIcon, Link2, Loader2, Type, Video, Wand2 } from 'lucide-react'
 
-import { AuthenticatedImage } from '@/components/authenticated-image'
+import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
 import { completeText } from '@/lib/api'
 import type { GeneralGenerationInput } from '@/lib/contracts'
 import type { PublicImageModel } from '@/lib/generation-models'
 import {
+  assetIdFromContentPath,
   canvasNodeDefaults,
   imageNodeData,
   imageNodeResult,
@@ -32,6 +33,7 @@ interface CanvasNodeCardProps {
   onPointerDown: (event: React.PointerEvent) => void
   onSelect: () => void
   onDelete: () => void
+  onDuplicate: () => void
   onUpdate: (patch: Partial<CanvasNode>) => void
   onSize: (id: string, width: number, height: number) => void
 }
@@ -46,6 +48,7 @@ export function CanvasNodeCard({
   onPointerDown,
   onSelect,
   onDelete,
+  onDuplicate,
   onUpdate,
   onSize,
 }: CanvasNodeCardProps) {
@@ -82,19 +85,34 @@ export function CanvasNodeCard({
           <Icon size={13} aria-hidden="true" />
           {label}
         </span>
-        <button
-          type="button"
-          className="canvas-node-delete"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation()
-            onDelete()
-          }}
-          aria-label={`删除${label}节点`}
-          title="删除节点"
-        >
-          <Delete size={13} aria-hidden="true" />
-        </button>
+        <div className="canvas-node-actions">
+          <button
+            type="button"
+            className="canvas-node-duplicate"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation()
+              onDuplicate()
+            }}
+            aria-label={`复制${label}节点`}
+            title="复制节点"
+          >
+            <Copy size={13} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="canvas-node-delete"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation()
+              onDelete()
+            }}
+            aria-label={`删除${label}节点`}
+            title="删除节点"
+          >
+            <Delete size={13} aria-hidden="true" />
+          </button>
+        </div>
       </div>
       <div className="canvas-node-body">
         {node.type === 'text' ? (
@@ -325,6 +343,20 @@ function ImageNodeBody({
             </option>
           ))}
         </select>
+        <select
+          className="canvas-node-count"
+          value={data.count}
+          aria-label="生成张数"
+          title="一次生成多张"
+          onPointerDown={stopPointer}
+          onChange={(event) => onUpdate({ data: { count: Number(event.target.value) } })}
+        >
+          {[1, 2, 3, 4].map((n) => (
+            <option key={n} value={n}>
+              {n} 张
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           className="canvas-node-generate"
@@ -348,14 +380,32 @@ function ImageNodeBody({
       {busy && <p className="canvas-node-status">正在生成，结果将回填到本节点…</p>}
       {terminal && result && result.images.length > 0 && (
         <div className="canvas-node-results">
-          {result.images.map((path) => (
-            <AuthenticatedImage
-              key={path}
-              path={path}
-              alt="生成结果"
-              className="canvas-node-result-image"
-            />
-          ))}
+          {result.images.map((path) => {
+            const assetId = assetIdFromContentPath(path)
+            return (
+              <div key={path} className="canvas-node-result-item">
+                <AuthenticatedImage
+                  path={path}
+                  alt="生成结果"
+                  className="canvas-node-result-image"
+                />
+                <button
+                  type="button"
+                  className="canvas-node-result-download"
+                  aria-label="下载结果图"
+                  title="下载"
+                  onPointerDown={stopPointer}
+                  onClick={() => {
+                    void downloadProtectedAsset(path, `istudio-${assetId ?? 'image'}.png`).catch(
+                      () => {},
+                    )
+                  }}
+                >
+                  <Download size={13} aria-hidden="true" />
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
       {terminal && result && result.images.length === 0 && !result.error && (

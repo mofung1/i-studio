@@ -62,7 +62,7 @@ func normalizeCanvasGraph(raw any) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	edges, err := normalizeCanvasEdges(graph["edges"], nodeIDs(nodes))
+	edges, err := normalizeCanvasEdges(graph["edges"], nodeTypes(nodes))
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func normalizeCanvasNodes(raw any) ([]any, error) {
 	return nodes, nil
 }
 
-func normalizeCanvasEdges(raw any, known map[string]bool) ([]any, error) {
+func normalizeCanvasEdges(raw any, types map[string]string) ([]any, error) {
 	list, ok := raw.([]any)
 	if !ok {
 		return []any{}, nil
@@ -142,7 +142,13 @@ func normalizeCanvasEdges(raw any, known map[string]bool) ([]any, error) {
 		}
 		source, ok := edge["source"].(string)
 		target, ok2 := edge["target"].(string)
-		if !ok || !ok2 || !known[source] || !known[target] || source == target {
+		sourceType, sourceOK := types[source]
+		targetType, targetOK := types[target]
+		if !ok || !ok2 || !sourceOK || !targetOK || source == target {
+			continue
+		}
+		// 与前端 edgeAllowed 一致：视频节点不参与连线，其余文本/图像组合均合法（含图生文）。
+		if sourceType == "video" || targetType == "video" {
 			continue
 		}
 		edges = append(edges, map[string]any{"id": id, "source": source, "target": target})
@@ -150,16 +156,19 @@ func normalizeCanvasEdges(raw any, known map[string]bool) ([]any, error) {
 	return edges, nil
 }
 
-func nodeIDs(nodes []any) map[string]bool {
-	ids := map[string]bool{}
+// nodeTypes 返回节点 ID → 类型 的映射，供连线校验判断端点类型。
+func nodeTypes(nodes []any) map[string]string {
+	types := map[string]string{}
 	for _, item := range nodes {
 		if node, ok := item.(map[string]any); ok {
-			if id, ok := node["id"].(string); ok {
-				ids[id] = true
+			id, idOK := node["id"].(string)
+			t, typeOK := node["type"].(string)
+			if idOK && typeOK {
+				types[id] = t
 			}
 		}
 	}
-	return ids
+	return types
 }
 
 func canvasNodeTypeAllowed(t string) bool {

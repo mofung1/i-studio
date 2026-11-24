@@ -147,7 +147,14 @@
   font-weight: 600;
 }
 
-.canvas-node-delete {
+.canvas-node-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.canvas-node-delete,
+.canvas-node-duplicate {
   display: grid;
   place-items: center;
   width: 24px;
@@ -166,13 +173,20 @@
 }
 
 .canvas-node:hover .canvas-node-delete,
-.canvas-node.is-selected .canvas-node-delete {
+.canvas-node:hover .canvas-node-duplicate,
+.canvas-node.is-selected .canvas-node-delete,
+.canvas-node.is-selected .canvas-node-duplicate {
   opacity: 1;
 }
 
 .canvas-node-delete:hover {
   color: var(--danger);
   background: var(--danger-soft);
+}
+
+.canvas-node-duplicate:hover {
+  color: var(--foreground);
+  background: var(--control-hover);
 }
 
 .canvas-node-body {
@@ -264,6 +278,18 @@
   cursor: pointer;
 }
 
+.canvas-node-count {
+  flex: none;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+
 .canvas-node-generate {
   display: inline-flex;
   align-items: center;
@@ -343,6 +369,39 @@
   background: var(--surface-subtle);
 }
 
+.canvas-node-result-item {
+  position: relative;
+}
+
+.canvas-node-result-download {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: var(--surface);
+  background: var(--foreground);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    background 120ms ease;
+}
+
+.canvas-node-result-item:hover .canvas-node-result-download,
+.canvas-node-result-download:focus-visible {
+  opacity: 1;
+}
+
+.canvas-node-result-download:hover {
+  background: var(--foreground-2);
+}
+
 .is-spinning {
   animation: canvas-spin 0.8s linear infinite;
 }
@@ -381,6 +440,7 @@
 .canvas-edge.is-selected {
   stroke: var(--foreground);
   stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px var(--focus-soft));
 }
 
 .canvas-edge.is-draft {
@@ -438,6 +498,36 @@
   border: 1px solid var(--danger-line);
   border-radius: 9px;
   font-size: var(--text-caption);
+}
+
+/* 空画布引导 */
+.canvas-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  max-width: 320px;
+  padding: 20px 24px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.canvas-empty-title {
+  margin: 0 0 6px;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.canvas-empty p {
+  margin: 0;
+  font-size: var(--text-caption);
+  line-height: 1.6;
 }
 
 /* 顶栏里的画布名称输入与切换下拉 */

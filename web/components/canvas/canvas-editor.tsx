@@ -39,6 +39,13 @@ interface DragState {
   startY: number
   originViewport?: CanvasViewport
   originNode?: { x: number; y: number }
+  /** 节点拖动开始前的图快照，落定后用于撤销 */
+  pendingSnapshot?: GraphSnapshot
+}
+
+interface GraphSnapshot {
+  nodes: CanvasNode[]
+  edges: CanvasEdge[]
 }
 
 const nodeAdders: { type: CanvasNodeType; label: string; icon: typeof Type }[] = [
@@ -82,6 +89,11 @@ function CanvasEditorContent() {
   const draftSourceRef = useRef<string | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const canvasIdRef = useRef<string | null>(null)
+  const clipboardRef = useRef<CanvasNode | null>(null)
+  const historyRef = useRef<{ undo: GraphSnapshot[]; redo: GraphSnapshot[] }>({
+    undo: [],
+    redo: [],
+  })
 
   // 记录视口、节点与连线，供防抖保存读取最新值。
   const stateRef = useRef({ viewport, nodes, edges })
@@ -129,6 +141,82 @@ function CanvasEditorContent() {
       return { ...previous, [id]: { w, h } }
     })
   }, [])
+
+  // 撤销/重做：记录离散的图变更（增删节点/连线、节点落定、复制粘贴），不记录打字与结果回填。
+  const commitHistory = useCallback(() => {
+    const { nodes: nds, edges: eds } = stateRef.current
+    historyRef.current.undo.push({ nodes: nds, edges: eds })
+    if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
+    historyRef.current.redo = []
+  }, [])
+
+  const applySnapshot = useCallback(
+    (snap: GraphSnapshot) => {
+      setNodes(snap.nodes)
+      setEdges(snap.edges)
+      scheduleSave()
+    },
+    [scheduleSave],
+  )
+
+  const undo = useCallback(() => {
+    const previous = historyRef.current.undo.pop()
+    if (!previous) return
+    historyRef.current.redo.push({ nodes: stateRef.current.nodes, edges: stateRef.current.edges })
+    applySnapshot(previous)
+    setSelectedId(null)
+    setSelectedEdgeId(null)
+  }, [applySnapshot])
+
+  const redo = useCallback(() => {
+    const next = historyRef.current.redo.pop()
+    if (!next) return
+    historyRef.current.undo.push({ nodes: stateRef.current.nodes, edges: stateRef.current.edges })
+    applySnapshot(next)
+    setSelectedId(null)
+    setSelectedEdgeId(null)
+  }, [applySnapshot])
+
+  // 复制/粘贴/复制节点：克隆配置、清空结果（避免复制 taskId 导致重复轮询），错位落点。
+  const spawnClone = useCallback(
+    (source: CanvasNode) => {
+      const node: CanvasNode = {
+        ...structuredClone(source),
+        id: crypto.randomUUID(),
+        x: source.x + 24,
+        y: source.y + 24,
+        result: null,
+      }
+      setNodes((current) => [...current, node])
+      setSelectedId(node.id)
+      setSelectedEdgeId(null)
+      scheduleSave()
+    },
+    [scheduleSave],
+  )
+
+  const duplicateNode = useCallback(
+    (id: string) => {
+      const source = stateRef.current.nodes.find((n) => n.id === id)
+      if (!source) return
+      commitHistory()
+      spawnClone(source)
+    },
+    [commitHistory, spawnClone],
+  )
+
+  const copyNode = useCallback(() => {
+    if (!selectedId) return
+    const node = stateRef.current.nodes.find((n) => n.id === selectedId)
+    if (node) clipboardRef.current = structuredClone(node)
+  }, [selectedId])
+
+  const pasteNode = useCallback(() => {
+    const source = clipboardRef.current
+    if (!source) return
+    commitHistory()
+    spawnClone(source)
+  }, [commitHistory, spawnClone])
 
   useEffect(
     () => () => {
@@ -275,6 +363,7 @@ function CanvasEditorContent() {
     } else if (type === 'text') {
       node.data = { prompt: '', instruction: '' }
     }
+    commitHistory()
     setNodes((current) => [...current, node])
     setSelectedId(node.id)
     setSelectedEdgeId(null)
@@ -284,6 +373,7 @@ function CanvasEditorContent() {
   const onDeleteSelected = () => {
     if (!selectedId) return
     const id = selectedId
+    commitHistory()
     setNodes((current) => current.filter((node) => node.id !== id))
     setEdges((current) => current.filter((edge) => edge.source !== id && edge.target !== id))
     setSelectedId(null)
@@ -293,6 +383,7 @@ function CanvasEditorContent() {
   const onDeleteEdge = () => {
     if (!selectedEdgeId) return
     const id = selectedEdgeId
+    commitHistory()
     setEdges((current) => current.filter((edge) => edge.id !== id))
     setSelectedEdgeId(null)
     scheduleSave()
@@ -380,6 +471,7 @@ function CanvasEditorContent() {
       startX: event.clientX,
       startY: event.clientY,
       originNode: { x: node.x, y: node.y },
+      pendingSnapshot: { nodes: stateRef.current.nodes, edges: stateRef.current.edges },
     }
     ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
   }
@@ -410,8 +502,18 @@ function CanvasEditorContent() {
   }
 
   const onPointerUp = () => {
-    if (dragRef.current) {
+    const drag = dragRef.current
+    if (drag) {
       dragRef.current = null
+      // 节点确实移动了才入撤销栈，避免空白点击污染历史。
+      if (drag.kind === 'node' && drag.pendingSnapshot) {
+        const moved = stateRef.current.nodes.find((n) => n.id === drag.nodeId)
+        if (moved && (moved.x !== drag.originNode?.x || moved.y !== drag.originNode?.y)) {
+          historyRef.current.undo.push(drag.pendingSnapshot)
+          if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
+          historyRef.current.redo = []
+        }
+      }
       scheduleSave()
     }
   }
@@ -445,6 +547,7 @@ function CanvasEditorContent() {
     if (!targetId) return
     const duplicate = edges.some((edge) => edge.source === sourceId && edge.target === targetId)
     if (duplicate) return
+    commitHistory()
     setEdges((current) => [
       ...current,
       { id: crypto.randomUUID(), source: sourceId, target: targetId },
@@ -471,16 +574,44 @@ function CanvasEditorContent() {
   }
 
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key !== 'Delete' && event.key !== 'Backspace') return
     const target = event.target as HTMLElement
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')
+    // 焦点在输入框内时，复制/粘贴/撤销/删除都交给浏览器原生行为处理。
+    const isEditing =
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable
+    if (isEditing) return
+
+    const mod = event.metaKey || event.ctrlKey
+
+    if ((event.key === 'Delete' || event.key === 'Backspace') && !mod) {
+      event.preventDefault()
+      if (selectedEdgeId) onDeleteEdge()
+      else if (selectedId) onDeleteSelected()
       return
-    if (selectedEdgeId) {
+    }
+
+    if (!mod) return
+    const key = event.key.toLowerCase()
+    if (key === 'z') {
       event.preventDefault()
-      onDeleteEdge()
-    } else if (selectedId) {
+      if (event.shiftKey) redo()
+      else undo()
+    } else if (key === 'y') {
       event.preventDefault()
-      onDeleteSelected()
+      redo()
+    } else if (key === 'd') {
+      event.preventDefault()
+      if (selectedId) duplicateNode(selectedId)
+    } else if (key === 'c') {
+      if (selectedId) {
+        event.preventDefault()
+        copyNode()
+      }
+    } else if (key === 'v') {
+      event.preventDefault()
+      pasteNode()
     }
   }
 
@@ -587,7 +718,7 @@ function CanvasEditorContent() {
             </button>
           ))}
           <span className="canvas-toolbar-hint">
-            滚轮缩放 · 拖空白平移 · 拖节点下方圆点连线 · Delete 删除
+            滚轮缩放 · 拖空白平移 · 拖节点圆点连线 · ⌘Z 撤销 ⌘D 复制 · Delete 删除
           </span>
           {saveLabel && (
             <span className={`canvas-save-state is-${saveState}`} role="status">
@@ -677,6 +808,7 @@ function CanvasEditorContent() {
                     setSelectedEdgeId(null)
                   }}
                   onDelete={onDeleteSelected}
+                  onDuplicate={() => duplicateNode(node.id)}
                   onUpdate={(patch) => updateNode(node.id, patch)}
                   onSize={onNodeSize}
                 />
@@ -711,6 +843,13 @@ function CanvasEditorContent() {
               )
             })}
           </div>
+
+          {!loading && nodes.length === 0 && (
+            <div className="canvas-empty" role="status">
+              <p className="canvas-empty-title">空白画布</p>
+              <p>从上方工具栏添加文本 / 图像节点，拖节点下方圆点把结果串联成生成链路。</p>
+            </div>
+          )}
         </div>
 
         {error && (
