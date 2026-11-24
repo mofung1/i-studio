@@ -503,6 +503,13 @@
 }
 
 /* 节点引用提示 */
+.canvas-node-ref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .canvas-node-ref-hint {
   display: inline-flex;
   align-items: center;
@@ -511,6 +518,29 @@
   color: var(--muted);
   font-size: var(--text-caption);
   line-height: 1.4;
+}
+
+.canvas-node-strength {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.canvas-node-strength-label {
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+
+.canvas-node-strength-select {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  cursor: pointer;
 }
 
 /* 连线（SVG） */

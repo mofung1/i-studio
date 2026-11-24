@@ -375,10 +375,29 @@ function ImageNodeBody({
         onChange={(event) => onUpdate({ data: { prompt: event.target.value } })}
       />
       {referenceAssetIds.length > 0 && (
-        <p className="canvas-node-ref-hint">
-          <Link2 size={12} aria-hidden="true" />
-          已引用参考图 ×{referenceAssetIds.length}
-        </p>
+        <div className="canvas-node-ref-row">
+          <p className="canvas-node-ref-hint">
+            <Link2 size={12} aria-hidden="true" />
+            已引用参考图 ×{referenceAssetIds.length}
+          </p>
+          <label className="canvas-node-strength">
+            <span className="canvas-node-strength-label">参考强度</span>
+            <select
+              className="canvas-node-strength-select"
+              value={data.referenceStrength}
+              aria-label="参考强度"
+              title="图生图参考强度"
+              onPointerDown={stopPointer}
+              onChange={(event) =>
+                onUpdate({ data: { referenceStrength: event.target.value } })
+              }
+            >
+              <option value="low">低</option>
+              <option value="medium">中</option>
+              <option value="high">高</option>
+            </select>
+          </label>
+        </div>
       )}
       <div className="canvas-node-controls">
         <select
