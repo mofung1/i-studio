@@ -1160,6 +1160,10 @@ function CanvasEditorContent({ id }: { id: string }) {
                     const tp = inputPort(target)
                     const d = edgePath(sp.x, sp.y, tp.x, tp.y)
                     const selected = selectedEdgeId === edge.id
+                    // 连线中点标注数据流类型：文本节点输出「文」，图像节点输出「图」。
+                    const label = source.type === 'text' ? '文' : '图'
+                    const lx = (sp.x + tp.x) / 2
+                    const ly = (sp.y + tp.y) / 2
                     return (
                       <g key={edge.id}>
                         <path
@@ -1172,6 +1176,12 @@ function CanvasEditorContent({ id }: { id: string }) {
                           }}
                         />
                         <path className={`canvas-edge${selected ? ' is-selected' : ''}`} d={d} />
+                        <g className="canvas-edge-label" transform={`translate(${lx}, ${ly})`}>
+                          <rect x={-10} y={-9} width={20} height={18} rx={5} />
+                          <text textAnchor="middle" dominantBaseline="central">
+                            {label}
+                          </text>
+                        </g>
                       </g>
                     )
                   })}

@@ -547,6 +547,23 @@
   cursor: pointer;
 }
 
+/* 连线中点标注数据流类型（文/图） */
+.canvas-edge-label {
+  pointer-events: none;
+}
+
+.canvas-edge-label rect {
+  fill: var(--surface);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.canvas-edge-label text {
+  fill: var(--foreground-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 /* 框选选框 */
 .canvas-marquee {
   position: absolute;
