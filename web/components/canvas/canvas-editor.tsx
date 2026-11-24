@@ -31,6 +31,9 @@ const SAVE_DEBOUNCE_MS = 700
 const PORT_R = 8
 const PORT_HIT_RADIUS = 16
 const EDGE_PAD = 80
+const MINIMAP_W = 180
+const MINIMAP_H = 120
+const MINIMAP_PAD = 16
 const ACTIVE_GENERATION_STATUSES = new Set(['queued', 'processing', 'waiting_provider'])
 
 interface DragState {
@@ -89,6 +92,7 @@ function CanvasEditorContent({ id }: { id: string }) {
   const [nodes, setNodes] = useState<CanvasNode[]>([])
   const [edges, setEdges] = useState<CanvasEdge[]>([])
   const [nodeSizes, setNodeSizes] = useState<Record<string, { w: number; h: number }>>({})
+  const [surfaceSize, setSurfaceSize] = useState({ w: 0, h: 0 })
   const [draftEdge, setDraftEdge] = useState<{ sourceId: string; x: number; y: number } | null>(
     null,
   )
@@ -236,6 +240,19 @@ function CanvasEditorContent({ id }: { id: string }) {
       if (current && Math.abs(current.w - w) < 1 && Math.abs(current.h - h) < 1) return previous
       return { ...previous, [id]: { w, h } }
     })
+  }, [])
+
+  // 记录 surface 实际尺寸，供小地图视口框计算。
+  useEffect(() => {
+    const surface = surfaceRef.current
+    if (!surface) return
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) setSurfaceSize({ w: entry.contentRect.width, h: entry.contentRect.height })
+    })
+    observer.observe(surface)
+    setSurfaceSize({ w: surface.clientWidth, h: surface.clientHeight })
+    return () => observer.disconnect()
   }, [])
 
   // 撤销/重做：记录离散的图变更（增删节点/连线、节点落定、复制粘贴）与生成前状态；
@@ -838,6 +855,69 @@ function CanvasEditorContent({ id }: { id: string }) {
     scheduleSave()
   }
 
+  // 小地图：把节点包围盒缩放到固定尺寸，映射世界坐标 → 小地图坐标。
+  const minimap = useMemo(() => {
+    if (nodes.length === 0) return null
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const node of nodes) {
+      const r = nodeRect(node)
+      minX = Math.min(minX, node.x)
+      minY = Math.min(minY, node.y)
+      maxX = Math.max(maxX, node.x + r.w)
+      maxY = Math.max(maxY, node.y + r.h)
+    }
+    const worldW = maxX - minX
+    const worldH = maxY - minY
+    const scale = Math.min(
+      MINIMAP_W / (worldW + MINIMAP_PAD * 2),
+      MINIMAP_H / (worldH + MINIMAP_PAD * 2),
+    )
+    const offsetX = (MINIMAP_W - worldW * scale) / 2
+    const offsetY = (MINIMAP_H - worldH * scale) / 2
+    return {
+      minX,
+      minY,
+      scale,
+      offsetX,
+      offsetY,
+      toMini: (wx: number, wy: number) => ({
+        x: offsetX + (wx - minX) * scale,
+        y: offsetY + (wy - minY) * scale,
+      }),
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, nodeSizes])
+
+  const viewportRect = useMemo(() => {
+    if (!minimap || surfaceSize.w === 0 || surfaceSize.h === 0) return null
+    const vx = -viewport.x / viewport.zoom
+    const vy = -viewport.y / viewport.zoom
+    const tl = minimap.toMini(vx, vy)
+    const br = minimap.toMini(
+      vx + surfaceSize.w / viewport.zoom,
+      vy + surfaceSize.h / viewport.zoom,
+    )
+    return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y }
+  }, [minimap, viewport, surfaceSize])
+
+  const onMinimapPointerDown = (event: React.PointerEvent) => {
+    if (!minimap || surfaceSize.w === 0 || surfaceSize.h === 0) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const mx = event.clientX - rect.left
+    const my = event.clientY - rect.top
+    const wx = minimap.minX + (mx - minimap.offsetX) / minimap.scale
+    const wy = minimap.minY + (my - minimap.offsetY) / minimap.scale
+    setViewport({
+      zoom: viewport.zoom,
+      x: surfaceSize.w / 2 - wx * viewport.zoom,
+      y: surfaceSize.h / 2 - wy * viewport.zoom,
+    })
+    scheduleSave()
+  }
+
   const onKeyDown = (event: React.KeyboardEvent) => {
     const target = event.target as HTMLElement
     // 焦点在输入框内时，复制/粘贴/撤销/删除都交给浏览器原生行为处理。
@@ -1140,6 +1220,70 @@ function CanvasEditorContent({ id }: { id: string }) {
               </div>
             )}
           </div>
+
+          {minimap && (
+            <div
+              className="canvas-minimap"
+              style={{ width: MINIMAP_W, height: MINIMAP_H }}
+              onPointerDown={onMinimapPointerDown}
+              role="presentation"
+              aria-label="画布小地图"
+            >
+              <svg
+                className="canvas-minimap-svg"
+                width={MINIMAP_W}
+                height={MINIMAP_H}
+                aria-hidden="true"
+              >
+                {edges.map((edge) => {
+                  const source = nodes.find((n) => n.id === edge.source)
+                  const target = nodes.find((n) => n.id === edge.target)
+                  if (!source || !target) return null
+                  const sp = outputPort(source)
+                  const tp = inputPort(target)
+                  const a = minimap.toMini(sp.x, sp.y)
+                  const b = minimap.toMini(tp.x, tp.y)
+                  return (
+                    <line
+                      key={edge.id}
+                      className="canvas-minimap-edge"
+                      x1={a.x}
+                      y1={a.y}
+                      x2={b.x}
+                      y2={b.y}
+                    />
+                  )
+                })}
+              </svg>
+              {nodes.map((node) => {
+                const r = nodeRect(node)
+                const tl = minimap.toMini(node.x, node.y)
+                return (
+                  <div
+                    key={node.id}
+                    className="canvas-minimap-node"
+                    style={{
+                      left: tl.x,
+                      top: tl.y,
+                      width: Math.max(r.w * minimap.scale, 2),
+                      height: Math.max(r.h * minimap.scale, 2),
+                    }}
+                  />
+                )
+              })}
+              {viewportRect && (
+                <div
+                  className="canvas-minimap-viewport"
+                  style={{
+                    left: viewportRect.x,
+                    top: viewportRect.y,
+                    width: viewportRect.w,
+                    height: viewportRect.h,
+                  }}
+                />
+              )}
+            </div>
+          )}
 
           {error && (
             <p className="canvas-error" role="alert">

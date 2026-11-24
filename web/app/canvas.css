@@ -528,6 +528,45 @@
   pointer-events: none;
 }
 
+/* 小地图：缩略节点与连线，视口框标记当前可见区域，点击跳转 */
+.canvas-minimap {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 8;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(23, 23, 23, 0.08);
+  cursor: crosshair;
+}
+
+.canvas-minimap-svg {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas-minimap-edge {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  fill: none;
+}
+
+.canvas-minimap-node {
+  position: absolute;
+  background: var(--foreground-2);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.canvas-minimap-viewport {
+  position: absolute;
+  border: 1px solid var(--foreground);
+  background: var(--focus-soft);
+  pointer-events: none;
+}
+
 /* 节点端口：输出（下方，可拖拽连线）/ 输入（上方，连线落点） */
 .canvas-port {
   position: absolute;
