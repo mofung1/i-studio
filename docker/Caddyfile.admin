@@ -15,6 +15,6 @@ http://:8080 {
 	}
 	import /etc/caddy/admin-routes.caddy
 	handle {
-		redir /admin/ 302
+		redir * /admin/ 302
 	}
 }
