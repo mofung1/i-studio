@@ -95,6 +95,7 @@ func (s Handlers) registerLibraryRoutes(api *gin.RouterGroup) {
 	}
 	api.GET("/canvases/:id", canvas)
 	api.PUT("/canvases/:id", canvas)
+	api.PATCH("/canvases/:id", canvas)
 	api.DELETE("/canvases/:id", canvas)
 }
 

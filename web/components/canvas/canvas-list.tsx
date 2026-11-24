@@ -1,15 +1,21 @@
 'use client'
 
-import { Layers, Plus, Trash2 } from 'lucide-react'
+import { Layers, Pencil, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { AccountBoundary } from '@/components/account-access'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StudioShell } from '@/components/studio-shell'
 import { formatLibraryDate } from '@/lib/library'
-import { createCanvas, deleteCanvas, listCanvases, type CanvasSummary } from '@/lib/canvas'
+import {
+  createCanvas,
+  deleteCanvas,
+  listCanvases,
+  renameCanvas,
+  type CanvasSummary,
+} from '@/lib/canvas'
 
 export function CanvasList() {
   return (
@@ -27,6 +33,10 @@ function CanvasListContent() {
   const [creating, setCreating] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renameBusy, setRenameBusy] = useState(false)
+  const cancelRenameRef = useRef(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -53,6 +63,37 @@ function CanvasListContent() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '新建画布失败')
       setCreating(false)
+    }
+  }
+
+  const startRename = (item: CanvasSummary) => {
+    cancelRenameRef.current = false
+    setRenamingId(item.id)
+    setRenameValue(item.name)
+    setError('')
+  }
+
+  const commitRename = async (item: CanvasSummary) => {
+    if (cancelRenameRef.current) {
+      cancelRenameRef.current = false
+      setRenamingId(null)
+      return
+    }
+    const name = renameValue.trim()
+    if (!name || name === item.name) {
+      setRenamingId(null)
+      return
+    }
+    setRenameBusy(true)
+    setError('')
+    try {
+      await renameCanvas(item.id, name)
+      setCanvases((current) => current.map((c) => (c.id === item.id ? { ...c, name } : c)))
+      setRenamingId(null)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '画布重命名失败')
+    } finally {
+      setRenameBusy(false)
     }
   }
 
@@ -97,21 +138,54 @@ function CanvasListContent() {
           <ul className="canvas-card-list">
             {canvases.map((item) => (
               <li key={item.id} className="canvas-card">
-                <Link href={`/canvas/${item.id}`} className="canvas-card-open">
-                  <span className="canvas-card-name">{item.name}</span>
-                  <span className="canvas-card-meta">
-                    更新于 {formatLibraryDate(item.updatedAt)}
-                  </span>
-                </Link>
-                <button
-                  type="button"
-                  className="canvas-card-delete"
-                  aria-label={`删除画布 ${item.name}`}
-                  title="删除画布"
-                  onClick={() => setDeletingId(item.id)}
-                >
-                  <Trash2 size={15} aria-hidden="true" />
-                </button>
+                {renamingId === item.id ? (
+                  <input
+                    className="canvas-card-rename-input"
+                    value={renameValue}
+                    maxLength={120}
+                    aria-label="画布名称"
+                    disabled={renameBusy}
+                    autoFocus
+                    onChange={(event) => setRenameValue(event.target.value)}
+                    onBlur={() => void commitRename(item)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        ;(event.target as HTMLInputElement).blur()
+                      } else if (event.key === 'Escape') {
+                        cancelRenameRef.current = true
+                        ;(event.target as HTMLInputElement).blur()
+                      }
+                    }}
+                  />
+                ) : (
+                  <>
+                    <Link href={`/canvas/${item.id}`} className="canvas-card-open">
+                      <span className="canvas-card-name">{item.name}</span>
+                      <span className="canvas-card-meta">
+                        更新于 {formatLibraryDate(item.updatedAt)} · {item.nodeCount} 节点 ·{' '}
+                        {item.edgeCount} 连线
+                      </span>
+                    </Link>
+                    <button
+                      type="button"
+                      className="canvas-card-rename"
+                      aria-label={`重命名画布 ${item.name}`}
+                      title="重命名"
+                      onClick={() => startRename(item)}
+                    >
+                      <Pencil size={14} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className="canvas-card-delete"
+                      aria-label={`删除画布 ${item.name}`}
+                      title="删除画布"
+                      onClick={() => setDeletingId(item.id)}
+                    >
+                      <Trash2 size={15} aria-hidden="true" />
+                    </button>
+                  </>
+                )}
               </li>
             ))}
           </ul>

@@ -221,7 +221,7 @@ function TextNodeBody({
         <p className="canvas-node-ref-hint">
           <Link2 size={12} aria-hidden="true" />
           {referenceTexts.length > 0 && ` 上游文本 ×${referenceTexts.length}`}
-          {referenceImages.length > 0 && ` 参考图 ×${referenceImages.length}`}
+          {referenceImages.length > 0 && ` 参考图 ×${Math.min(referenceImages.length, 4)}`}
         </p>
       )}
       <input

@@ -35,6 +35,7 @@ func defaultCanvasGraph() map[string]any {
 const canvasNameLimit = 120
 const canvasNodeLimit = 500
 const canvasEdgeLimit = 500
+const canvasGraphSizeLimit = 2 << 20 // 整张画布序列化后的大小上限，防 data/result 无限膨胀
 
 // normalizeCanvasViewport 校验并规范化视口，非法值回退默认。
 func normalizeCanvasViewport(raw any) map[string]any {
@@ -220,7 +221,10 @@ func (s *Service) canvases(w http.ResponseWriter, r *http.Request) {
 		s.error(w, 405, "METHOD_NOT_ALLOWED", "不支持的请求方法")
 		return
 	}
-	rows, err := s.db.Query("SELECT id,name,updated_at FROM canvases WHERE user_id=$1 ORDER BY updated_at DESC, id DESC", uid)
+	rows, err := s.db.Query(
+		"SELECT id,name,updated_at,COALESCE(jsonb_array_length(graph->'nodes'),0),COALESCE(jsonb_array_length(graph->'edges'),0) FROM canvases WHERE user_id=$1 ORDER BY updated_at DESC, id DESC",
+		uid,
+	)
 	if err != nil {
 		s.error(w, 500, "CANVAS_STORAGE_ERROR", "画布列表读取失败")
 		return
@@ -230,8 +234,12 @@ func (s *Service) canvases(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id, name string
 		var updated time.Time
-		if rows.Scan(&id, &name, &updated) == nil {
-			list = append(list, map[string]any{"id": id, "name": name, "updatedAt": updated})
+		var nodeCount, edgeCount int
+		if rows.Scan(&id, &name, &updated, &nodeCount, &edgeCount) == nil {
+			list = append(list, map[string]any{
+				"id": id, "name": name, "updatedAt": updated,
+				"nodeCount": nodeCount, "edgeCount": edgeCount,
+			})
 		}
 	}
 	s.json(w, 200, map[string]any{"canvases": list})
@@ -281,6 +289,8 @@ func (s *Service) canvasByID(w http.ResponseWriter, r *http.Request, id string) 
 		s.readCanvas(w, r, uid, id)
 	case http.MethodPut:
 		s.saveCanvas(w, r, uid, id)
+	case http.MethodPatch:
+		s.renameCanvas(w, r, uid, id)
 	case http.MethodDelete:
 		s.deleteCanvas(w, r, uid, id)
 	default:
@@ -342,12 +352,46 @@ func (s *Service) saveCanvas(w http.ResponseWriter, r *http.Request, uid, id str
 	}
 	viewportJSON, _ := json.Marshal(viewport)
 	graphJSON, _ := json.Marshal(graph)
+	if len(graphJSON) > canvasGraphSizeLimit {
+		s.error(w, 400, "CANVAS_INPUT_INVALID", "画布内容过大，请精简后保存")
+		return
+	}
 	result, err := s.db.Exec(
 		"UPDATE canvases SET name=COALESCE($3,name),viewport=$4,graph=$5,updated_at=now() WHERE id=$1 AND user_id=$2",
 		id, uid, input.Name, viewportJSON, graphJSON,
 	)
 	if err != nil {
 		s.error(w, 500, "CANVAS_STORAGE_ERROR", "画布保存失败")
+		return
+	}
+	count, _ := result.RowsAffected()
+	if count == 0 {
+		s.error(w, 404, "CANVAS_NOT_FOUND", "画布不存在")
+		return
+	}
+	s.json(w, 200, map[string]any{"updated": id})
+}
+
+func (s *Service) renameCanvas(w http.ResponseWriter, r *http.Request, uid, id string) {
+	var input struct {
+		Name string `json:"name"`
+	}
+	if !decode(r, &input) {
+		s.error(w, 400, "CANVAS_INPUT_INVALID", "画布名称不能为空")
+		return
+	}
+	name := strings.TrimSpace(input.Name)
+	if name == "" {
+		s.error(w, 400, "CANVAS_INPUT_INVALID", "画布名称不能为空")
+		return
+	}
+	if len([]rune(name)) > canvasNameLimit {
+		s.error(w, 400, "CANVAS_INPUT_INVALID", "画布名称最多 120 字")
+		return
+	}
+	result, err := s.db.Exec("UPDATE canvases SET name=$3,updated_at=now() WHERE id=$1 AND user_id=$2", id, uid, name)
+	if err != nil {
+		s.error(w, 500, "CANVAS_STORAGE_ERROR", "画布重命名失败")
 		return
 	}
 	count, _ := result.RowsAffected()

@@ -43,6 +43,8 @@ export interface CanvasSummary {
   id: string
   name: string
   updatedAt: string
+  nodeCount: number
+  edgeCount: number
 }
 
 export interface CanvasSaveInput {
@@ -176,7 +178,9 @@ export function resolveReferenceImages(
     const id = imageAssetIds[index]
     if (id && !selected.includes(id)) selected.push(id)
   }
-  return { referenceAssetIds: selected.slice(0, 6), prompt: prompt.replace(REFERENCE_TOKEN, '').trim() }
+  // 去掉 @图N 标记后把可能残留的连续空格折叠成单个，避免「参考  和  的风格」这类双空格。
+  const cleaned = prompt.replace(REFERENCE_TOKEN, ' ').replace(/\s+/g, ' ').trim()
+  return { referenceAssetIds: selected.slice(0, 6), prompt: cleaned }
 }
 
 export function imageNodeData(node: CanvasNode): CanvasImageNodeData {
@@ -229,5 +233,13 @@ export async function saveCanvas(id: string, input: CanvasSaveInput): Promise<vo
 export async function deleteCanvas(id: string): Promise<void> {
   await frontendRequest<{ deleted: string }>(`canvases/${id}`, {
     method: 'DELETE',
+  })
+}
+
+export async function renameCanvas(id: string, name: string): Promise<void> {
+  await frontendRequest<{ updated: string }>(`canvases/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
   })
 }

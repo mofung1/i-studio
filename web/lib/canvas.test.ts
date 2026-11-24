@@ -134,7 +134,7 @@ describe('resolveReferenceImages', () => {
     const ids = ['a', 'b', 'c']
     expect(resolveReferenceImages('参考 @图1 和 @图3 的风格', ids)).toEqual({
       referenceAssetIds: ['a', 'c'],
-      prompt: '参考  和  的风格',
+      prompt: '参考 和 的风格',
     })
   })
 
