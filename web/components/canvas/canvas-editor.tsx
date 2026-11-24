@@ -6,7 +6,7 @@ import Link from 'next/link'
 
 import { AccountBoundary } from '@/components/account-access'
 import { StudioShell } from '@/components/studio-shell'
-import { cancelGenerationTask } from '@/lib/api'
+import { apiBaseUrl, cancelGenerationTask, getAccessToken } from '@/lib/api'
 import { CanvasNodeCard } from './canvas-node-card'
 import { useCanvasCapabilities } from './use-canvas-capabilities'
 import {
@@ -151,6 +151,7 @@ function CanvasEditorContent({ id }: { id: string }) {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       const id = canvasIdRef.current
+      saveTimer.current = null
       if (!id) return
       const { viewport: vp, nodes: nds, edges: eds } = stateRef.current
       try {
@@ -162,6 +163,37 @@ function CanvasEditorContent({ id }: { id: string }) {
       }
     }, SAVE_DEBOUNCE_MS)
   }, [])
+
+  // 关页 / 切后台时立即把未落盘的改动发出去，避免 700ms 防抖窗口内的最后改动丢失。
+  const flushSave = useCallback(() => {
+    if (!saveTimer.current) return
+    clearTimeout(saveTimer.current)
+    saveTimer.current = null
+    const id = canvasIdRef.current
+    if (!id) return
+    const token = getAccessToken()
+    if (!token) return
+    const { viewport: vp, nodes: nds, edges: eds } = stateRef.current
+    void fetch(`${apiBaseUrl}/v1/canvases/${id}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ viewport: vp, graph: { nodes: nds, edges: eds } }),
+      keepalive: true,
+    })
+  }, [])
+
+  useEffect(() => {
+    const onPageHide = () => flushSave()
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushSave()
+    }
+    window.addEventListener('pagehide', onPageHide)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', onPageHide)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [flushSave])
 
   const capabilities = useCanvasCapabilities()
 
