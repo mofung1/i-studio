@@ -1045,8 +1045,7 @@
 .studio-shell :is(input, textarea)::placeholder,
 .workbench-shell :is(input, textarea)::placeholder,
 .prompt-reverse-dialog :is(input, textarea)::placeholder {
-  color: var(--foreground-3);
-  opacity: 0.85;
+  color: var(--placeholder);
 }
 .prompt-template-tree button:focus-visible,
 .inspiration-category-actions button:focus-visible,

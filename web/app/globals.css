@@ -256,7 +256,7 @@
   font-size: 16px;
 }
 .submission-form .library-input:focus-visible {
-  outline: 2px solid var(--line-strong);
+  outline: 2px solid var(--foreground);
   outline-offset: 2px;
 }
 .submission-prompt {

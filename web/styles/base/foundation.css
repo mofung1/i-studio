@@ -35,8 +35,8 @@
   --foreground: #111318;
   --foreground-2: #424650;
   --foreground-3: #667085;
-  --placeholder: #858b96;
-  --muted: #667085;
+  --placeholder: #646e82;
+  --muted: #646e82;
   --border: #e2e5eb;
   --line-strong: #b7bdc7;
   --line-hover: #d5d9e0;
@@ -53,7 +53,7 @@
   --favorite-stroke: #956300;
   --favorite-fill: #e6ad24;
 
-  --focus: rgba(23, 23, 23, 0.22);
+  --focus: rgba(23, 23, 23, 0.5);
   --focus-soft: rgba(23, 23, 23, 0.08);
 
   --border-soft: #eef0f3;
@@ -110,7 +110,7 @@ html[data-theme='dark'] {
   --danger-line: #6f3f39;
   --favorite-stroke: #f3c75b;
   --favorite-fill: #f3c75b;
-  --focus: rgba(240, 241, 243, 0.3);
+  --focus: rgba(240, 241, 243, 0.5);
   --focus-soft: rgba(240, 241, 243, 0.1);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.15);
   --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.28);
