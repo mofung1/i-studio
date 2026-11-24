@@ -12,7 +12,7 @@ import {
   RefreshCw,
   RotateCcw,
 } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import {
   AuthenticatedImage,
@@ -115,7 +115,7 @@ type ArchiveDownload = { taskId: string } & (
 )
 
 /** 结果工作区：当前任务结果、历史记录与图片查看。 */
-export function ResultWorkspace({
+export const ResultWorkspace = memo(function ResultWorkspace({
   mode,
   task,
   aspectRatio,
@@ -253,16 +253,20 @@ export function ResultWorkspace({
     displayInput,
     imageSource.taskType === 'clothing-set' ? '服装原图' : '商品原图',
   )
-  const comparisonImages = comparisonCandidates([
-    ...images.map((path, index) => ({ path, label: `当前结果 · 第 ${index + 1} 张` })),
-    ...comparisonSources,
-    ...resultHistory.flatMap((item, index) =>
-      (item.resultImages ?? []).map((path, imageIndex) => ({
-        path,
-        label: `版本 ${index + 1} · 第 ${imageIndex + 1} 张`,
-      })),
-    ),
-  ])
+  const comparisonImages = useMemo(
+    () =>
+      comparisonCandidates([
+        ...images.map((path, index) => ({ path, label: `当前结果 · 第 ${index + 1} 张` })),
+        ...comparisonSources,
+        ...resultHistory.flatMap((item, index) =>
+          (item.resultImages ?? []).map((path, imageIndex) => ({
+            path,
+            label: `版本 ${index + 1} · 第 ${imageIndex + 1} 张`,
+          })),
+        ),
+      ]),
+    [images, comparisonSources, resultHistory],
+  )
   const productOriginals =
     imageSource.mode === 'commerce' && comparisonImages.some(({ path }) => path === heroImage)
       ? comparisonSources.filter(
@@ -1001,4 +1005,4 @@ export function ResultWorkspace({
       )}
     </section>
   )
-}
+})

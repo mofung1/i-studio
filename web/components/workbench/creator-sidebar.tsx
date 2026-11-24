@@ -9,7 +9,7 @@ import {
 import { loadProtectedImage } from '@/components/authenticated-image'
 
 import { RotateCcw, ScanText, X } from 'lucide-react'
-import { Fragment, useEffect, useState, type ReactNode, type Ref } from 'react'
+import { Fragment, memo, useEffect, useState, type ReactNode, type Ref } from 'react'
 import { CreatorPanel } from './creator-panel'
 import { usePromptReverse } from '@/components/prompt-reverse-provider'
 import { applyReverseText } from '@/lib/prompt-reverse'
@@ -129,7 +129,7 @@ const ASSET_LABELS: Record<CommerceTaskType, string> = {
 /**
  * 创作控制区。画面参数可按需展开，生成按钮固定在面板底部。
  */
-export function CreatorSidebar(props: CreatorSidebarProps) {
+export const CreatorSidebar = memo(function CreatorSidebar(props: CreatorSidebarProps) {
   const {
     mode,
     task,
@@ -655,4 +655,4 @@ export function CreatorSidebar(props: CreatorSidebarProps) {
       />
     </CreatorPanel>
   )
-}
+})
