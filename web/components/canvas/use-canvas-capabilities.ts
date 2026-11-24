@@ -8,6 +8,8 @@ import type { PublicImageModel } from '@/lib/generation-models'
 interface CanvasCapabilities {
   imageEndpoints: PublicImageModel[]
   promptEnhanceEnabled: boolean
+  /** 文本模型是否支持识图（决定图生文连线是否可用） */
+  promptVision: boolean
   loading: boolean
   error: string
 }
@@ -19,6 +21,7 @@ interface CanvasCapabilities {
 export function useCanvasCapabilities(): CanvasCapabilities {
   const [imageEndpoints, setImageEndpoints] = useState<PublicImageModel[]>([])
   const [promptEnhanceEnabled, setPromptEnhanceEnabled] = useState(false)
+  const [promptVision, setPromptVision] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -37,12 +40,14 @@ export function useCanvasCapabilities(): CanvasCapabilities {
         if (!response.ok) throw new Error(await readApiError(response, '能力列表读取失败，请重试'))
         return response.json() as {
           promptEnhanceEnabled?: boolean
+          promptVision?: boolean
           imageEndpoints?: PublicImageModel[]
         }
       })
       .then((data) => {
         if (!current) return
         setPromptEnhanceEnabled(Boolean(data.promptEnhanceEnabled))
+        setPromptVision(Boolean(data.promptVision))
         setImageEndpoints(data.imageEndpoints ?? [])
       })
       .catch((reason) => {
@@ -66,5 +71,5 @@ export function useCanvasCapabilities(): CanvasCapabilities {
     }
   }, [])
 
-  return { imageEndpoints, promptEnhanceEnabled, loading, error }
+  return { imageEndpoints, promptEnhanceEnabled, promptVision, loading, error }
 }

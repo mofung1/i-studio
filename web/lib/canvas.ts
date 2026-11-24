@@ -139,6 +139,44 @@ export function imageNodeResult(node: CanvasNode): CanvasImageNodeResult | null 
   }
 }
 
+/** 从结果图片的 contentPath（如 /v1/assets/{id}/content）取资产 ID，用于图生图引用。 */
+export function assetIdFromContentPath(contentPath: string): string | null {
+  return contentPath.match(/^\/v1\/assets\/([^/]+)\/content$/)?.[1] ?? null
+}
+
+/**
+ * 连线类型约束：文本↔图像四种组合均允许（文生文 / 文生图 / 图生图 / 图生文），
+ * 仅视频节点不参与连线。图生文是否可用还取决于文本模型是否支持识图（服务端校验）。
+ */
+export function edgeAllowed(source: CanvasNodeType, target: CanvasNodeType): boolean {
+  return source !== 'video' && target !== 'video'
+}
+
+const REFERENCE_TOKEN = /@图(\d+)/g
+
+/**
+ * 解析生图提示词里的「@图N」精确引用：只把指定序号的上游结果图作为参考图。
+ * - 没有 @图N：回退为引用全部上游图（最多 6 张）。
+ * - 有 @图N：按 1 起始序号从上游图列表挑图，去掉提示词里的 @图N 标记。
+ */
+export function resolveReferenceImages(
+  prompt: string,
+  imageAssetIds: string[],
+): { referenceAssetIds: string[]; prompt: string } {
+  if (imageAssetIds.length === 0) return { referenceAssetIds: [], prompt }
+  const tokens = [...prompt.matchAll(REFERENCE_TOKEN)]
+  if (tokens.length === 0) {
+    return { referenceAssetIds: imageAssetIds.slice(0, 6), prompt }
+  }
+  const selected: string[] = []
+  for (const token of tokens) {
+    const index = Number(token[1]) - 1
+    const id = imageAssetIds[index]
+    if (id && !selected.includes(id)) selected.push(id)
+  }
+  return { referenceAssetIds: selected.slice(0, 6), prompt: prompt.replace(REFERENCE_TOKEN, '').trim() }
+}
+
 export function imageNodeData(node: CanvasNode): CanvasImageNodeData {
   const data = (node.data ?? {}) as Partial<CanvasImageNodeData>
   return {

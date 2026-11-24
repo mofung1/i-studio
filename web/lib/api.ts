@@ -168,6 +168,8 @@ export interface TextCompleteInput {
   text: string
   /** 可选任务说明，例如「改写得更口语化」「翻译成英文」；留空时默认润色。 */
   instruction?: string
+  /** 图生文的参考图片资产 ID（最多 4 张）；需要文本模型支持识图。 */
+  imageAssetIds?: string[]
 }
 
 export interface TextCompleteResult {
@@ -175,10 +177,11 @@ export interface TextCompleteResult {
   model?: string
 }
 
-/** 画布文本节点「文生文」：按任务说明处理一段文本，返回生成结果。 */
+/** 画布文本节点「文生文 / 图生文」：按任务说明处理文本（可选带参考图），返回生成结果。 */
 export async function completeText({
   text,
   instruction,
+  imageAssetIds,
 }: TextCompleteInput): Promise<TextCompleteResult> {
   const token = getAccessToken()
   const response = await fetch(`${apiBaseUrl}/v1/text/complete`, {
@@ -187,7 +190,7 @@ export async function completeText({
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ text, instruction }),
+    body: JSON.stringify({ text, instruction, imageAssetIds }),
   })
   if (response.status === 401) throw new Error('登录状态已失效，请重新登录')
   if (!response.ok) throw new Error(await readApiError(response, '文本生成失败，请重试'))

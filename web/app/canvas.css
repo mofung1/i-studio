@@ -353,6 +353,78 @@
   }
 }
 
+/* 节点引用提示 */
+.canvas-node-ref-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+/* 连线（SVG） */
+.canvas-edges {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.canvas-edge {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.canvas-edge.is-selected {
+  stroke: var(--foreground);
+  stroke-width: 2.5;
+}
+
+.canvas-edge.is-draft {
+  stroke: var(--foreground);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.canvas-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+/* 节点端口：输出（下方，可拖拽连线）/ 输入（上方，连线落点） */
+.canvas-port {
+  position: absolute;
+  z-index: 5;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--foreground-2);
+}
+
+.canvas-port.is-output {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  cursor: crosshair;
+}
+
+.canvas-port.is-input {
+  border-color: var(--muted);
+  pointer-events: none;
+}
+
+.canvas-port.is-highlight {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  box-shadow: 0 0 0 4px var(--focus-soft);
+}
+
 .canvas-error {
   position: absolute;
   left: 50%;
