@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Image as ImageIcon, Type } from 'lucide-react'
+import { ArrowLeft, Image as ImageIcon, Maximize, Type, ZoomIn, ZoomOut } from 'lucide-react'
 import Link from 'next/link'
 
 import { AccountBoundary } from '@/components/account-access'
@@ -739,6 +739,87 @@ function CanvasEditorContent({ id }: { id: string }) {
     return () => surface.removeEventListener('wheel', handleWheel)
   }, [scheduleSave])
 
+  // 缩放控制：以屏幕某点为锚点缩放，保证该点下的世界坐标不动（与滚轮行为一致）。
+  const zoomAt = useCallback(
+    (nextZoom: number, anchorClientX: number, anchorClientY: number) => {
+      const surface = surfaceRef.current
+      if (!surface) return
+      const vp = stateRef.current.viewport
+      const rect = surface.getBoundingClientRect()
+      const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, nextZoom))
+      if (clamped === vp.zoom) return
+      const worldX = (anchorClientX - rect.left - vp.x) / vp.zoom
+      const worldY = (anchorClientY - rect.top - vp.y) / vp.zoom
+      setViewport({
+        zoom: clamped,
+        x: anchorClientX - rect.left - worldX * clamped,
+        y: anchorClientY - rect.top - worldY * clamped,
+      })
+      scheduleSave()
+    },
+    [scheduleSave],
+  )
+
+  const surfaceCenter = () => {
+    const rect = surfaceRef.current?.getBoundingClientRect()
+    if (!rect) return null
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+  }
+
+  const zoomIn = () => {
+    const c = surfaceCenter()
+    if (c) zoomAt(stateRef.current.viewport.zoom * 1.25, c.x, c.y)
+  }
+
+  const zoomOut = () => {
+    const c = surfaceCenter()
+    if (c) zoomAt(stateRef.current.viewport.zoom / 1.25, c.x, c.y)
+  }
+
+  const resetZoom = () => {
+    const c = surfaceCenter()
+    if (c) zoomAt(1, c.x, c.y)
+  }
+
+  // 适应全部：把当前所有节点（含边距）缩放到视口内并居中。
+  const fitAll = () => {
+    const surface = surfaceRef.current
+    if (!surface) return
+    if (nodes.length === 0) {
+      setViewport({ x: 0, y: 0, zoom: 1 })
+      scheduleSave()
+      return
+    }
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const node of nodes) {
+      const r = nodeRect(node)
+      minX = Math.min(minX, node.x)
+      minY = Math.min(minY, node.y)
+      maxX = Math.max(maxX, node.x + r.w)
+      maxY = Math.max(maxY, node.y + r.h)
+    }
+    const rect = surface.getBoundingClientRect()
+    const pad = 80
+    const zoom = Math.min(
+      ZOOM_MAX,
+      Math.max(
+        ZOOM_MIN,
+        Math.min(rect.width / (maxX - minX + pad * 2), rect.height / (maxY - minY + pad * 2)),
+      ),
+    )
+    const worldCX = (minX + maxX) / 2
+    const worldCY = (minY + maxY) / 2
+    setViewport({
+      zoom,
+      x: rect.width / 2 - worldCX * zoom,
+      y: rect.height / 2 - worldCY * zoom,
+    })
+    scheduleSave()
+  }
+
   const onKeyDown = (event: React.KeyboardEvent) => {
     const target = event.target as HTMLElement
     // 焦点在输入框内时，复制/粘贴/撤销/删除都交给浏览器原生行为处理。
@@ -876,6 +957,27 @@ function CanvasEditorContent({ id }: { id: string }) {
             <span className="canvas-toolbar-hint">
               滚轮缩放 · 拖空白平移 · ⇧拖框选 · 拖节点圆点连线 · ⌘Z 撤销 ⌘D 复制 · Delete 删除
             </span>
+            <span className="canvas-toolbar-divider" aria-hidden="true" />
+            <div className="canvas-zoom-controls" role="group" aria-label="缩放控制">
+              <button type="button" className="canvas-tool" onClick={zoomOut} title="缩小" aria-label="缩小">
+                <ZoomOut size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="canvas-zoom-value"
+                onClick={resetZoom}
+                title="重置为 100%"
+                aria-label="重置缩放"
+              >
+                {Math.round(viewport.zoom * 100)}%
+              </button>
+              <button type="button" className="canvas-tool" onClick={zoomIn} title="放大" aria-label="放大">
+                <ZoomIn size={15} aria-hidden="true" />
+              </button>
+              <button type="button" className="canvas-tool" onClick={fitAll} title="适应全部" aria-label="适应全部">
+                <Maximize size={15} aria-hidden="true" />
+              </button>
+            </div>
             {saveLabel && (
               <span className={`canvas-save-state is-${saveState}`} role="status">
                 {saveLabel}

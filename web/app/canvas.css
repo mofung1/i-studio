@@ -54,6 +54,38 @@
   white-space: nowrap;
 }
 
+.canvas-toolbar-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+.canvas-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.canvas-zoom-value {
+  min-width: 44px;
+  height: 34px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--foreground-2);
+  background: transparent;
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  text-align: center;
+}
+
+.canvas-zoom-value:hover {
+  color: var(--foreground);
+  background: var(--control-hover);
+}
+
 .canvas-save-state {
   color: var(--muted);
   font-size: var(--text-caption);
