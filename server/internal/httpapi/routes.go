@@ -41,6 +41,7 @@ func NewRouter(s Handlers) *gin.Engine {
 	s.registerGenerationRoutes(api)
 	s.registerLibraryRoutes(api)
 	s.registerPromptRoutes(api)
+	api.POST("/text/complete", gin.WrapF(s.TextComplete))
 	s.registerSettingsRoutes(api)
 	s.registerInspirationRoutes(api)
 	s.registerAdminRoutes(api.Group("/admin", s.adminMiddleware()))
@@ -58,6 +59,7 @@ func (s Handlers) registerGenerationRoutes(api *gin.RouterGroup) {
 	generation.GET("/tasks/:id/download", gin.WrapF(s.TaskByID))
 	generation.POST("/tasks/:id/retry", gin.WrapF(s.TaskByID))
 	generation.POST("/tasks/:id/redo-image", gin.WrapF(s.TaskByID))
+	generation.POST("/tasks/:id/cancel", gin.WrapF(s.TaskByID))
 
 	api.POST("/clothing/plan", gin.WrapF(s.ClothingPlanHandler))
 	api.POST("/clothing/manual-plan", gin.WrapF(s.ManualClothingPlan))
@@ -87,6 +89,14 @@ func (s Handlers) registerLibraryRoutes(api *gin.RouterGroup) {
 	registerMethods(api, "/assets/:id/content", s.AssetContent, "GET", "DELETE")
 	api.GET("/assets/:id/metadata", gin.WrapF(s.AssetMetadata))
 	api.GET("/assets/:id/thumbnail", gin.WrapF(s.AssetThumbnail))
+	registerMethods(api, "/canvases", s.Canvases, "GET", "POST")
+	canvas := func(c *gin.Context) {
+		s.CanvasByID(c.Writer, c.Request, c.Param("id"))
+	}
+	api.GET("/canvases/:id", canvas)
+	api.PUT("/canvases/:id", canvas)
+	api.PATCH("/canvases/:id", canvas)
+	api.DELETE("/canvases/:id", canvas)
 }
 
 func (s Handlers) registerPromptRoutes(api *gin.RouterGroup) {

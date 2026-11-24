@@ -1,0 +1,1351 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  ArrowLeft,
+  Image as ImageIcon,
+  Maximize,
+  Redo2,
+  Type,
+  Undo2,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
+import Link from 'next/link'
+
+import { AccountBoundary } from '@/components/account-access'
+import { StudioShell } from '@/components/studio-shell'
+import { apiBaseUrl, cancelGenerationTask, getAccessToken } from '@/lib/api'
+import { CanvasNodeCard } from './canvas-node-card'
+import { useCanvasCapabilities } from './use-canvas-capabilities'
+import {
+  assetIdFromContentPath,
+  edgeAllowed,
+  getCanvas,
+  imageNodeData,
+  imageNodeResult,
+  newCanvasNode,
+  saveCanvas,
+  type CanvasEdge,
+  type CanvasNode,
+  type CanvasNodeType,
+  type CanvasRecord,
+  type CanvasTextNodeResult,
+  type CanvasViewport,
+} from '@/lib/canvas'
+
+const ZOOM_MIN = 0.1
+const ZOOM_MAX = 6
+const SAVE_DEBOUNCE_MS = 700
+const PORT_R = 8
+const PORT_HIT_RADIUS = 16
+const EDGE_PAD = 80
+const MINIMAP_W = 180
+const MINIMAP_H = 120
+const MINIMAP_PAD = 16
+const ACTIVE_GENERATION_STATUSES = new Set(['queued', 'processing', 'waiting_provider'])
+
+interface DragState {
+  kind: 'pan' | 'node' | 'marquee'
+  nodeId?: string
+  startX: number
+  startY: number
+  originViewport?: CanvasViewport
+  /** 节点/多选拖动前各节点位置，落定后用于撤销与整体移动 */
+  originNodes?: { id: string; x: number; y: number }[]
+  /** 节点拖动开始前的图快照，落定后用于撤销 */
+  pendingSnapshot?: GraphSnapshot
+  /** 框选起点（世界坐标） */
+  marqueeStart?: { x: number; y: number }
+}
+
+interface GraphSnapshot {
+  nodes: CanvasNode[]
+  edges: CanvasEdge[]
+}
+
+// 视频节点类型已预留但暂未接入生成，先不暴露添加入口。
+const nodeAdders: { type: CanvasNodeType; label: string; icon: typeof Type }[] = [
+  { type: 'text', label: '文本', icon: Type },
+  { type: 'image', label: '图像', icon: ImageIcon },
+]
+
+export function CanvasEditor({ id }: { id: string }) {
+  return (
+    <AccountBoundary
+      section="canvas"
+      title="画布"
+      description="登录后在无限画布上组织生图任务，串联文生图与图生图。"
+      returnTo={`/canvas/${id}`}
+    >
+      <CanvasEditorContent id={id} />
+    </AccountBoundary>
+  )
+}
+
+function CanvasEditorContent({ id }: { id: string }) {
+  const [canvas, setCanvas] = useState<CanvasRecord | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [error, setError] = useState('')
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [marquee, setMarquee] = useState<{
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+  } | null>(null)
+  const [viewport, setViewport] = useState<CanvasViewport>({ x: 0, y: 0, zoom: 1 })
+  const [nodes, setNodes] = useState<CanvasNode[]>([])
+  const [edges, setEdges] = useState<CanvasEdge[]>([])
+  const [nodeSizes, setNodeSizes] = useState<Record<string, { w: number; h: number }>>({})
+  const [surfaceSize, setSurfaceSize] = useState({ w: 0, h: 0 })
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
+  const [draftEdge, setDraftEdge] = useState<{ sourceId: string; x: number; y: number } | null>(
+    null,
+  )
+
+  const surfaceRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<DragState | null>(null)
+  const draftSourceRef = useRef<string | null>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const canvasIdRef = useRef<string | null>(null)
+  const clipboardRef = useRef<CanvasNode[]>([])
+  const historyRef = useRef<{ undo: GraphSnapshot[]; redo: GraphSnapshot[] }>({
+    undo: [],
+    redo: [],
+  })
+  // 删除生成中节点时被取消的任务 ID；撤销恢复这类节点时清空其结果，避免续接已取消任务。
+  const cancelledTaskIdsRef = useRef<Set<string>>(new Set())
+
+  // 历史栈长度 → 撤销/重做按钮可用态（栈在 ref 里，需手动同步到 state）。
+  const syncHistory = useCallback(() => {
+    setCanUndo(historyRef.current.undo.length > 0)
+    setCanRedo(historyRef.current.redo.length > 0)
+  }, [])
+  // 选择状态同步镜像：供 focus 事件读取最新选择（避免闭包里的旧值）。
+  const selectedIdsRef = useRef<string[]>([])
+  // 节点 pointerdown 已处理选择后，抑制随后的 focus 事件重复改选。
+  const suppressFocusSelectRef = useRef(false)
+  // 配置编辑会话：防抖合并，把「编辑前」快照延迟入撤销栈。
+  const editTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingEditRef = useRef<GraphSnapshot | null>(null)
+
+  // 记录视口、节点与连线，供防抖保存读取最新值。
+  const stateRef = useRef({ viewport, nodes, edges })
+  stateRef.current = { viewport, nodes, edges }
+  canvasIdRef.current = canvas?.id ?? null
+
+  // 选择：单选 / 多选（Shift 点选 / 框选）。同步写入 ref，供 focus 事件读取最新值。
+  const applySelection = useCallback((ids: string[]) => {
+    selectedIdsRef.current = ids
+    setSelectedIds(ids)
+  }, [])
+
+  const selectOnly = useCallback(
+    (id: string) => {
+      applySelection([id])
+      setSelectedEdgeId(null)
+    },
+    [applySelection],
+  )
+
+  const toggleSelect = useCallback(
+    (id: string) => {
+      const current = selectedIdsRef.current
+      const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
+      applySelection(next)
+      setSelectedEdgeId(null)
+    },
+    [applySelection],
+  )
+
+  const clearSelection = useCallback(() => {
+    applySelection([])
+    setSelectedEdgeId(null)
+  }, [applySelection])
+
+  const scheduleSave = useCallback(() => {
+    setSaveState('saving')
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      const id = canvasIdRef.current
+      saveTimer.current = null
+      if (!id) return
+      const { viewport: vp, nodes: nds, edges: eds } = stateRef.current
+      try {
+        await saveCanvas(id, { viewport: vp, graph: { nodes: nds, edges: eds } })
+        setSaveState('saved')
+      } catch (reason) {
+        setSaveState('error')
+        setError(reason instanceof Error ? reason.message : '画布保存失败')
+      }
+    }, SAVE_DEBOUNCE_MS)
+  }, [])
+
+  // 关页 / 切后台时立即把未落盘的改动发出去，避免 700ms 防抖窗口内的最后改动丢失。
+  const flushSave = useCallback(() => {
+    if (!saveTimer.current) return
+    clearTimeout(saveTimer.current)
+    saveTimer.current = null
+    const id = canvasIdRef.current
+    if (!id) return
+    const token = getAccessToken()
+    if (!token) return
+    const { viewport: vp, nodes: nds, edges: eds } = stateRef.current
+    void fetch(`${apiBaseUrl}/v1/canvases/${id}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ viewport: vp, graph: { nodes: nds, edges: eds } }),
+      keepalive: true,
+    })
+  }, [])
+
+  useEffect(() => {
+    const onPageHide = () => flushSave()
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushSave()
+    }
+    window.addEventListener('pagehide', onPageHide)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', onPageHide)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [flushSave])
+
+  const capabilities = useCanvasCapabilities()
+
+  const updateNode = useCallback(
+    (id: string, patch: Partial<CanvasNode>) => {
+      // 配置（data）编辑用防抖合并成单个撤销步：只在首个变更前记一次快照，停顿后入栈。
+      // 结果（result）回填不入这里，改由生成前的快照负责撤销。
+      if (patch.data && !pendingEditRef.current) {
+        pendingEditRef.current = { nodes: stateRef.current.nodes, edges: stateRef.current.edges }
+      }
+      setNodes((current) =>
+        current.map((n) => {
+          if (n.id !== id) return n
+          const next = { ...n, ...patch }
+          if (patch.data) next.data = { ...n.data, ...patch.data }
+          return next
+        }),
+      )
+      scheduleSave()
+      if (patch.data) {
+        if (editTimerRef.current) clearTimeout(editTimerRef.current)
+        editTimerRef.current = setTimeout(() => {
+          const before = pendingEditRef.current
+          pendingEditRef.current = null
+          if (!before) return
+          historyRef.current.undo.push(before)
+          if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
+          historyRef.current.redo = []
+          syncHistory()
+        }, 800)
+      }
+    },
+    [scheduleSave, syncHistory],
+  )
+
+  const onNodeSize = useCallback((id: string, w: number, h: number) => {
+    setNodeSizes((previous) => {
+      const current = previous[id]
+      if (current && Math.abs(current.w - w) < 1 && Math.abs(current.h - h) < 1) return previous
+      return { ...previous, [id]: { w, h } }
+    })
+  }, [])
+
+  // 记录 surface 实际尺寸，供小地图视口框计算。
+  useEffect(() => {
+    const surface = surfaceRef.current
+    if (!surface) return
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) setSurfaceSize({ w: entry.contentRect.width, h: entry.contentRect.height })
+    })
+    observer.observe(surface)
+    setSurfaceSize({ w: surface.clientWidth, h: surface.clientHeight })
+    return () => observer.disconnect()
+  }, [])
+
+  // 撤销/重做：记录离散的图变更（增删节点/连线、节点落定、复制粘贴）与生成前状态；
+  // 打字与结果回填分别走编辑会话防抖、生成前快照。
+  const commitHistory = useCallback(() => {
+    // 先落定未提交的配置编辑会话，保证编辑快照排在结构/生成快照之前。
+    if (pendingEditRef.current) {
+      historyRef.current.undo.push(pendingEditRef.current)
+      pendingEditRef.current = null
+      if (editTimerRef.current) {
+        clearTimeout(editTimerRef.current)
+        editTimerRef.current = null
+      }
+    }
+    const { nodes: nds, edges: eds } = stateRef.current
+    historyRef.current.undo.push({ nodes: nds, edges: eds })
+    if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
+    historyRef.current.redo = []
+    syncHistory()
+  }, [syncHistory])
+
+  const applySnapshot = useCallback(
+    (snap: GraphSnapshot) => {
+      // 撤销/重做会整体替换图，丢弃未落定的编辑会话，避免残留快照污染历史。
+      if (editTimerRef.current) {
+        clearTimeout(editTimerRef.current)
+        editTimerRef.current = null
+      }
+      pendingEditRef.current = null
+      // 恢复出的图像节点若其任务在删除时已被取消，则清空结果回到「未生成」，
+      // 而不是继续轮询一个已取消的任务并最终显示「已取消」。
+      const cancelled = cancelledTaskIdsRef.current
+      const nodes =
+        cancelled.size > 0
+          ? snap.nodes.map((n) => {
+              if (n.type !== 'image') return n
+              const result = imageNodeResult(n)
+              if (result?.taskId && cancelled.has(result.taskId)) {
+                return { ...n, result: null }
+              }
+              return n
+            })
+          : snap.nodes
+      setNodes(nodes)
+      setEdges(snap.edges)
+      scheduleSave()
+    },
+    [scheduleSave],
+  )
+
+  const undo = useCallback(() => {
+    const previous = historyRef.current.undo.pop()
+    if (!previous) return
+    historyRef.current.redo.push({ nodes: stateRef.current.nodes, edges: stateRef.current.edges })
+    applySnapshot(previous)
+    clearSelection()
+    syncHistory()
+  }, [applySnapshot, clearSelection, syncHistory])
+
+  const redo = useCallback(() => {
+    const next = historyRef.current.redo.pop()
+    if (!next) return
+    historyRef.current.undo.push({ nodes: stateRef.current.nodes, edges: stateRef.current.edges })
+    applySnapshot(next)
+    clearSelection()
+    syncHistory()
+  }, [applySnapshot, clearSelection, syncHistory])
+
+  // 复制/粘贴/复制节点：克隆配置、清空结果（避免复制 taskId 导致重复轮询），错位落点。
+  const spawnClones = useCallback(
+    (sources: CanvasNode[]) => {
+      const created = sources.map((source) => ({
+        ...structuredClone(source),
+        id: crypto.randomUUID(),
+        x: source.x + 24,
+        y: source.y + 24,
+        result: null,
+      }))
+      setNodes((current) => [...current, ...created])
+      applySelection(created.map((n) => n.id))
+      setSelectedEdgeId(null)
+      scheduleSave()
+    },
+    [applySelection, scheduleSave],
+  )
+
+  const duplicateNodes = useCallback(
+    (ids: string[]) => {
+      const sources = stateRef.current.nodes.filter((n) => ids.includes(n.id))
+      if (sources.length === 0) return
+      commitHistory()
+      spawnClones(sources)
+    },
+    [commitHistory, spawnClones],
+  )
+
+  const copySelected = useCallback(() => {
+    const sources = stateRef.current.nodes.filter((n) => selectedIds.includes(n.id))
+    if (sources.length === 0) return
+    clipboardRef.current = sources.map((n) => structuredClone(n))
+  }, [selectedIds])
+
+  const pasteClipboard = useCallback(() => {
+    const sources = clipboardRef.current
+    if (sources.length === 0) return
+    commitHistory()
+    spawnClones(sources)
+  }, [commitHistory, spawnClones])
+
+  useEffect(
+    () => () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      if (editTimerRef.current) clearTimeout(editTimerRef.current)
+    },
+    [],
+  )
+
+  const applyGraph = useCallback((record: CanvasRecord) => {
+    setCanvas(record)
+    setViewport(record.viewport)
+    setNodes(record.graph.nodes ?? [])
+    setEdges(record.graph.edges ?? [])
+    setNodeSizes({})
+    // 切换画布后，上一个画布的撤销历史失效，避免误把旧快照应用到新画布。
+    historyRef.current = { undo: [], redo: [] }
+    syncHistory()
+  }, [syncHistory])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    setLoadFailed(false)
+    try {
+      applyGraph(await getCanvas(id))
+    } catch (reason) {
+      setLoadFailed(true)
+      setError(reason instanceof Error ? reason.message : '画布读取失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [applyGraph, id])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  // 画布容器持有键盘焦点，Delete 删除选中节点/连线。
+  useEffect(() => {
+    editorRef.current?.focus()
+  }, [])
+
+  // 世界坐标几何：节点实测尺寸 → 端口位置 → 连线路径。
+  const nodeRect = (node: CanvasNode) => {
+    const size = nodeSizes[node.id]
+    return { w: size?.w ?? node.w, h: size?.h ?? node.h }
+  }
+  const outputPort = (node: CanvasNode) => {
+    const r = nodeRect(node)
+    return { x: node.x + r.w / 2, y: node.y + r.h }
+  }
+  const inputPort = (node: CanvasNode) => {
+    const r = nodeRect(node)
+    return { x: node.x + r.w / 2, y: node.y }
+  }
+  const edgePath = (x1: number, y1: number, x2: number, y2: number) => {
+    const dy = Math.max(40, Math.abs(y2 - y1) * 0.5)
+    return `M ${x1} ${y1} C ${x1} ${y1 + dy} ${x2} ${y2 - dy} ${x2} ${y2}`
+  }
+
+  const clientToWorld = (clientX: number, clientY: number): [number, number] => {
+    const rect = surfaceRef.current?.getBoundingClientRect()
+    const left = rect?.left ?? 0
+    const top = rect?.top ?? 0
+    return [
+      (clientX - left - viewport.x) / viewport.zoom,
+      (clientY - top - viewport.y) / viewport.zoom,
+    ]
+  }
+
+  // 框选矩形归一化（把任意方向拖出的两点规整为左上角 + 宽高）。
+  const normalizeRect = (x1: number, y1: number, x2: number, y2: number) => ({
+    x: Math.min(x1, x2),
+    y: Math.min(y1, y2),
+    w: Math.abs(x2 - x1),
+    h: Math.abs(y2 - y1),
+  })
+
+  // 与选框相交的节点 ID（含部分相交）。
+  const nodesInRect = (rect: { x: number; y: number; w: number; h: number }): string[] => {
+    const ids: string[] = []
+    for (const node of nodes) {
+      const r = nodeRect(node)
+      if (
+        node.x < rect.x + rect.w &&
+        node.x + r.w > rect.x &&
+        node.y < rect.y + rect.h &&
+        node.y + r.h > rect.y
+      ) {
+        ids.push(node.id)
+      }
+    }
+    return ids
+  }
+
+  /** 命中检测：指针世界坐标附近的合法输入端口（节点 ID 或 null）。 */
+  const validInputTarget = (sourceId: string, wx: number, wy: number): string | null => {
+    const source = nodes.find((n) => n.id === sourceId)
+    if (!source) return null
+    const radius = PORT_HIT_RADIUS / viewport.zoom
+    let bestId: string | null = null
+    let bestDist = Infinity
+    for (const node of nodes) {
+      if (node.id === sourceId || node.type === 'video') continue
+      if (!edgeAllowed(source.type, node.type)) continue
+      // 图生文需要文本模型支持识图
+      if (source.type === 'image' && node.type === 'text' && !capabilities.promptVision) continue
+      const p = inputPort(node)
+      const dist = Math.hypot(p.x - wx, p.y - wy)
+      if (dist < radius && dist < bestDist) {
+        bestDist = dist
+        bestId = node.id
+      }
+    }
+    return bestId
+  }
+
+  const referencesFor = useCallback(
+    (nodeId: string) => {
+      const referenceImages: string[] = []
+      const referenceTexts: string[] = []
+      for (const edge of edges) {
+        if (edge.target !== nodeId) continue
+        const source = nodes.find((n) => n.id === edge.source)
+        if (!source) continue
+        if (source.type === 'image') {
+          const result = imageNodeResult(source)
+          // 上游节点指定了参考子集时只注入该子集，否则注入全部结果图。
+          const pinned = imageNodeData(source).referenceAssetIds
+          for (const path of result?.images ?? []) {
+            const id = assetIdFromContentPath(path)
+            if (!id) continue
+            if (pinned.length > 0 && !pinned.includes(id)) continue
+            referenceImages.push(id)
+          }
+        } else if (source.type === 'text') {
+          const result = source.result as CanvasTextNodeResult | null
+          const text = result?.text?.trim()
+          if (text) referenceTexts.push(text)
+        }
+      }
+      return { referenceImages, referenceTexts }
+    },
+    [edges, nodes],
+  )
+
+  const onAddNode = (type: CanvasNodeType) => {
+    const surface = surfaceRef.current
+    const rect = surface?.getBoundingClientRect()
+    const w = rect?.width ?? 800
+    const h = rect?.height ?? 600
+    // 节点落在当前视口中心附近（世界坐标），并稍作错位避免完全重叠。
+    const cx = (w / 2 - viewport.x) / viewport.zoom
+    const cy = (h / 2 - viewport.y) / viewport.zoom
+    const offset = nodes.length * 24
+    const node = newCanvasNode(type, cx - 160 + offset, cy - 130 + offset)
+    if (type === 'image') {
+      const fallback = capabilities.imageEndpoints[0]
+      node.data = {
+        prompt: '',
+        endpointId: fallback?.id ?? '',
+        model: fallback?.model ?? '',
+        aspectRatio: '1:1',
+        resolution: '2K',
+        count: 1,
+        style: 'unspecified',
+        referenceStrength: 'medium',
+      }
+    } else if (type === 'text') {
+      node.data = { prompt: '', instruction: '' }
+    }
+    commitHistory()
+    setNodes((current) => [...current, node])
+    applySelection([node.id])
+    setSelectedEdgeId(null)
+    scheduleSave()
+  }
+
+  const deleteNodes = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) return
+      commitHistory()
+      const removing = new Set(ids)
+      // 删除生成中的图像节点时，主动取消其服务端任务并退回冻结额度（fire-and-forget）；
+      // 记录被取消的任务 ID，撤销恢复节点时据此清空其结果，而不是续接已取消任务。
+      for (const id of ids) {
+        const node = stateRef.current.nodes.find((n) => n.id === id)
+        if (node && node.type === 'image') {
+          const result = imageNodeResult(node)
+          const active = result && ACTIVE_GENERATION_STATUSES.has(result.status)
+          if (active && result.taskId) {
+            cancelledTaskIdsRef.current.add(result.taskId)
+            void cancelGenerationTask(result.taskId).catch(() => {})
+          }
+        }
+      }
+      setNodes((current) => current.filter((node) => !removing.has(node.id)))
+      setEdges((current) =>
+        current.filter((edge) => !removing.has(edge.source) && !removing.has(edge.target)),
+      )
+      applySelection([])
+      scheduleSave()
+    },
+    [applySelection, commitHistory, scheduleSave],
+  )
+
+  // 生成前记录快照：撤销可回到「未生成」状态。
+  const onBeforeGenerate = useCallback(() => {
+    commitHistory()
+  }, [commitHistory])
+
+  const onDeleteEdge = () => {
+    if (!selectedEdgeId) return
+    const id = selectedEdgeId
+    commitHistory()
+    setEdges((current) => current.filter((edge) => edge.id !== id))
+    setSelectedEdgeId(null)
+    scheduleSave()
+  }
+
+  const onRenameCanvas = (name: string) => {
+    if (!canvas) return
+    const trimmed = name.trim() || '未命名画布'
+    setCanvas({ ...canvas, name: trimmed })
+    scheduleSave()
+  }
+
+  // 指针事件：平移 / 框选 / 拖节点（支持多选整体移动）。
+  const onSurfacePointerDown = (event: React.PointerEvent) => {
+    if (event.button !== 0 && event.button !== 1) return
+    const surface = surfaceRef.current
+    if (!surface) return
+    if (event.button === 0 && event.shiftKey) {
+      // Shift + 左键在空白处拖出选框。
+      const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+      dragRef.current = {
+        kind: 'marquee',
+        startX: event.clientX,
+        startY: event.clientY,
+        marqueeStart: { x: wx, y: wy },
+      }
+      setMarquee({ x1: wx, y1: wy, x2: wx, y2: wy })
+      surface.setPointerCapture(event.pointerId)
+      return
+    }
+    // 空白处点击/平移：清除选择。
+    clearSelection()
+    dragRef.current = {
+      kind: 'pan',
+      startX: event.clientX,
+      startY: event.clientY,
+      originViewport: viewport,
+    }
+    surface.setPointerCapture(event.pointerId)
+  }
+
+  const onNodePointerDown = (event: React.PointerEvent, node: CanvasNode) => {
+    if (event.button !== 0) return
+    event.stopPropagation()
+    // 本次 pointerdown 已处理选择，抑制随后的 focus 事件重复改选（下一宏任务复位）。
+    suppressFocusSelectRef.current = true
+    window.setTimeout(() => {
+      suppressFocusSelectRef.current = false
+    }, 0)
+    // Shift 点选切换多选，不进入拖动；否则点击已选节点保留整组，未选则单选。
+    if (event.shiftKey) {
+      toggleSelect(node.id)
+      return
+    }
+    const movingIds = selectedIdsRef.current.includes(node.id) ? selectedIdsRef.current : [node.id]
+    if (!selectedIdsRef.current.includes(node.id)) selectOnly(node.id)
+    else setSelectedEdgeId(null)
+    const originNodes = movingIds
+      .map((id) => {
+        const found = stateRef.current.nodes.find((n) => n.id === id)
+        return found ? { id, x: found.x, y: found.y } : null
+      })
+      .filter((item): item is { id: string; x: number; y: number } => item !== null)
+    dragRef.current = {
+      kind: 'node',
+      nodeId: node.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      originNodes,
+      pendingSnapshot: { nodes: stateRef.current.nodes, edges: stateRef.current.edges },
+    }
+    ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  }
+
+  const onPointerMove = (event: React.PointerEvent) => {
+    const drag = dragRef.current
+    if (!drag) return
+    const dx = event.clientX - drag.startX
+    const dy = event.clientY - drag.startY
+    if (drag.kind === 'pan' && drag.originViewport) {
+      setViewport({
+        ...drag.originViewport,
+        x: drag.originViewport.x + dx,
+        y: drag.originViewport.y + dy,
+      })
+      return
+    }
+    if (drag.kind === 'marquee' && drag.marqueeStart) {
+      const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+      setMarquee({ x1: drag.marqueeStart.x, y1: drag.marqueeStart.y, x2: wx, y2: wy })
+      return
+    }
+    if (drag.kind === 'node' && drag.nodeId && drag.originNodes) {
+      const zoom = viewport.zoom || 1
+      const dxWorld = dx / zoom
+      const dyWorld = dy / zoom
+      setNodes((current) =>
+        current.map((node) => {
+          const origin = drag.originNodes!.find((o) => o.id === node.id)
+          if (!origin) return node
+          return { ...node, x: origin.x + dxWorld, y: origin.y + dyWorld }
+        }),
+      )
+    }
+  }
+
+  const finalizeNodeDrag = (drag: DragState) => {
+    if (drag.kind !== 'node' || !drag.pendingSnapshot || !drag.originNodes) return
+    const moved = stateRef.current.nodes.find((n) => n.id === drag.nodeId)
+    const origin = drag.originNodes.find((o) => o.id === drag.nodeId)
+    if (moved && origin && (moved.x !== origin.x || moved.y !== origin.y)) {
+      historyRef.current.undo.push(drag.pendingSnapshot)
+      if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
+      historyRef.current.redo = []
+      syncHistory()
+    }
+  }
+
+  const onPointerUp = (event: React.PointerEvent) => {
+    const drag = dragRef.current
+    if (!drag) return
+    dragRef.current = null
+    if (drag.kind === 'marquee') {
+      const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+      const rect = normalizeRect(drag.marqueeStart!.x, drag.marqueeStart!.y, wx, wy)
+      applySelection(nodesInRect(rect))
+      setSelectedEdgeId(null)
+      setMarquee(null)
+      return
+    }
+    finalizeNodeDrag(drag)
+    scheduleSave()
+  }
+
+  const onPointerCancel = () => {
+    const drag = dragRef.current
+    dragRef.current = null
+    setMarquee(null)
+    if (drag) finalizeNodeDrag(drag)
+  }
+
+  // 连线拖拽：从输出端口按下，捕获指针，命中输入端口时建立连线。
+  const startEdgeDraw = (node: CanvasNode, event: React.PointerEvent) => {
+    if (event.button !== 0) return
+    event.stopPropagation()
+    event.preventDefault()
+    const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+    draftSourceRef.current = node.id
+    setDraftEdge({ sourceId: node.id, x: wx, y: wy })
+    clearSelection()
+    ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  }
+
+  const moveEdgeDraw = (event: React.PointerEvent) => {
+    if (!draftSourceRef.current) return
+    const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+    setDraftEdge((current) => (current ? { ...current, x: wx, y: wy } : current))
+  }
+
+  const endEdgeDraw = (event: React.PointerEvent) => {
+    const sourceId = draftSourceRef.current
+    draftSourceRef.current = null
+    setDraftEdge(null)
+    if (!sourceId) return
+    const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+    const targetId = validInputTarget(sourceId, wx, wy)
+    if (!targetId) return
+    const duplicate = edges.some((edge) => edge.source === sourceId && edge.target === targetId)
+    if (duplicate) return
+    commitHistory()
+    setEdges((current) => [
+      ...current,
+      { id: crypto.randomUUID(), source: sourceId, target: targetId },
+    ])
+    scheduleSave()
+  }
+
+  // 滚轮缩放走原生非 passive 监听器：React 的 onWheel 是 passive，无法 preventDefault，
+  // 这里既要阻止页面/父容器随滚轮滚动，也要缩放锚定鼠标位置。
+  useEffect(() => {
+    const surface = surfaceRef.current
+    if (!surface) return
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      const vp = stateRef.current.viewport
+      const rect = surface.getBoundingClientRect()
+      const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1
+      const nextZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, vp.zoom * factor))
+      if (nextZoom === vp.zoom) return
+      const worldX = (event.clientX - rect.left - vp.x) / vp.zoom
+      const worldY = (event.clientY - rect.top - vp.y) / vp.zoom
+      setViewport({
+        zoom: nextZoom,
+        x: event.clientX - rect.left - worldX * nextZoom,
+        y: event.clientY - rect.top - worldY * nextZoom,
+      })
+      scheduleSave()
+    }
+    surface.addEventListener('wheel', handleWheel, { passive: false })
+    return () => surface.removeEventListener('wheel', handleWheel)
+  }, [scheduleSave])
+
+  // 缩放控制：以屏幕某点为锚点缩放，保证该点下的世界坐标不动（与滚轮行为一致）。
+  const zoomAt = useCallback(
+    (nextZoom: number, anchorClientX: number, anchorClientY: number) => {
+      const surface = surfaceRef.current
+      if (!surface) return
+      const vp = stateRef.current.viewport
+      const rect = surface.getBoundingClientRect()
+      const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, nextZoom))
+      if (clamped === vp.zoom) return
+      const worldX = (anchorClientX - rect.left - vp.x) / vp.zoom
+      const worldY = (anchorClientY - rect.top - vp.y) / vp.zoom
+      setViewport({
+        zoom: clamped,
+        x: anchorClientX - rect.left - worldX * clamped,
+        y: anchorClientY - rect.top - worldY * clamped,
+      })
+      scheduleSave()
+    },
+    [scheduleSave],
+  )
+
+  const surfaceCenter = () => {
+    const rect = surfaceRef.current?.getBoundingClientRect()
+    if (!rect) return null
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+  }
+
+  const zoomIn = () => {
+    const c = surfaceCenter()
+    if (c) zoomAt(stateRef.current.viewport.zoom * 1.25, c.x, c.y)
+  }
+
+  const zoomOut = () => {
+    const c = surfaceCenter()
+    if (c) zoomAt(stateRef.current.viewport.zoom / 1.25, c.x, c.y)
+  }
+
+  const resetZoom = () => {
+    const c = surfaceCenter()
+    if (c) zoomAt(1, c.x, c.y)
+  }
+
+  // 适应全部：把当前所有节点（含边距）缩放到视口内并居中。
+  const fitAll = () => {
+    const surface = surfaceRef.current
+    if (!surface) return
+    if (nodes.length === 0) {
+      setViewport({ x: 0, y: 0, zoom: 1 })
+      scheduleSave()
+      return
+    }
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const node of nodes) {
+      const r = nodeRect(node)
+      minX = Math.min(minX, node.x)
+      minY = Math.min(minY, node.y)
+      maxX = Math.max(maxX, node.x + r.w)
+      maxY = Math.max(maxY, node.y + r.h)
+    }
+    const rect = surface.getBoundingClientRect()
+    const pad = 80
+    const zoom = Math.min(
+      ZOOM_MAX,
+      Math.max(
+        ZOOM_MIN,
+        Math.min(rect.width / (maxX - minX + pad * 2), rect.height / (maxY - minY + pad * 2)),
+      ),
+    )
+    const worldCX = (minX + maxX) / 2
+    const worldCY = (minY + maxY) / 2
+    setViewport({
+      zoom,
+      x: rect.width / 2 - worldCX * zoom,
+      y: rect.height / 2 - worldCY * zoom,
+    })
+    scheduleSave()
+  }
+
+  // 小地图：把节点包围盒缩放到固定尺寸，映射世界坐标 → 小地图坐标。
+  const minimap = useMemo(() => {
+    if (nodes.length === 0) return null
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const node of nodes) {
+      const r = nodeRect(node)
+      minX = Math.min(minX, node.x)
+      minY = Math.min(minY, node.y)
+      maxX = Math.max(maxX, node.x + r.w)
+      maxY = Math.max(maxY, node.y + r.h)
+    }
+    const worldW = maxX - minX
+    const worldH = maxY - minY
+    const scale = Math.min(
+      MINIMAP_W / (worldW + MINIMAP_PAD * 2),
+      MINIMAP_H / (worldH + MINIMAP_PAD * 2),
+    )
+    const offsetX = (MINIMAP_W - worldW * scale) / 2
+    const offsetY = (MINIMAP_H - worldH * scale) / 2
+    return {
+      minX,
+      minY,
+      scale,
+      offsetX,
+      offsetY,
+      toMini: (wx: number, wy: number) => ({
+        x: offsetX + (wx - minX) * scale,
+        y: offsetY + (wy - minY) * scale,
+      }),
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, nodeSizes])
+
+  const viewportRect = useMemo(() => {
+    if (!minimap || surfaceSize.w === 0 || surfaceSize.h === 0) return null
+    const vx = -viewport.x / viewport.zoom
+    const vy = -viewport.y / viewport.zoom
+    const tl = minimap.toMini(vx, vy)
+    const br = minimap.toMini(
+      vx + surfaceSize.w / viewport.zoom,
+      vy + surfaceSize.h / viewport.zoom,
+    )
+    return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y }
+  }, [minimap, viewport, surfaceSize])
+
+  const onMinimapPointerDown = (event: React.PointerEvent) => {
+    if (!minimap || surfaceSize.w === 0 || surfaceSize.h === 0) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const mx = event.clientX - rect.left
+    const my = event.clientY - rect.top
+    const wx = minimap.minX + (mx - minimap.offsetX) / minimap.scale
+    const wy = minimap.minY + (my - minimap.offsetY) / minimap.scale
+    setViewport({
+      zoom: viewport.zoom,
+      x: surfaceSize.w / 2 - wx * viewport.zoom,
+      y: surfaceSize.h / 2 - wy * viewport.zoom,
+    })
+    scheduleSave()
+  }
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    const target = event.target as HTMLElement
+    // 焦点在输入框内时，复制/粘贴/撤销/删除都交给浏览器原生行为处理。
+    const isEditing =
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable
+    if (isEditing) return
+
+    const mod = event.metaKey || event.ctrlKey
+
+    if ((event.key === 'Delete' || event.key === 'Backspace') && !mod) {
+      event.preventDefault()
+      if (selectedEdgeId) onDeleteEdge()
+      else deleteNodes(selectedIds)
+      return
+    }
+
+    if (event.key === 'Escape' && !mod) {
+      clearSelection()
+      return
+    }
+
+    if (!mod) return
+    const key = event.key.toLowerCase()
+    if (key === 'z') {
+      event.preventDefault()
+      if (event.shiftKey) redo()
+      else undo()
+    } else if (key === 'y') {
+      event.preventDefault()
+      redo()
+    } else if (key === 'd') {
+      event.preventDefault()
+      if (selectedIds.length > 0) duplicateNodes(selectedIds)
+    } else if (key === 'c') {
+      if (selectedIds.length > 0) {
+        event.preventDefault()
+        copySelected()
+      }
+    } else if (key === 'v') {
+      event.preventDefault()
+      pasteClipboard()
+    }
+  }
+
+  // 连线包围盒：SVG 覆盖所有节点并留白，保证曲线与端口命中都在 SVG 内。
+  const bounds = useMemo(() => {
+    if (nodes.length === 0) return { x: 0, y: 0, width: 0, height: 0 }
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const node of nodes) {
+      const r = nodeRect(node)
+      minX = Math.min(minX, node.x)
+      minY = Math.min(minY, node.y)
+      maxX = Math.max(maxX, node.x + r.w)
+      maxY = Math.max(maxY, node.y + r.h)
+    }
+    return {
+      x: minX - EDGE_PAD,
+      y: minY - EDGE_PAD,
+      width: maxX - minX + EDGE_PAD * 2,
+      height: maxY - minY + EDGE_PAD * 2,
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, nodeSizes])
+
+  const draftTargetId = draftEdge
+    ? validInputTarget(draftEdge.sourceId, draftEdge.x, draftEdge.y)
+    : null
+
+  const saveLabel =
+    saveState === 'saving'
+      ? '保存中…'
+      : saveState === 'saved'
+        ? '已保存'
+        : saveState === 'error'
+          ? '保存失败'
+          : ''
+
+  return (
+    <StudioShell
+      section="canvas"
+      title="画布"
+      actions={
+        <>
+          <label className="canvas-name-field">
+            <span className="sr-only">画布名称</span>
+            <input
+              value={canvas?.name ?? ''}
+              onChange={(event) => onRenameCanvas(event.target.value)}
+              disabled={!canvas}
+              aria-label="画布名称"
+            />
+          </label>
+          <Link className="studio-secondary" href="/canvas">
+            <ArrowLeft size={16} aria-hidden="true" />
+            返回画布列表
+          </Link>
+        </>
+      }
+    >
+      {loadFailed ? (
+        <div className="canvas-manager-empty canvas-manager-empty--center">
+          <ImageIcon size={34} aria-hidden="true" />
+          <strong>画布不存在或已删除</strong>
+          <p>{error}</p>
+          <Link className="studio-primary" href="/canvas">
+            返回画布列表
+          </Link>
+        </div>
+      ) : (
+        <div
+          className={`canvas-editor${loading ? ' is-loading' : ''}`}
+          onKeyDown={onKeyDown}
+          tabIndex={-1}
+          ref={editorRef}
+        >
+          <div className="canvas-toolbar" role="toolbar" aria-label="添加节点">
+            {nodeAdders.map(({ type, label, icon: Icon }) => (
+              <button
+                key={type}
+                type="button"
+                className="canvas-tool"
+                onClick={() => onAddNode(type)}
+                title={`添加${label}节点`}
+              >
+                <Icon size={15} aria-hidden="true" />
+                <span>{label}</span>
+              </button>
+            ))}
+            <span className="canvas-toolbar-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className="canvas-tool"
+              onClick={undo}
+              disabled={!canUndo}
+              title="撤销 (⌘Z)"
+              aria-label="撤销"
+            >
+              <Undo2 size={15} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="canvas-tool"
+              onClick={redo}
+              disabled={!canRedo}
+              title="重做 (⇧⌘Z)"
+              aria-label="重做"
+            >
+              <Redo2 size={15} aria-hidden="true" />
+            </button>
+            <span className="canvas-toolbar-hint">
+              滚轮缩放 · 拖空白平移 · ⇧拖框选 · 拖节点圆点连线 · ⌘Z 撤销 ⌘D 复制 · Delete 删除
+            </span>
+            <span className="canvas-toolbar-divider" aria-hidden="true" />
+            <div className="canvas-zoom-controls" role="group" aria-label="缩放控制">
+              <button type="button" className="canvas-tool" onClick={zoomOut} title="缩小" aria-label="缩小">
+                <ZoomOut size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="canvas-zoom-value"
+                onClick={resetZoom}
+                title="重置为 100%"
+                aria-label="重置缩放"
+              >
+                {Math.round(viewport.zoom * 100)}%
+              </button>
+              <button type="button" className="canvas-tool" onClick={zoomIn} title="放大" aria-label="放大">
+                <ZoomIn size={15} aria-hidden="true" />
+              </button>
+              <button type="button" className="canvas-tool" onClick={fitAll} title="适应全部" aria-label="适应全部">
+                <Maximize size={15} aria-hidden="true" />
+              </button>
+            </div>
+            {saveLabel && (
+              <span className={`canvas-save-state is-${saveState}`} role="status">
+                {saveLabel}
+              </span>
+            )}
+          </div>
+
+          <div
+            className="canvas-surface"
+            ref={surfaceRef}
+            onPointerDown={onSurfacePointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
+          >
+            <div
+              className="canvas-world"
+              style={{
+                transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+              }}
+            >
+              <svg
+                className="canvas-edges"
+                style={{
+                  left: bounds.x,
+                  top: bounds.y,
+                  width: Math.max(bounds.width, 1),
+                  height: Math.max(bounds.height, 1),
+                }}
+                aria-hidden="true"
+              >
+                <g transform={`translate(${-bounds.x}, ${-bounds.y})`}>
+                  {edges.map((edge) => {
+                    const source = nodes.find((n) => n.id === edge.source)
+                    const target = nodes.find((n) => n.id === edge.target)
+                    if (!source || !target) return null
+                    const sp = outputPort(source)
+                    const tp = inputPort(target)
+                    const d = edgePath(sp.x, sp.y, tp.x, tp.y)
+                    const selected = selectedEdgeId === edge.id
+                    // 连线中点标注数据流类型：文本节点输出「文」，图像节点输出「图」。
+                    const label = source.type === 'text' ? '文' : '图'
+                    const lx = (sp.x + tp.x) / 2
+                    const ly = (sp.y + tp.y) / 2
+                    return (
+                      <g key={edge.id}>
+                        <path
+                          className="canvas-edge-hit"
+                          d={d}
+                          onPointerDown={(event) => {
+                            event.stopPropagation()
+                            setSelectedEdgeId(edge.id)
+                            applySelection([])
+                          }}
+                        />
+                        <path className={`canvas-edge${selected ? ' is-selected' : ''}`} d={d} />
+                        <g className="canvas-edge-label" transform={`translate(${lx}, ${ly})`}>
+                          <rect x={-10} y={-9} width={20} height={18} rx={5} />
+                          <text textAnchor="middle" dominantBaseline="central">
+                            {label}
+                          </text>
+                        </g>
+                      </g>
+                    )
+                  })}
+                  {draftEdge &&
+                    (() => {
+                      const source = nodes.find((n) => n.id === draftEdge.sourceId)
+                      if (!source) return null
+                      const sp = outputPort(source)
+                      return (
+                        <path
+                          className="canvas-edge is-draft"
+                          d={edgePath(sp.x, sp.y, draftEdge.x, draftEdge.y)}
+                        />
+                      )
+                    })()}
+                </g>
+              </svg>
+
+              {marquee && (
+                <div
+                  className="canvas-marquee"
+                  style={{
+                    left: Math.min(marquee.x1, marquee.x2),
+                    top: Math.min(marquee.y1, marquee.y2),
+                    width: Math.abs(marquee.x2 - marquee.x1),
+                    height: Math.abs(marquee.y2 - marquee.y1),
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+
+              {nodes.map((node) => {
+                const refs = referencesFor(node.id)
+                return (
+                  <CanvasNodeCard
+                    key={node.id}
+                    node={node}
+                    selected={selectedIds.includes(node.id)}
+                    imageEndpoints={capabilities.imageEndpoints}
+                    promptEnhanceEnabled={capabilities.promptEnhanceEnabled}
+                    referenceImages={refs.referenceImages}
+                    referenceTexts={refs.referenceTexts}
+                    onPointerDown={(event) => onNodePointerDown(event, node)}
+                    onSelect={() => {
+                      if (suppressFocusSelectRef.current) return
+                      if (!selectedIdsRef.current.includes(node.id)) selectOnly(node.id)
+                    }}
+                    onDelete={() => deleteNodes([node.id])}
+                    onDuplicate={() => duplicateNodes([node.id])}
+                    onBeforeGenerate={onBeforeGenerate}
+                    onUpdate={(patch) => updateNode(node.id, patch)}
+                    onSize={onNodeSize}
+                  />
+                )
+              })}
+
+              {nodes.map((node) => {
+                if (node.type === 'video') return null
+                const out = outputPort(node)
+                const inp = inputPort(node)
+                return (
+                  <div key={`ports-${node.id}`}>
+                    <div
+                      className={`canvas-port is-input${draftTargetId === node.id ? ' is-highlight' : ''}`}
+                      style={{ left: inp.x - PORT_R, top: inp.y - PORT_R }}
+                      aria-hidden="true"
+                    />
+                    <div
+                      className="canvas-port is-output"
+                      style={{ left: out.x - PORT_R, top: out.y - PORT_R }}
+                      aria-hidden="true"
+                      title="拖到另一个节点的输入端口建立连线"
+                      onPointerDown={(event) => startEdgeDraw(node, event)}
+                      onPointerMove={moveEdgeDraw}
+                      onPointerUp={endEdgeDraw}
+                      onPointerCancel={() => {
+                        draftSourceRef.current = null
+                        setDraftEdge(null)
+                      }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+
+            {!loading && nodes.length === 0 && (
+              <div className="canvas-empty" role="status">
+                <p className="canvas-empty-title">空白画布</p>
+                <p>从上方工具栏添加文本 / 图像节点，拖节点下方圆点把结果串联成生成链路。</p>
+              </div>
+            )}
+          </div>
+
+          {minimap && (
+            <div
+              className="canvas-minimap"
+              style={{ width: MINIMAP_W, height: MINIMAP_H }}
+              onPointerDown={onMinimapPointerDown}
+              role="presentation"
+              aria-label="画布小地图"
+            >
+              <svg
+                className="canvas-minimap-svg"
+                width={MINIMAP_W}
+                height={MINIMAP_H}
+                aria-hidden="true"
+              >
+                {edges.map((edge) => {
+                  const source = nodes.find((n) => n.id === edge.source)
+                  const target = nodes.find((n) => n.id === edge.target)
+                  if (!source || !target) return null
+                  const sp = outputPort(source)
+                  const tp = inputPort(target)
+                  const a = minimap.toMini(sp.x, sp.y)
+                  const b = minimap.toMini(tp.x, tp.y)
+                  return (
+                    <line
+                      key={edge.id}
+                      className="canvas-minimap-edge"
+                      x1={a.x}
+                      y1={a.y}
+                      x2={b.x}
+                      y2={b.y}
+                    />
+                  )
+                })}
+              </svg>
+              {nodes.map((node) => {
+                const r = nodeRect(node)
+                const tl = minimap.toMini(node.x, node.y)
+                return (
+                  <div
+                    key={node.id}
+                    className="canvas-minimap-node"
+                    style={{
+                      left: tl.x,
+                      top: tl.y,
+                      width: Math.max(r.w * minimap.scale, 2),
+                      height: Math.max(r.h * minimap.scale, 2),
+                    }}
+                  />
+                )
+              })}
+              {viewportRect && (
+                <div
+                  className="canvas-minimap-viewport"
+                  style={{
+                    left: viewportRect.x,
+                    top: viewportRect.y,
+                    width: viewportRect.w,
+                    height: viewportRect.h,
+                  }}
+                />
+              )}
+            </div>
+          )}
+
+          {error && (
+            <p className="canvas-error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+    </StudioShell>
+  )
+}

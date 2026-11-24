@@ -1,0 +1,894 @@
+/* 无限画布：节点式生图工作流。占满 studio-content，视口平移缩放走 transform。 */
+
+.canvas-editor {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  outline: none;
+  background: var(--surface-2);
+}
+
+.canvas-toolbar {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(23, 23, 23, 0.08);
+}
+
+.canvas-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--foreground-2);
+  background: transparent;
+  font-size: var(--text-small);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.canvas-tool:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--control-hover);
+}
+
+.canvas-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.canvas-toolbar-hint {
+  margin: 0 6px;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+}
+
+.canvas-toolbar-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+.canvas-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.canvas-zoom-value {
+  min-width: 44px;
+  height: 34px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--foreground-2);
+  background: transparent;
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  text-align: center;
+}
+
+.canvas-zoom-value:hover {
+  color: var(--foreground);
+  background: var(--control-hover);
+}
+
+.canvas-save-state {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+}
+
+.canvas-save-state.is-saved {
+  color: var(--foreground-2);
+}
+
+.canvas-save-state.is-error {
+  color: var(--danger);
+}
+
+.canvas-surface {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background-image: radial-gradient(var(--line-hover) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+}
+
+.canvas-surface:active {
+  cursor: grabbing;
+}
+
+.canvas-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+}
+
+.canvas-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(23, 23, 23, 0.07);
+  cursor: default;
+  user-select: none;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.canvas-node:hover {
+  border-color: var(--line-strong);
+}
+
+.canvas-node.is-selected {
+  border-color: var(--foreground);
+  box-shadow:
+    0 0 0 1px var(--surface),
+    0 0 0 2px var(--foreground),
+    0 10px 28px rgba(23, 23, 23, 0.1);
+}
+
+.canvas-node-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px 0 14px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface-subtle);
+  cursor: grab;
+}
+
+.canvas-node:active .canvas-node-head {
+  cursor: grabbing;
+}
+
+.canvas-node-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.canvas-node-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.canvas-node-delete,
+.canvas-node-duplicate {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.canvas-node:hover .canvas-node-delete,
+.canvas-node:hover .canvas-node-duplicate,
+.canvas-node.is-selected .canvas-node-delete,
+.canvas-node.is-selected .canvas-node-duplicate {
+  opacity: 1;
+}
+
+.canvas-node-delete:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.canvas-node-duplicate:hover {
+  color: var(--foreground);
+  background: var(--control-hover);
+}
+
+.canvas-node-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 12px;
+  min-width: 0;
+}
+
+.canvas-node-placeholder {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.canvas-node.is-video .canvas-node-body {
+  background: var(--surface-subtle);
+}
+
+.canvas-node-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.canvas-node-textarea {
+  width: 100%;
+  resize: none;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  font-family: inherit;
+  user-select: text;
+  cursor: text;
+}
+
+.canvas-node-textarea:focus {
+  outline: none;
+  border-color: var(--foreground);
+  box-shadow: 0 0 0 3px var(--focus-soft);
+}
+
+.canvas-node-instruction {
+  width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  font-family: inherit;
+  user-select: text;
+  cursor: text;
+}
+
+.canvas-node-instruction:focus {
+  outline: none;
+  border-color: var(--foreground);
+  box-shadow: 0 0 0 3px var(--focus-soft);
+}
+
+.canvas-node-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.canvas-node-select {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+
+.canvas-node-count {
+  flex: none;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+
+.canvas-node-generate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--foreground);
+  color: var(--surface);
+  font-size: var(--text-small);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.canvas-node-generate:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.canvas-node-generate:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.canvas-node-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+.canvas-node-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+.canvas-node-text-result {
+  padding: 8px 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  user-select: text;
+}
+
+.canvas-node-text-result p {
+  margin: 0;
+  color: var(--foreground);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.canvas-node-text-result small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+
+.canvas-node-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.canvas-node-result-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+
+.canvas-node-result-item {
+  position: relative;
+}
+
+.canvas-node-result-actions {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.canvas-node-result-item:hover .canvas-node-result-actions,
+.canvas-node-result-actions:focus-within {
+  opacity: 1;
+}
+
+/* 结果图 hover 元信息：分辨率 × 耗时，覆盖在图片底部 */
+.canvas-node-result-info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 6px;
+  color: var(--surface);
+  background: rgba(23, 23, 23, 0.62);
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.canvas-node-result-item:hover .canvas-node-result-info {
+  opacity: 1;
+}
+
+.canvas-node-result-download,
+.canvas-node-result-remove,
+.canvas-node-result-pin {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: var(--surface);
+  background: var(--foreground);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    opacity 120ms ease;
+}
+
+.canvas-node-result-download:hover,
+.canvas-node-result-remove:hover {
+  background: var(--foreground-2);
+}
+
+.canvas-node-result-remove:hover {
+  background: var(--danger);
+}
+
+/* 设为参考：默认半透明，勾选后实心高亮，未勾选时不作为下游参考 */
+.canvas-node-result-pin {
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  opacity: 0.85;
+}
+
+.canvas-node-result-pin.is-active {
+  color: var(--surface);
+  background: var(--foreground);
+  border-color: var(--foreground);
+  opacity: 1;
+}
+
+.is-spinning {
+  animation: canvas-spin 0.8s linear infinite;
+}
+
+@keyframes canvas-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 节点引用提示 */
+.canvas-node-ref-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+/* 连线（SVG） */
+.canvas-edges {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.canvas-edge {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.canvas-edge.is-selected {
+  stroke: var(--foreground);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px var(--focus-soft));
+}
+
+.canvas-edge.is-draft {
+  stroke: var(--foreground);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.canvas-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+/* 连线中点标注数据流类型（文/图） */
+.canvas-edge-label {
+  pointer-events: none;
+}
+
+.canvas-edge-label rect {
+  fill: var(--surface);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.canvas-edge-label text {
+  fill: var(--foreground-2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 框选选框 */
+.canvas-marquee {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid var(--foreground);
+  background: var(--focus-soft);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* 小地图：缩略节点与连线，视口框标记当前可见区域，点击跳转 */
+.canvas-minimap {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 8;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(23, 23, 23, 0.08);
+  cursor: crosshair;
+}
+
+.canvas-minimap-svg {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas-minimap-edge {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  fill: none;
+}
+
+.canvas-minimap-node {
+  position: absolute;
+  background: var(--foreground-2);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.canvas-minimap-viewport {
+  position: absolute;
+  border: 1px solid var(--foreground);
+  background: var(--focus-soft);
+  pointer-events: none;
+}
+
+/* 节点端口：输出（下方，可拖拽连线）/ 输入（上方，连线落点） */
+.canvas-port {
+  position: absolute;
+  z-index: 5;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--foreground-2);
+}
+
+.canvas-port.is-output {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  cursor: crosshair;
+}
+
+.canvas-port.is-input {
+  border-color: var(--muted);
+  pointer-events: none;
+}
+
+.canvas-port.is-highlight {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  box-shadow: 0 0 0 4px var(--focus-soft);
+}
+
+.canvas-error {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 10;
+  margin: 0;
+  padding: 9px 12px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-line);
+  border-radius: 9px;
+  font-size: var(--text-caption);
+}
+
+/* 空画布引导 */
+.canvas-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  max-width: 320px;
+  padding: 20px 24px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.canvas-empty-title {
+  margin: 0 0 6px;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.canvas-empty p {
+  margin: 0;
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+
+/* 画布列表页 */
+.canvas-manager {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+
+.canvas-manager-status {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.canvas-manager-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 48px auto;
+  max-width: 360px;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+}
+
+.canvas-manager-empty--center {
+  justify-content: center;
+  min-height: 60vh;
+  margin-top: 0;
+}
+
+.canvas-manager-empty strong {
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.canvas-manager-empty p {
+  margin: 0;
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+
+.canvas-manager-empty .studio-primary,
+.canvas-manager-empty .studio-secondary {
+  margin-top: 8px;
+}
+
+.canvas-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.canvas-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.canvas-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 6px 20px rgba(23, 23, 23, 0.06);
+}
+
+.canvas-card-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+.canvas-card-name {
+  color: var(--foreground);
+  font-size: var(--text-small);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-card-meta {
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+
+.canvas-card-delete {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.canvas-card:hover .canvas-card-delete,
+.canvas-card-delete:focus-visible {
+  opacity: 1;
+}
+
+.canvas-card-delete:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.canvas-card-rename {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.canvas-card:hover .canvas-card-rename,
+.canvas-card-rename:focus-visible {
+  opacity: 1;
+}
+
+.canvas-card-rename:hover {
+  color: var(--foreground);
+  background: var(--control-hover);
+}
+
+.canvas-card-rename-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  margin: 8px 10px;
+  padding: 0 12px;
+  border: 1px solid var(--foreground);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: var(--text-small);
+}
+
+.canvas-card-rename-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-soft);
+}
+
+.canvas-manager-error {
+  margin: 16px 0 0;
+  color: var(--danger);
+  font-size: var(--text-caption);
+  text-align: center;
+}
+
+/* 顶栏里的画布名称输入与切换下拉 */
+.canvas-name-field input {
+  height: 36px;
+  width: 160px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: var(--text-small);
+}
+
+.canvas-name-field input:focus {
+  outline: none;
+  border-color: var(--foreground);
+  box-shadow: 0 0 0 3px var(--focus-soft);
+}
+
+.canvas-select {
+  max-width: 180px;
+}

@@ -9,6 +9,7 @@ const frontendResources = new Set([
   'generation',
   'clothing',
   'commerce',
+  'canvases',
 ])
 
 /** Request helpers accept resource paths, never URLs or paths from the other account realm. */

@@ -107,6 +107,17 @@ export async function deleteGenerationTask(taskId: string) {
   if (!response.ok) throw new Error(await readApiError(response, '删除失败，请稍后重试'))
 }
 
+/** 取消一条仍在生成的任务（全额退回冻结额度）；任务已终态时幂等返回成功。 */
+export async function cancelGenerationTask(taskId: string) {
+  const token = getAccessToken()
+  const response = await fetch(`${apiBaseUrl}/v1/generation/tasks/${taskId}/cancel`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+  if (response.status === 401) throw new Error('登录状态已失效，请重新登录')
+  if (!response.ok) throw new Error(await readApiError(response, '取消失败，请稍后重试'))
+}
+
 /** 删除资产库里的一张生成图片；contentPath 形如 /v1/assets/{id}/content。 */
 export async function deleteGeneratedAsset(contentPath: string) {
   const token = getAccessToken()
@@ -158,6 +169,47 @@ export async function enhancePrompt({
     payload = (await response.json()) as PromptEnhanceResult
   } catch {
     throw new Error('AI 返回的内容格式异常，请稍后重试，原文已保留')
+  }
+  if (typeof payload?.text !== 'string' || !payload.text.trim())
+    throw new Error('AI 没有返回内容，请重试')
+  return payload
+}
+
+export interface TextCompleteInput {
+  text: string
+  /** 可选任务说明，例如「改写得更口语化」「翻译成英文」；留空时默认润色。 */
+  instruction?: string
+  /** 图生文的参考图片资产 ID（最多 4 张）；需要文本模型支持识图。 */
+  imageAssetIds?: string[]
+}
+
+export interface TextCompleteResult {
+  text: string
+  model?: string
+}
+
+/** 画布文本节点「文生文 / 图生文」：按任务说明处理文本（可选带参考图），返回生成结果。 */
+export async function completeText({
+  text,
+  instruction,
+  imageAssetIds,
+}: TextCompleteInput): Promise<TextCompleteResult> {
+  const token = getAccessToken()
+  const response = await fetch(`${apiBaseUrl}/v1/text/complete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ text, instruction, imageAssetIds }),
+  })
+  if (response.status === 401) throw new Error('登录状态已失效，请重新登录')
+  if (!response.ok) throw new Error(await readApiError(response, '文本生成失败，请重试'))
+  let payload: TextCompleteResult
+  try {
+    payload = (await response.json()) as TextCompleteResult
+  } catch {
+    throw new Error('AI 返回的内容格式异常，请重试')
   }
   if (typeof payload?.text !== 'string' || !payload.text.trim())
     throw new Error('AI 没有返回内容，请重试')

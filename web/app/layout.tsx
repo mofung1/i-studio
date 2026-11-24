@@ -14,6 +14,7 @@ import './globals.css'
 import './studio.css'
 import './prompt-reverse.css'
 import './library.css'
+import './canvas.css'
 import '../styles/marketing.css'
 import '../styles/feedback.css'
 

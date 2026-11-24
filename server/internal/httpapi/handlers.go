@@ -22,6 +22,8 @@ type Handlers struct {
 	AuthorizeAdmin                 func(http.ResponseWriter, *http.Request) bool
 	ConfigurationChanged           func(*http.Request, string, string, string)
 	AccountHandler                 func(http.ResponseWriter, *http.Request)
+	Canvases                       func(http.ResponseWriter, *http.Request)
+	CanvasByID                     func(http.ResponseWriter, *http.Request, string)
 	AccountCheckin                 func(http.ResponseWriter, *http.Request)
 	AdminAudit                     func(http.ResponseWriter, *http.Request)
 	AdminModels                    func(http.ResponseWriter, *http.Request, string)
@@ -70,5 +72,6 @@ type Handlers struct {
 	TaskByID                       func(http.ResponseWriter, *http.Request)
 	TasksBatch                     func(http.ResponseWriter, *http.Request)
 	TasksHandler                   func(http.ResponseWriter, *http.Request)
+	TextComplete                   func(http.ResponseWriter, *http.Request)
 	Validate                       func(http.ResponseWriter, *http.Request)
 }
