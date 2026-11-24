@@ -1,7 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Image as ImageIcon, Maximize, Type, ZoomIn, ZoomOut } from 'lucide-react'
+import {
+  ArrowLeft,
+  Image as ImageIcon,
+  Maximize,
+  Redo2,
+  Type,
+  Undo2,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
 import Link from 'next/link'
 
 import { AccountBoundary } from '@/components/account-access'
@@ -93,6 +102,8 @@ function CanvasEditorContent({ id }: { id: string }) {
   const [edges, setEdges] = useState<CanvasEdge[]>([])
   const [nodeSizes, setNodeSizes] = useState<Record<string, { w: number; h: number }>>({})
   const [surfaceSize, setSurfaceSize] = useState({ w: 0, h: 0 })
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
   const [draftEdge, setDraftEdge] = useState<{ sourceId: string; x: number; y: number } | null>(
     null,
   )
@@ -110,6 +121,12 @@ function CanvasEditorContent({ id }: { id: string }) {
   })
   // 删除生成中节点时被取消的任务 ID；撤销恢复这类节点时清空其结果，避免续接已取消任务。
   const cancelledTaskIdsRef = useRef<Set<string>>(new Set())
+
+  // 历史栈长度 → 撤销/重做按钮可用态（栈在 ref 里，需手动同步到 state）。
+  const syncHistory = useCallback(() => {
+    setCanUndo(historyRef.current.undo.length > 0)
+    setCanRedo(historyRef.current.redo.length > 0)
+  }, [])
   // 选择状态同步镜像：供 focus 事件读取最新选择（避免闭包里的旧值）。
   const selectedIdsRef = useRef<string[]>([])
   // 节点 pointerdown 已处理选择后，抑制随后的 focus 事件重复改选。
@@ -228,10 +245,11 @@ function CanvasEditorContent({ id }: { id: string }) {
           historyRef.current.undo.push(before)
           if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
           historyRef.current.redo = []
+          syncHistory()
         }, 800)
       }
     },
-    [scheduleSave],
+    [scheduleSave, syncHistory],
   )
 
   const onNodeSize = useCallback((id: string, w: number, h: number) => {
@@ -271,7 +289,8 @@ function CanvasEditorContent({ id }: { id: string }) {
     historyRef.current.undo.push({ nodes: nds, edges: eds })
     if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
     historyRef.current.redo = []
-  }, [])
+    syncHistory()
+  }, [syncHistory])
 
   const applySnapshot = useCallback(
     (snap: GraphSnapshot) => {
@@ -308,7 +327,8 @@ function CanvasEditorContent({ id }: { id: string }) {
     historyRef.current.redo.push({ nodes: stateRef.current.nodes, edges: stateRef.current.edges })
     applySnapshot(previous)
     clearSelection()
-  }, [applySnapshot, clearSelection])
+    syncHistory()
+  }, [applySnapshot, clearSelection, syncHistory])
 
   const redo = useCallback(() => {
     const next = historyRef.current.redo.pop()
@@ -316,7 +336,8 @@ function CanvasEditorContent({ id }: { id: string }) {
     historyRef.current.undo.push({ nodes: stateRef.current.nodes, edges: stateRef.current.edges })
     applySnapshot(next)
     clearSelection()
-  }, [applySnapshot, clearSelection])
+    syncHistory()
+  }, [applySnapshot, clearSelection, syncHistory])
 
   // 复制/粘贴/复制节点：克隆配置、清空结果（避免复制 taskId 导致重复轮询），错位落点。
   const spawnClones = useCallback(
@@ -375,7 +396,8 @@ function CanvasEditorContent({ id }: { id: string }) {
     setNodeSizes({})
     // 切换画布后，上一个画布的撤销历史失效，避免误把旧快照应用到新画布。
     historyRef.current = { undo: [], redo: [] }
-  }, [])
+    syncHistory()
+  }, [syncHistory])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -687,6 +709,7 @@ function CanvasEditorContent({ id }: { id: string }) {
       historyRef.current.undo.push(drag.pendingSnapshot)
       if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
       historyRef.current.redo = []
+      syncHistory()
     }
   }
 
@@ -1052,6 +1075,27 @@ function CanvasEditorContent({ id }: { id: string }) {
                 <span>{label}</span>
               </button>
             ))}
+            <span className="canvas-toolbar-divider" aria-hidden="true" />
+            <button
+              type="button"
+              className="canvas-tool"
+              onClick={undo}
+              disabled={!canUndo}
+              title="撤销 (⌘Z)"
+              aria-label="撤销"
+            >
+              <Undo2 size={15} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="canvas-tool"
+              onClick={redo}
+              disabled={!canRedo}
+              title="重做 (⇧⌘Z)"
+              aria-label="重做"
+            >
+              <Redo2 size={15} aria-hidden="true" />
+            </button>
             <span className="canvas-toolbar-hint">
               滚轮缩放 · 拖空白平移 · ⇧拖框选 · 拖节点圆点连线 · ⌘Z 撤销 ⌘D 复制 · Delete 删除
             </span>

@@ -42,9 +42,14 @@
   white-space: nowrap;
 }
 
-.canvas-tool:hover {
+.canvas-tool:hover:not(:disabled) {
   color: var(--foreground);
   background: var(--control-hover);
+}
+
+.canvas-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .canvas-toolbar-hint {
