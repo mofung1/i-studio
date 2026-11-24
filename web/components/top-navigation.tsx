@@ -38,6 +38,9 @@ export function TopNavigation() {
         <Link href="/assets" onClick={() => setNavOpen(false)}>
           资产库
         </Link>
+        <Link href="/canvas" onClick={() => setNavOpen(false)}>
+          画布
+        </Link>
         <Link href="/account" onClick={() => setNavOpen(false)}>
           个人中心
         </Link>

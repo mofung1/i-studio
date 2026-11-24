@@ -87,6 +87,13 @@ func (s Handlers) registerLibraryRoutes(api *gin.RouterGroup) {
 	registerMethods(api, "/assets/:id/content", s.AssetContent, "GET", "DELETE")
 	api.GET("/assets/:id/metadata", gin.WrapF(s.AssetMetadata))
 	api.GET("/assets/:id/thumbnail", gin.WrapF(s.AssetThumbnail))
+	registerMethods(api, "/canvases", s.Canvases, "GET", "POST")
+	canvas := func(c *gin.Context) {
+		s.CanvasByID(c.Writer, c.Request, c.Param("id"))
+	}
+	api.GET("/canvases/:id", canvas)
+	api.PUT("/canvases/:id", canvas)
+	api.DELETE("/canvases/:id", canvas)
 }
 
 func (s Handlers) registerPromptRoutes(api *gin.RouterGroup) {

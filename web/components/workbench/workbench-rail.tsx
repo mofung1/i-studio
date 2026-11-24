@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Images,
   LayoutGrid,
+  Frame,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -37,6 +38,7 @@ export type StudioSection =
   | 'settings'
   | 'prompts'
   | 'products'
+  | 'canvas'
 
 interface WorkbenchRailProps {
   mode?: WorkbenchMode
@@ -205,6 +207,16 @@ export function WorkbenchRail({
         >
           <Box size={18} />
           <span>商品管理</span>
+        </Link>
+        <Link
+          href="/canvas"
+          className={section === 'canvas' ? 'active' : ''}
+          aria-label="画布"
+          title="画布"
+          aria-current={section === 'canvas' ? 'page' : undefined}
+        >
+          <Frame size={18} />
+          <span>画布</span>
         </Link>
         {inCommerce ? (
           <button

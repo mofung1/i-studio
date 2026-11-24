@@ -30,6 +30,8 @@ func (s *Service) router() *gin.Engine {
 		},
 		AccountHandler:               s.accountHandler,
 		AccountCheckin:               s.accountCheckin,
+		Canvases:                     s.canvases,
+		CanvasByID:                   s.canvasByID,
 		AdminAudit:                   s.adminAudit,
 		AdminLogin:                   s.adminLogin,
 		AdminMe:                      s.adminMe,
