@@ -188,7 +188,6 @@
   }
 }
 
-
 /* The composer media column grows with uploaded thumbnails instead of reserving a fixed gap. */
 .mode-general .composer-input-grid {
   grid-template-columns: max-content minmax(0, 1fr);
@@ -413,7 +412,6 @@
     width: min(300px, 100%);
   }
 }
-
 
 /* The arrow sits on the rail edge so it remains visible in both expanded states. */
 .workbench-rail {
