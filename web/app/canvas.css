@@ -373,10 +373,25 @@
   position: relative;
 }
 
-.canvas-node-result-download {
+.canvas-node-result-actions {
   position: absolute;
   right: 4px;
   bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.canvas-node-result-item:hover .canvas-node-result-actions,
+.canvas-node-result-actions:focus-within {
+  opacity: 1;
+}
+
+.canvas-node-result-download,
+.canvas-node-result-remove,
+.canvas-node-result-pin {
   display: grid;
   place-items: center;
   width: 24px;
@@ -387,19 +402,33 @@
   color: var(--surface);
   background: var(--foreground);
   cursor: pointer;
-  opacity: 0;
   transition:
-    opacity 120ms ease,
-    background 120ms ease;
+    background 120ms ease,
+    opacity 120ms ease;
 }
 
-.canvas-node-result-item:hover .canvas-node-result-download,
-.canvas-node-result-download:focus-visible {
-  opacity: 1;
-}
-
-.canvas-node-result-download:hover {
+.canvas-node-result-download:hover,
+.canvas-node-result-remove:hover {
   background: var(--foreground-2);
+}
+
+.canvas-node-result-remove:hover {
+  background: var(--danger);
+}
+
+/* 设为参考：默认半透明，勾选后实心高亮，未勾选时不作为下游参考 */
+.canvas-node-result-pin {
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  opacity: 0.85;
+}
+
+.canvas-node-result-pin.is-active {
+  color: var(--surface);
+  background: var(--foreground);
+  border-color: var(--foreground);
+  opacity: 1;
 }
 
 .is-spinning {

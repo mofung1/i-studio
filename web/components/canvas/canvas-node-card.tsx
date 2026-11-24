@@ -8,13 +8,14 @@ import {
   Image as ImageIcon,
   Link2,
   Loader2,
+  Pin,
   Type,
   Video,
   Wand2,
 } from 'lucide-react'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
-import { completeText } from '@/lib/api'
+import { completeText, deleteGeneratedAsset } from '@/lib/api'
 import type { GeneralGenerationInput } from '@/lib/contracts'
 import type { PublicImageModel } from '@/lib/generation-models'
 import {
@@ -324,6 +325,29 @@ function ImageNodeBody({
 
   const terminal = result && !activeStatuses.has(result.status)
 
+  // 切换某张结果图是否为下游参考：非空子集时下游只注入勾选的图，空则注入全部。
+  const toggleReference = (assetId: string) => {
+    const current = data.referenceAssetIds
+    const next = current.includes(assetId)
+      ? current.filter((id) => id !== assetId)
+      : [...current, assetId]
+    onUpdate({ data: { referenceAssetIds: next } })
+  }
+
+  // 删除单张结果图：移除资产并同步从结果与参考子集里剔除。
+  const removeResultImage = (path: string, assetId: string | null) => {
+    if (!result) return
+    void deleteGeneratedAsset(path).catch(() => {})
+    onUpdate({
+      result: {
+        ...result,
+        images: result.images.filter((p) => p !== path),
+        details: result.details?.filter((d) => d.contentPath !== path),
+      },
+      data: assetId ? { referenceAssetIds: data.referenceAssetIds.filter((id) => id !== assetId) } : undefined,
+    })
+  }
+
   return (
     <div className="canvas-node-form">
       <textarea
@@ -402,6 +426,7 @@ function ImageNodeBody({
         <div className="canvas-node-results">
           {result.images.map((path) => {
             const assetId = assetIdFromContentPath(path)
+            const isRef = assetId ? data.referenceAssetIds.includes(assetId) : false
             return (
               <div key={path} className="canvas-node-result-item">
                 <AuthenticatedImage
@@ -409,20 +434,43 @@ function ImageNodeBody({
                   alt="生成结果"
                   className="canvas-node-result-image"
                 />
-                <button
-                  type="button"
-                  className="canvas-node-result-download"
-                  aria-label="下载结果图"
-                  title="下载"
-                  onPointerDown={stopPointer}
-                  onClick={() => {
-                    void downloadProtectedAsset(path, `istudio-${assetId ?? 'image'}.png`).catch(
-                      () => {},
-                    )
-                  }}
-                >
-                  <Download size={13} aria-hidden="true" />
-                </button>
+                <div className="canvas-node-result-actions">
+                  <button
+                    type="button"
+                    className={`canvas-node-result-pin${isRef ? ' is-active' : ''}`}
+                    aria-label={isRef ? '取消作为参考' : '设为参考'}
+                    aria-pressed={isRef}
+                    title={isRef ? '已设为参考（点击取消）' : '设为参考'}
+                    onPointerDown={stopPointer}
+                    onClick={() => assetId && toggleReference(assetId)}
+                  >
+                    <Pin size={13} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="canvas-node-result-download"
+                    aria-label="下载结果图"
+                    title="下载"
+                    onPointerDown={stopPointer}
+                    onClick={() => {
+                      void downloadProtectedAsset(path, `istudio-${assetId ?? 'image'}.png`).catch(
+                        () => {},
+                      )
+                    }}
+                  >
+                    <Download size={13} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className="canvas-node-result-remove"
+                    aria-label="删除结果图"
+                    title="删除"
+                    onPointerDown={stopPointer}
+                    onClick={() => removeResultImage(path, assetId)}
+                  >
+                    <Delete size={13} aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             )
           })}

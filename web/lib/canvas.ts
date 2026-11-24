@@ -95,6 +95,8 @@ export interface CanvasImageNodeData {
   count: number
   style: string
   referenceStrength: 'low' | 'medium' | 'high'
+  /** 指定结果图作为下游参考的资产 ID 子集；为空表示全部结果图都作为参考。 */
+  referenceAssetIds: string[]
 }
 
 export interface CanvasImageResultDetail {
@@ -191,6 +193,9 @@ export function imageNodeData(node: CanvasNode): CanvasImageNodeData {
       data.referenceStrength === 'low' || data.referenceStrength === 'high'
         ? data.referenceStrength
         : 'medium',
+    referenceAssetIds: Array.isArray(data.referenceAssetIds)
+      ? data.referenceAssetIds.filter((id): id is string => typeof id === 'string')
+      : [],
   }
 }
 

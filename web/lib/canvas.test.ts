@@ -76,6 +76,7 @@ describe('imageNodeData / textNodeData', () => {
       count: 1,
       style: 'unspecified',
       referenceStrength: 'medium',
+      referenceAssetIds: [],
     })
   })
 

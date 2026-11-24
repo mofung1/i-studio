@@ -13,6 +13,7 @@ import {
   assetIdFromContentPath,
   edgeAllowed,
   getCanvas,
+  imageNodeData,
   imageNodeResult,
   newCanvasNode,
   saveCanvas,
@@ -419,9 +420,13 @@ function CanvasEditorContent({ id }: { id: string }) {
         if (!source) continue
         if (source.type === 'image') {
           const result = imageNodeResult(source)
+          // 上游节点指定了参考子集时只注入该子集，否则注入全部结果图。
+          const pinned = imageNodeData(source).referenceAssetIds
           for (const path of result?.images ?? []) {
             const id = assetIdFromContentPath(path)
-            if (id) referenceImages.push(id)
+            if (!id) continue
+            if (pinned.length > 0 && !pinned.includes(id)) continue
+            referenceImages.push(id)
           }
         } else if (source.type === 'text') {
           const result = source.result as CanvasTextNodeResult | null
