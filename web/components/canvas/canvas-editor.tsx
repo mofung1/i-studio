@@ -31,14 +31,17 @@ const PORT_HIT_RADIUS = 16
 const EDGE_PAD = 80
 
 interface DragState {
-  kind: 'pan' | 'node'
+  kind: 'pan' | 'node' | 'marquee'
   nodeId?: string
   startX: number
   startY: number
   originViewport?: CanvasViewport
-  originNode?: { x: number; y: number }
+  /** 节点/多选拖动前各节点位置，落定后用于撤销与整体移动 */
+  originNodes?: { id: string; x: number; y: number }[]
   /** 节点拖动开始前的图快照，落定后用于撤销 */
   pendingSnapshot?: GraphSnapshot
+  /** 框选起点（世界坐标） */
+  marqueeStart?: { x: number; y: number }
 }
 
 interface GraphSnapshot {
@@ -71,8 +74,14 @@ function CanvasEditorContent({ id }: { id: string }) {
   const [loadFailed, setLoadFailed] = useState(false)
   const [error, setError] = useState('')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+  const [marquee, setMarquee] = useState<{
+    x1: number
+    y1: number
+    x2: number
+    y2: number
+  } | null>(null)
   const [viewport, setViewport] = useState<CanvasViewport>({ x: 0, y: 0, zoom: 1 })
   const [nodes, setNodes] = useState<CanvasNode[]>([])
   const [edges, setEdges] = useState<CanvasEdge[]>([])
@@ -87,16 +96,49 @@ function CanvasEditorContent({ id }: { id: string }) {
   const draftSourceRef = useRef<string | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const canvasIdRef = useRef<string | null>(null)
-  const clipboardRef = useRef<CanvasNode | null>(null)
+  const clipboardRef = useRef<CanvasNode[]>([])
   const historyRef = useRef<{ undo: GraphSnapshot[]; redo: GraphSnapshot[] }>({
     undo: [],
     redo: [],
   })
+  // 选择状态同步镜像：供 focus 事件读取最新选择（避免闭包里的旧值）。
+  const selectedIdsRef = useRef<string[]>([])
+  // 节点 pointerdown 已处理选择后，抑制随后的 focus 事件重复改选。
+  const suppressFocusSelectRef = useRef(false)
 
   // 记录视口、节点与连线，供防抖保存读取最新值。
   const stateRef = useRef({ viewport, nodes, edges })
   stateRef.current = { viewport, nodes, edges }
   canvasIdRef.current = canvas?.id ?? null
+
+  // 选择：单选 / 多选（Shift 点选 / 框选）。同步写入 ref，供 focus 事件读取最新值。
+  const applySelection = useCallback((ids: string[]) => {
+    selectedIdsRef.current = ids
+    setSelectedIds(ids)
+  }, [])
+
+  const selectOnly = useCallback(
+    (id: string) => {
+      applySelection([id])
+      setSelectedEdgeId(null)
+    },
+    [applySelection],
+  )
+
+  const toggleSelect = useCallback(
+    (id: string) => {
+      const current = selectedIdsRef.current
+      const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
+      applySelection(next)
+      setSelectedEdgeId(null)
+    },
+    [applySelection],
+  )
+
+  const clearSelection = useCallback(() => {
+    applySelection([])
+    setSelectedEdgeId(null)
+  }, [applySelection])
 
   const scheduleSave = useCallback(() => {
     setSaveState('saving')
@@ -162,59 +204,57 @@ function CanvasEditorContent({ id }: { id: string }) {
     if (!previous) return
     historyRef.current.redo.push({ nodes: stateRef.current.nodes, edges: stateRef.current.edges })
     applySnapshot(previous)
-    setSelectedId(null)
-    setSelectedEdgeId(null)
-  }, [applySnapshot])
+    clearSelection()
+  }, [applySnapshot, clearSelection])
 
   const redo = useCallback(() => {
     const next = historyRef.current.redo.pop()
     if (!next) return
     historyRef.current.undo.push({ nodes: stateRef.current.nodes, edges: stateRef.current.edges })
     applySnapshot(next)
-    setSelectedId(null)
-    setSelectedEdgeId(null)
-  }, [applySnapshot])
+    clearSelection()
+  }, [applySnapshot, clearSelection])
 
   // 复制/粘贴/复制节点：克隆配置、清空结果（避免复制 taskId 导致重复轮询），错位落点。
-  const spawnClone = useCallback(
-    (source: CanvasNode) => {
-      const node: CanvasNode = {
+  const spawnClones = useCallback(
+    (sources: CanvasNode[]) => {
+      const created = sources.map((source) => ({
         ...structuredClone(source),
         id: crypto.randomUUID(),
         x: source.x + 24,
         y: source.y + 24,
         result: null,
-      }
-      setNodes((current) => [...current, node])
-      setSelectedId(node.id)
+      }))
+      setNodes((current) => [...current, ...created])
+      applySelection(created.map((n) => n.id))
       setSelectedEdgeId(null)
       scheduleSave()
     },
-    [scheduleSave],
+    [applySelection, scheduleSave],
   )
 
-  const duplicateNode = useCallback(
-    (id: string) => {
-      const source = stateRef.current.nodes.find((n) => n.id === id)
-      if (!source) return
+  const duplicateNodes = useCallback(
+    (ids: string[]) => {
+      const sources = stateRef.current.nodes.filter((n) => ids.includes(n.id))
+      if (sources.length === 0) return
       commitHistory()
-      spawnClone(source)
+      spawnClones(sources)
     },
-    [commitHistory, spawnClone],
+    [commitHistory, spawnClones],
   )
 
-  const copyNode = useCallback(() => {
-    if (!selectedId) return
-    const node = stateRef.current.nodes.find((n) => n.id === selectedId)
-    if (node) clipboardRef.current = structuredClone(node)
-  }, [selectedId])
+  const copySelected = useCallback(() => {
+    const sources = stateRef.current.nodes.filter((n) => selectedIds.includes(n.id))
+    if (sources.length === 0) return
+    clipboardRef.current = sources.map((n) => structuredClone(n))
+  }, [selectedIds])
 
-  const pasteNode = useCallback(() => {
-    const source = clipboardRef.current
-    if (!source) return
+  const pasteClipboard = useCallback(() => {
+    const sources = clipboardRef.current
+    if (sources.length === 0) return
     commitHistory()
-    spawnClone(source)
-  }, [commitHistory, spawnClone])
+    spawnClones(sources)
+  }, [commitHistory, spawnClones])
 
   useEffect(
     () => () => {
@@ -282,6 +322,31 @@ function CanvasEditorContent({ id }: { id: string }) {
       (clientX - left - viewport.x) / viewport.zoom,
       (clientY - top - viewport.y) / viewport.zoom,
     ]
+  }
+
+  // 框选矩形归一化（把任意方向拖出的两点规整为左上角 + 宽高）。
+  const normalizeRect = (x1: number, y1: number, x2: number, y2: number) => ({
+    x: Math.min(x1, x2),
+    y: Math.min(y1, y2),
+    w: Math.abs(x2 - x1),
+    h: Math.abs(y2 - y1),
+  })
+
+  // 与选框相交的节点 ID（含部分相交）。
+  const nodesInRect = (rect: { x: number; y: number; w: number; h: number }): string[] => {
+    const ids: string[] = []
+    for (const node of nodes) {
+      const r = nodeRect(node)
+      if (
+        node.x < rect.x + rect.w &&
+        node.x + r.w > rect.x &&
+        node.y < rect.y + rect.h &&
+        node.y + r.h > rect.y
+      ) {
+        ids.push(node.id)
+      }
+    }
+    return ids
   }
 
   /** 命中检测：指针世界坐标附近的合法输入端口（节点 ID 或 null）。 */
@@ -358,20 +423,25 @@ function CanvasEditorContent({ id }: { id: string }) {
     }
     commitHistory()
     setNodes((current) => [...current, node])
-    setSelectedId(node.id)
+    applySelection([node.id])
     setSelectedEdgeId(null)
     scheduleSave()
   }
 
-  const onDeleteSelected = () => {
-    if (!selectedId) return
-    const id = selectedId
-    commitHistory()
-    setNodes((current) => current.filter((node) => node.id !== id))
-    setEdges((current) => current.filter((edge) => edge.source !== id && edge.target !== id))
-    setSelectedId(null)
-    scheduleSave()
-  }
+  const deleteNodes = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) return
+      commitHistory()
+      const removing = new Set(ids)
+      setNodes((current) => current.filter((node) => !removing.has(node.id)))
+      setEdges((current) =>
+        current.filter((edge) => !removing.has(edge.source) && !removing.has(edge.target)),
+      )
+      applySelection([])
+      scheduleSave()
+    },
+    [applySelection, commitHistory, scheduleSave],
+  )
 
   const onDeleteEdge = () => {
     if (!selectedEdgeId) return
@@ -389,11 +459,26 @@ function CanvasEditorContent({ id }: { id: string }) {
     scheduleSave()
   }
 
-  // 指针事件：平移与拖节点。
+  // 指针事件：平移 / 框选 / 拖节点（支持多选整体移动）。
   const onSurfacePointerDown = (event: React.PointerEvent) => {
     if (event.button !== 0 && event.button !== 1) return
     const surface = surfaceRef.current
     if (!surface) return
+    if (event.button === 0 && event.shiftKey) {
+      // Shift + 左键在空白处拖出选框。
+      const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+      dragRef.current = {
+        kind: 'marquee',
+        startX: event.clientX,
+        startY: event.clientY,
+        marqueeStart: { x: wx, y: wy },
+      }
+      setMarquee({ x1: wx, y1: wy, x2: wx, y2: wy })
+      surface.setPointerCapture(event.pointerId)
+      return
+    }
+    // 空白处点击/平移：清除选择。
+    clearSelection()
     dragRef.current = {
       kind: 'pan',
       startX: event.clientX,
@@ -406,14 +491,31 @@ function CanvasEditorContent({ id }: { id: string }) {
   const onNodePointerDown = (event: React.PointerEvent, node: CanvasNode) => {
     if (event.button !== 0) return
     event.stopPropagation()
-    setSelectedId(node.id)
-    setSelectedEdgeId(null)
+    // 本次 pointerdown 已处理选择，抑制随后的 focus 事件重复改选（下一宏任务复位）。
+    suppressFocusSelectRef.current = true
+    window.setTimeout(() => {
+      suppressFocusSelectRef.current = false
+    }, 0)
+    // Shift 点选切换多选，不进入拖动；否则点击已选节点保留整组，未选则单选。
+    if (event.shiftKey) {
+      toggleSelect(node.id)
+      return
+    }
+    const movingIds = selectedIdsRef.current.includes(node.id) ? selectedIdsRef.current : [node.id]
+    if (!selectedIdsRef.current.includes(node.id)) selectOnly(node.id)
+    else setSelectedEdgeId(null)
+    const originNodes = movingIds
+      .map((id) => {
+        const found = stateRef.current.nodes.find((n) => n.id === id)
+        return found ? { id, x: found.x, y: found.y } : null
+      })
+      .filter((item): item is { id: string; x: number; y: number } => item !== null)
     dragRef.current = {
       kind: 'node',
       nodeId: node.id,
       startX: event.clientX,
       startY: event.clientY,
-      originNode: { x: node.x, y: node.y },
+      originNodes,
       pendingSnapshot: { nodes: stateRef.current.nodes, edges: stateRef.current.edges },
     }
     ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
@@ -432,33 +534,57 @@ function CanvasEditorContent({ id }: { id: string }) {
       })
       return
     }
-    if (drag.kind === 'node' && drag.nodeId && drag.originNode) {
+    if (drag.kind === 'marquee' && drag.marqueeStart) {
+      const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+      setMarquee({ x1: drag.marqueeStart.x, y1: drag.marqueeStart.y, x2: wx, y2: wy })
+      return
+    }
+    if (drag.kind === 'node' && drag.nodeId && drag.originNodes) {
       const zoom = viewport.zoom || 1
+      const dxWorld = dx / zoom
+      const dyWorld = dy / zoom
       setNodes((current) =>
-        current.map((node) =>
-          node.id === drag.nodeId
-            ? { ...node, x: drag.originNode!.x + dx / zoom, y: drag.originNode!.y + dy / zoom }
-            : node,
-        ),
+        current.map((node) => {
+          const origin = drag.originNodes!.find((o) => o.id === node.id)
+          if (!origin) return node
+          return { ...node, x: origin.x + dxWorld, y: origin.y + dyWorld }
+        }),
       )
     }
   }
 
-  const onPointerUp = () => {
-    const drag = dragRef.current
-    if (drag) {
-      dragRef.current = null
-      // 节点确实移动了才入撤销栈，避免空白点击污染历史。
-      if (drag.kind === 'node' && drag.pendingSnapshot) {
-        const moved = stateRef.current.nodes.find((n) => n.id === drag.nodeId)
-        if (moved && (moved.x !== drag.originNode?.x || moved.y !== drag.originNode?.y)) {
-          historyRef.current.undo.push(drag.pendingSnapshot)
-          if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
-          historyRef.current.redo = []
-        }
-      }
-      scheduleSave()
+  const finalizeNodeDrag = (drag: DragState) => {
+    if (drag.kind !== 'node' || !drag.pendingSnapshot || !drag.originNodes) return
+    const moved = stateRef.current.nodes.find((n) => n.id === drag.nodeId)
+    const origin = drag.originNodes.find((o) => o.id === drag.nodeId)
+    if (moved && origin && (moved.x !== origin.x || moved.y !== origin.y)) {
+      historyRef.current.undo.push(drag.pendingSnapshot)
+      if (historyRef.current.undo.length > 100) historyRef.current.undo.shift()
+      historyRef.current.redo = []
     }
+  }
+
+  const onPointerUp = (event: React.PointerEvent) => {
+    const drag = dragRef.current
+    if (!drag) return
+    dragRef.current = null
+    if (drag.kind === 'marquee') {
+      const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+      const rect = normalizeRect(drag.marqueeStart!.x, drag.marqueeStart!.y, wx, wy)
+      applySelection(nodesInRect(rect))
+      setSelectedEdgeId(null)
+      setMarquee(null)
+      return
+    }
+    finalizeNodeDrag(drag)
+    scheduleSave()
+  }
+
+  const onPointerCancel = () => {
+    const drag = dragRef.current
+    dragRef.current = null
+    setMarquee(null)
+    if (drag) finalizeNodeDrag(drag)
   }
 
   // 连线拖拽：从输出端口按下，捕获指针，命中输入端口时建立连线。
@@ -469,8 +595,7 @@ function CanvasEditorContent({ id }: { id: string }) {
     const [wx, wy] = clientToWorld(event.clientX, event.clientY)
     draftSourceRef.current = node.id
     setDraftEdge({ sourceId: node.id, x: wx, y: wy })
-    setSelectedId(null)
-    setSelectedEdgeId(null)
+    clearSelection()
     ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
   }
 
@@ -531,7 +656,12 @@ function CanvasEditorContent({ id }: { id: string }) {
     if ((event.key === 'Delete' || event.key === 'Backspace') && !mod) {
       event.preventDefault()
       if (selectedEdgeId) onDeleteEdge()
-      else if (selectedId) onDeleteSelected()
+      else deleteNodes(selectedIds)
+      return
+    }
+
+    if (event.key === 'Escape' && !mod) {
+      clearSelection()
       return
     }
 
@@ -546,15 +676,15 @@ function CanvasEditorContent({ id }: { id: string }) {
       redo()
     } else if (key === 'd') {
       event.preventDefault()
-      if (selectedId) duplicateNode(selectedId)
+      if (selectedIds.length > 0) duplicateNodes(selectedIds)
     } else if (key === 'c') {
-      if (selectedId) {
+      if (selectedIds.length > 0) {
         event.preventDefault()
-        copyNode()
+        copySelected()
       }
     } else if (key === 'v') {
       event.preventDefault()
-      pasteNode()
+      pasteClipboard()
     }
   }
 
@@ -646,7 +776,7 @@ function CanvasEditorContent({ id }: { id: string }) {
               </button>
             ))}
             <span className="canvas-toolbar-hint">
-              滚轮缩放 · 拖空白平移 · 拖节点圆点连线 · ⌘Z 撤销 ⌘D 复制 · Delete 删除
+              滚轮缩放 · 拖空白平移 · ⇧拖框选 · 拖节点圆点连线 · ⌘Z 撤销 ⌘D 复制 · Delete 删除
             </span>
             {saveLabel && (
               <span className={`canvas-save-state is-${saveState}`} role="status">
@@ -661,7 +791,7 @@ function CanvasEditorContent({ id }: { id: string }) {
             onPointerDown={onSurfacePointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
+            onPointerCancel={onPointerCancel}
             onWheel={onWheel}
           >
             <div
@@ -697,7 +827,7 @@ function CanvasEditorContent({ id }: { id: string }) {
                           onPointerDown={(event) => {
                             event.stopPropagation()
                             setSelectedEdgeId(edge.id)
-                            setSelectedId(null)
+                            applySelection([])
                           }}
                         />
                         <path className={`canvas-edge${selected ? ' is-selected' : ''}`} d={d} />
@@ -719,24 +849,37 @@ function CanvasEditorContent({ id }: { id: string }) {
                 </g>
               </svg>
 
+              {marquee && (
+                <div
+                  className="canvas-marquee"
+                  style={{
+                    left: Math.min(marquee.x1, marquee.x2),
+                    top: Math.min(marquee.y1, marquee.y2),
+                    width: Math.abs(marquee.x2 - marquee.x1),
+                    height: Math.abs(marquee.y2 - marquee.y1),
+                  }}
+                  aria-hidden="true"
+                />
+              )}
+
               {nodes.map((node) => {
                 const refs = referencesFor(node.id)
                 return (
                   <CanvasNodeCard
                     key={node.id}
                     node={node}
-                    selected={node.id === selectedId}
+                    selected={selectedIds.includes(node.id)}
                     imageEndpoints={capabilities.imageEndpoints}
                     promptEnhanceEnabled={capabilities.promptEnhanceEnabled}
                     referenceImages={refs.referenceImages}
                     referenceTexts={refs.referenceTexts}
                     onPointerDown={(event) => onNodePointerDown(event, node)}
                     onSelect={() => {
-                      setSelectedId(node.id)
-                      setSelectedEdgeId(null)
+                      if (suppressFocusSelectRef.current) return
+                      if (!selectedIdsRef.current.includes(node.id)) selectOnly(node.id)
                     }}
-                    onDelete={onDeleteSelected}
-                    onDuplicate={() => duplicateNode(node.id)}
+                    onDelete={() => deleteNodes([node.id])}
+                    onDuplicate={() => duplicateNodes([node.id])}
                     onUpdate={(patch) => updateNode(node.id, patch)}
                     onSize={onNodeSize}
                   />

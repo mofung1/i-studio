@@ -457,6 +457,16 @@
   cursor: pointer;
 }
 
+/* 框选选框 */
+.canvas-marquee {
+  position: absolute;
+  z-index: 4;
+  border: 1px solid var(--foreground);
+  background: var(--focus-soft);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
 /* 节点端口：输出（下方，可拖拽连线）/ 输入（上方，连线落点） */
 .canvas-port {
   position: absolute;
