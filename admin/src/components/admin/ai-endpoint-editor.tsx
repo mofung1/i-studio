@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Button } from '@/components/admin/ui/button'
 import { Field, FieldLabel, FieldLegend, FieldSet } from '@/components/admin/ui/field'
 import { Input } from '@/components/admin/ui/input'
+import { Checkbox } from '@/components/admin/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -268,13 +269,13 @@ export function AiEndpointEditor({
                 )}
                 <div className={styles.options}>
                   <label className={styles.option}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
+                      className="mt-0.5"
                       checked={input.enabled}
-                      onChange={(event) =>
+                      onCheckedChange={(checked) =>
                         onChange({
-                          enabled: event.target.checked,
-                          isDefault: event.target.checked && input.isDefault,
+                          enabled: checked === true,
+                          isDefault: checked === true && input.isDefault,
                         })
                       }
                     />
@@ -290,11 +291,11 @@ export function AiEndpointEditor({
                   {!isImage && (
                     <>
                       <label className={styles.option}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          className="mt-0.5"
                           checked={input.isDefault}
                           disabled={busy || !input.enabled}
-                          onChange={(event) => onChange({ isDefault: event.target.checked })}
+                          onCheckedChange={(checked) => onChange({ isDefault: checked === true })}
                         />
                         <span>
                           <strong>设为默认提示词服务</strong>
@@ -305,12 +306,12 @@ export function AiEndpointEditor({
                         </span>
                       </label>
                       <label className={styles.option}>
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          className="mt-0.5"
                           checked={!!input.capabilities.vision}
-                          onChange={(event) =>
+                          onCheckedChange={(checked) =>
                             onChange({
-                              capabilities: { ...input.capabilities, vision: event.target.checked },
+                              capabilities: { ...input.capabilities, vision: checked === true },
                             })
                           }
                         />

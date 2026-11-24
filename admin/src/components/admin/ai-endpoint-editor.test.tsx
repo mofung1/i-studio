@@ -79,7 +79,7 @@ function button(label: string) {
 function checkbox(label: string) {
   return [...document.querySelectorAll<HTMLLabelElement>('label')]
     .find((item) => item.querySelector('strong')?.textContent === label)!
-    .querySelector<HTMLInputElement>('input')!
+    .querySelector<HTMLButtonElement>('[data-slot="checkbox"]')!
 }
 async function change(element: HTMLInputElement, value: string) {
   await act(async () => {
@@ -143,7 +143,7 @@ it('requires a prompt model and clears default selection when the service is dis
   expect(document.querySelector('form')!.checkValidity()).toBe(true)
   await act(async () => checkbox('支持图片识别').click())
   await act(async () => checkbox('启用服务').click())
-  expect(checkbox('设为默认提示词服务').checked).toBe(false)
+  expect(checkbox('设为默认提示词服务').getAttribute('aria-checked')).toBe('false')
   expect(checkbox('设为默认提示词服务').disabled).toBe(true)
   await submit()
   expect(submitted).toMatchObject({

@@ -10,6 +10,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { Button } from './ui/button'
+import { Checkbox } from './ui/checkbox'
 import { AdminStatusBadge } from './status-badge'
 import {
   imageProtocolLabels,
@@ -227,11 +228,10 @@ export function AiServiceList({
                       <div className={styles.management}>
                         <div>
                           <label className={styles.enableSwitch}>
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={endpoint.enabled}
                               disabled={busy}
-                              onChange={() => onToggle(endpoint)}
+                              onCheckedChange={() => onToggle(endpoint)}
                               aria-label={`启用 ${endpoint.name}`}
                             />
                             启用此服务
