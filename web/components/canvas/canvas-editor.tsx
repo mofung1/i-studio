@@ -6,6 +6,7 @@ import Link from 'next/link'
 
 import { AccountBoundary } from '@/components/account-access'
 import { StudioShell } from '@/components/studio-shell'
+import { cancelGenerationTask } from '@/lib/api'
 import { CanvasNodeCard } from './canvas-node-card'
 import { useCanvasCapabilities } from './use-canvas-capabilities'
 import {
@@ -29,6 +30,7 @@ const SAVE_DEBOUNCE_MS = 700
 const PORT_R = 8
 const PORT_HIT_RADIUS = 16
 const EDGE_PAD = 80
+const ACTIVE_GENERATION_STATUSES = new Set(['queued', 'processing', 'waiting_provider'])
 
 interface DragState {
   kind: 'pan' | 'node' | 'marquee'
@@ -469,6 +471,17 @@ function CanvasEditorContent({ id }: { id: string }) {
       if (ids.length === 0) return
       commitHistory()
       const removing = new Set(ids)
+      // 删除生成中的图像节点时，主动取消其服务端任务并退回冻结额度（fire-and-forget）。
+      for (const id of ids) {
+        const node = stateRef.current.nodes.find((n) => n.id === id)
+        if (node && node.type === 'image') {
+          const result = imageNodeResult(node)
+          const active = result && ACTIVE_GENERATION_STATUSES.has(result.status)
+          if (active && result.taskId) {
+            void cancelGenerationTask(result.taskId).catch(() => {})
+          }
+        }
+      }
       setNodes((current) => current.filter((node) => !removing.has(node.id)))
       setEdges((current) =>
         current.filter((edge) => !removing.has(edge.source) && !removing.has(edge.target)),

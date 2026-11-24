@@ -127,6 +127,10 @@ func (s *Service) taskByID(w http.ResponseWriter, r *http.Request) {
 		s.redoTaskImage(w, r, strings.TrimSuffix(path, "/redo-image"))
 		return
 	}
+	if strings.HasSuffix(path, "/cancel") {
+		s.cancelTask(w, r, strings.TrimSuffix(path, "/cancel"))
+		return
+	}
 	if r.Method == http.MethodDelete {
 		s.deleteTask(w, r, path)
 		return
@@ -222,6 +226,57 @@ func (s *Service) deleteTask(w http.ResponseWriter, r *http.Request, id string) 
 	}
 	delete(s.tasks, id)
 	s.json(w, http.StatusOK, map[string]any{"deleted": id})
+}
+
+// cancelTask 取消一条仍在生成的任务：标记为已取消并全额退回冻结额度。
+// 幂等：任务已处于终态时直接返回成功，不再二次结算。
+func (s *Service) cancelTask(w http.ResponseWriter, r *http.Request, id string) {
+	if r.Method != http.MethodPost {
+		s.error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "不支持的请求方法")
+		return
+	}
+	userID, ok := s.authenticatedUserID(r)
+	if !ok {
+		s.error(w, http.StatusUnauthorized, "AUTH_REQUIRED", "请先登录")
+		return
+	}
+	if id == "" {
+		s.error(w, http.StatusBadRequest, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
+		return
+	}
+	if s.db != nil {
+		var status string
+		err := s.db.QueryRow("SELECT status FROM generation_tasks WHERE id=$1 AND user_id=$2", id, userID).Scan(&status)
+		if err == sql.ErrNoRows {
+			s.error(w, http.StatusNotFound, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
+			return
+		}
+		if err != nil {
+			s.error(w, http.StatusInternalServerError, "TASK_STORAGE_ERROR", "取消失败，请稍后重试")
+			return
+		}
+		if domain.IsActiveTask(status) {
+			if err := s.settleGeneration(id, "cancelled", []string{}, nil, "已取消"); err != nil {
+				s.error(w, http.StatusInternalServerError, "TASK_CANCEL_FAILED", "取消失败，请稍后重试")
+				return
+			}
+		}
+		s.json(w, http.StatusOK, map[string]any{"cancelled": id})
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.tasks[id]
+	if !ok || t.UserID != userID {
+		s.error(w, http.StatusNotFound, "GENERATION_TASK_NOT_FOUND", "生成任务不存在")
+		return
+	}
+	if domain.IsActiveTask(t.Status) {
+		t.Status = "cancelled"
+		t.ErrorMessage = "已取消"
+		s.tasks[id] = t
+	}
+	s.json(w, http.StatusOK, map[string]any{"cancelled": id})
 }
 
 func (s *Service) retryTask(w http.ResponseWriter, r *http.Request, id string) {

@@ -107,6 +107,17 @@ export async function deleteGenerationTask(taskId: string) {
   if (!response.ok) throw new Error(await readApiError(response, '删除失败，请稍后重试'))
 }
 
+/** 取消一条仍在生成的任务（全额退回冻结额度）；任务已终态时幂等返回成功。 */
+export async function cancelGenerationTask(taskId: string) {
+  const token = getAccessToken()
+  const response = await fetch(`${apiBaseUrl}/v1/generation/tasks/${taskId}/cancel`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  })
+  if (response.status === 401) throw new Error('登录状态已失效，请重新登录')
+  if (!response.ok) throw new Error(await readApiError(response, '取消失败，请稍后重试'))
+}
+
 /** 删除资产库里的一张生成图片；contentPath 形如 /v1/assets/{id}/content。 */
 export async function deleteGeneratedAsset(contentPath: string) {
   const token = getAccessToken()

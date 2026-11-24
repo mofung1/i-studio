@@ -59,6 +59,7 @@ func (s Handlers) registerGenerationRoutes(api *gin.RouterGroup) {
 	generation.GET("/tasks/:id/download", gin.WrapF(s.TaskByID))
 	generation.POST("/tasks/:id/retry", gin.WrapF(s.TaskByID))
 	generation.POST("/tasks/:id/redo-image", gin.WrapF(s.TaskByID))
+	generation.POST("/tasks/:id/cancel", gin.WrapF(s.TaskByID))
 
 	api.POST("/clothing/plan", gin.WrapF(s.ClothingPlanHandler))
 	api.POST("/clothing/manual-plan", gin.WrapF(s.ManualClothingPlan))
