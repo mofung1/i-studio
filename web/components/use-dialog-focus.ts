@@ -28,6 +28,8 @@ export function useDialogFocus(
   onClose: () => void,
   initialSelector = 'button',
   portalContainer?: HTMLElement | null,
+  /** 常驻挂载的抽屉/面板用 active 控制是否进入模态焦点状态 */
+  active = true,
 ) {
   const closeRef = useRef(onClose)
   useLayoutEffect(() => {
@@ -35,6 +37,7 @@ export function useDialogFocus(
   }, [onClose])
 
   useLayoutEffect(() => {
+    if (!active) return
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null
     const dialog = ref.current
@@ -90,5 +93,5 @@ export function useDialogFocus(
       if (dialogStack.length === 0) document.body.style.overflow = bodyOverflow
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
     }
-  }, [ref, initialSelector, portalContainer])
+  }, [ref, initialSelector, portalContainer, active])
 }

@@ -22,7 +22,7 @@ describe('useErrorNotification', () => {
   })
 
   it('should initialize with null notice', () => {
-    let hookResult: ReturnType<typeof useErrorNotification> | null = null
+    let hookResult: ReturnType<typeof useErrorNotification> | undefined
 
     function Fixture() {
       hookResult = useErrorNotification()
@@ -34,7 +34,7 @@ describe('useErrorNotification', () => {
   })
 
   it('should handle Error instance', () => {
-    let hookResult: ReturnType<typeof useErrorNotification> | null = null
+    let hookResult: ReturnType<typeof useErrorNotification> | undefined
     const error = new Error('Something went wrong')
 
     function Fixture() {
@@ -220,12 +220,9 @@ describe('safeAsync', () => {
 
   it('should return null and log on error', async () => {
     const error = new Error('Async error')
-    const result = await safeAsync(
-      async () => {
-        throw error
-      },
-      '[Test] Operation failed',
-    )
+    const result = await safeAsync(async () => {
+      throw error
+    }, '[Test] Operation failed')
 
     expect(result).toBeNull()
     expect(consoleErrorSpy).toHaveBeenCalledWith('[Test] Operation failed', error)

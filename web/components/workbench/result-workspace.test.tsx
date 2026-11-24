@@ -197,10 +197,16 @@ it('locks single-image actions until the selected image is displayed', async () 
     resultImages: [first, second],
     resultModules: ['white', 'scene'],
   }
+  // 每次传入新对象，确保 memo 化的组件会重新渲染以读取最新的图片加载状态
   const render = () =>
     act(async () =>
       root.render(
-        <ResultWorkspace {...props} mode="commerce" activeResult={task} onRedoImage={redo} />,
+        <ResultWorkspace
+          {...props}
+          mode="commerce"
+          activeResult={{ ...task }}
+          onRedoImage={redo}
+        />,
       ),
     )
   const button = (label: string) =>

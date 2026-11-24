@@ -99,6 +99,44 @@ it('skips hidden, inert and collapsed controls when trapping Tab', async () => {
   }
 })
 
+it('only traps focus while an always-mounted drawer is active', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  const host = document.createElement('div')
+  document.body.append(host)
+  const root = createRoot(host)
+  const close = vi.fn()
+  function Drawer({ open }: { open: boolean }) {
+    const ref = useRef<HTMLDivElement>(null)
+    useDialogFocus(ref, close, '#drawer-close', undefined, open)
+    return (
+      <div ref={ref} role="dialog" aria-hidden={!open}>
+        <button id="drawer-close">关闭</button>
+      </div>
+    )
+  }
+  try {
+    await act(async () => root.render(<Drawer open={false} />))
+    expect(document.activeElement).not.toBe(host.querySelector('#drawer-close'))
+    expect(document.body.style.overflow).toBe('')
+
+    await act(async () => root.render(<Drawer open />))
+    expect(document.activeElement).toBe(host.querySelector('#drawer-close'))
+    expect(document.body.style.overflow).toBe('hidden')
+
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    await act(async () => document.dispatchEvent(escape))
+    expect(close).toHaveBeenCalledOnce()
+
+    await act(async () => root.render(<Drawer open={false} />))
+    expect(document.body.style.overflow).toBe('')
+  } finally {
+    await act(async () => root.unmount())
+    host.remove()
+    document.body.style.overflow = ''
+    vi.unstubAllGlobals()
+  }
+})
+
 it('leaves Escape to a native dialog above a custom dialog', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   const host = document.createElement('div')

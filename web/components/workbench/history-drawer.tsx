@@ -12,12 +12,13 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { AuthenticatedImage } from '@/components/authenticated-image'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { AccountAccess } from '@/components/account-access'
 import { useAccount } from '@/components/account-provider'
+import { useDialogFocus } from '@/components/use-dialog-focus'
 
 import type { CommerceTaskType } from '@/lib/contracts'
 import { splitFailureMessage } from '@/lib/failure-message'
@@ -84,6 +85,9 @@ export function HistoryDrawer({
   onDelete,
 }: HistoryDrawerProps) {
   const { account } = useAccount()
+  const drawerRef = useRef<HTMLElement>(null)
+  // 抽屉打开时把焦点移入并限制在抽屉内，Esc 关闭后焦点回到触发按钮
+  useDialogFocus(drawerRef, onClose, '.history-drawer-head button', undefined, open)
   const [scope, setScope] = useState<'type' | 'all'>('type')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmTarget, setConfirmTarget] = useState<HistoryTask | null>(null)
@@ -122,13 +126,16 @@ export function HistoryDrawer({
         onClick={onClose}
       />
       <aside
+        ref={drawerRef}
         className={`history-drawer ${open ? 'is-open' : ''}`}
-        aria-label="历史记录"
+        role="dialog"
+        aria-modal={open ? true : undefined}
+        aria-labelledby="history-drawer-title"
         aria-hidden={!open}
         inert={!open}
       >
         <header className="history-drawer-head">
-          <h2>
+          <h2 id="history-drawer-title">
             <History size={16} aria-hidden="true" />
             历史记录
           </h2>

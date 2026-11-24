@@ -221,6 +221,9 @@
   gap: var(--row-gap);
   min-width: 0;
   margin-bottom: 18px;
+  /* 长列表按行跳过屏外渲染；auto 会记住已渲染行的实际高度，避免滚动条抖动 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto calc(var(--cover-height, 240px) + 56px);
 }
 
 .galleryRow .cover {

@@ -84,6 +84,7 @@ export function RegenerateDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="regenerate-dialog-title"
+        aria-describedby="regenerate-dialog-note"
         ref={dialogRef}
       >
         <header className="confirm-dialog-head">
@@ -92,7 +93,7 @@ export function RegenerateDialog({
             <X size={17} />
           </button>
         </header>
-        <p className="confirm-dialog-note">
+        <p className="confirm-dialog-note" id="regenerate-dialog-note">
           将使用当前配置重新提交一次生成任务，每次生成都会调用 AI 服务并产生费用。
         </p>
 

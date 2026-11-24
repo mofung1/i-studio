@@ -57,6 +57,7 @@ export function GenerationFooter({
           type="button"
           disabled={disabled || busy || cost.loading || !cost.quote?.canAfford}
           title={title}
+          aria-busy={busy || undefined}
           aria-describedby={describedBy}
           onClick={onSubmit}
         >
