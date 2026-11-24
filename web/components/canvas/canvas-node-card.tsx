@@ -158,6 +158,14 @@ function stopPointer(event: React.PointerEvent) {
   event.stopPropagation()
 }
 
+/** 结果图 hover 元信息：分辨率 × 生成耗时。 */
+function formatResultMeta(detail?: { width: number; height: number; elapsedMs: number | null }) {
+  const parts: string[] = []
+  if (detail?.width && detail?.height) parts.push(`${detail.width}×${detail.height}`)
+  if (detail?.elapsedMs != null) parts.push(`${(detail.elapsedMs / 1000).toFixed(1)}s`)
+  return parts.join(' · ')
+}
+
 function TextNodeBody({
   node,
   promptEnhanceEnabled,
@@ -434,6 +442,7 @@ function ImageNodeBody({
           {result.images.map((path) => {
             const assetId = assetIdFromContentPath(path)
             const isRef = assetId ? data.referenceAssetIds.includes(assetId) : false
+            const meta = formatResultMeta(result.details?.find((d) => d.contentPath === path))
             return (
               <div key={path} className="canvas-node-result-item">
                 <AuthenticatedImage
@@ -441,6 +450,7 @@ function ImageNodeBody({
                   alt="生成结果"
                   className="canvas-node-result-image"
                 />
+                {meta && <span className="canvas-node-result-info">{meta}</span>}
                 <div className="canvas-node-result-actions">
                   <button
                     type="button"
