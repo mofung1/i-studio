@@ -530,6 +530,145 @@
   line-height: 1.6;
 }
 
+/* 画布列表页 */
+.canvas-manager {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+
+.canvas-manager-status {
+  margin: 24px 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.canvas-manager-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 48px auto;
+  max-width: 360px;
+  padding: 32px 24px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+}
+
+.canvas-manager-empty--center {
+  justify-content: center;
+  min-height: 60vh;
+  margin-top: 0;
+}
+
+.canvas-manager-empty strong {
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.canvas-manager-empty p {
+  margin: 0;
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+
+.canvas-manager-empty .studio-primary,
+.canvas-manager-empty .studio-secondary {
+  margin-top: 8px;
+}
+
+.canvas-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.canvas-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.canvas-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 6px 20px rgba(23, 23, 23, 0.06);
+}
+
+.canvas-card-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+.canvas-card-name {
+  color: var(--foreground);
+  font-size: var(--text-small);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-card-meta {
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+
+.canvas-card-delete {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 120ms ease,
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.canvas-card:hover .canvas-card-delete,
+.canvas-card-delete:focus-visible {
+  opacity: 1;
+}
+
+.canvas-card-delete:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.canvas-manager-error {
+  margin: 16px 0 0;
+  color: var(--danger);
+  font-size: var(--text-caption);
+  text-align: center;
+}
+
 /* 顶栏里的画布名称输入与切换下拉 */
 .canvas-name-field input {
   height: 36px;

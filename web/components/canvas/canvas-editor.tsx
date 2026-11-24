@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Delete, Image as ImageIcon, Plus, Type, Video } from 'lucide-react'
+import { ArrowLeft, Image as ImageIcon, Type } from 'lucide-react'
+import Link from 'next/link'
 
 import { AccountBoundary } from '@/components/account-access'
 import { StudioShell } from '@/components/studio-shell'
@@ -9,12 +10,9 @@ import { CanvasNodeCard } from './canvas-node-card'
 import { useCanvasCapabilities } from './use-canvas-capabilities'
 import {
   assetIdFromContentPath,
-  createCanvas,
-  deleteCanvas,
   edgeAllowed,
   getCanvas,
   imageNodeResult,
-  listCanvases,
   newCanvasNode,
   saveCanvas,
   type CanvasEdge,
@@ -48,29 +46,29 @@ interface GraphSnapshot {
   edges: CanvasEdge[]
 }
 
+// 视频节点类型已预留但暂未接入生成，先不暴露添加入口。
 const nodeAdders: { type: CanvasNodeType; label: string; icon: typeof Type }[] = [
   { type: 'text', label: '文本', icon: Type },
   { type: 'image', label: '图像', icon: ImageIcon },
-  { type: 'video', label: '视频', icon: Video },
 ]
 
-export function CanvasEditor() {
+export function CanvasEditor({ id }: { id: string }) {
   return (
     <AccountBoundary
       section="canvas"
       title="画布"
       description="登录后在无限画布上组织生图任务，串联文生图与图生图。"
-      returnTo="/canvas"
+      returnTo={`/canvas/${id}`}
     >
-      <CanvasEditorContent />
+      <CanvasEditorContent id={id} />
     </AccountBoundary>
   )
 }
 
-function CanvasEditorContent() {
+function CanvasEditorContent({ id }: { id: string }) {
   const [canvas, setCanvas] = useState<CanvasRecord | null>(null)
-  const [canvases, setCanvases] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [error, setError] = useState('')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -238,23 +236,16 @@ function CanvasEditorContent() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
+    setLoadFailed(false)
     try {
-      const list = await listCanvases()
-      setCanvases(list)
-      const first = list[0]
-      if (first) {
-        applyGraph(await getCanvas(first.id))
-      } else {
-        const record = await createCanvas('未命名画布')
-        setCanvases([{ id: record.id, name: record.name }])
-        applyGraph(record)
-      }
+      applyGraph(await getCanvas(id))
     } catch (reason) {
+      setLoadFailed(true)
       setError(reason instanceof Error ? reason.message : '画布读取失败')
     } finally {
       setLoading(false)
     }
-  }, [applyGraph])
+  }, [applyGraph, id])
 
   useEffect(() => {
     void load()
@@ -391,61 +382,11 @@ function CanvasEditorContent() {
     scheduleSave()
   }
 
-  const onNewCanvas = async () => {
-    setError('')
-    try {
-      const record = await createCanvas('未命名画布')
-      setCanvases((current) => [{ id: record.id, name: record.name }, ...current])
-      applyGraph(record)
-      setSelectedId(null)
-      setSelectedEdgeId(null)
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '新建画布失败')
-    }
-  }
-
-  const onSwitchCanvas = async (id: string) => {
-    if (id === canvas?.id) return
-    setError('')
-    try {
-      applyGraph(await getCanvas(id))
-      setSelectedId(null)
-      setSelectedEdgeId(null)
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '画布读取失败')
-    }
-  }
-
   const onRenameCanvas = (name: string) => {
     if (!canvas) return
     const trimmed = name.trim() || '未命名画布'
     setCanvas({ ...canvas, name: trimmed })
-    setCanvases((current) =>
-      current.map((item) => (item.id === canvas.id ? { ...item, name: trimmed } : item)),
-    )
     scheduleSave()
-  }
-
-  const onDeleteCanvas = async () => {
-    if (!canvas) return
-    setError('')
-    try {
-      await deleteCanvas(canvas.id)
-      const rest = canvases.filter((item) => item.id !== canvas.id)
-      setCanvases(rest)
-      const next = rest[0]
-      if (next) {
-        applyGraph(await getCanvas(next.id))
-      } else {
-        const record = await createCanvas('未命名画布')
-        setCanvases([{ id: record.id, name: record.name }])
-        applyGraph(record)
-      }
-      setSelectedId(null)
-      setSelectedEdgeId(null)
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '画布删除失败')
-    }
   }
 
   // 指针事件：平移与拖节点。
@@ -668,198 +609,184 @@ function CanvasEditorContent() {
               aria-label="画布名称"
             />
           </label>
-          {canvases.length > 1 && (
-            <select
-              className="studio-secondary canvas-select"
-              value={canvas?.id ?? ''}
-              onChange={(event) => onSwitchCanvas(event.target.value)}
-              aria-label="切换画布"
-            >
-              {canvases.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          )}
-          <button type="button" className="studio-secondary" onClick={onNewCanvas}>
-            <Plus size={16} aria-hidden="true" />
-            新建画布
-          </button>
-          {canvas && (
-            <button
-              type="button"
-              className="studio-secondary"
-              onClick={onDeleteCanvas}
-              aria-label="删除当前画布"
-              title="删除当前画布"
-            >
-              <Delete size={16} aria-hidden="true" />
-            </button>
-          )}
+          <Link className="studio-secondary" href="/canvas">
+            <ArrowLeft size={16} aria-hidden="true" />
+            返回画布列表
+          </Link>
         </>
       }
     >
-      <div
-        className={`canvas-editor${loading ? ' is-loading' : ''}`}
-        onKeyDown={onKeyDown}
-        tabIndex={-1}
-        ref={editorRef}
-      >
-        <div className="canvas-toolbar" role="toolbar" aria-label="添加节点">
-          {nodeAdders.map(({ type, label, icon: Icon }) => (
-            <button
-              key={type}
-              type="button"
-              className="canvas-tool"
-              onClick={() => onAddNode(type)}
-              title={`添加${label}节点`}
-            >
-              <Icon size={15} aria-hidden="true" />
-              <span>{label}</span>
-            </button>
-          ))}
-          <span className="canvas-toolbar-hint">
-            滚轮缩放 · 拖空白平移 · 拖节点圆点连线 · ⌘Z 撤销 ⌘D 复制 · Delete 删除
-          </span>
-          {saveLabel && (
-            <span className={`canvas-save-state is-${saveState}`} role="status">
-              {saveLabel}
-            </span>
-          )}
+      {loadFailed ? (
+        <div className="canvas-manager-empty canvas-manager-empty--center">
+          <ImageIcon size={34} aria-hidden="true" />
+          <strong>画布不存在或已删除</strong>
+          <p>{error}</p>
+          <Link className="studio-primary" href="/canvas">
+            返回画布列表
+          </Link>
         </div>
-
+      ) : (
         <div
-          className="canvas-surface"
-          ref={surfaceRef}
-          onPointerDown={onSurfacePointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onWheel={onWheel}
+          className={`canvas-editor${loading ? ' is-loading' : ''}`}
+          onKeyDown={onKeyDown}
+          tabIndex={-1}
+          ref={editorRef}
         >
-          <div
-            className="canvas-world"
-            style={{
-              transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
-            }}
-          >
-            <svg
-              className="canvas-edges"
-              style={{
-                left: bounds.x,
-                top: bounds.y,
-                width: Math.max(bounds.width, 1),
-                height: Math.max(bounds.height, 1),
-              }}
-              aria-hidden="true"
-            >
-              <g transform={`translate(${-bounds.x}, ${-bounds.y})`}>
-                {edges.map((edge) => {
-                  const source = nodes.find((n) => n.id === edge.source)
-                  const target = nodes.find((n) => n.id === edge.target)
-                  if (!source || !target) return null
-                  const sp = outputPort(source)
-                  const tp = inputPort(target)
-                  const d = edgePath(sp.x, sp.y, tp.x, tp.y)
-                  const selected = selectedEdgeId === edge.id
-                  return (
-                    <g key={edge.id}>
-                      <path
-                        className="canvas-edge-hit"
-                        d={d}
-                        onPointerDown={(event) => {
-                          event.stopPropagation()
-                          setSelectedEdgeId(edge.id)
-                          setSelectedId(null)
-                        }}
-                      />
-                      <path className={`canvas-edge${selected ? ' is-selected' : ''}`} d={d} />
-                    </g>
-                  )
-                })}
-                {draftEdge &&
-                  (() => {
-                    const source = nodes.find((n) => n.id === draftEdge.sourceId)
-                    if (!source) return null
-                    const sp = outputPort(source)
-                    return (
-                      <path
-                        className="canvas-edge is-draft"
-                        d={edgePath(sp.x, sp.y, draftEdge.x, draftEdge.y)}
-                      />
-                    )
-                  })()}
-              </g>
-            </svg>
-
-            {nodes.map((node) => {
-              const refs = referencesFor(node.id)
-              return (
-                <CanvasNodeCard
-                  key={node.id}
-                  node={node}
-                  selected={node.id === selectedId}
-                  imageEndpoints={capabilities.imageEndpoints}
-                  promptEnhanceEnabled={capabilities.promptEnhanceEnabled}
-                  referenceImages={refs.referenceImages}
-                  referenceTexts={refs.referenceTexts}
-                  onPointerDown={(event) => onNodePointerDown(event, node)}
-                  onSelect={() => {
-                    setSelectedId(node.id)
-                    setSelectedEdgeId(null)
-                  }}
-                  onDelete={onDeleteSelected}
-                  onDuplicate={() => duplicateNode(node.id)}
-                  onUpdate={(patch) => updateNode(node.id, patch)}
-                  onSize={onNodeSize}
-                />
-              )
-            })}
-
-            {nodes.map((node) => {
-              if (node.type === 'video') return null
-              const out = outputPort(node)
-              const inp = inputPort(node)
-              return (
-                <div key={`ports-${node.id}`}>
-                  <div
-                    className={`canvas-port is-input${draftTargetId === node.id ? ' is-highlight' : ''}`}
-                    style={{ left: inp.x - PORT_R, top: inp.y - PORT_R }}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="canvas-port is-output"
-                    style={{ left: out.x - PORT_R, top: out.y - PORT_R }}
-                    aria-hidden="true"
-                    title="拖到另一个节点的输入端口建立连线"
-                    onPointerDown={(event) => startEdgeDraw(node, event)}
-                    onPointerMove={moveEdgeDraw}
-                    onPointerUp={endEdgeDraw}
-                    onPointerCancel={() => {
-                      draftSourceRef.current = null
-                      setDraftEdge(null)
-                    }}
-                  />
-                </div>
-              )
-            })}
+          <div className="canvas-toolbar" role="toolbar" aria-label="添加节点">
+            {nodeAdders.map(({ type, label, icon: Icon }) => (
+              <button
+                key={type}
+                type="button"
+                className="canvas-tool"
+                onClick={() => onAddNode(type)}
+                title={`添加${label}节点`}
+              >
+                <Icon size={15} aria-hidden="true" />
+                <span>{label}</span>
+              </button>
+            ))}
+            <span className="canvas-toolbar-hint">
+              滚轮缩放 · 拖空白平移 · 拖节点圆点连线 · ⌘Z 撤销 ⌘D 复制 · Delete 删除
+            </span>
+            {saveLabel && (
+              <span className={`canvas-save-state is-${saveState}`} role="status">
+                {saveLabel}
+              </span>
+            )}
           </div>
 
-          {!loading && nodes.length === 0 && (
-            <div className="canvas-empty" role="status">
-              <p className="canvas-empty-title">空白画布</p>
-              <p>从上方工具栏添加文本 / 图像节点，拖节点下方圆点把结果串联成生成链路。</p>
+          <div
+            className="canvas-surface"
+            ref={surfaceRef}
+            onPointerDown={onSurfacePointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onWheel={onWheel}
+          >
+            <div
+              className="canvas-world"
+              style={{
+                transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+              }}
+            >
+              <svg
+                className="canvas-edges"
+                style={{
+                  left: bounds.x,
+                  top: bounds.y,
+                  width: Math.max(bounds.width, 1),
+                  height: Math.max(bounds.height, 1),
+                }}
+                aria-hidden="true"
+              >
+                <g transform={`translate(${-bounds.x}, ${-bounds.y})`}>
+                  {edges.map((edge) => {
+                    const source = nodes.find((n) => n.id === edge.source)
+                    const target = nodes.find((n) => n.id === edge.target)
+                    if (!source || !target) return null
+                    const sp = outputPort(source)
+                    const tp = inputPort(target)
+                    const d = edgePath(sp.x, sp.y, tp.x, tp.y)
+                    const selected = selectedEdgeId === edge.id
+                    return (
+                      <g key={edge.id}>
+                        <path
+                          className="canvas-edge-hit"
+                          d={d}
+                          onPointerDown={(event) => {
+                            event.stopPropagation()
+                            setSelectedEdgeId(edge.id)
+                            setSelectedId(null)
+                          }}
+                        />
+                        <path className={`canvas-edge${selected ? ' is-selected' : ''}`} d={d} />
+                      </g>
+                    )
+                  })}
+                  {draftEdge &&
+                    (() => {
+                      const source = nodes.find((n) => n.id === draftEdge.sourceId)
+                      if (!source) return null
+                      const sp = outputPort(source)
+                      return (
+                        <path
+                          className="canvas-edge is-draft"
+                          d={edgePath(sp.x, sp.y, draftEdge.x, draftEdge.y)}
+                        />
+                      )
+                    })()}
+                </g>
+              </svg>
+
+              {nodes.map((node) => {
+                const refs = referencesFor(node.id)
+                return (
+                  <CanvasNodeCard
+                    key={node.id}
+                    node={node}
+                    selected={node.id === selectedId}
+                    imageEndpoints={capabilities.imageEndpoints}
+                    promptEnhanceEnabled={capabilities.promptEnhanceEnabled}
+                    referenceImages={refs.referenceImages}
+                    referenceTexts={refs.referenceTexts}
+                    onPointerDown={(event) => onNodePointerDown(event, node)}
+                    onSelect={() => {
+                      setSelectedId(node.id)
+                      setSelectedEdgeId(null)
+                    }}
+                    onDelete={onDeleteSelected}
+                    onDuplicate={() => duplicateNode(node.id)}
+                    onUpdate={(patch) => updateNode(node.id, patch)}
+                    onSize={onNodeSize}
+                  />
+                )
+              })}
+
+              {nodes.map((node) => {
+                if (node.type === 'video') return null
+                const out = outputPort(node)
+                const inp = inputPort(node)
+                return (
+                  <div key={`ports-${node.id}`}>
+                    <div
+                      className={`canvas-port is-input${draftTargetId === node.id ? ' is-highlight' : ''}`}
+                      style={{ left: inp.x - PORT_R, top: inp.y - PORT_R }}
+                      aria-hidden="true"
+                    />
+                    <div
+                      className="canvas-port is-output"
+                      style={{ left: out.x - PORT_R, top: out.y - PORT_R }}
+                      aria-hidden="true"
+                      title="拖到另一个节点的输入端口建立连线"
+                      onPointerDown={(event) => startEdgeDraw(node, event)}
+                      onPointerMove={moveEdgeDraw}
+                      onPointerUp={endEdgeDraw}
+                      onPointerCancel={() => {
+                        draftSourceRef.current = null
+                        setDraftEdge(null)
+                      }}
+                    />
+                  </div>
+                )
+              })}
             </div>
+
+            {!loading && nodes.length === 0 && (
+              <div className="canvas-empty" role="status">
+                <p className="canvas-empty-title">空白画布</p>
+                <p>从上方工具栏添加文本 / 图像节点，拖节点下方圆点把结果串联成生成链路。</p>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <p className="canvas-error" role="alert">
+              {error}
+            </p>
           )}
         </div>
-
-        {error && (
-          <p className="canvas-error" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
+      )}
     </StudioShell>
   )
 }
