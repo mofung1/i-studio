@@ -316,13 +316,9 @@
   font-size: 13px;
 }
 
-.admin-site-page .site-contact-modes > label:has(> input:checked) {
+.admin-site-page .site-contact-modes > label:has(> [data-state='checked']) {
   background: var(--accent);
   color: var(--accent-foreground);
-}
-
-.admin-site-page .site-contact-modes input[type='radio'] {
-  accent-color: var(--primary);
 }
 
 .admin-site-page .site-contact-fields:disabled .site-contact-modes > label {

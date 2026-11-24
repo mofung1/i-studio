@@ -23,6 +23,8 @@ import { InspirationSubmissionCover } from '@/components/inspiration-submission-
 import { SubmissionHistory } from '@/components/inspiration-submission-history'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
+import { Checkbox } from './ui/checkbox'
+import { Textarea } from './ui/textarea'
 import { Field, FieldGroup, FieldLabel } from './ui/field'
 import { AdminPageHeader } from './page-header'
 import { AdminCellText, AdminDataTable, type AdminColumn } from './data-table'
@@ -203,7 +205,7 @@ function ReviewPanel({
             {(item.status === 'pending' || item.published) && (
               <Field>
                 <FieldLabel htmlFor="submission-review-reason">审核说明</FieldLabel>
-                <textarea
+                <Textarea
                   className="submission-review-textarea"
                   id="submission-review-reason"
                   rows={3}
@@ -217,11 +219,10 @@ function ReviewPanel({
             {item.status === 'pending' && (
               <Field>
                 <label className="submission-check">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={grant}
                     disabled={item.rewardMinor > 0}
-                    onChange={(event) => setGrant(event.target.checked)}
+                    onCheckedChange={(checked) => setGrant(checked === true)}
                   />
                   审核通过时奖励积分
                 </label>
@@ -527,12 +528,11 @@ function AdminSubmissionContent({ creditName }: { creditName: string }) {
             <FieldGroup className="submission-settings-fields">
               <Field className="submission-setting-toggle">
                 <label className="submission-check">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={settings.enabled}
                     disabled={busy}
-                    onChange={(event) =>
-                      setSettings({ ...settings, enabled: event.target.checked })
+                    onCheckedChange={(checked) =>
+                      setSettings({ ...settings, enabled: checked === true })
                     }
                   />
                   开放用户投稿

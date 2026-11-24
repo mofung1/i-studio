@@ -10,6 +10,8 @@ import { promptGroupLabel } from '@/lib/prompt-groups'
 import { PromptTemplateBrowser } from '@/components/prompt-template-browser'
 import { Alert, AlertDescription } from '@/components/admin/ui/alert'
 import { Button } from '@/components/admin/ui/button'
+import { Checkbox } from '@/components/admin/ui/checkbox'
+import { Textarea } from '@/components/admin/ui/textarea'
 import styles from '@/components/admin/settings-forms.module.css'
 import '@/styles/admin-settings-layouts.css'
 
@@ -175,11 +177,10 @@ export default function AdminPromptsPage() {
                 {promptDirty && <span className="prompt-dirty-status">未保存更改</span>}
               </div>
               <label className="settings-switch">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={promptEnabled}
                   disabled={!!busy}
-                  onChange={(event) => setPromptEnabled(event.target.checked)}
+                  onCheckedChange={(checked) => setPromptEnabled(checked === true)}
                 />
                 <span
                   className="admin-switch-label"
@@ -207,7 +208,7 @@ export default function AdminPromptsPage() {
                 ))}
               </p>
             )}
-            <textarea
+            <Textarea
               className="prompt-content-editor"
               aria-label="提示词模板内容"
               value={promptDraft}

@@ -182,13 +182,6 @@
   font-size: 0.875rem;
 }
 
-.reverse-detail-title input {
-  flex: none;
-  width: 0.875rem;
-  height: 0.875rem;
-  accent-color: var(--primary);
-}
-
 .reverse-detail-description,
 .reverse-detail-recommended,
 .reverse-template-options > button > span:not(.admin-status) {

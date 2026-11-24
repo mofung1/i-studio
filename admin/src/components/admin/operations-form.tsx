@@ -8,6 +8,8 @@ import {
 } from "@/components/admin/ui/field";
 import { Input } from "@/components/admin/ui/input";
 import { Button } from "@/components/admin/ui/button";
+import { Checkbox } from "@/components/admin/ui/checkbox";
+import { Textarea } from "@/components/admin/ui/textarea";
 import {
   Tabs,
   TabsContent,
@@ -166,26 +168,24 @@ export function AdminOperationsForm({
             </FieldGroup>
             <div className="ops-form-switches">
               <label className="settings-switch">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={ops.registrationEnabled}
-                  onChange={(event) =>
+                  onCheckedChange={(checked) =>
                     onChange({
                       ...ops,
-                      registrationEnabled: event.target.checked,
+                      registrationEnabled: checked === true,
                     })
                   }
                 />
                 开放新用户注册
               </label>
               <label className="settings-switch">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={ops.registrationInviteRequired ?? false}
-                  onChange={(event) =>
+                  onCheckedChange={(checked) =>
                     onChange({
                       ...ops,
-                      registrationInviteRequired: event.target.checked,
+                      registrationInviteRequired: checked === true,
                     })
                   }
                 />
@@ -232,12 +232,11 @@ export function AdminOperationsForm({
             <FieldLegend className="sr-only">每日签到</FieldLegend>
             <Field>
               <label className="settings-switch">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={ops.checkinEnabled ?? false}
                   aria-describedby={`${formId}-checkin-help`}
-                  onChange={(event) =>
-                    onChange({ ...ops, checkinEnabled: event.target.checked })
+                  onCheckedChange={(checked) =>
+                    onChange({ ...ops, checkinEnabled: checked === true })
                   }
                 />
                 开启每日签到奖励
@@ -292,13 +291,12 @@ export function AdminOperationsForm({
           <FieldSet className={styles.formSection} disabled={busy}>
             <FieldLegend className="sr-only">网站公告</FieldLegend>
             <label className="settings-switch">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={ops.announcementEnabled ?? false}
-                onChange={(event) =>
+                onCheckedChange={(checked) =>
                   onChange({
                     ...ops,
-                    announcementEnabled: event.target.checked,
+                    announcementEnabled: checked === true,
                   })
                 }
               />
@@ -324,7 +322,7 @@ export function AdminOperationsForm({
               <Field>
                 <FieldLabel className="settings-field">
                   <span>公告正文</span>
-                  <textarea
+                  <Textarea
                     className="ops-announcement-content"
                     value={ops.announcementContent ?? ""}
                     maxLength={2000}

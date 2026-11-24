@@ -16,6 +16,7 @@ import { adminRequest } from '@/lib/admin'
 import { type AIEndpoint, type PromptTemplate } from '@/lib/ai-settings'
 import { AdminStatusBadge } from './admin/status-badge'
 import { Button } from './admin/ui/button'
+import { RadioGroup, RadioGroupItem } from './admin/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
 import './reverse-settings.css'
 
@@ -380,7 +381,12 @@ export function PromptReverseSettingsPanel({
                     aria-describedby="reverse-detail-help"
                   >
                     <legend>图片细节</legend>
-                    <div>
+                    <RadioGroup
+                      value={draft.imageDetail}
+                      onValueChange={(value) =>
+                        update({ imageDetail: value as ReverseSettings['imageDetail'] })
+                      }
+                    >
                       {detailOptions.map((option) => (
                         <label
                           key={option.value}
@@ -388,12 +394,8 @@ export function PromptReverseSettingsPanel({
                         >
                           <span className="reverse-detail-title">
                             <strong>{option.title}</strong>
-                            <input
-                              type="radio"
-                              name="reverse-image-detail"
+                            <RadioGroupItem
                               value={option.value}
-                              checked={draft.imageDetail === option.value}
-                              onChange={() => update({ imageDetail: option.value })}
                               aria-label={`${option.title}分析`}
                             />
                           </span>
@@ -403,7 +405,7 @@ export function PromptReverseSettingsPanel({
                           )}
                         </label>
                       ))}
-                    </div>
+                    </RadioGroup>
                   </fieldset>
                   <p className="reverse-config-help" id="reverse-detail-help">
                     精细模式可能增加识图用量，实际细节表现取决于所选服务。

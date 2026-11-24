@@ -13,6 +13,7 @@ import {
 } from '@/components/admin/ui/field'
 import { Input } from '@/components/admin/ui/input'
 import { Button } from '@/components/admin/ui/button'
+import { Checkbox } from '@/components/admin/ui/checkbox'
 import { LibrarySelect } from '@/components/library-controls'
 import {
   Card,
@@ -245,12 +246,11 @@ export default function StoragePage() {
                 </div>
               </div>
               <Field orientation="horizontal" className="storage-switch">
-                <input
+                <Checkbox
                   id="storage-enabled"
-                  type="checkbox"
                   checked={enabled}
-                  onChange={(event) => {
-                    setEnabled(event.target.checked)
+                  onCheckedChange={(checked) => {
+                    setEnabled(checked === true)
                     setMessage('')
                   }}
                 />
@@ -343,11 +343,10 @@ export default function StoragePage() {
                   />
                   {draft.provider !== 'aliyun' && (
                     <Field orientation="horizontal" className="storage-config-wide">
-                      <input
+                      <Checkbox
                         id="storage-path-style"
-                        type="checkbox"
                         checked={draft.pathStyle}
-                        onChange={(event) => patch({ pathStyle: event.target.checked })}
+                        onCheckedChange={(checked) => patch({ pathStyle: checked === true })}
                       />
                       <FieldLabel htmlFor="storage-path-style">使用 S3 路径风格</FieldLabel>
                     </Field>

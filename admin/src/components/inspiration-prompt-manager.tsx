@@ -30,6 +30,8 @@ import { InspirationCategoryDialog } from './inspiration-category-dialog'
 import { AdminPagination } from './admin/pagination'
 import { AdminCellText, AdminDataTable, type AdminColumn } from './admin/data-table'
 import { Button } from './admin/ui/button'
+import { Checkbox } from './admin/ui/checkbox'
+import { Textarea } from './admin/ui/textarea'
 import { AdminStatusBadge } from './admin/status-badge'
 import type { InspirationCategory } from '@/lib/inspiration-settings'
 import {
@@ -634,7 +636,7 @@ export function InspirationPromptManager() {
               </div>
               <div className="settings-field">
                 <label htmlFor="inspiration-prompt-content">提示词内容</label>
-                <textarea
+                <Textarea
                   id="inspiration-prompt-content"
                   required
                   maxLength={20000}
@@ -645,10 +647,9 @@ export function InspirationPromptManager() {
               </div>
               <div className="inspiration-editor-options">
                 <label className="settings-switch">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={editing.draft.enabled}
-                    onChange={(event) => field({ enabled: event.target.checked })}
+                    onCheckedChange={(checked) => field({ enabled: checked === true })}
                   />
                   启用并展示在灵感库
                 </label>

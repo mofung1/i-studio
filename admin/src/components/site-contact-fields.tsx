@@ -2,6 +2,8 @@
 
 import type { ChangeEvent } from 'react'
 import type { SiteBranding } from '@/lib/site-settings'
+import { RadioGroup, RadioGroupItem } from '@/components/admin/ui/radio-group'
+import { Textarea } from '@/components/admin/ui/textarea'
 
 export function SiteContactFields({
   mode,
@@ -25,7 +27,13 @@ export function SiteContactFields({
   return (
     <fieldset className="site-contact-fields" disabled={disabled}>
       <legend>前台联系方式</legend>
-      <div className="site-contact-modes">
+      <RadioGroup
+        className="site-contact-modes"
+        value={mode}
+        onValueChange={(value) =>
+          onModeChange(value as NonNullable<SiteBranding['contactMode']>)
+        }
+      >
         {(
           [
             ['none', '不展示'],
@@ -34,21 +42,15 @@ export function SiteContactFields({
           ] as const
         ).map(([value, label]) => (
           <label key={value}>
-            <input
-              type="radio"
-              name="site-contact-mode"
-              value={value}
-              checked={mode === value}
-              onChange={() => onModeChange(value)}
-            />
+            <RadioGroupItem value={value} />
             {label}
           </label>
         ))}
-      </div>
+      </RadioGroup>
       {mode === 'text' && (
         <label className="site-name-field">
           <span>联系文本</span>
-          <textarea
+          <Textarea
             required
             maxLength={500}
             rows={4}

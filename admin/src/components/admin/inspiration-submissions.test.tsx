@@ -124,9 +124,9 @@ async function fill(input: HTMLInputElement, value: string) {
 it('publishes without a reward by default', async () => {
   await renderAndOpen()
   expect(
-    host.querySelector<HTMLInputElement>('.submission-review-panel input[type="checkbox"]')
-      ?.checked,
-  ).toBe(false)
+    host.querySelector<HTMLButtonElement>('.submission-review-panel [data-slot="checkbox"]')
+      ?.getAttribute('aria-checked'),
+  ).toBe('false')
   await click('通过并发布')
   expect(adminRequest).toHaveBeenCalledWith(
     'inspiration-submissions/one/review',
@@ -138,7 +138,7 @@ it('lets the reviewer choose an integer reward and includes it only when approvi
   await renderAndOpen()
   await act(async () =>
     host
-      .querySelector<HTMLInputElement>('.submission-review-panel input[type="checkbox"]')!
+      .querySelector<HTMLButtonElement>('.submission-review-panel [data-slot="checkbox"]')!
       .click(),
   )
   await fill(host.querySelector<HTMLInputElement>('#submission-reward')!, '12')
@@ -154,7 +154,7 @@ it('blocks fractional rewards and requires a reason before rejecting', async () 
   await renderAndOpen()
   await act(async () =>
     host
-      .querySelector<HTMLInputElement>('.submission-review-panel input[type="checkbox"]')!
+      .querySelector<HTMLButtonElement>('.submission-review-panel [data-slot="checkbox"]')!
       .click(),
   )
   await fill(host.querySelector<HTMLInputElement>('#submission-reward')!, '1.5')
@@ -171,8 +171,8 @@ it('blocks fractional rewards and requires a reason before rejecting', async () 
 it('does not offer another reward for a new version of a rewarded submission', async () => {
   item.rewardMinor = 500
   await renderAndOpen()
-  const reward = host.querySelector<HTMLInputElement>(
-    '.submission-review-panel input[type="checkbox"]',
+  const reward = host.querySelector<HTMLButtonElement>(
+    '.submission-review-panel [data-slot="checkbox"]',
   )!
   expect(reward.disabled).toBe(true)
   expect(host.textContent).toContain('后续版本不重复奖励')
@@ -219,7 +219,7 @@ it('keeps unsaved posting rules when filtering and labels them separately from a
   await act(async () => root.render(<AdminInspirationSubmissions />))
   await act(async () =>
     host
-      .querySelector<HTMLInputElement>('form[aria-label="投稿设置"] input[type="checkbox"]')!
+      .querySelector<HTMLButtonElement>('form[aria-label="投稿设置"] [data-slot="checkbox"]')!
       .click(),
   )
   await fill(host.querySelector<HTMLInputElement>('#submission-daily-limit')!, '9')
@@ -234,7 +234,7 @@ it('keeps unsaved posting rules when filtering and labels them separately from a
   )
   expect(host.querySelector<HTMLInputElement>('#submission-daily-limit')?.value).toBe('9')
   expect(
-    host.querySelector<HTMLInputElement>('form[aria-label="投稿设置"] input[type="checkbox"]')
-      ?.checked,
-  ).toBe(false)
+    host.querySelector<HTMLButtonElement>('form[aria-label="投稿设置"] [data-slot="checkbox"]')
+      ?.getAttribute('aria-checked'),
+  ).toBe('false')
 })

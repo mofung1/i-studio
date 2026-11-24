@@ -36,7 +36,9 @@ afterEach(async () => {
 })
 async function mode(value: string) {
   await act(async () =>
-    container.querySelector<HTMLInputElement>(`input[value="${value}"]`)!.click(),
+    container
+      .querySelector<HTMLButtonElement>(`[data-slot="radio-group-item"][value="${value}"]`)!
+      .click(),
   )
 }
 async function submit() {
