@@ -231,6 +231,8 @@ function CanvasEditorContent() {
     setNodes(record.graph.nodes ?? [])
     setEdges(record.graph.edges ?? [])
     setNodeSizes({})
+    // 切换画布后，上一个画布的撤销历史失效，避免误把旧快照应用到新画布。
+    historyRef.current = { undo: [], redo: [] }
   }, [])
 
   const load = useCallback(async () => {
