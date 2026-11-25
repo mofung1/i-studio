@@ -6,16 +6,20 @@ import {
   Delete,
   Download,
   Image as ImageIcon,
+  ImagePlus,
   Link2,
   Loader2,
   Pin,
   Type,
   Video,
   Wand2,
+  X,
 } from 'lucide-react'
 
 import { AuthenticatedImage, downloadProtectedAsset } from '@/components/authenticated-image'
-import { completeText, deleteGeneratedAsset } from '@/lib/api'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/select'
+import { completeText, deleteGeneratedAsset, getAccessToken, uploadAsset } from '@/lib/api'
+import { creationImageTypes, maxCreationImageSize } from '@/lib/creation-images'
 import type { GeneralGenerationInput } from '@/lib/contracts'
 import type { PublicImageModel } from '@/lib/generation-models'
 import {
@@ -35,6 +39,7 @@ const activeStatuses = new Set(['queued', 'processing', 'waiting_provider'])
 interface CanvasNodeCardProps {
   node: CanvasNode
   selected: boolean
+  active: boolean
   imageEndpoints: PublicImageModel[]
   promptEnhanceEnabled: boolean
   /** 上游注入的参考图（图生图 / 图生文）资产 ID，按连线顺序展开 */
@@ -53,6 +58,7 @@ interface CanvasNodeCardProps {
 export function CanvasNodeCard({
   node,
   selected,
+  active,
   imageEndpoints,
   promptEnhanceEnabled,
   referenceImages,
@@ -85,7 +91,7 @@ export function CanvasNodeCard({
   return (
     <div
       ref={cardRef}
-      className={`canvas-node is-${node.type}${selected ? ' is-selected' : ''}`}
+      className={`canvas-node is-${node.type}${selected ? ' is-selected' : ''}${active ? ' is-active' : ''}`}
       style={{ left: node.x, top: node.y, width: node.w, minHeight: node.h }}
       onPointerDown={onPointerDown}
       onFocus={onSelect}
@@ -224,7 +230,7 @@ function TextNodeBody({
   return (
     <div className="canvas-node-form">
       <textarea
-        className="canvas-node-textarea"
+        className="canvas-node-prompt"
         value={data.prompt}
         rows={3}
         placeholder="输入要处理的文本，可用 @图N 精确引用上游图片；或留空直接图生文"
@@ -307,11 +313,17 @@ function ImageNodeBody({
 
   const busy = isSubmitting || isGenerating
 
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
   // 解析提示词里的 @图N 精确引用，再拼上游文本作为生图上下文。
-  const { referenceAssetIds, prompt: cleanedPrompt } = resolveReferenceImages(
+  const { referenceAssetIds: linkedAssetIds, prompt: cleanedPrompt } = resolveReferenceImages(
     data.prompt,
     referenceImages,
   )
+  // 本节点直接上传/选择的输入参考图与上游连线参考合并（去重，最多 6 张）。
+  const referenceAssetIds = [...new Set([...data.inputAssetIds, ...linkedAssetIds])].slice(0, 6)
   const effectivePrompt = [cleanedPrompt, ...referenceTexts]
     .map((value) => value.trim())
     .filter(Boolean)
@@ -359,82 +371,181 @@ function ImageNodeBody({
         images: result.images.filter((p) => p !== path),
         details: result.details?.filter((d) => d.contentPath !== path),
       },
-      data: assetId ? { referenceAssetIds: data.referenceAssetIds.filter((id) => id !== assetId) } : undefined,
+      data: assetId
+        ? { referenceAssetIds: data.referenceAssetIds.filter((id) => id !== assetId) }
+        : undefined,
     })
+  }
+
+  // 上传本节点直接使用的输入参考图，返回资产 ID 并入 inputAssetIds。
+  const handleInputFiles = async (files: File[]) => {
+    const valid = files.filter(
+      (file) => creationImageTypes.includes(file.type) && file.size <= maxCreationImageSize,
+    )
+    if (valid.length !== files.length) setUploadError('仅支持 JPG / PNG / WebP，单张不超过 10 MB。')
+    else setUploadError('')
+    const room = Math.max(0, 6 - data.inputAssetIds.length)
+    const added = valid.slice(0, room)
+    if (added.length === 0) return
+    setUploading(true)
+    try {
+      const token = getAccessToken()
+      if (!token) throw new Error('登录状态已失效，请重新登录')
+      const ids: string[] = []
+      for (const file of added) ids.push(await uploadAsset(file, token))
+      onUpdate({ data: { inputAssetIds: [...data.inputAssetIds, ...ids].slice(0, 6) } })
+    } catch (reason) {
+      setUploadError(reason instanceof Error ? reason.message : '图片上传失败')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeInputImage = (assetId: string) => {
+    onUpdate({ data: { inputAssetIds: data.inputAssetIds.filter((id) => id !== assetId) } })
   }
 
   return (
     <div className="canvas-node-form">
+      <div className="canvas-node-input-thumbs">
+        {data.inputAssetIds.map((assetId) => (
+          <div key={assetId} className="canvas-node-input-thumb">
+            <AuthenticatedImage
+              path={`/v1/assets/${assetId}/content`}
+              alt="输入参考图"
+              className="canvas-node-input-image"
+            />
+            <button
+              type="button"
+              className="canvas-node-input-remove"
+              aria-label="移除输入参考图"
+              title="移除"
+              onPointerDown={stopPointer}
+              onClick={() => removeInputImage(assetId)}
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className={`canvas-node-input-add${uploading ? ' is-uploading' : ''}`}
+          disabled={uploading || data.inputAssetIds.length >= 6}
+          title={data.inputAssetIds.length >= 6 ? '参考图最多 6 张' : '选择本地参考图'}
+          onPointerDown={stopPointer}
+          onClick={() => inputRef.current?.click()}
+        >
+          {uploading ? (
+            <Loader2 size={15} className="is-spinning" aria-hidden="true" />
+          ) : (
+            <ImagePlus size={15} aria-hidden="true" />
+          )}
+          <span>{uploading ? '上传中' : '上传'}</span>
+        </button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={creationImageTypes.join(',')}
+        multiple
+        hidden
+        onChange={(event) => {
+          const files = Array.from(event.currentTarget.files ?? [])
+          event.currentTarget.value = ''
+          void handleInputFiles(files)
+        }}
+      />
       <textarea
-        className="canvas-node-textarea"
+        className="canvas-node-prompt"
         value={data.prompt}
         rows={3}
-        placeholder="输入生图提示词；可用 @图1、@图2 精确引用上游结果图"
+        placeholder="描述你想要生成的内容；可用 @图1、@图2 精确引用上游结果图"
         aria-label="生图提示词"
         onPointerDown={stopPointer}
         onChange={(event) => onUpdate({ data: { prompt: event.target.value } })}
       />
+      {uploadError && (
+        <p className="canvas-node-error" role="alert">
+          {uploadError}
+        </p>
+      )}
       {referenceAssetIds.length > 0 && (
         <div className="canvas-node-ref-row">
           <p className="canvas-node-ref-hint">
             <Link2 size={12} aria-hidden="true" />
-            已引用参考图 ×{referenceAssetIds.length}
+            参考图 ×{referenceAssetIds.length}
           </p>
-          <label className="canvas-node-strength">
-            <span className="canvas-node-strength-label">参考强度</span>
-            <select
-              className="canvas-node-strength-select"
-              value={data.referenceStrength}
+          <Select
+            value={data.referenceStrength}
+            onValueChange={(value) =>
+              onUpdate({ data: { referenceStrength: value as 'low' | 'medium' | 'high' } })
+            }
+          >
+            <SelectTrigger
+              className="canvas-node-strength-trigger"
               aria-label="参考强度"
               title="图生图参考强度"
               onPointerDown={stopPointer}
-              onChange={(event) =>
-                onUpdate({ data: { referenceStrength: event.target.value } })
-              }
             >
-              <option value="low">低</option>
-              <option value="medium">中</option>
-              <option value="high">高</option>
-            </select>
-          </label>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">低</SelectItem>
+              <SelectItem value="medium">中</SelectItem>
+              <SelectItem value="high">高</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       )}
       <div className="canvas-node-controls">
-        <select
-          className="canvas-node-select"
+        <Select
           value={endpointId}
-          aria-label="生图模型"
-          onPointerDown={stopPointer}
-          onChange={(event) => {
-            const selected = imageEndpoints.find((item) => item.id === event.target.value)
+          onValueChange={(value) => {
+            const selected = imageEndpoints.find((item) => item.id === value)
             onUpdate({
               data: {
-                endpointId: event.target.value,
+                endpointId: value,
                 model: selected?.model ?? data.model,
               },
             })
           }}
         >
-          {imageEndpoints.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name || item.model}
-            </option>
-          ))}
-        </select>
-        <select
-          className="canvas-node-count"
-          value={data.count}
-          aria-label="生成张数"
-          title="一次生成多张"
-          onPointerDown={stopPointer}
-          onChange={(event) => onUpdate({ data: { count: Number(event.target.value) } })}
+          <SelectTrigger
+            className="canvas-node-select-trigger"
+            aria-label="生图模型"
+            title={endpoint?.name ?? endpoint?.model}
+            onPointerDown={stopPointer}
+          >
+            <SelectValue placeholder="选择模型" />
+          </SelectTrigger>
+          <SelectContent>
+            {imageEndpoints.map((item) => (
+              <SelectItem key={item.id} value={item.id}>
+                {item.name || item.model}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={String(data.count)}
+          onValueChange={(value) => onUpdate({ data: { count: Number(value) } })}
         >
-          {[1, 2, 3, 4].map((n) => (
-            <option key={n} value={n}>
-              {n} 张
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            className="canvas-node-count-trigger"
+            aria-label="生成张数"
+            title="一次生成多张"
+            onPointerDown={stopPointer}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[1, 2, 3, 4].map((n) => (
+              <SelectItem key={n} value={String(n)}>
+                {n} 张
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <button
           type="button"
           className="canvas-node-generate"

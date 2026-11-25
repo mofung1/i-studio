@@ -55,9 +55,9 @@ export interface CanvasSaveInput {
 
 /** 节点类型到默认尺寸与标签；视频类型预留，尚未接入生成。 */
 export const canvasNodeDefaults: Record<CanvasNodeType, { w: number; h: number; label: string }> = {
-  text: { w: 320, h: 160, label: '文本' },
-  image: { w: 360, h: 260, label: '图像' },
-  video: { w: 360, h: 260, label: '视频' },
+  text: { w: 340, h: 180, label: '文本' },
+  image: { w: 400, h: 280, label: '图像' },
+  video: { w: 400, h: 280, label: '视频' },
 }
 
 export function newCanvasNode(type: CanvasNodeType, x: number, y: number): CanvasNode {
@@ -99,6 +99,8 @@ export interface CanvasImageNodeData {
   referenceStrength: 'low' | 'medium' | 'high'
   /** 指定结果图作为下游参考的资产 ID 子集；为空表示全部结果图都作为参考。 */
   referenceAssetIds: string[]
+  /** 用户在本节点直接上传/选择的输入参考图（图生图），与上游连线参考合并。 */
+  inputAssetIds: string[]
 }
 
 export interface CanvasImageResultDetail {
@@ -199,6 +201,9 @@ export function imageNodeData(node: CanvasNode): CanvasImageNodeData {
         : 'medium',
     referenceAssetIds: Array.isArray(data.referenceAssetIds)
       ? data.referenceAssetIds.filter((id): id is string => typeof id === 'string')
+      : [],
+    inputAssetIds: Array.isArray(data.inputAssetIds)
+      ? data.inputAssetIds.filter((id): id is string => typeof id === 'string')
       : [],
   }
 }

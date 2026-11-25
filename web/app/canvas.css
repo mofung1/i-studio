@@ -92,6 +92,9 @@
 }
 
 .canvas-save-state {
+  /* 固定占位宽度，文本在「保存中…/已保存/保存失败」之间切换时不改变居中工具栏的宽度，避免整条信息条左右晃动。 */
+  min-width: 4em;
+  text-align: left;
   color: var(--muted);
   font-size: var(--text-caption);
   white-space: nowrap;
@@ -103,6 +106,79 @@
 
 .canvas-save-state.is-error {
   color: var(--danger);
+}
+
+/* 右键菜单：搜索并添加节点。fixed 定位不受画布缩放影响。 */
+.canvas-context-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 196px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  animation: canvas-context-in 100ms ease;
+}
+
+@keyframes canvas-context-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.canvas-context-menu-search {
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--foreground);
+  font-size: var(--text-small);
+  outline: none;
+}
+
+.canvas-context-menu-search:focus {
+  border-color: var(--foreground);
+}
+
+.canvas-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--foreground-2);
+  font-size: var(--text-small);
+  text-align: left;
+  cursor: pointer;
+}
+
+.canvas-context-menu-item:hover,
+.canvas-context-menu-item:focus-visible {
+  background: var(--control-hover);
+  color: var(--foreground);
+  outline: none;
+}
+
+.canvas-context-menu-empty {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: var(--text-caption);
 }
 
 .canvas-surface {
@@ -157,6 +233,26 @@
     0 0 0 1px var(--surface),
     0 0 0 2px var(--foreground),
     0 10px 28px rgba(23, 23, 23, 0.1);
+}
+
+/* 执行流：正在生成的节点以呼吸边框高亮，区别于普通选中态。 */
+.canvas-node.is-active {
+  border-color: var(--foreground);
+  animation: canvas-node-active 1.4s ease-in-out infinite;
+}
+
+@keyframes canvas-node-active {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--focus-soft),
+      0 8px 24px rgba(23, 23, 23, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px var(--focus-soft),
+      0 8px 24px rgba(23, 23, 23, 0.12);
+  }
 }
 
 .canvas-node-head {
@@ -255,25 +351,28 @@
   min-width: 0;
 }
 
-.canvas-node-textarea {
+/* 提示词输入区：无边框、贴着节点底色，像独立创作面板的输入区。 */
+.canvas-node-prompt {
   width: 100%;
+  min-height: 76px;
   resize: none;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--foreground);
   font-size: var(--text-small);
-  line-height: 1.5;
+  line-height: 1.65;
   font-family: inherit;
   user-select: text;
   cursor: text;
 }
 
-.canvas-node-textarea:focus {
+.canvas-node-prompt::placeholder {
+  color: var(--placeholder);
+}
+
+.canvas-node-prompt:focus {
   outline: none;
-  border-color: var(--foreground);
-  box-shadow: 0 0 0 3px var(--focus-soft);
 }
 
 .canvas-node-instruction {
@@ -298,33 +397,35 @@
 
 .canvas-node-controls {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
-}
-
-.canvas-node-select {
-  flex: 1;
   min-width: 0;
-  height: 30px;
-  padding: 0 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--foreground);
-  font-size: var(--text-caption);
-  cursor: pointer;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
 }
 
-.canvas-node-count {
-  flex: none;
-  height: 30px;
-  padding: 0 6px;
-  border: 1px solid var(--border);
+/* 节点内的下拉框复用 shadcn Select，这里只做紧凑化与宽度控制。 */
+.canvas-node-select-trigger,
+.canvas-node-count-trigger,
+.canvas-node-strength-trigger {
+  --select-control-height: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
   border-radius: 8px;
   background: var(--surface);
-  color: var(--foreground);
-  font-size: var(--text-caption);
-  cursor: pointer;
+  font-size: var(--text-small);
+}
+
+.canvas-node-select-trigger {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.canvas-node-count-trigger {
+  flex: 0 0 auto;
+  width: 68px;
 }
 
 .canvas-node-generate {
@@ -332,10 +433,10 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 30px;
-  padding: 0 12px;
+  height: 32px;
+  padding: 0 14px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 999px;
   background: var(--foreground);
   color: var(--surface);
   font-size: var(--text-small);
@@ -520,27 +621,95 @@
   line-height: 1.4;
 }
 
-.canvas-node-strength {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.canvas-node-strength-trigger {
+  flex: 0 0 auto;
+  width: 76px;
+}
+
+/* 输入参考图：顶部小方块缩略图行 + 虚线上传块，与工作台素材选择一致。 */
+.canvas-node-input-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.canvas-node-input-thumb,
+.canvas-node-input-add {
+  width: 44px;
+  height: 44px;
   flex: none;
-}
-
-.canvas-node-strength-label {
-  color: var(--muted);
-  font-size: var(--text-caption);
-}
-
-.canvas-node-strength-select {
-  height: 26px;
-  padding: 0 6px;
-  border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface);
-  color: var(--foreground);
-  font-size: var(--text-caption);
+}
+
+.canvas-node-input-thumb {
+  position: relative;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--surface-subtle);
+}
+
+.canvas-node-input-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.canvas-node-input-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: color-mix(in oklab, #111318 62%, transparent);
   cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.canvas-node-input-thumb:hover .canvas-node-input-remove,
+.canvas-node-input-remove:focus-visible {
+  opacity: 1;
+}
+
+.canvas-node-input-add {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0;
+  border: 1px dashed var(--line-strong);
+  color: var(--foreground-2);
+  background: var(--surface);
+  font-size: 10px;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease,
+    background 120ms ease;
+}
+
+.canvas-node-input-add:hover:not(:disabled) {
+  border-color: var(--foreground);
+  color: var(--foreground);
+  background: var(--control-hover);
+}
+
+.canvas-node-input-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.canvas-node-input-add.is-uploading {
+  cursor: wait;
 }
 
 /* 连线（SVG） */
@@ -567,6 +736,26 @@
   stroke: var(--foreground);
   stroke-width: 2;
   stroke-dasharray: 6 4;
+}
+
+/* 执行流：目标节点正在生成时，入边以流动虚线示意数据从上游流入。 */
+.canvas-edge-flow {
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 6 10;
+  pointer-events: none;
+  animation: canvas-edge-flow 0.8s linear infinite;
+}
+
+@keyframes canvas-edge-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -16;
+  }
 }
 
 .canvas-edge-hit {

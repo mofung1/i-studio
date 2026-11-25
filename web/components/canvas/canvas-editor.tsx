@@ -107,6 +107,10 @@ function CanvasEditorContent({ id }: { id: string }) {
   const [draftEdge, setDraftEdge] = useState<{ sourceId: string; x: number; y: number } | null>(
     null,
   )
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; wx: number; wy: number } | null>(
+    null,
+  )
+  const [menuQuery, setMenuQuery] = useState('')
 
   const surfaceRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<HTMLDivElement>(null)
@@ -388,16 +392,19 @@ function CanvasEditorContent({ id }: { id: string }) {
     [],
   )
 
-  const applyGraph = useCallback((record: CanvasRecord) => {
-    setCanvas(record)
-    setViewport(record.viewport)
-    setNodes(record.graph.nodes ?? [])
-    setEdges(record.graph.edges ?? [])
-    setNodeSizes({})
-    // 切换画布后，上一个画布的撤销历史失效，避免误把旧快照应用到新画布。
-    historyRef.current = { undo: [], redo: [] }
-    syncHistory()
-  }, [syncHistory])
+  const applyGraph = useCallback(
+    (record: CanvasRecord) => {
+      setCanvas(record)
+      setViewport(record.viewport)
+      setNodes(record.graph.nodes ?? [])
+      setEdges(record.graph.edges ?? [])
+      setNodeSizes({})
+      // 切换画布后，上一个画布的撤销历史失效，避免误把旧快照应用到新画布。
+      historyRef.current = { undo: [], redo: [] }
+      syncHistory()
+    },
+    [syncHistory],
+  )
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -526,16 +533,32 @@ function CanvasEditorContent({ id }: { id: string }) {
     [edges, nodes],
   )
 
-  const onAddNode = (type: CanvasNodeType) => {
-    const surface = surfaceRef.current
-    const rect = surface?.getBoundingClientRect()
-    const w = rect?.width ?? 800
-    const h = rect?.height ?? 600
-    // 节点落在当前视口中心附近（世界坐标），并稍作错位避免完全重叠。
-    const cx = (w / 2 - viewport.x) / viewport.zoom
-    const cy = (h / 2 - viewport.y) / viewport.zoom
-    const offset = nodes.length * 24
-    const node = newCanvasNode(type, cx - 160 + offset, cy - 130 + offset)
+  // 执行流：正在生成的图像节点，用于高亮节点与其入边（数据从上游流入）。
+  const activeNodeIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const node of nodes) {
+      if (node.type !== 'image') continue
+      const result = imageNodeResult(node)
+      if (result && ACTIVE_GENERATION_STATUSES.has(result.status)) ids.add(node.id)
+    }
+    return ids
+  }, [nodes])
+
+  const addNodeAt = (type: CanvasNodeType, wx?: number, wy?: number) => {
+    // 指定了位置（右键菜单）则落在该世界坐标；否则落在当前视口中心附近并稍作错位。
+    let node: CanvasNode
+    if (wx != null && wy != null) {
+      node = newCanvasNode(type, wx, wy)
+    } else {
+      const surface = surfaceRef.current
+      const rect = surface?.getBoundingClientRect()
+      const w = rect?.width ?? 800
+      const h = rect?.height ?? 600
+      const offset = nodes.length * 24
+      const cx = (w / 2 - viewport.x) / viewport.zoom
+      const cy = (h / 2 - viewport.y) / viewport.zoom
+      node = newCanvasNode(type, cx - 160 + offset, cy - 130 + offset)
+    }
     if (type === 'image') {
       const fallback = capabilities.imageEndpoints[0]
       node.data = {
@@ -556,6 +579,31 @@ function CanvasEditorContent({ id }: { id: string }) {
     applySelection([node.id])
     setSelectedEdgeId(null)
     scheduleSave()
+  }
+
+  const closeContextMenu = () => setCtxMenu(null)
+
+  const onSurfaceContextMenu = (event: React.MouseEvent) => {
+    const target = event.target instanceof Element ? event.target : null
+    // 节点内保留浏览器原生右键（如文本框粘贴）；小地图右键也不弹添加菜单。
+    if (target?.closest('.canvas-node, .canvas-minimap')) {
+      closeContextMenu()
+      return
+    }
+    event.preventDefault()
+    const [wx, wy] = clientToWorld(event.clientX, event.clientY)
+    // 菜单约 196×158：贴近视口右下角时向内收，避免溢出。
+    const x = Math.min(event.clientX, window.innerWidth - 204)
+    const y = Math.min(event.clientY, window.innerHeight - 170)
+    setMenuQuery('')
+    setCtxMenu({ x: Math.max(8, x), y: Math.max(8, y), wx, wy })
+  }
+
+  const addNodeFromMenu = (type: CanvasNodeType) => {
+    const menu = ctxMenu
+    if (!menu) return
+    addNodeAt(type, menu.wx, menu.wy)
+    closeContextMenu()
   }
 
   const deleteNodes = useCallback(
@@ -609,6 +657,7 @@ function CanvasEditorContent({ id }: { id: string }) {
 
   // 指针事件：平移 / 框选 / 拖节点（支持多选整体移动）。
   const onSurfacePointerDown = (event: React.PointerEvent) => {
+    setCtxMenu(null)
     if (event.button !== 0 && event.button !== 1) return
     const surface = surfaceRef.current
     if (!surface) return
@@ -637,6 +686,7 @@ function CanvasEditorContent({ id }: { id: string }) {
   }
 
   const onNodePointerDown = (event: React.PointerEvent, node: CanvasNode) => {
+    setCtxMenu(null)
     if (event.button !== 0) return
     event.stopPropagation()
     // 本次 pointerdown 已处理选择，抑制随后的 focus 事件重复改选（下一宏任务复位）。
@@ -961,6 +1011,7 @@ function CanvasEditorContent({ id }: { id: string }) {
     }
 
     if (event.key === 'Escape' && !mod) {
+      setCtxMenu(null)
       clearSelection()
       return
     }
@@ -1059,6 +1110,8 @@ function CanvasEditorContent({ id }: { id: string }) {
         <div
           className={`canvas-editor${loading ? ' is-loading' : ''}`}
           onKeyDown={onKeyDown}
+          // 点击工具栏等菜单外区域时收起右键菜单；菜单自身的 pointerdown 已阻断冒泡。
+          onPointerDown={() => setCtxMenu(null)}
           tabIndex={-1}
           ref={editorRef}
         >
@@ -1068,7 +1121,7 @@ function CanvasEditorContent({ id }: { id: string }) {
                 key={type}
                 type="button"
                 className="canvas-tool"
-                onClick={() => onAddNode(type)}
+                onClick={() => addNodeAt(type)}
                 title={`添加${label}节点`}
               >
                 <Icon size={15} aria-hidden="true" />
@@ -1101,7 +1154,13 @@ function CanvasEditorContent({ id }: { id: string }) {
             </span>
             <span className="canvas-toolbar-divider" aria-hidden="true" />
             <div className="canvas-zoom-controls" role="group" aria-label="缩放控制">
-              <button type="button" className="canvas-tool" onClick={zoomOut} title="缩小" aria-label="缩小">
+              <button
+                type="button"
+                className="canvas-tool"
+                onClick={zoomOut}
+                title="缩小"
+                aria-label="缩小"
+              >
                 <ZoomOut size={15} aria-hidden="true" />
               </button>
               <button
@@ -1113,18 +1172,28 @@ function CanvasEditorContent({ id }: { id: string }) {
               >
                 {Math.round(viewport.zoom * 100)}%
               </button>
-              <button type="button" className="canvas-tool" onClick={zoomIn} title="放大" aria-label="放大">
+              <button
+                type="button"
+                className="canvas-tool"
+                onClick={zoomIn}
+                title="放大"
+                aria-label="放大"
+              >
                 <ZoomIn size={15} aria-hidden="true" />
               </button>
-              <button type="button" className="canvas-tool" onClick={fitAll} title="适应全部" aria-label="适应全部">
+              <button
+                type="button"
+                className="canvas-tool"
+                onClick={fitAll}
+                title="适应全部"
+                aria-label="适应全部"
+              >
                 <Maximize size={15} aria-hidden="true" />
               </button>
             </div>
-            {saveLabel && (
-              <span className={`canvas-save-state is-${saveState}`} role="status">
-                {saveLabel}
-              </span>
-            )}
+            <span className={`canvas-save-state is-${saveState}`} role="status" aria-live="polite">
+              {saveLabel}
+            </span>
           </div>
 
           <div
@@ -1134,6 +1203,7 @@ function CanvasEditorContent({ id }: { id: string }) {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
+            onContextMenu={onSurfaceContextMenu}
           >
             <div
               className="canvas-world"
@@ -1160,6 +1230,7 @@ function CanvasEditorContent({ id }: { id: string }) {
                     const tp = inputPort(target)
                     const d = edgePath(sp.x, sp.y, tp.x, tp.y)
                     const selected = selectedEdgeId === edge.id
+                    const flowing = activeNodeIds.has(edge.target)
                     // 连线中点标注数据流类型：文本节点输出「文」，图像节点输出「图」。
                     const label = source.type === 'text' ? '文' : '图'
                     const lx = (sp.x + tp.x) / 2
@@ -1176,6 +1247,7 @@ function CanvasEditorContent({ id }: { id: string }) {
                           }}
                         />
                         <path className={`canvas-edge${selected ? ' is-selected' : ''}`} d={d} />
+                        {flowing && <path className="canvas-edge-flow" d={d} />}
                         <g className="canvas-edge-label" transform={`translate(${lx}, ${ly})`}>
                           <rect x={-10} y={-9} width={20} height={18} rx={5} />
                           <text textAnchor="middle" dominantBaseline="central">
@@ -1220,6 +1292,7 @@ function CanvasEditorContent({ id }: { id: string }) {
                     key={node.id}
                     node={node}
                     selected={selectedIds.includes(node.id)}
+                    active={activeNodeIds.has(node.id)}
                     imageEndpoints={capabilities.imageEndpoints}
                     promptEnhanceEnabled={capabilities.promptEnhanceEnabled}
                     referenceImages={refs.referenceImages}
@@ -1343,6 +1416,59 @@ function CanvasEditorContent({ id }: { id: string }) {
             <p className="canvas-error" role="alert">
               {error}
             </p>
+          )}
+
+          {ctxMenu && (
+            <div
+              className="canvas-context-menu"
+              style={{ left: ctxMenu.x, top: ctxMenu.y }}
+              role="menu"
+              aria-label="添加节点"
+              onContextMenu={(event) => event.preventDefault()}
+              onPointerDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => {
+                event.stopPropagation()
+                // 输入法确认候选词时按 Enter 不应直接创建节点。
+                if (event.nativeEvent.isComposing) return
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  closeContextMenu()
+                } else if (event.key === 'Enter') {
+                  const first = nodeAdders.find((a) => a.label.includes(menuQuery.trim()))
+                  if (first) {
+                    event.preventDefault()
+                    addNodeFromMenu(first.type)
+                  }
+                }
+              }}
+            >
+              <input
+                className="canvas-context-menu-search"
+                placeholder="搜索节点…"
+                value={menuQuery}
+                autoFocus
+                aria-label="搜索节点"
+                onChange={(event) => setMenuQuery(event.target.value)}
+              />
+              {nodeAdders.filter((a) => a.label.includes(menuQuery.trim())).length === 0 ? (
+                <p className="canvas-context-menu-empty">没有匹配的节点</p>
+              ) : (
+                nodeAdders
+                  .filter((a) => a.label.includes(menuQuery.trim()))
+                  .map(({ type, label, icon: Icon }) => (
+                    <button
+                      key={type}
+                      type="button"
+                      role="menuitem"
+                      className="canvas-context-menu-item"
+                      onClick={() => addNodeFromMenu(type)}
+                    >
+                      <Icon size={14} aria-hidden="true" />
+                      {label}
+                    </button>
+                  ))
+              )}
+            </div>
           )}
         </div>
       )}
