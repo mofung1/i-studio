@@ -182,7 +182,7 @@ export function useStandardDraft({
   )
   const defaultDraft: StandardCreationDraft = {
     prompt: initialPrompt ?? '',
-    requirements: recipe?.requirements ?? '',
+    requirements: recipe?.requirements ?? (mode === 'commerce' ? (initialPrompt ?? '') : ''),
     productFiles: [],
     referenceFiles: [],
     count: Math.min(generalMaxCount, Math.max(1, Number(initialCount) || 1)),
@@ -211,7 +211,7 @@ export function useStandardDraft({
     enabled: true,
     value: draftSnapshot,
     defaultValue: defaultDraft,
-    emptyValue: { ...defaultDraft, prompt: '' },
+    emptyValue: { ...defaultDraft, prompt: '', requirements: recipe?.requirements ?? '' },
     parse: (value) => standardCreationDraftSchema.parse(value),
     onRestore: (value) => {
       setPrompt(value.prompt)

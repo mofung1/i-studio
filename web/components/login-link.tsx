@@ -69,7 +69,7 @@ function DraftLoginLink({
 }
 
 function CurrentPageLoginLink(props: Omit<LoginLinkProps, 'returnTo'>) {
-  const pathname = usePathname() ?? '/'
+  const pathname = usePathname() ?? '/home'
   const search = useSearchParams()?.toString()
   const next = pathname + (search ? `?${search}` : '')
   return <DraftLoginLink {...props} next={next} />
@@ -78,7 +78,7 @@ function CurrentPageLoginLink(props: Omit<LoginLinkProps, 'returnTo'>) {
 export function LoginLink({ returnTo, ...props }: LoginLinkProps) {
   if (returnTo) return <DraftLoginLink {...props} next={returnTo} />
   return (
-    <Suspense fallback={<Link {...props} href="/login?next=%2F" />}>
+    <Suspense fallback={<Link {...props} href="/login?next=%2Fhome" />}>
       <CurrentPageLoginLink {...props} />
     </Suspense>
   )

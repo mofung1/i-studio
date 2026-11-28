@@ -19,6 +19,7 @@
 | 要改的功能 | 页面或前端代码 | 服务端代码 |
 | --- | --- | --- |
 | 官网与工具介绍 | [官网路由](../web/app/%28marketing%29)、[展示组件](../web/components/marketing) | [品牌与站点设置](../server/internal/studio/site_settings.go) |
+| 登录后的创作首页 | [首页路由](../web/app/home/page.tsx)、[创作首页](../web/components/creation-home.tsx)、[全幅外壳](../web/components/immersive-shell.tsx) | 复用[模型目录](../server/internal/studio/ai_config.go)、[积分报价](../server/internal/studio/credits.go)与[公共灵感](../server/internal/studio/inspiration.go)接口 |
 | 生图与电商工作台 | `/studio` 与 `/workbench` 共用[工作台](../web/components/workbench.tsx)，[任务提交与恢复](../web/components/workbench/use-generation-task.ts)管理报价、提交和轮询 | [任务接口](../server/internal/studio/generation_handlers.go)、[积分预留与结算](../server/internal/studio/credits.go)、[逐张交付](../server/internal/studio/generation_delivery.go) |
 | 商品档案与采用版本 | [商品管理](../web/components/products)、[商品 API 与类型](../web/lib/products.ts) | [档案](../server/internal/studio/commerce_products.go)、[商品生成参数](../server/internal/studio/commerce_products_generation.go)、[版本与采用](../server/internal/studio/commerce_products_versions.go) |
 | 素材库、项目与任务记录 | [素材库页面](../web/app/assets/asset-library.tsx)承载素材和任务两种视图 | [素材查询](../server/internal/studio/asset_library.go)、[项目](../server/internal/studio/project_handlers.go)、[任务历史](../server/internal/studio/generation_history.go)、[图片存储](../server/internal/storage) |

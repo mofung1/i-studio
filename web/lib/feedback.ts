@@ -8,17 +8,6 @@ export interface FeedbackItem {
   createdAt: string
   handledAt: string | null
 }
-export interface FeedbackPage {
-  feedback: FeedbackItem[]
-  page: number
-  pageSize: number
-  total: number
-  totalPages: number
-}
-export interface FeedbackDetail {
-  feedback: FeedbackItem
-  images: Array<{ path: string; position: number }>
-}
 export const feedbackImageTypes = ['image/jpeg', 'image/png', 'image/webp']
 export const feedbackImageBytes = 5 * 1024 * 1024
 export function feedbackFilesError(files: File[]) {

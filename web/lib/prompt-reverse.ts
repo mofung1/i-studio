@@ -11,13 +11,6 @@ export interface ReverseSettings {
   imageDetail: 'auto' | 'high' | 'low'
   retentionHours: number
 }
-export interface ReverseConfiguration {
-  settings: ReverseSettings
-  available: boolean
-  reason: string
-  serviceName: string
-  model: string
-}
 export interface ReverseCapabilities {
   available: boolean
   reason: string

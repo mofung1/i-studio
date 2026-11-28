@@ -1,0 +1,269 @@
+/* 创作首页：去掉常驻侧栏和顶栏，只保留浮动的品牌、导航入口与账户控件。 */
+.studio-shell.studio-shell--immersive {
+  display: block;
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+  background: var(--background);
+}
+
+.studio-shell--immersive .studio-content {
+  width: 100%;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+.studio-home-chrome {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 22px 0;
+  pointer-events: none;
+}
+
+.studio-home-chrome::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -18px;
+  z-index: -1;
+  background: linear-gradient(to bottom, var(--background) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.studio-home-chrome-start,
+.studio-home-chrome-end {
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.studio-home-chrome-start {
+  min-width: 0;
+  gap: 10px;
+}
+
+.studio-home-chrome-end {
+  flex: none;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.studio-home-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.studio-home-brand .brand {
+  gap: 8px;
+}
+
+.studio-home-brand .brand strong {
+  font-size: 18px;
+  letter-spacing: -0.025em;
+  font-weight: 650;
+}
+
+.studio-home-brand .brand-mark {
+  width: 26px;
+  height: 26px;
+}
+
+.studio-home-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--foreground-2);
+  background: var(--surface);
+  font-size: var(--text-small);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.studio-home-menu:hover {
+  color: var(--foreground);
+  border-color: var(--line-strong);
+  background: var(--control-bg);
+}
+
+.studio-shell--immersive .studio-content--immersive {
+  padding-top: 0;
+}
+
+/* 抽屉沿用工作台侧栏，只把布局从“常驻栏”改成浮层。 */
+.studio-home-drawer {
+  position: fixed;
+  inset: 12px auto 12px 12px;
+  width: min(320px, calc(100vw - 24px));
+  max-width: none;
+  max-height: none;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  color: var(--foreground);
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 18%);
+}
+
+.studio-home-drawer::backdrop {
+  background: rgb(16 18 23 / 42%);
+  backdrop-filter: blur(3px);
+}
+
+.studio-home-drawer-panel {
+  position: relative;
+  height: 100%;
+}
+
+.studio-home-drawer .workbench-rail {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 20px 16px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+.studio-home-drawer .studio-rail-heading {
+  padding-right: 38px;
+}
+
+.studio-home-drawer :is(.studio-rail-toggle, .studio-mobile-navigation-toggle) {
+  display: none;
+}
+
+.studio-home-drawer-close {
+  position: absolute;
+  top: 17px;
+  right: 12px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: var(--foreground-3);
+  background: transparent;
+  cursor: pointer;
+}
+
+.studio-home-drawer-close:hover {
+  color: var(--foreground);
+  background: var(--control-bg);
+}
+
+@media (max-width: 780px) {
+  .studio-home-chrome {
+    padding: 8px 14px 0;
+  }
+
+  .studio-home-chrome-start {
+    gap: 4px;
+  }
+
+  .studio-home-brand .brand strong {
+    font-size: 16px;
+  }
+
+  .studio-home-menu {
+    width: 36px;
+    padding: 0;
+  }
+
+  .studio-home-menu span {
+    display: none;
+  }
+
+  .studio-shell--immersive .studio-content--immersive {
+    padding-top: 10px;
+  }
+
+  .studio-home-drawer {
+    inset: 8px auto 8px 8px;
+    width: min(320px, calc(100vw - 16px));
+    border-radius: 16px;
+  }
+
+  .studio-home-drawer .workbench-rail {
+    padding: 16px 12px;
+    border-bottom: 0;
+  }
+
+  .studio-home-drawer .workbench-rail-nav {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .studio-home-drawer .workbench-rail-nav > :is(a, button) {
+    display: flex;
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 42px;
+    justify-content: flex-start;
+    padding: 0 12px;
+    font-size: var(--text-ui);
+  }
+
+  .studio-home-drawer .studio-new {
+    display: flex;
+  }
+
+  .studio-home-drawer .studio-rail-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin: auto 0 0;
+    padding-top: 12px;
+  }
+
+  .studio-home-drawer .studio-rail-footer > :is(a, button) {
+    justify-content: flex-start;
+    gap: 12px;
+    margin: 0;
+    font-size: var(--text-ui);
+  }
+}
+
+@media (max-width: 640px) {
+  .studio-shell--immersive .studio-content--immersive {
+    padding-top: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-home-menu {
+    transition-duration: 0.01ms;
+  }
+}

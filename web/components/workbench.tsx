@@ -163,7 +163,9 @@ function StandardWorkbench({
     : studioToolUrl(mode, task, searchParams)
   const [prompt, setPrompt] = useState(initialPrompt ?? '')
   const [inspirationTemplate, setInspirationTemplate] = useState<InspirationTemplate | null>(null)
-  const [requirements, setRequirements] = useState<string>(recipe?.requirements ?? '')
+  const [requirements, setRequirements] = useState<string>(
+    recipe?.requirements ?? (initialMode === 'commerce' ? (initialPrompt ?? '') : ''),
+  )
   const [productFiles, setProductFiles] = useState<CreationImage[]>([])
   const [referenceFiles, setReferenceFiles] = useState<CreationImage[]>([])
   const [count, setCount] = useState(() =>

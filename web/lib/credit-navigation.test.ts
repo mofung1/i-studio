@@ -25,7 +25,7 @@ it.each([
 })
 
 it('accepts only creation routes and drops mismatched recipe parameters', () => {
-  expect(creditReturnPath('//other.example/studio?mode=commerce')).toBe('/studio?mode=general')
+  expect(creditReturnPath('//other.example/studio?mode=commerce')).toBe('/studio')
   expect(creditReturnPath('/assets?mode=commerce')).toBe('/studio')
   expect(creditReturnPath('/studio?mode=commerce&task=detail-page&recipe=clothing-model-duo')).toBe(
     '/studio?mode=commerce&task=detail-page',

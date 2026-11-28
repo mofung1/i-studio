@@ -69,7 +69,7 @@ export function MarketingNavigation() {
           <Link href="/inspiration">灵感广场</Link>
           <Link
             className="marketing-mobile-login"
-            href={account.authenticated ? '/studio' : '/login?next=%2Fstudio'}
+            href={account.authenticated ? '/home' : '/login?next=%2Fhome'}
           >
             {account.authenticated ? '我的工作台' : '登录 / 注册'}
           </Link>
@@ -77,11 +77,11 @@ export function MarketingNavigation() {
         <div className="marketing-header-actions">
           <ThemeToggle />
           {!account.authenticated && (
-            <Link className="marketing-login" href="/login?next=%2Fstudio">
+            <Link className="marketing-login" href="/login?next=%2Fhome">
               登录 / 注册
             </Link>
           )}
-          <Link href="/studio" className="marketing-button marketing-button-small">
+          <Link href="/home" className="marketing-button marketing-button-small">
             {account.authenticated ? '进入工作台' : '开始创作'}
           </Link>
           <button

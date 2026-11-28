@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Copy,
   Folder,
+  Home,
   Image as ImageIcon,
   Images,
   LayoutGrid,
@@ -30,6 +31,7 @@ import { preserveStudioProject, studioToolUrl } from '@/lib/studio-navigation'
 import { commerceTasks, type WorkbenchMode } from './shared'
 
 export type StudioSection =
+  | 'home'
   | 'general'
   | 'commerce'
   | 'inspire'
@@ -47,6 +49,7 @@ interface WorkbenchRailProps {
   projectId?: string | null
   onChangeMode?: (mode: WorkbenchMode) => void
   onChangeTask?: (task: CommerceTaskType) => void
+  onOpenFeedback?: () => void
 }
 
 const taskIcons = {
@@ -64,6 +67,7 @@ export function WorkbenchRail({
   projectId,
   onChangeMode,
   onChangeTask,
+  onOpenFeedback,
 }: WorkbenchRailProps) {
   const project = projectId ? new URLSearchParams({ projectId }) : undefined
   const inCommerce = section === 'commerce'
@@ -118,7 +122,7 @@ export function WorkbenchRail({
     >
       <div className="studio-rail-heading">
         <div className="workbench-rail-brand">
-          <Brand />
+          <Brand href="/home" />
         </div>
         <button
           ref={navigationToggle}
@@ -174,6 +178,16 @@ export function WorkbenchRail({
           }
         }}
       >
+        <Link
+          href="/home"
+          className={section === 'home' ? 'active' : ''}
+          aria-label="首页"
+          title="首页"
+          aria-current={section === 'home' ? 'page' : undefined}
+        >
+          <Home size={18} />
+          <span>首页</span>
+        </Link>
         {onChangeMode ? (
           <button
             type="button"
@@ -332,7 +346,7 @@ export function WorkbenchRail({
         className="studio-rail-footer"
         onClick={() => setNavigationOpen(false)}
       >
-        <FeedbackButton />
+        <FeedbackButton onClick={onOpenFeedback} />
         <Link
           href="/account"
           aria-label="个人中心"

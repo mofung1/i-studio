@@ -27,6 +27,7 @@ const paths = [
   '/tools/ai-fashion-model',
 ]
 const privatePaths = [
+  '/home',
   '/studio',
   '/workbench',
   '/account',

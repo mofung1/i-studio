@@ -22,7 +22,7 @@ it('uses the same tool-specific action at the start and end of every tool page',
     }
   }
   const homeCta = parser.parseFromString(renderToStaticMarkup(<BottomCta compact />), 'text/html')
-  expect(homeCta.querySelector('a')?.getAttribute('href')).toBe('/studio')
+  expect(homeCta.querySelector('a')?.getAttribute('href')).toBe('/home')
 })
 
 it('renders one native link around the title, description, artwork and action in each home card', () => {

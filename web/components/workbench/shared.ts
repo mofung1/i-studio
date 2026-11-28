@@ -173,7 +173,3 @@ export function referenceLimit(mode: WorkbenchMode, task: CommerceTaskType) {
   if (task === 'viral-recreate') return 3
   return 6
 }
-
-/** 各任务在画布空态展示的设计参考图 */
-export const generalCanvasImage =
-  'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=1400&q=88'

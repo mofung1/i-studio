@@ -57,12 +57,12 @@ export function BrandLogo({
   )
 }
 
-export function Brand() {
+export function Brand({ href = '/' }: { href?: string }) {
   const { branding } = useSiteBranding()
   return (
     <Link
       className="brand"
-      href="/"
+      href={href}
       aria-label={`${branding.name}，返回首页`}
       title={branding.name}
     >

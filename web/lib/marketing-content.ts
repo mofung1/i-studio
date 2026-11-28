@@ -47,15 +47,6 @@ export const homeExamples: MarketingExample[] = [
   visualExample(marketingAssets.future, 'art'),
 ]
 
-export const homeSteps = [
-  { title: '选择创作工具', text: '选择 AI 生图、电商商品图或图片反推，进入对应创作界面。' },
-  { title: '输入创作需求', text: '输入画面描述或上传参考图，选择模型、比例和所需参数。' },
-  {
-    title: '生成并下载',
-    text: '登录后确认预计积分并提交。任务完成后查看结果、下载图片，或继续调整。',
-  },
-]
-
 const referenceFaq: FaqItem = {
   question: '可以使用自己的图片作为参考吗？',
   answer:

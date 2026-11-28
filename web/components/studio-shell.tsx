@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { AccountMenu } from './account-menu'
 import { BackToTop } from './back-to-top'
+import { ImmersiveShell } from './immersive-shell'
 import { WorkbenchRail, type StudioSection } from './workbench/workbench-rail'
 import { studioToolUrl } from '@/lib/studio-navigation'
 
@@ -14,6 +15,7 @@ export function StudioShell({
   actions,
   projectId,
   backToTop,
+  chrome = 'default',
   children,
 }: {
   section: StudioSection
@@ -22,8 +24,17 @@ export function StudioShell({
   actions?: ReactNode
   projectId?: string | null
   backToTop?: true | string
+  chrome?: 'default' | 'immersive'
   children: ReactNode
 }) {
+  if (chrome === 'immersive') {
+    return (
+      <ImmersiveShell section={section} projectId={projectId}>
+        {children}
+      </ImmersiveShell>
+    )
+  }
+
   return (
     <div className="studio-shell">
       <a className="skip-link" href="#studio-main">
@@ -53,7 +64,7 @@ export function StudioShell({
         </div>
         <div className="studio-topbar-actions">
           {actions ??
-            (section !== 'commerce' && section !== 'inspire' ? (
+            (section !== 'commerce' && section !== 'inspire' && section !== 'home' ? (
               <Link
                 className="studio-primary"
                 href={studioToolUrl(

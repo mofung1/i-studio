@@ -44,7 +44,7 @@ export function AccountMenu() {
     window.localStorage.removeItem('istudio-access-token')
     refreshAccount()
     setMenuOpen(false)
-    router.push('/')
+    router.push('/home')
     router.refresh()
   }
 

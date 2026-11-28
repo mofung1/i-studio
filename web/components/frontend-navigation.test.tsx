@@ -134,6 +134,14 @@ it('redirects the retired commerce page to product main with its existing projec
   ).rejects.toThrow(destination)
   expect(redirect).toHaveBeenLastCalledWith(`${destination}&projectId=Demo+%26+01`)
 })
+it('opens with the creation home as the first rail destination', async () => {
+  await act(async () => root.render(<WorkbenchRail section="home" />))
+  const navigation = host.querySelector<HTMLElement>('#studio-navigation')!
+  expect(navigation.querySelector('a')?.getAttribute('href')).toBe('/home')
+  expect(navigation.querySelector('a')?.getAttribute('aria-label')).toBe('首页')
+  expect(navigation.querySelector('[aria-current="page"]')?.getAttribute('aria-label')).toBe('首页')
+})
+
 it.each(['assets', 'history'] as const)(
   'offers a new creation from the %s sidebar',
   async (section) => {

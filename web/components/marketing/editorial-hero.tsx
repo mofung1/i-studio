@@ -53,7 +53,7 @@ export function EditorialHero() {
                 写下描述或上传参考图，创作图片、商品主图与服装模特图。
               </p>
               <div className="editorial-hero-actions">
-                <Link className="marketing-button" href="/studio">
+                <Link className="marketing-button" href="/home">
                   开始 AI 创作 <ArrowUpRight size={17} aria-hidden="true" />
                 </Link>
                 <Link

@@ -65,9 +65,10 @@ def main():
                 with urllib.request.urlopen(req, timeout=20) as response:
                     return response.status, response.headers, response.read()
 
-            pages = ['/', '/studio', '/inspiration', '/robots.txt', '/sitemap.xml']
+            pages = ['/', '/home', '/studio', '/inspiration', '/robots.txt', '/sitemap.xml']
             for path in pages:
                 assert request(path)[0] == 200, path
+            assert b'id="home-composer"' in request('/home')[2], 'Creation homepage was not served'
             _, admin_headers, admin_html = request('/admin/login')
             assert b'id="root"' in admin_html, 'Standalone admin was not served'
             assert admin_headers.get('Cache-Control') == 'no-cache'

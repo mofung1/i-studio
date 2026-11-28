@@ -14,7 +14,7 @@ export function TopNavigation() {
 
   return (
     <header className="top-navigation">
-      <Brand />
+      <Brand href="/home" />
       <button
         className="nav-toggle"
         type="button"

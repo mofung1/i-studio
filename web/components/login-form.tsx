@@ -52,7 +52,7 @@ export function LoginForm() {
       if (!response.ok || !data.accessToken) throw new Error(data.message ?? '登录失败')
       window.localStorage.setItem('istudio-access-token', data.accessToken)
       const next = safeReturnPath(searchParams.get('next'))
-      window.location.href = next.startsWith('/admin') ? '/' : next
+      window.location.href = next.startsWith('/admin') ? '/home' : next
     } catch (error) {
       setNotice(error instanceof Error ? error.message : '请求失败，请稍后重试')
     } finally {
@@ -65,7 +65,7 @@ export function LoginForm() {
     <main className="auth-page auth-page-public">
       <ThemeToggle />
       <form className="auth-card" onSubmit={submit} aria-busy={isSubmitting}>
-        <Link href="/" className="auth-back">
+        <Link href="/home" className="auth-back">
           <ArrowLeft size={16} aria-hidden="true" />
           返回首页
         </Link>
