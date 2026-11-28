@@ -448,6 +448,8 @@ func promptForInput(input map[string]any) string {
 		switch taskType {
 		case "product-main":
 			return productMainPromptForInput(input)
+		case "detail-page":
+			return detailPagePromptForInput(input)
 		case "product-retouch":
 			return productRetouchPromptForInput(input)
 		default:

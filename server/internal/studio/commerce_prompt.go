@@ -75,20 +75,15 @@ func commerceRetouchChanges(input map[string]any) string {
 	return ""
 }
 
-// commercePromptForInput 处理按模块成套的详情页与爆款复刻。
-// 商品主图和产品精修使用各自的 prompt plan，避免把“拍摄一张图”
-// 和“只改原图的一处”混成同一种提示词。
+// commercePromptForInput 处理爆款复刻与未知任务类型。
+// 商品主图、详情页和产品精修使用各自的 prompt plan，避免把“拍摄一张图”
+// “按模块成套产出”和“只改原图的一处”混成同一种提示词。
 func commercePromptForInput(input map[string]any) string {
 	taskType := stringValue(input["taskType"], "")
 	parts := []string{commercePrimaryRequest(input, true)}
 	parts = append(parts, generationText(input, "image.commerce.common"))
 	parts = append(parts, commerceReferenceRoleLines(input)...)
 	switch taskType {
-	case "detail-page":
-		parts = append(parts, generationText(input, "image.detail-page"))
-		if stringValue(input["moduleMode"], "smart") != "custom" && stringValue(input["moduleHint"], "") == "" {
-			parts = append(parts, generationText(input, "image.detail-page.smart"))
-		}
 	case "viral-recreate":
 		if stringValue(input["recreateStrength"], "style") == "high" {
 			parts = append(parts, generationText(input, "image.recreate.high"))

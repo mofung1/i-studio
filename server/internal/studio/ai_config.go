@@ -586,7 +586,12 @@ func (a *aiConfigStore) migrateLegacy() error {
 						case "rewrite",
 							"image.commerce.common", "image.product-main", "image.product-retouch",
 							"module.product-main.hero", "module.product-main.white", "module.product-main.scene", "module.product-main.detail",
-							"image.detail-page", "module.detail-page.hero", "module.detail-page.material",
+							"image.detail-page",
+							"module.detail-page.hero", "module.detail-page.selling", "module.detail-page.scene",
+							"module.detail-page.detail", "module.detail-page.spec", "module.detail-page.feedback",
+							"module.detail-page.package", "module.detail-page.brand", "module.detail-page.certificate",
+							"module.detail-page.install", "module.detail-page.faq", "module.detail-page.size",
+							"module.detail-page.material", "module.detail-page.promotion",
 							"image.style.studio", "image.style.minimal", "image.style.fresh",
 							"image.style.technology", "image.style.guochao", "image.style.handdrawn",
 							"general.format":

@@ -13,9 +13,10 @@ import (
 )
 
 type batchProvider struct {
-	counts []int
-	hints  []string
-	failAt int
+	counts  []int
+	hints   []string
+	modules []string
+	failAt  int
 }
 
 func (p *batchProvider) Submit(_ context.Context, input map[string]any) (providerTask, error) {
@@ -25,6 +26,7 @@ func (p *batchProvider) Submit(_ context.Context, input map[string]any) (provide
 	count := intValue(input["count"], 1)
 	p.counts = append(p.counts, count)
 	p.hints = append(p.hints, stringValue(input["moduleHint"], ""))
+	p.modules = append(p.modules, stringValue(input["generationModule"], ""))
 	images := make([]string, count)
 	for index := range images {
 		images[index] = fmt.Sprintf("image-%d-%d", len(p.counts), index)
@@ -178,15 +180,19 @@ func TestGenerateModuleBatches(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			provider := &batchProvider{}
 			queue := &taskQueue{server: &Service{tasks: map[string]domain.GenerationTask{}, provider: provider}}
-			images, modules, err := queue.generateBatches("test-task", map[string]any{
+			input := map[string]any{
 				"model":        test.model,
 				"mode":         "commerce",
 				"taskType":     "product-main",
 				"moduleMode":   "custom",
 				"moduleCounts": test.moduleCounts,
-			})
+			}
+			images, modules, err := queue.generateBatches("test-task", input)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
+			}
+			if _, leaked := input["generationModule"]; leaked {
+				t.Fatal("per-module generationModule leaked into task input")
 			}
 			wantTotal := 0
 			for _, count := range test.wantBatches {
@@ -216,6 +222,9 @@ func TestGenerateModuleBatches(t *testing.T) {
 				}
 				if provider.hints[index] != test.wantHints[index] {
 					t.Fatalf("batch %d hint %q want %q", index, provider.hints[index], test.wantHints[index])
+				}
+				if provider.modules[index] != wantAttribution[index] {
+					t.Fatalf("batch %d module %q want %q", index, provider.modules[index], wantAttribution[index])
 				}
 			}
 		})

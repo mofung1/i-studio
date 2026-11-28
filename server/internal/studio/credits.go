@@ -81,7 +81,7 @@ func (s *Service) generationQuote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) createChargedTask(w http.ResponseWriter, r *http.Request, uid string, input map[string]any) {
-	for _, key := range []string{"generationPrompts", "sourceImages", "sourceMask", "protocolClient", "protocol", "moduleHint", "taskId", "productSnapshot"} {
+	for _, key := range []string{"generationPrompts", "sourceImages", "sourceMask", "protocolClient", "protocol", "moduleHint", "generationModule", "taskId", "productSnapshot"} {
 		delete(input, key)
 	}
 	if err := s.hydrateProductGeneration(uid, input); err != nil {

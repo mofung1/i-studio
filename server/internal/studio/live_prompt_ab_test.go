@@ -25,13 +25,19 @@ import (
 )
 
 // This opt-in comparison run is never enabled by normal tests. It performs at
-// most ten paid gpt-image-2 POSTs, one per case, and records both the image and
-// the exact prompt. Run the same test from the pre-change commit to collect the
-// old prompts and images. Source business configuration is read through a
-// read-only DB connection; account, task, asset and ledger writes stay in an
-// isolated test schema.
-func TestLivePromptABTenCases(t *testing.T) {
-	if os.Getenv("ISTUDIO_LIVE_AB_AUTHORIZATION") != "prompt-ab-ten-cases-budget-cny-2" {
+// most one paid gpt-image-2 POST per case and records both the image and the
+// exact prompt. Run the same test from the pre-change commit to collect the old
+// prompts and images. Source business configuration is read through a read-only
+// DB connection; account, task, asset and ledger writes stay in an isolated test
+// schema. Set ISTUDIO_LIVE_AB_SUITE=detail for the five detail-page cases.
+func TestLivePromptAB(t *testing.T) {
+	authorization, budgetCNY, maxPosts := "prompt-ab-ten-cases-budget-cny-2", 2, 10
+	cases := promptABCases()
+	if strings.TrimSpace(os.Getenv("ISTUDIO_LIVE_AB_SUITE")) == "detail" {
+		authorization, budgetCNY, maxPosts = "detail-ab-five-cases-budget-cny-1", 1, 5
+		cases = promptABDetailCases()
+	}
+	if os.Getenv("ISTUDIO_LIVE_AB_AUTHORIZATION") != authorization {
 		t.Skip("explicit live A/B authorization not supplied")
 	}
 	root := os.Getenv("ISTUDIO_LIVE_PROJECT_ROOT")
@@ -105,7 +111,7 @@ func TestLivePromptABTenCases(t *testing.T) {
 	setPlatformSettings(t, s, `{"maxConcurrentTasks":16}`)
 	client := protocolHTTPClient(time.Duration(endpoint.TimeoutSeconds) * time.Second)
 	base := client.Transport
-	capture := &promptABCapture{base: base, host: address.Hostname(), redactKey: key, t: t, expectedModel: endpoint.Model, maxPosts: 10}
+	capture := &promptABCapture{base: base, host: address.Hostname(), redactKey: key, t: t, expectedModel: endpoint.Model, maxPosts: maxPosts}
 	client.Transport = capture
 	preflight, err := http.NewRequestWithContext(context.Background(), http.MethodGet, joinProtocolURL(endpoint.BaseURL, "v1/models"), nil)
 	if err != nil {
@@ -165,7 +171,7 @@ func TestLivePromptABTenCases(t *testing.T) {
 	}
 	filter := strings.TrimSpace(os.Getenv("ISTUDIO_LIVE_AB_CASES"))
 	results := []result{}
-	for _, testCase := range promptABCases() {
+	for _, testCase := range cases {
 		if filter != "" && !strings.Contains(","+filter+",", ","+testCase.Name+",") {
 			continue
 		}
@@ -209,8 +215,8 @@ func TestLivePromptABTenCases(t *testing.T) {
 		}
 		results = append(results, entry)
 		summary := map[string]any{
-			"model": sourceModel.Name, "protocol": endpoint.Protocol, "maxPaidPosts": 10,
-			"attemptedGenerationPosts": capture.promptCount(), "authorizedBudgetCNY": 2,
+			"model": sourceModel.Name, "protocol": endpoint.Protocol, "maxPaidPosts": maxPosts,
+			"attemptedGenerationPosts": capture.promptCount(), "authorizedBudgetCNY": budgetCNY,
 			"estimatedTotalCNY": float64(capture.promptCount()) * 0.1,
 			"costBasis":         "用户提供约 0.1 CNY/张估算；以供应商账单为准",
 			"results":           results,
@@ -219,7 +225,7 @@ func TestLivePromptABTenCases(t *testing.T) {
 		if err = os.WriteFile(filepath.Join(output, "summary.json"), raw, 0600); err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("%s: %s, saved=%d, promptRunes=%d, elapsed=%ds, paid requests=%d/10", testCase.Name, final.Status, len(final.ResultImages), len([]rune(entry.Prompt)), int(time.Since(started).Seconds()), capture.promptCount())
+		t.Logf("%s: %s, saved=%d, promptRunes=%d, elapsed=%ds, paid requests=%d/%d", testCase.Name, final.Status, len(final.ResultImages), len([]rune(entry.Prompt)), int(time.Since(started).Seconds()), capture.promptCount(), maxPosts)
 		if final.Status != "succeeded" || len(final.ResultImages) != 1 {
 			t.Errorf("live case %s did not deliver one image: %s", testCase.Name, final.ErrorMessage)
 			return
@@ -333,6 +339,64 @@ func promptABCases() []promptABCase {
 				"enhancements": []any{"repair", "background"}, "outputLanguage": "none",
 				"requirements": "只修复包装表面的划痕并净化背景，不改变商品形状和颜色",
 				"aspectRatio":  "3:4", "resolution": "2K", "count": float64(1),
+			},
+		},
+	}
+}
+
+// promptABDetailCases exercises the detail-page plan across visual and
+// information modules. The same inputs are run against the pre-change commit so
+// only the composed prompt differs between the two image sets.
+func promptABDetailCases() []promptABCase {
+	return []promptABCase{
+		{
+			Name: "11-detail-hero-taobao", Tool: "detail-page",
+			Input: map[string]any{
+				"mode": "commerce", "taskType": "detail-page", "productAssetIds": []any{"skincare"},
+				"platform": "taobao", "outputLanguage": "none", "moduleMode": "custom",
+				"moduleCounts": map[string]any{"hero": float64(1)}, "count": float64(1),
+				"requirements": "首屏主视觉，完整展示护肤罐和包装盒，画面干净，为品牌信息留出空间",
+				"aspectRatio":  "3:4", "resolution": "2K",
+			},
+		},
+		{
+			Name: "12-detail-spec-amazon", Tool: "detail-page",
+			Input: map[string]any{
+				"mode": "commerce", "taskType": "detail-page", "productAssetIds": []any{"skincare"},
+				"platform": "amazon", "outputLanguage": "zh-CN", "moduleMode": "custom",
+				"moduleCounts": map[string]any{"spec": float64(1)}, "count": float64(1),
+				"requirements": "规格参数图：净含量 50ml，包装尺寸 6.5×6.5×5.5cm，净重 60g。只排版这些已确认参数，不添加其他数字。",
+				"aspectRatio":  "3:4", "resolution": "2K",
+			},
+		},
+		{
+			Name: "13-detail-scene-douyin", Tool: "detail-page",
+			Input: map[string]any{
+				"mode": "commerce", "taskType": "detail-page", "productAssetIds": []any{"perfume"},
+				"platform": "douyin", "outputLanguage": "none", "moduleMode": "custom",
+				"moduleCounts": map[string]any{"scene": float64(1)}, "count": float64(1),
+				"requirements": "通勤场景，香水瓶放在木质台面上，竖版构图，商品清楚可辨，不添加其他商品",
+				"aspectRatio":  "3:4", "resolution": "2K",
+			},
+		},
+		{
+			Name: "14-detail-material-smart", Tool: "detail-page",
+			Input: map[string]any{
+				"mode": "commerce", "taskType": "detail-page", "productAssetIds": []any{"leather"},
+				"platform": "smart", "outputLanguage": "none", "moduleMode": "custom",
+				"moduleCounts": map[string]any{"material": float64(1)}, "count": float64(1),
+				"requirements": "特写皮革表面纹理和缝线，保留真实材质和颜色",
+				"aspectRatio":  "1:1", "resolution": "2K",
+			},
+		},
+		{
+			Name: "15-detail-promotion-smart", Tool: "detail-page",
+			Input: map[string]any{
+				"mode": "commerce", "taskType": "detail-page", "productAssetIds": []any{"coffee"},
+				"platform": "smart", "outputLanguage": "zh-CN", "moduleMode": "custom",
+				"moduleCounts": map[string]any{"promotion": float64(1)}, "count": float64(1),
+				"requirements": "结尾促销图：到手价 79 元，活动截止 12 月 31 日。只使用这些已确认信息，不添加其他优惠。",
+				"aspectRatio":  "3:4", "resolution": "2K",
 			},
 		},
 	}

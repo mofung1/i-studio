@@ -352,7 +352,15 @@ func (q *taskQueue) generateLinearBatches(ctx context.Context, id string, input 
 func (q *taskQueue) generateModuleBatches(ctx context.Context, id string, input map[string]any, counts map[string]int, run *generationRun) ([]string, []string, error) {
 	batchSize := imageRequestBatchSize
 	savedHint := stringValue(input["moduleHint"], "")
-	defer func() { input["moduleHint"] = savedHint }()
+	savedModule, hadModule := input["generationModule"]
+	defer func() {
+		input["moduleHint"] = savedHint
+		if hadModule {
+			input["generationModule"] = savedModule
+		} else {
+			delete(input, "generationModule")
+		}
+	}()
 
 	modules, err := generationModuleOrder(input, counts)
 	if err != nil {
@@ -367,6 +375,7 @@ func (q *taskQueue) generateModuleBatches(ctx context.Context, id string, input 
 			size := min(remaining, batchSize)
 			input["count"] = size
 			input["taskId"] = fmt.Sprintf("%s-%s-%d", id, module, batch)
+			input["generationModule"] = module
 			input["moduleHint"] = configuredModuleHint(input, stringValue(input["taskType"], ""), module)
 			path, err := q.generateImage(ctx, id, input, len(images)+1, module, run, nil)
 			if err != nil {
