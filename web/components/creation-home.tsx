@@ -31,6 +31,11 @@ import { apiBaseUrl, getAccessToken, uploadAsset } from '@/lib/api'
 import { creationImageTypes, maxCreationImageSize } from '@/lib/creation-images'
 import { formatCredits } from '@/lib/credits'
 import { modelCompatibilityIssue } from '@/lib/generation-models'
+import {
+  clearHomeComposerDraft,
+  readHomeComposerDraft,
+  writeHomeComposerDraft,
+} from '@/lib/home-composer'
 import { inspirationWorkbenchUrl } from '@/lib/inspiration-handoff'
 import { studioToolUrl } from '@/lib/studio-navigation'
 
@@ -107,7 +112,26 @@ export function CreationHome() {
   const [referencePreview, setReferencePreview] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  // 先恢复再写回，避免首帧用空状态覆盖掉登录前暂存的输入。
+  const [composerRestored, setComposerRestored] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const saved = readHomeComposerDraft()
+    if (saved) {
+      setPrompt(saved.prompt)
+      setMode(saved.mode)
+      setEndpointId(saved.endpointId)
+      setAspectRatio(saved.aspectRatio)
+      setResolution(saved.resolution)
+    }
+    setComposerRestored(true)
+  }, [])
+
+  useEffect(() => {
+    if (!composerRestored) return
+    writeHomeComposerDraft({ prompt, mode, endpointId, aspectRatio, resolution })
+  }, [composerRestored, prompt, mode, endpointId, aspectRatio, resolution])
 
   useEffect(() => {
     const first = imageEndpoints[0]
@@ -236,6 +260,7 @@ export function CreationHome() {
       count: '1',
     })
     if (usesReference) query.set('referenceAsset', referenceAssetId)
+    clearHomeComposerDraft()
     router.push(`/studio?${query.toString()}`)
   }
 
