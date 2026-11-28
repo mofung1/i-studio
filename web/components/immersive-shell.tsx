@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AccountMenu } from './account-menu'
 import { Brand } from './brand'
 import { ThemeToggle } from './theme-toggle'
+import { useScrollLock } from './use-scroll-lock'
 import { WorkbenchRail, type StudioSection } from './workbench/workbench-rail'
 
 /**
@@ -26,6 +27,8 @@ export function ImmersiveShell({
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const restoreMenuFocusRef = useRef(true)
+  // 与其它弹窗共用 body 滚动锁，避免 html/body 两套锁互相覆盖。
+  useScrollLock(navigationOpen)
 
   useEffect(() => {
     if (!navigationOpen) return
@@ -66,14 +69,11 @@ export function ImmersiveShell({
       return
     }
     if (!dialog.open) dialog.showModal()
-    const previousOverflow = document.documentElement.style.overflow
-    document.documentElement.style.overflow = 'hidden'
     const frame = requestAnimationFrame(() => {
       if (dialog.open) closeButtonRef.current?.focus()
     })
     return () => {
       cancelAnimationFrame(frame)
-      document.documentElement.style.overflow = previousOverflow
     }
   }, [navigationOpen])
 

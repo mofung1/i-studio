@@ -40,6 +40,7 @@ import { loadStoredImage } from '@/lib/library'
 import { AuthenticatedImage, forgetProtectedImage, loadProtectedImage } from './authenticated-image'
 import { handleImageUploadPaste, ImageUpload, ImageUploadDropArea } from './image-upload'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
+import { lockBodyScroll } from './use-scroll-lock'
 
 const errorText = (error: unknown) =>
   error instanceof Error ? error.message : '请求失败，请稍后重试'
@@ -117,8 +118,7 @@ export function PromptReverseDialog({
     }
     previousFocus.current = document.activeElement as HTMLElement
     dialogRef.current?.showModal()
-    const oldOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const releaseScrollLock = lockBodyScroll()
     setError('')
     setNotice('')
 
@@ -211,7 +211,7 @@ export function PromptReverseDialog({
     }
     return () => {
       controller.abort()
-      document.body.style.overflow = oldOverflow
+      releaseScrollLock()
     }
   }, [open, request.revision, configurationAttempt, loggedIn, account.user?.id])
 

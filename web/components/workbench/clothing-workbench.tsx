@@ -31,6 +31,7 @@ import {
 } from '@/lib/clothing'
 import type { ClothingPlan, ClothingShot } from '@/lib/contracts'
 import { InfoDialog } from '@/components/info-dialog'
+import { lockBodyScroll } from '@/components/use-scroll-lock'
 import {
   resolvePresetEndpoint,
   type CreationPreset,
@@ -314,8 +315,7 @@ export function ClothingWorkbench({
     const panel = document.getElementById('creation-settings')
     const previousFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const releaseScrollLock = lockBodyScroll()
     function controls() {
       return Array.from(
         panel?.querySelectorAll<HTMLElement>(
@@ -345,7 +345,7 @@ export function ClothingWorkbench({
     }
     document.addEventListener('keydown', keyboard)
     return () => {
-      document.body.style.overflow = previousOverflow
+      releaseScrollLock()
       document.removeEventListener('keydown', keyboard)
       previousFocus?.focus()
     }

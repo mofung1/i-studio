@@ -2,8 +2,9 @@
 
 import { useLayoutEffect, useRef, type RefObject } from 'react'
 
+import { lockBodyScroll } from './use-scroll-lock'
+
 const dialogStack: HTMLElement[] = []
-let bodyOverflow = ''
 
 function canFocus(element: HTMLElement, dialog: HTMLElement) {
   if (element.tabIndex < 0 || element.closest('[hidden], [inert], [aria-hidden="true"]'))
@@ -42,9 +43,8 @@ export function useDialogFocus(
       document.activeElement instanceof HTMLElement ? document.activeElement : null
     const dialog = ref.current
     if (!dialog) return
-    if (dialogStack.length === 0) bodyOverflow = document.body.style.overflow
+    const releaseScrollLock = lockBodyScroll()
     dialogStack.push(dialog)
-    document.body.style.overflow = 'hidden'
     const focusable = () =>
       [
         ...dialog.querySelectorAll<HTMLElement>(
@@ -90,7 +90,7 @@ export function useDialogFocus(
       document.removeEventListener('keydown', onKeyDown)
       const index = dialogStack.indexOf(dialog)
       if (index !== -1) dialogStack.splice(index, 1)
-      if (dialogStack.length === 0) document.body.style.overflow = bodyOverflow
+      releaseScrollLock()
       if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true })
     }
   }, [ref, initialSelector, portalContainer, active])
