@@ -583,7 +583,13 @@ func (a *aiConfigStore) migrateLegacy() error {
 				if t.Key == def.Key {
 					if t.Content == t.DefaultContent {
 						switch t.Key {
-						case "rewrite", "image.product-main", "module.product-main.detail", "image.detail-page", "module.detail-page.hero", "module.detail-page.material":
+						case "rewrite",
+							"image.commerce.common", "image.product-main", "image.product-retouch",
+							"module.product-main.hero", "module.product-main.white", "module.product-main.scene", "module.product-main.detail",
+							"image.detail-page", "module.detail-page.hero", "module.detail-page.material",
+							"image.style.studio", "image.style.minimal", "image.style.fresh",
+							"image.style.technology", "image.style.guochao", "image.style.handdrawn",
+							"general.format":
 							state.Templates[i].Content = def.Content
 						}
 					}

@@ -103,8 +103,9 @@ func TestGeneralPromptUsesStyleAndReferenceStrength(t *testing.T) {
 	if !strings.Contains(promptForInput(input), "尽量保持") {
 		t.Fatal("high reference strength was ignored")
 	}
-	if promptForInput(map[string]any{"mode": "general", "taskType": "product-main", "prompt": "原始描述"}) != "原始描述" {
-		t.Fatal("unspecified style changed the original prompt")
+	unspecified := promptForInput(map[string]any{"mode": "general", "taskType": "product-main", "prompt": "原始描述"})
+	if !strings.HasPrefix(unspecified, "原始描述") || strings.Contains(unspecified, "创作风格：") {
+		t.Fatalf("unspecified style injected a style instruction: %s", unspecified)
 	}
 }
 
@@ -122,6 +123,10 @@ func TestPromptIgnoresUnknownEnhancements(t *testing.T) {
 }
 
 func TestImageProtocolOpenAIGenerationSubmit(t *testing.T) {
+	input := map[string]any{
+		"mode": "general", "model": "gpt-image-2", "prompt": "product photo", "aspectRatio": "1:1", "resolution": "1K", "count": 4,
+	}
+	expectedPrompt := promptForInput(input)
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path != "/v1/images/generations" {
 			t.Fatalf("unexpected path %s", request.URL.Path)
@@ -136,7 +141,7 @@ func TestImageProtocolOpenAIGenerationSubmit(t *testing.T) {
 		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
 			t.Fatalf("decode request: %v", err)
 		}
-		if body["model"] != "gpt-image-2" || body["prompt"] != "product photo" {
+		if body["model"] != "gpt-image-2" || body["prompt"] != expectedPrompt {
 			t.Fatalf("unexpected request body %#v", body)
 		}
 		if body["size"] != "1024x1024" {
@@ -149,9 +154,7 @@ func TestImageProtocolOpenAIGenerationSubmit(t *testing.T) {
 	})}
 
 	provider := &imageProtocolTransport{protocol: "openai_images", baseURL: "https://provider.example", apiKey: "test-key", client: client}
-	result, err := provider.Submit(context.Background(), map[string]any{
-		"model": "gpt-image-2", "prompt": "product photo", "aspectRatio": "1:1", "resolution": "1K", "count": 4,
-	})
+	result, err := provider.Submit(context.Background(), input)
 	if err != nil {
 		t.Fatalf("Submit() error = %v", err)
 	}
@@ -163,6 +166,14 @@ func TestImageProtocolOpenAIGenerationSubmit(t *testing.T) {
 func TestImageProtocolOpenAIEditSubmit(t *testing.T) {
 	sourceData := []byte("source-image")
 	secondSourceData := []byte("second-source-image")
+	input := map[string]any{
+		"mode": "general", "model": "gpt-image-2", "prompt": "edit product photo", "aspectRatio": "1:1", "resolution": "2K", "count": 4,
+		"sourceImages": []map[string]string{
+			{"mime": "image/png", "data": base64.StdEncoding.EncodeToString(sourceData)},
+			{"mime": "image/jpeg", "data": base64.StdEncoding.EncodeToString(secondSourceData)},
+		},
+	}
+	expectedPrompt := promptForInput(input)
 	client := &http.Client{Timeout: time.Second, Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path != "/v1/images/edits" {
 			t.Fatalf("unexpected path %s", request.URL.Path)
@@ -174,7 +185,7 @@ func TestImageProtocolOpenAIEditSubmit(t *testing.T) {
 			t.Fatalf("parse multipart request: %v", err)
 		}
 		for name, expected := range map[string]string{
-			"model": "gpt-image-2", "prompt": "edit product photo", "n": "1", "size": "2048x2048",
+			"model": "gpt-image-2", "prompt": expectedPrompt, "n": "1", "size": "2048x2048",
 		} {
 			if actual := request.FormValue(name); actual != expected {
 				t.Fatalf("unexpected %s field %q", name, actual)
@@ -200,13 +211,7 @@ func TestImageProtocolOpenAIEditSubmit(t *testing.T) {
 	})}
 
 	provider := &imageProtocolTransport{protocol: "openai_images", baseURL: "https://provider.example", apiKey: "test-key", client: client}
-	result, err := provider.Submit(context.Background(), map[string]any{
-		"model": "gpt-image-2", "prompt": "edit product photo", "aspectRatio": "1:1", "resolution": "2K", "count": 4,
-		"sourceImages": []map[string]string{
-			{"mime": "image/png", "data": base64.StdEncoding.EncodeToString(sourceData)},
-			{"mime": "image/jpeg", "data": base64.StdEncoding.EncodeToString(secondSourceData)},
-		},
-	})
+	result, err := provider.Submit(context.Background(), input)
 	if err != nil {
 		t.Fatalf("Submit() error = %v", err)
 	}

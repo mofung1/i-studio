@@ -439,31 +439,29 @@ var allowedModules = map[string]map[string]struct{}{
 }
 
 func promptForInput(input map[string]any) string {
-	if stringValue(input["taskType"], "") == "clothing-set" {
+	taskType := stringValue(input["taskType"], "")
+	if taskType == "clothing-set" {
 		return clothingPromptForInput(input)
 	}
 	mode := stringValue(input["mode"], "")
-	if mode == "commerce" || (mode == "" && stringValue(input["taskType"], "") != "") {
-		return commercePromptForInput(input)
+	if mode == "commerce" || (mode == "" && taskType != "") {
+		switch taskType {
+		case "product-main":
+			return productMainPromptForInput(input)
+		case "product-retouch":
+			return productRetouchPromptForInput(input)
+		default:
+			return commercePromptForInput(input)
+		}
 	}
-	prompt := strings.TrimSpace(stringValue(input["prompt"], ""))
-	if prompt == "" {
-		return ""
-	}
-	parts := []string{prompt}
-	style := stringValue(input["style"], "unspecified")
-	if style != "unspecified" && promptStyleLabels[style] != "" {
-		parts = append(parts, generationText(input, "image.style."+style))
-	}
-	if input["mode"] == "general" && len(sourceImages(input)) > 0 {
-		parts = append(parts, generationText(input, "image.reference."+stringValue(input["referenceStrength"], "medium")))
-	}
-	return joinPromptParts(parts, "。")
+	return generalPromptForInput(input)
 }
 
-func appendCommerceTextPolicy(parts *[]string, input map[string]any) {
+// commerceTextPolicy 返回本次应使用的文字规则 key 与渲染后的内容。
+// 产品精修和未指定语言都按“不新增文字”处理，只保留商品包装原有文字。
+func commerceTextPolicy(input map[string]any) (string, string) {
 	if stringValue(input["mode"], "") != "commerce" && stringValue(input["taskType"], "") == "" {
-		return
+		return "", ""
 	}
 	languages := map[string]string{
 		"zh-CN": "简体中文", "zh-TW": "繁体中文", "en": "英语", "ja": "日语", "ko": "韩语",
@@ -474,9 +472,17 @@ func appendCommerceTextPolicy(parts *[]string, input map[string]any) {
 		language = "none"
 	}
 	if language == "none" {
-		*parts = append(*parts, generationText(input, "image.text.none"))
-	} else if name := languages[language]; name != "" {
-		*parts = append(*parts, renderPrompt(generationText(input, "image.text.language"), map[string]string{"language": name}))
+		return "image.text.none", generationText(input, "image.text.none")
+	}
+	if name := languages[language]; name != "" {
+		return "image.text.language", renderPrompt(generationText(input, "image.text.language"), map[string]string{"language": name})
+	}
+	return "", ""
+}
+
+func appendCommerceTextPolicy(parts *[]string, input map[string]any) {
+	if _, text := commerceTextPolicy(input); text != "" {
+		*parts = append(*parts, text)
 	}
 }
 
